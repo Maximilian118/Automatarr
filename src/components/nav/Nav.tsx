@@ -14,6 +14,7 @@ const Nav: React.FC = () => {
   const [value, setValue] = useState(0)
 
   const handleChange = (e: SyntheticEvent, newValue: number) => {
+    e.preventDefault()
     setValue(newValue)
   }
 
