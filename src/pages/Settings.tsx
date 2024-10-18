@@ -1,7 +1,6 @@
 import React from "react"
-import './_main.scss'
 
-const Main: React.FC = () => {
+const Settings: React.FC = () => {
   return (
     <main>
       
@@ -9,4 +8,4 @@ const Main: React.FC = () => {
   )
 }
 
-export default Main
+export default Settings

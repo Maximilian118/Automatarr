@@ -31,5 +31,11 @@ body {
     width: 100%;
     height: 100%;
     @include mixins.flexbox-column;
+
+    main {
+      width: 100%;
+      flex-grow: 1;
+      @include mixins.flexbox-column;
+    }
   }
 }

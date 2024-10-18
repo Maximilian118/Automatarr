@@ -2,6 +2,8 @@ import React, { SyntheticEvent, useState } from 'react'
 import "./_nav.scss"
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
+import { useNavigate } from 'react-router-dom'
+import { navItems } from './navUtility'
 
 const a11yProps = (index: number) => {
   return {
@@ -18,11 +20,19 @@ const Nav: React.FC = () => {
     setValue(newValue)
   }
 
+  const navigate = useNavigate()
+
   return (
     <nav>
       <Tabs value={value} onChange={handleChange}>
-        <Tab label="Stats" {...a11yProps(0)} />
-        <Tab label="Settings" {...a11yProps(1)} />
+        {navItems.map((item, i) => 
+          <Tab 
+            key={i}
+            label={item.text}
+            onClick={() => navigate(item.url)}
+            {...a11yProps(i)}
+          />
+        )}
       </Tabs>
     </nav>
   )

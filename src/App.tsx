@@ -2,9 +2,9 @@ import React, { useState } from 'react'
 import AppContext from './context'
 import "./scss/base.scss"
 import Nav from './components/nav/Nav'
-import Main from './components/main/main'
 import Footer from './components/footer/footer'
 import { CircularProgress } from '@mui/material'
+import Router from './Router'
 
 const App: React.FC = () => {
   const [ loading, setLoading ] = useState<boolean>(false)
@@ -12,7 +12,7 @@ const App: React.FC = () => {
   return (  
     <AppContext.Provider value={{ loading, setLoading }}>
       <Nav/>
-      {loading ? <CircularProgress/> : <Main/>}
+      {loading ? <CircularProgress/> : <Router/>}
       <Footer/>
     </AppContext.Provider>
   )
