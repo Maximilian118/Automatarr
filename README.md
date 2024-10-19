@@ -23,9 +23,18 @@ To run Automatarr using Docker, follow these steps:
    version: "3.3"
    services:
      automatarr:
-       image: ghcr.io/maximilian118/automatarr:latest
        container_name: automatarr
+       image: ghcr.io/maximilian118/automatarr:latest
        restart: always
        ports:
-         - "8090:8090"
+         - "8090:8090" # frontend
+         - "8091:8091" # backend
+       volumes:
+         - ./automatarr/database:/app/automatarr_database
+         - ./automatarr/logs:/app/automatarr_logs
    ```
+
+2. `docker-compose pull`
+3. `docker-compose up -d`
+
+If successful and the application is running a directory named `automatarr` will have been created along side the `docker-compose.yml` file. The `automatarr` directory contains the `database` directory where MongoDB is storing the local database and the `logs` directory where we can find all logs from the backend.

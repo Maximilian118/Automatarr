@@ -29,7 +29,7 @@ app.use(
 )
 
 // Create or use existing directory for database files
-const databasePath = path.join(__dirname, "..", "..", "database")
+const databasePath = path.join(__dirname, "..", "..", "automatarr_database")
 
 // Ensure the directory exists
 if (!fs.existsSync(databasePath)) {

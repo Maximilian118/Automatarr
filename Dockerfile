@@ -1,4 +1,9 @@
-FROM node:18-alpine
+FROM node:18-bullseye-slim
+
+# Install necessary packages for mongodb-memory-server
+RUN apt-get update && apt-get install -y \
+  curl \
+  && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory for the frontend
 WORKDIR /app/frontend
@@ -27,7 +32,7 @@ RUN npm install
 # Copy the rest of the backend files to the container
 COPY backend ./
 
-# Build the backend TypeScript files (you might want to add a build step here if you have it)
+# Build the backend TypeScript files
 RUN npm run build
 
 # Expose the ports for frontend and backend
