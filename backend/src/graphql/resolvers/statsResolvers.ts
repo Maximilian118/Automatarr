@@ -3,16 +3,25 @@ import Stats, { statsType } from "../../models/stats"
 
 const statsResolvers = {
   newStats: async (): Promise<statsType> => {
-    const stats = new Stats({}, (err: string) => {
+    // Check if a stats object already exists
+    const stats = await Stats.findOne()
+
+    // Throw error if a stats object exists
+    if (stats) {
+      logger.error("newStats: A stats object already exists!")
+      return stats
+    }
+
+    const newStats = new Stats({}, (err: string) => {
       if (err) {
         logger.error("newStats: Could not create new Stats.")
         throw new Error(err)
       }
     })
 
-    await stats.save()
+    await newStats.save()
 
-    return stats._doc
+    return newStats._doc
   },
   updateStats: async (args: { statsInput: statsType }): Promise<statsType> => {
     const {

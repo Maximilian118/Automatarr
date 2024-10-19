@@ -77,10 +77,17 @@ const startServer = async () => {
 
     // Start the server once MongoDB is connected
     const PORT = 8091
-    app.listen(PORT, () => logger.info(`Server started on port ${PORT}`))
+    app.listen(PORT, () => {
+      logger.info(`Server started on port ${PORT}`)
+      logger.info(`MongoDB URI: ${mongoUri}`)
+    })
   } catch (err) {
     logger.info(`Error starting MongoDB or server: ${err}`)
   }
+
+  // If first run, initialise stats and settings.
+  await Resolvers.getStats()
+  await Resolvers.getSettings()
 }
 
 // Start the application

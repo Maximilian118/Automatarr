@@ -3,16 +3,25 @@ import Settings, { settingsType } from "../../models/settings"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
-    const settings = new Settings({}, (err: string) => {
+    // Check if a settings object already exists
+    const settings = await Settings.findOne()
+
+    // Throw error if a settings object exists
+    if (settings) {
+      logger.error("newSettings: A settings object already exists!")
+      return settings
+    }
+
+    const newSettings = new Settings({}, (err: string) => {
       if (err) {
         logger.error("newSettings: Could not create new Settings.")
         throw new Error(err)
       }
     })
 
-    await settings.save()
+    await newSettings.save()
 
-    return settings._doc
+    return newSettings._doc
   },
   updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
     const {

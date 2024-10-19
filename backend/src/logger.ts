@@ -39,7 +39,7 @@ const logger = winston.createLogger({
     new DailyRotateFile({
       filename: path.join(logDirectory, "application-%DATE%.log"),
       level: "info",
-      datePattern: "YYYY-MM-DD",
+      datePattern: "DD-MM-YYYY",
       maxFiles: "5d",
       format: format.combine(
         format.printf(({ timestamp, level, message }) => {
@@ -52,7 +52,7 @@ const logger = winston.createLogger({
     new DailyRotateFile({
       filename: path.join(logDirectory, "error-%DATE%.log"),
       level: "warn", // and 'error'
-      datePattern: "YYYY-MM-DD",
+      datePattern: "DD-MM-YYYY",
       maxFiles: "14d",
       format: format.combine(
         format.printf(({ timestamp, level, message }) => {
@@ -64,7 +64,7 @@ const logger = winston.createLogger({
     // Daily rotated file for combined logs (everything)
     new DailyRotateFile({
       filename: path.join(logDirectory, "combined-%DATE%.log"),
-      datePattern: "YYYY-MM-DD",
+      datePattern: "DD-MM-YYYY",
       maxFiles: "5d",
       format: format.combine(
         format.printf(({ timestamp, level, message }) => {
