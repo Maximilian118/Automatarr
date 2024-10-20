@@ -6,9 +6,9 @@ const settingsResolvers = {
     // Check if a settings object already exists
     const settings = await Settings.findOne()
 
-    // Throw error if a settings object exists
+    // Return settings object if it already exists
     if (settings) {
-      logger.error("newSettings: A settings object already exists!")
+      logger.info("newSettings: Found settings object.")
       return settings
     }
 
@@ -20,6 +20,7 @@ const settingsResolvers = {
     })
 
     await newSettings.save()
+    logger.info("newSettings: New settings object created.")
 
     return newSettings._doc
   },

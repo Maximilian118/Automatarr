@@ -6,9 +6,9 @@ const statsResolvers = {
     // Check if a stats object already exists
     const stats = await Stats.findOne()
 
-    // Throw error if a stats object exists
+    // Return stats object if it already exists
     if (stats) {
-      logger.error("newStats: A stats object already exists!")
+      logger.info("newStats: Found stats object.")
       return stats
     }
 
@@ -20,6 +20,7 @@ const statsResolvers = {
     })
 
     await newStats.save()
+    logger.info("newStats: New stats object created.")
 
     return newStats._doc
   },

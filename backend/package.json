@@ -4,9 +4,9 @@
   "description": "Backend for automatarr",
   "main": "dist/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon dist/app.js",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/app.ts"
   },
   "author": "Maximilian Crosby",
   "license": "MIT",

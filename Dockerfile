@@ -5,39 +5,41 @@ RUN apt-get update && apt-get install -y \
   curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory for the frontend
+# Set working directory for the application
+WORKDIR /app
+
+# Install concurrently to run both servers simultaneously
+RUN npm install -g concurrently
+
+# --------------------
+# Build Frontend (Vite)
+# --------------------
 WORKDIR /app/frontend
-
-# Copy frontend package.json and package-lock.json to the container
 COPY frontend/package*.json ./
-
-# Install frontend dependencies
 RUN npm install
-
-# Copy the rest of the frontend files to the container
 COPY frontend ./
-
-# Build the frontend project
 RUN npm run build
 
-# Set the working directory for the backend
+# --------------------
+# Build Backend (Express/GraphQL)
+# --------------------
 WORKDIR /app/backend
-
-# Copy backend package.json and package-lock.json to the container
 COPY backend/package*.json ./
-
-# Install backend dependencies
 RUN npm install
-
-# Copy the rest of the backend files to the container
 COPY backend ./
-
-# Build the backend TypeScript files
 RUN npm run build
 
-# Expose the ports for frontend and backend
+# --------------------
+# Expose necessary ports
+# --------------------
+# Frontend (Vite)
 EXPOSE 8090
+# Backend (GraphQL/Express)
 EXPOSE 8091
 
-# Command to start the backend application
-CMD ["node", "dist/app.js"]
+# --------------------
+# Run both Frontend and Backend with concurrently
+# --------------------
+CMD concurrently \
+  "npm run --prefix /app/frontend start" \
+  "node /app/backend/dist/app.js"

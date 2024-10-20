@@ -86,9 +86,24 @@ const startServer = async () => {
   }
 
   // If first run, initialise stats and settings.
-  await Resolvers.getStats()
-  await Resolvers.getSettings()
+  await Resolvers.newStats()
+  await Resolvers.newSettings()
 }
+
+// Error handling for uncaught exceptions and unhandled rejections
+process.on("unhandledRejection", (reason) => {
+  logger.error("Unhandled Rejection:", reason)
+  setTimeout(() => {
+    process.exit(1) // Exit to allow nodemon to restart
+  }, 5000) // Restart after 5 seconds
+})
+
+process.on("uncaughtException", (error) => {
+  logger.error("Uncaught Exception:", error)
+  setTimeout(() => {
+    process.exit(1) // Exit to allow nodemon to restart
+  }, 5000) // Restart after 5 seconds
+})
 
 // Start the application
 startServer()
