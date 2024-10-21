@@ -12,6 +12,7 @@ const statsResolvers = {
       return stats
     }
 
+    // Create a new stats object
     const newStats = new Stats({}, (err: string) => {
       if (err) {
         logger.error("newStats: Could not create new Stats.")
@@ -19,6 +20,7 @@ const statsResolvers = {
       }
     })
 
+    // Push stats object to the databse
     await newStats.save()
     logger.info("newStats: New stats object created.")
 
@@ -27,15 +29,15 @@ const statsResolvers = {
   updateStats: async (args: { statsInput: statsType }): Promise<statsType> => {
     const {
       _id,
-      Radarr_total,
-      Radarr_queue,
-      Radarr_missing,
-      Sonarr_total,
-      Sonarr_queue,
-      Sonarr_missing,
-      Lidarr_total,
-      Lidarr_queue,
-      Lidarr_missing,
+      radarr_total,
+      radarr_queue,
+      radarr_missing,
+      sonarr_total,
+      sonarr_queue,
+      sonarr_missing,
+      lidarr_total,
+      lidarr_queue,
+      lidarr_missing,
     } = args.statsInput
 
     // Find stats object by ID
@@ -48,15 +50,15 @@ const statsResolvers = {
     }
 
     // Update all the things
-    stats.Radarr_total = Radarr_total
-    stats.Radarr_queue = Radarr_queue
-    stats.Radarr_missing = Radarr_missing
-    stats.Sonarr_total = Sonarr_total
-    stats.Sonarr_queue = Sonarr_queue
-    stats.Sonarr_missing = Sonarr_missing
-    stats.Lidarr_total = Lidarr_total
-    stats.Lidarr_queue = Lidarr_queue
-    stats.Lidarr_missing = Lidarr_missing
+    stats.radarr_total = radarr_total
+    stats.radarr_queue = radarr_queue
+    stats.radarr_missing = radarr_missing
+    stats.sonarr_total = sonarr_total
+    stats.sonarr_queue = sonarr_queue
+    stats.sonarr_missing = sonarr_missing
+    stats.lidarr_total = lidarr_total
+    stats.lidarr_queue = lidarr_queue
+    stats.lidarr_missing = lidarr_missing
 
     // Save the updated object
     await stats.save()

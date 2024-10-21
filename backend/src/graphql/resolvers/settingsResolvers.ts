@@ -12,6 +12,7 @@ const settingsResolvers = {
       return settings
     }
 
+    // Create a new settings object
     const newSettings = new Settings({}, (err: string) => {
       if (err) {
         logger.error("newSettings: Could not create new Settings.")
@@ -19,6 +20,7 @@ const settingsResolvers = {
       }
     })
 
+    // Push settings object to the database
     await newSettings.save()
     logger.info("newSettings: New settings object created.")
 
@@ -27,16 +29,16 @@ const settingsResolvers = {
   updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
     const {
       _id,
-      Radarr_URL,
-      Radarr_KEY,
-      Sonarr_URL,
-      Sonarr_KEY,
-      Lidarr_URL,
-      Lidarr_KEY,
-      Import_Blocked,
-      Wanted_Missing,
-      Import_Blocked_Loop,
-      Wanted_Missing_Loop,
+      radarr_URL,
+      radarr_KEY,
+      sonarr_URL,
+      sonarr_KEY,
+      lidarr_URL,
+      lidarr_KEY,
+      import_blocked,
+      wanted_missing,
+      import_blocked_loop,
+      wanted_missing_loop,
       qBittorrent_URL,
     } = args.settingsInput
 
@@ -50,16 +52,16 @@ const settingsResolvers = {
     }
 
     // Update all the things
-    settings.Radarr_URL = Radarr_URL
-    settings.Radarr_KEY = Radarr_KEY
-    settings.Sonarr_URL = Sonarr_URL
-    settings.Sonarr_KEY = Sonarr_KEY
-    settings.Lidarr_URL = Lidarr_URL
-    settings.Lidarr_KEY = Lidarr_KEY
-    settings.Import_Blocked = Import_Blocked
-    settings.Wanted_Missing = Wanted_Missing
-    settings.Import_Blocked_Loop = Import_Blocked_Loop
-    settings.Wanted_Missing_Loop = Wanted_Missing_Loop
+    settings.radarr_URL = radarr_URL
+    settings.radarr_KEY = radarr_KEY
+    settings.sonarr_URL = sonarr_URL
+    settings.sonarr_KEY = sonarr_KEY
+    settings.lidarr_URL = lidarr_URL
+    settings.lidarr_KEY = lidarr_KEY
+    settings.import_blocked = import_blocked
+    settings.wanted_missing = wanted_missing
+    settings.import_blocked_loop = import_blocked_loop
+    settings.wanted_missing_loop = wanted_missing_loop
     settings.qBittorrent_URL = qBittorrent_URL
 
     // Save the updated object

@@ -8,6 +8,7 @@ import corsHandler from "./middleware/corsHandler"
 import path from "path"
 import fs from "fs"
 import logger from "./logger"
+import { dynamicLoop } from "./shared/utility"
 
 // Initialise express.
 const app = express()
@@ -85,9 +86,16 @@ const startServer = async () => {
     logger.info(`Error starting MongoDB or server: ${err}`)
   }
 
-  // If first run, initialise stats and settings.
+  // If first run, initialise stats and settings
   await Resolvers.newStats()
   await Resolvers.newSettings()
+
+  // Main loops
+  dynamicLoop("import_blocked_loop", async (settings) => {
+    if (settings.wanted_missing) {
+      await Resolvers.search_wanted_missing(settings)
+    }
+  })
 }
 
 // Error handling for uncaught exceptions and unhandled rejections

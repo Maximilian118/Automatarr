@@ -4,16 +4,16 @@ import { ObjectId } from "mongodb"
 
 export interface settingsType {
   _id: ObjectId
-  Radarr_URL: string
-  Radarr_KEY: string
-  Sonarr_URL: string
-  Sonarr_KEY: string
-  Lidarr_URL: string
-  Lidarr_KEY: string
-  Import_Blocked: boolean
-  Wanted_Missing: boolean
-  Import_Blocked_Loop: number
-  Wanted_Missing_Loop: number
+  radarr_URL: string
+  radarr_KEY: string
+  sonarr_URL: string
+  sonarr_KEY: string
+  lidarr_URL: string
+  lidarr_KEY: string
+  import_blocked: boolean
+  wanted_missing: boolean
+  import_blocked_loop: number
+  wanted_missing_loop: number
   qBittorrent_URL: string
   created_at: string
   updated_at: string
@@ -21,16 +21,16 @@ export interface settingsType {
 }
 
 const settingsSchema = new mongoose.Schema<settingsType>({
-  Radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API
-  Radarr_KEY: { type: String, default: "" }, // API KEY for Radarr
-  Sonarr_URL: { type: String, default: "" }, // URL including port to reach Sonarr API
-  Sonarr_KEY: { type: String, default: "" }, // API KEY for Sonarr
-  Lidarr_URL: { type: String, default: "" }, // URL including port to reach Lidarr API
-  Lidarr_KEY: { type: String, default: "" }, // API KEY for Lidarr
-  Import_Blocked: { type: Boolean, default: true }, // Enable or disable automation of files with importBlocked in queue
-  Wanted_Missing: { type: Boolean, default: true }, // Enable or disable automation of searching for missing and monitored library items
-  Import_Blocked_Loop: { type: Number, default: 10 }, // Loop timer for importBlocked
-  Wanted_Missing_Loop: { type: Number, default: 240 }, // Loop timer for wanted missing search
+  radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API
+  radarr_KEY: { type: String, default: "" }, // API KEY for Radarr
+  sonarr_URL: { type: String, default: "" }, // URL including port to reach Sonarr API
+  sonarr_KEY: { type: String, default: "" }, // API KEY for Sonarr
+  lidarr_URL: { type: String, default: "" }, // URL including port to reach Lidarr API
+  lidarr_KEY: { type: String, default: "" }, // API KEY for Lidarr
+  import_blocked: { type: Boolean, default: true }, // Enable or disable automation of files with importBlocked in queue
+  wanted_missing: { type: Boolean, default: true }, // Enable or disable automation of searching for missing and monitored library items
+  import_blocked_loop: { type: Number, default: 10 }, // Loop timer for importBlocked
+  wanted_missing_loop: { type: Number, default: 240 }, // Loop timer for wanted missing search
   qBittorrent_URL: { type: String, default: "" }, // URL including port to reach qBittorrent API
   created_at: { type: String, default: moment().format() }, // When Settings was created.
   updated_at: { type: String, default: moment().format() }, // When Settings was updated.
