@@ -77,8 +77,8 @@ const startServer = async () => {
     await mongoose.connect(mongoUri)
 
     // Start the server once MongoDB is connected
-    const PORT = 8091
-    app.listen(PORT, () => {
+    const PORT = Number(process.env.PORT) || 8091
+    app.listen(PORT, "0.0.0.0", () => {
       logger.info(`Server started on port ${PORT}`)
       logger.info(`MongoDB URI: ${mongoUri}`)
     })
@@ -88,12 +88,12 @@ const startServer = async () => {
 
   // If first run, initialise stats and settings
   await Resolvers.newStats()
-  const startSettings = await Resolvers.newSettings()
+  await Resolvers.newSettings()
 
   // Check connection to each API
-  await Resolvers.checkRadarr(startSettings)
-  await Resolvers.checkSonarr(startSettings)
-  await Resolvers.checkLidarr(startSettings)
+  await Resolvers.checkRadarr()
+  await Resolvers.checkSonarr()
+  await Resolvers.checkLidarr()
 
   // Main loops
   dynamicLoop("import_blocked_loop", async (settings) => {

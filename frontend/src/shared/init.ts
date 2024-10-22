@@ -30,3 +30,11 @@ export const initSettingsErrors = (): settingsErrorType => {
 
   return errObj
 }
+
+// Initialise object for API connection checks
+export const initValidAPI = {
+  radarr: false,
+  sonarr: false,
+  lidarr: false,
+  qBittorrent: false,
+}

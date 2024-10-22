@@ -1,10 +1,47 @@
-import { settingsType } from "../../models/settings"
+import Settings from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
 
+// Check for skip API check cases
+const CheckAPISkip = (name: string, URL: string, KEY: string): boolean => {
+  if (!URL && !KEY) {
+    logger.warn(`${name} | No Settings. Skipping...`)
+    return true
+  }
+
+  if (!URL) {
+    logger.warn(`${name} | No URL set. Skipping...`)
+    return true
+  } else if (!/^(http:\/\/)?(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}(\/)?$/.test(URL)) {
+    logger.warn(`${name} | URL invalid. Skipping...`)
+    return true
+  }
+
+  if (!KEY) {
+    logger.warn(`${name} | No KEY set. Skipping...`)
+    return true
+  } else if (!/^[a-fA-F0-9]{32}$/.test(KEY)) {
+    logger.warn(`${name} | KEY invalid. Skipping...`)
+    return true
+  }
+
+  return false
+}
+
 const checkResolvers = {
-  checkRadarr: async (settings: settingsType): Promise<number> => {
+  checkRadarr: async (): Promise<number> => {
     let status = 500
+
+    const settings = await Settings.findOne()
+
+    if (!settings) {
+      logger.error("checkRadarr: No Settings object was found.")
+      return 500
+    }
+
+    if (CheckAPISkip("Radarr", settings.radarr_URL, settings.radarr_KEY)) {
+      return 500
+    }
 
     try {
       const res = await axios.get(
@@ -23,8 +60,19 @@ const checkResolvers = {
 
     return status
   },
-  checkSonarr: async (settings: settingsType): Promise<number> => {
+  checkSonarr: async (): Promise<number> => {
     let status = 500
+
+    const settings = await Settings.findOne()
+
+    if (!settings) {
+      logger.error("checkSonarr: No Settings object was found.")
+      return 500
+    }
+
+    if (CheckAPISkip("Sonarr", settings.sonarr_URL, settings.sonarr_KEY)) {
+      return 500
+    }
 
     try {
       const res = await axios.get(
@@ -43,8 +91,19 @@ const checkResolvers = {
 
     return status
   },
-  checkLidarr: async (settings: settingsType): Promise<number> => {
+  checkLidarr: async (): Promise<number> => {
     let status = 500
+
+    const settings = await Settings.findOne()
+
+    if (!settings) {
+      logger.error("checkLidarr: No Settings object was found.")
+      return 500
+    }
+
+    if (CheckAPISkip("Lidarr", settings.lidarr_URL, settings.lidarr_KEY)) {
+      return 500
+    }
 
     try {
       const res = await axios.get(

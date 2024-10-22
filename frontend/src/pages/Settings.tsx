@@ -3,24 +3,41 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import { Send } from "@mui/icons-material"
-import { initSettingsErrors } from "../shared/init"
+import { initSettingsErrors, initValidAPI } from "../shared/init"
 import { inputLabel, updateInput } from "../shared/formValidation"
-import { settingsErrorType } from "../shared/types"
+import { settingsErrorType, validAPIType } from "../shared/types"
+import { checkLidarr, checkRadarr, checkSonarr } from "../shared/requests/checkAPIRequests"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
+  const [ validAPI, setValidAPI ] = useState<validAPIType>(initValidAPI)
+
+  // Check the status of each API
+  const checkAPI = async () => {
+    await checkRadarr(setValidAPI)
+    await checkSonarr(setValidAPI)
+    await checkLidarr(setValidAPI)
+  }
 
   // Get latest settings from db on page load
   useEffect(() => {
-    getSettings(setLoading, setSettings)
+    const checkSettings = async () => {
+      // initialise the form with the latest settings
+      await getSettings(setLoading, setSettings)
+      // Check the status of each API
+      await checkAPI()
+    } 
+
+    checkSettings()
   }, [setSettings])
 
   // Update settings object in db on submit
-  const onSubmitHandler = (e: FormEvent<HTMLFormElement>) => {
+  const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    updateSettings(setLoading, settings, setSettings)
+    await updateSettings(setLoading, settings, setSettings)
+    await checkAPI()
   }
 
   return (
@@ -30,6 +47,7 @@ const Settings: React.FC = () => {
         name="radarr_URL"
         value={settings.radarr_URL}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.radarr ? "success" : "primary"}
         error={!!formErr.radarr_URL}
       />
       <TextField 
@@ -37,6 +55,7 @@ const Settings: React.FC = () => {
         name="radarr_KEY"
         value={settings.radarr_KEY}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.radarr ? "success" : "primary"}
         error={!!formErr.radarr_KEY}
       />
       <TextField 
@@ -44,6 +63,7 @@ const Settings: React.FC = () => {
         name="sonarr_URL"
         value={settings.sonarr_URL}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.sonarr ? "success" : "primary"}
         error={!!formErr.sonarr_URL}
       />
       <TextField 
@@ -51,6 +71,7 @@ const Settings: React.FC = () => {
         name="sonarr_KEY"
         value={settings.sonarr_KEY}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.sonarr ? "success" : "primary"}
         error={!!formErr.sonarr_KEY}
       />
       <TextField 
@@ -58,6 +79,7 @@ const Settings: React.FC = () => {
         name="lidarr_URL"
         value={settings.lidarr_URL}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.lidarr ? "success" : "primary"}
         error={!!formErr.lidarr_URL}
       />
       <TextField 
@@ -65,6 +87,7 @@ const Settings: React.FC = () => {
         name="lidarr_KEY"
         value={settings.lidarr_KEY}
         onChange={(e) => updateInput(e, setSettings, setFormErr)}
+        color={validAPI.lidarr ? "success" : "primary"}
         error={!!formErr.lidarr_KEY}
       />
       <Button 

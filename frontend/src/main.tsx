@@ -5,8 +5,11 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import App from './App.tsx'
 import axios from 'axios'
 
-// Base URL of backend
-axios.defaults.baseURL = "http://localhost:8091/graphql"
+const protocol = window.location.protocol; // e.g., http: or https:
+const host = window.location.hostname; // e.g., localhost or the IP address
+
+// URL for all graphql requests.
+axios.defaults.baseURL = `${protocol}//${host}:8091/graphql`
 
 // MUI style
 const theme = createTheme({

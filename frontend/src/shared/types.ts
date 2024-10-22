@@ -31,3 +31,10 @@ export interface settingsErrorType {
   created_at: string
   updated_at: string
 }
+
+export interface validAPIType {
+  radarr: boolean
+  sonarr: boolean
+  lidarr: boolean
+  qBittorrent: boolean
+}
