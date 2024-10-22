@@ -1,13 +1,15 @@
 import { createContext, Dispatch, SetStateAction } from "react"
+import { settingsType } from "./shared/types"
+import { initSettings } from "./shared/init"
 
 export interface AppContextType {
-  loading: boolean
-  setLoading: Dispatch<SetStateAction<boolean>>
+  settings: settingsType
+  setSettings: Dispatch<SetStateAction<settingsType>>
 }
 
 const AppContext = createContext<AppContextType>({
-  loading: false,
-  setLoading: () => false,
+  settings: initSettings,
+  setSettings: () => initSettings,
 })
 
 export default AppContext

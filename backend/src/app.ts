@@ -88,7 +88,12 @@ const startServer = async () => {
 
   // If first run, initialise stats and settings
   await Resolvers.newStats()
-  await Resolvers.newSettings()
+  const startSettings = await Resolvers.newSettings()
+
+  // Check connection to each API
+  await Resolvers.checkRadarr(startSettings)
+  await Resolvers.checkSonarr(startSettings)
+  await Resolvers.checkLidarr(startSettings)
 
   // Main loops
   dynamicLoop("import_blocked_loop", async (settings) => {

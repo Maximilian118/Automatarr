@@ -9,6 +9,9 @@ const Schema = buildSchema(`
   type RootQuery {
     getStats: Stats
     getSettings: Settings
+    checkRadarr: Int!
+    checkSonarr: Int!
+    checkLidarr: Int!
   }
 
   type RootMutation {

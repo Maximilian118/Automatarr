@@ -1,30 +1,30 @@
 const statsSchema = `
   type Stats {
-    _id: String!
-    Radarr_total: [Int!]
-    Radarr_queue: [Int!]
-    Radarr_missing: [Int!]
-    Sonarr_total: [Int!]
-    Sonarr_queue: [Int!]
-    Sonarr_missing: [Int!]
-    Lidarr_total: [Int!]
-    Lidarr_queue: [Int!]
-    Lidarr_missing: [Int!]
+    _id: ID!
+    radarr_total: [Int!]
+    radarr_queue: [Int!]
+    radarr_missing: [Int!]
+    sonarr_total: [Int!]
+    sonarr_queue: [Int!]
+    sonarr_missing: [Int!]
+    lidarr_total: [Int!]
+    lidarr_queue: [Int!]
+    lidarr_missing: [Int!]
     created_at: String!
     updated_at: String!
   }
 
   input statsInput {
-    _id: String!
-    Radarr_total: [Int!]
-    Radarr_queue: [Int!]
-    Radarr_missing: [Int!]
-    Sonarr_total: [Int!]
-    Sonarr_queue: [Int!]
-    Sonarr_missing: [Int!]
-    Lidarr_total: [Int!]
-    Lidarr_queue: [Int!]
-    Lidarr_missing: [Int!]
+    _id: ID!
+    radarr_total: [Int!]
+    radarr_queue: [Int!]
+    radarr_missing: [Int!]
+    sonarr_total: [Int!]
+    sonarr_queue: [Int!]
+    sonarr_missing: [Int!]
+    lidarr_total: [Int!]
+    lidarr_queue: [Int!]
+    lidarr_missing: [Int!]
   }
 `
 export default statsSchema

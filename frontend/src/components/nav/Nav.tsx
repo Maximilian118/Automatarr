@@ -1,8 +1,8 @@
-import React, { SyntheticEvent, useState } from 'react'
+import React, { SyntheticEvent, useEffect, useState } from 'react'
 import "./_nav.scss"
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { navItems } from './navUtility'
 
 const a11yProps = (index: number) => {
@@ -21,6 +21,15 @@ const Nav: React.FC = () => {
   }
 
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // Effect to set value based on the current location
+  useEffect(() => {
+    const currentTabIndex = navItems.findIndex(item => location.pathname === item.url)
+    if (currentTabIndex !== -1 && currentTabIndex !== value) {
+      setValue(currentTabIndex)
+    }
+  }, [location.pathname, value])
 
   return (
     <nav>

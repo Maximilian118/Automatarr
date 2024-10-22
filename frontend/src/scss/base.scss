@@ -32,10 +32,30 @@ body {
     height: 100%;
     @include mixins.flexbox-column;
 
-    main {
+    main, form {
       width: 100%;
       flex-grow: 1;
-      @include mixins.flexbox-column;
+      @include mixins.flexbox-start-column;
+      overflow-y: auto;
+      padding: 40px 0;
+      box-sizing: border-box;
     }
+
+    form {
+      >:not(:last-child) {
+        margin-bottom: 20px;
+      }
+
+      .MuiTextField-root {
+        width: 40%;
+      }
+    }
+  }
+}
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 768px) {
+  .MuiTextField-root {
+    width: 80% !important;
   }
 }

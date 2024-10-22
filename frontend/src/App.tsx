@@ -2,17 +2,18 @@ import React, { useState } from 'react'
 import AppContext from './context'
 import "./scss/base.scss"
 import Nav from './components/nav/Nav'
-import Footer from './components/footer/footer'
-import { CircularProgress } from '@mui/material'
+import Footer from './components/footer/Footer'
 import Router from './Router'
+import { settingsType } from './shared/types'
+import { initSettings } from './shared/init'
 
 const App: React.FC = () => {
-  const [ loading, setLoading ] = useState<boolean>(false)
+  const [ settings, setSettings ] = useState<settingsType>(initSettings)
 
   return (  
-    <AppContext.Provider value={{ loading, setLoading }}>
+    <AppContext.Provider value={{ settings, setSettings }}>
       <Nav/>
-      {loading ? <CircularProgress/> : <Router/>}
+      <Router/>
       <Footer/>
     </AppContext.Provider>
   )

@@ -21,11 +21,11 @@ export interface settingsType {
 }
 
 const settingsSchema = new mongoose.Schema<settingsType>({
-  radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API
+  radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API. Example: localhost:7878/api/v3
   radarr_KEY: { type: String, default: "" }, // API KEY for Radarr
-  sonarr_URL: { type: String, default: "" }, // URL including port to reach Sonarr API
+  sonarr_URL: { type: String, default: "" }, // URL including port to reach Sonarr API. Example: localhost:8989/api/v3
   sonarr_KEY: { type: String, default: "" }, // API KEY for Sonarr
-  lidarr_URL: { type: String, default: "" }, // URL including port to reach Lidarr API
+  lidarr_URL: { type: String, default: "" }, // URL including port to reach Lidarr API. Example: localhost:8686/api/v1
   lidarr_KEY: { type: String, default: "" }, // API KEY for Lidarr
   import_blocked: { type: Boolean, default: true }, // Enable or disable automation of files with importBlocked in queue
   wanted_missing: { type: Boolean, default: true }, // Enable or disable automation of searching for missing and monitored library items
