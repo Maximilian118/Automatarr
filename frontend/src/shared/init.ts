@@ -5,15 +5,24 @@ export const initSettings = {
   _id: "",
   radarr_URL: "",
   radarr_KEY: "",
+  radarr_API_version: "v3",
+  radarr_active: false,
   sonarr_URL: "",
   sonarr_KEY: "",
+  sonarr_API_version: "v3",
+  sonarr_active: false,
   lidarr_URL: "",
   lidarr_KEY: "",
+  lidarr_API_version: "v1",
+  lidarr_active: false,
   import_blocked: true,
   wanted_missing: true,
   import_blocked_loop: 10,
   wanted_missing_loop: 240,
   qBittorrent_URL: "",
+  qBittorrent_username: "",
+  qBittorrent_password: "",
+  qBittorrent_active: false,
   created_at: "",
   updated_at: "",
 }
@@ -29,12 +38,4 @@ export const initSettingsErrors = (): settingsErrorType => {
   }
 
   return errObj
-}
-
-// Initialise object for API connection checks
-export const initValidAPI = {
-  radarr: false,
-  sonarr: false,
-  lidarr: false,
-  qBittorrent: false,
 }

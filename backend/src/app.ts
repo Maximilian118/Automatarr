@@ -87,16 +87,20 @@ const startServer = async () => {
   }
 
   // If first run, initialise stats and settings
-  await Resolvers.newStats()
-  await Resolvers.newSettings()
+  await Resolvers.newStats() // Stats to display in stats tab
+  await Resolvers.newSettings() // Settings for the app
+  await Resolvers.newData() // Data retrieved from every API
 
   // Check connection to each API
-  await Resolvers.checkRadarr()
-  await Resolvers.checkSonarr()
-  await Resolvers.checkLidarr()
+  await Resolvers.checkRadarr() // No data passed = Will fetch settings data from db
+  await Resolvers.checkSonarr() // No data passed = Will fetch settings data from db
+  await Resolvers.checkLidarr() // No data passed = Will fetch settings data from db
+
+  // Collect the latest data from each API
+  await Resolvers.getData()
 
   // Main loops
-  dynamicLoop("import_blocked_loop", async (settings) => {
+  dynamicLoop("wanted_missing_loop", async (settings) => {
     if (settings.wanted_missing) {
       await Resolvers.search_wanted_missing(settings)
     }

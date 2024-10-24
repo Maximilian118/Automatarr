@@ -31,15 +31,24 @@ const settingsResolvers = {
       _id,
       radarr_URL,
       radarr_KEY,
+      radarr_API_version,
+      radarr_active,
       sonarr_URL,
       sonarr_KEY,
+      sonarr_API_version,
+      sonarr_active,
       lidarr_URL,
       lidarr_KEY,
+      lidarr_API_version,
+      lidarr_active,
       import_blocked,
       wanted_missing,
       import_blocked_loop,
       wanted_missing_loop,
       qBittorrent_URL,
+      qBittorrent_username,
+      qBittorrent_password,
+      qBittorrent_active,
     } = args.settingsInput
 
     // Find settings object by ID
@@ -54,15 +63,24 @@ const settingsResolvers = {
     // Update all the things
     settings.radarr_URL = radarr_URL
     settings.radarr_KEY = radarr_KEY
+    settings.radarr_API_version = radarr_API_version
+    settings.radarr_active = radarr_active
     settings.sonarr_URL = sonarr_URL
     settings.sonarr_KEY = sonarr_KEY
+    settings.sonarr_API_version = sonarr_API_version
+    settings.sonarr_active = sonarr_active
     settings.lidarr_URL = lidarr_URL
     settings.lidarr_KEY = lidarr_KEY
+    settings.lidarr_API_version = lidarr_API_version
+    settings.lidarr_active = lidarr_active
     settings.import_blocked = import_blocked
     settings.wanted_missing = wanted_missing
     settings.import_blocked_loop = import_blocked_loop
     settings.wanted_missing_loop = wanted_missing_loop
     settings.qBittorrent_URL = qBittorrent_URL
+    settings.qBittorrent_username = qBittorrent_username
+    settings.qBittorrent_password = qBittorrent_password
+    settings.qBittorrent_active = qBittorrent_active
 
     // Save the updated object
     await settings.save()

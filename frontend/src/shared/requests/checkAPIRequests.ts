@@ -1,106 +1,131 @@
-import { Dispatch, SetStateAction } from "react"
 import axios from "axios"
-import { validAPIType } from "../types"
-
-const checkAPIResHandler = (
-  setValidAPI: Dispatch<SetStateAction<validAPIType>>,
-  name: "radarr" | "sonarr" | "lidarr",
-  outcome: boolean,
-) => {
-  setValidAPI((prevAPIs) => {
-    return {
-      ...prevAPIs,
-      [name]: outcome,
-    }
-  })
-}
-
-export const checkRadarr = async (
-  setValidAPI: Dispatch<SetStateAction<validAPIType>>,
-): Promise<void> => {
+import { settingsType } from "../types"
+// Checks if API connection is working. If settings not passed, check with params in db.
+export const checkRadarr = async (settings?: settingsType): Promise<boolean> => {
+  // prettier-ignore
   try {
-    const res = await axios.post("", {
-      query: `
-        query {
-          checkRadarr
-        }
-      `,
-    })
+    const res = await axios.post("", settings ? 
+      {
+        variables: {
+          URL: settings?.radarr_URL,
+          KEY: settings?.radarr_KEY,
+        },
+        query: `
+          query CheckNewRadarr( $URL: String!, $KEY: String! ) {
+            checkNewRadarr( URL: $URL, KEY: $KEY )
+          }
+        `,
+      } : {
+        query: `
+          query {
+            checkRadarr
+          }
+        `,
+      }
+    )
+    // Retrieve name of request for logging
+    const APIName = Object.keys(res.data.data)[0]
 
     if (res.data.errors) {
-      console.error(`checkRadarr Error: ${res.data.errors[0].message}`)
-      checkAPIResHandler(setValidAPI, "radarr", false)
+      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
+      return false
     } else {
-      if (Number(res.data.data.checkRadarr) === 200) {
-        checkAPIResHandler(setValidAPI, "radarr", true)
-        console.log(`checkRadarr: OK!`)
+      if (Number(res.data.data[APIName]) === 200) {
+        console.log(`${APIName}: OK!`)
+        return true
       } else {
-        checkAPIResHandler(setValidAPI, "radarr", false)
-        console.log(`checkRadarr status: ${res.data.data.checkRadarr}`)
+        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        return false
       }
     }
   } catch (err) {
-    console.error(`checkRadarr Error: ${err}`)
-    checkAPIResHandler(setValidAPI, "radarr", false)
+    console.error(`Radarr API Check Error: ${err}`)
+    return false
   }
 }
-
-export const checkSonarr = async (
-  setValidAPI: Dispatch<SetStateAction<validAPIType>>,
-): Promise<void> => {
+// Checks if API connection is working. If settings not passed, check with params in db.
+export const checkSonarr = async (settings?: settingsType): Promise<boolean> => {
+  // prettier-ignore
   try {
-    const res = await axios.post("", {
-      query: `
-        query {
-          checkSonarr
-        }
-      `,
-    })
+    const res = await axios.post("", settings ? 
+      {
+        variables: {
+          URL: settings?.sonarr_URL,
+          KEY: settings?.sonarr_KEY,
+        },
+        query: `
+          query CheckNewSonarr( $URL: String!, $KEY: String! ) {
+            checkNewSonarr( URL: $URL, KEY: $KEY )
+          }
+        `,
+      } : {
+        query: `
+          query {
+            checkSonarr
+          }
+        `,
+      }
+    )
+    // Retrieve name of request for logging
+    const APIName = Object.keys(res.data.data)[0]
 
     if (res.data.errors) {
-      console.error(`checkSonarr Error: ${res.data.errors[0].message}`)
-      checkAPIResHandler(setValidAPI, "sonarr", false)
+      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
+      return false
     } else {
-      if (Number(res.data.data.checkSonarr) === 200) {
-        checkAPIResHandler(setValidAPI, "sonarr", true)
-        console.log(`checkSonarr: OK!`)
+      if (Number(res.data.data[APIName]) === 200) {
+        console.log(`${APIName}: OK!`)
+        return true
       } else {
-        checkAPIResHandler(setValidAPI, "sonarr", false)
-        console.log(`checkSonarr status: ${res.data.data.checkSonarr}`)
+        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        return false
       }
     }
   } catch (err) {
-    console.error(`checkSonarr Error: ${err}`)
-    checkAPIResHandler(setValidAPI, "sonarr", false)
+    console.error(`Sonarr API Check Error: ${err}`)
+    return false
   }
 }
-
-export const checkLidarr = async (
-  setValidAPI: Dispatch<SetStateAction<validAPIType>>,
-): Promise<void> => {
-  try {
-    const res = await axios.post("", {
-      query: `
-        query {
-          checkLidarr
-        }
-      `,
-    })
-
+// Checks if API connection is working. If settings not passed, check with params in db.
+export const checkLidarr = async (settings?: settingsType): Promise<boolean> => {
+  // prettier-ignore
+  try { 
+    const res = await axios.post("", settings ?
+      {
+        variables: {
+          URL: settings?.lidarr_URL,
+          KEY: settings?.lidarr_KEY,
+        },
+        query: `
+          query CheckNewLidarr( $URL: String!, $KEY: String! ) {
+            checkNewLidarr( URL: $URL, KEY: $KEY )
+          }
+        `,
+      } : {
+        query: `
+          query {
+            checkLidarr
+          }
+        `,
+      }
+    )
+    // Retrieve name of request for logging
+    const APIName = Object.keys(res.data.data)[0]
+    
     if (res.data.errors) {
-      console.error(`checkLidarr Error: ${res.data.errors[0].message}`)
-      checkAPIResHandler(setValidAPI, "lidarr", false)
+      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
+      return false
     } else {
-      if (Number(res.data.data.checkLidarr) === 200) {
-        checkAPIResHandler(setValidAPI, "lidarr", true)
-        console.log(`checkLidarr: OK!`)
+      if (Number(res.data.data[APIName]) === 200) {
+        console.log(`${APIName}: OK!`)
+        return true
       } else {
-        checkAPIResHandler(setValidAPI, "lidarr", false)
-        console.log(`checkLidarr status: ${res.data.data.checkLidarr}`)
+        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        return false
       }
     }
   } catch (err) {
-    console.error(`checkLidarr Error: ${err}`)
-    checkAPIResHandler(setValidAPI, "lidarr", false)
+    console.error(`Lidarr API Check Error: ${err}`)
+    return false
   }
 }

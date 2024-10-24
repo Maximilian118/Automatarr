@@ -1,6 +1,7 @@
 import Settings from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
+import { cleanUrl } from "../../shared/utility"
 
 // Check for skip API check cases
 const CheckAPISkip = (name: string, URL: string, KEY: string): boolean => {
@@ -28,6 +29,11 @@ const CheckAPISkip = (name: string, URL: string, KEY: string): boolean => {
   return false
 }
 
+type checkNewType = {
+  URL: string
+  KEY: string
+}
+
 const checkResolvers = {
   checkRadarr: async (): Promise<number> => {
     let status = 500
@@ -45,7 +51,7 @@ const checkResolvers = {
 
     try {
       const res = await axios.get(
-        `${settings.radarr_URL}/system/status?apikey=${settings.radarr_KEY}`,
+        cleanUrl(`${settings.radarr_URL}/api?apikey=${settings.radarr_KEY}`),
       )
 
       status = res.status
@@ -76,7 +82,7 @@ const checkResolvers = {
 
     try {
       const res = await axios.get(
-        `${settings.sonarr_URL}/system/status?apikey=${settings.sonarr_KEY}`,
+        cleanUrl(`${settings.sonarr_URL}/api?apikey=${settings.sonarr_KEY}`),
       )
 
       status = res.status
@@ -107,7 +113,7 @@ const checkResolvers = {
 
     try {
       const res = await axios.get(
-        `${settings.lidarr_URL}/system/status?apikey=${settings.lidarr_URL}`,
+        cleanUrl(`${settings.lidarr_URL}/api?apikey=${settings.lidarr_URL}`),
       )
 
       status = res.status
@@ -117,6 +123,72 @@ const checkResolvers = {
         logger.error(`checkLidarr: ${err}`)
       } else {
         logger.error(`checkLidarr: ${err}`)
+      }
+    }
+
+    return status
+  },
+  checkNewRadarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+    let status = 500
+
+    if (CheckAPISkip("Radarr", URL, KEY)) {
+      return 500
+    }
+
+    try {
+      const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
+
+      status = res.status
+      logger.info(`Radarr | OK!`)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        logger.error(`checkNewRadarr: ${err}`)
+      } else {
+        logger.error(`checkNewRadarr: ${err}`)
+      }
+    }
+
+    return status
+  },
+  checkNewSonarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+    let status = 500
+
+    if (CheckAPISkip("Sonarr", URL, KEY)) {
+      return 500
+    }
+
+    try {
+      const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
+
+      status = res.status
+      logger.info(`Sonarr | OK!`)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        logger.error(`checkNewSonarr: ${err}`)
+      } else {
+        logger.error(`checkNewSonarr: ${err}`)
+      }
+    }
+
+    return status
+  },
+  checkNewLidarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+    let status = 500
+
+    if (CheckAPISkip("Lidarr", URL, KEY)) {
+      return 500
+    }
+
+    try {
+      const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
+
+      status = res.status
+      logger.info(`Lidarr | OK!`)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        logger.error(`checkNewLidarr: ${err}`)
+      } else {
+        logger.error(`checkNewLidarr: ${err}`)
       }
     }
 
