@@ -45,18 +45,17 @@ body {
       >:not(:last-child) {
         margin-bottom: 20px;
       }
-
-      .MuiTextField-root {
-        width: 40%;
-        max-width: 400px;
-      }
     }
   }
 }
 
 /* Styles for mobile devices */
 @media only screen and (max-width: 768px) {
-  .MuiTextField-root {
-    width: 80% !important;
+  body {
+    #root {
+      form {
+        padding: 20px 0;
+      }
+    }
   }
 }

@@ -1,0 +1,45 @@
+@use '../../../scss/variables';
+@use '../../../scss/mixins';
+
+.input-model {
+  width: 420px;
+  background: variables.$off-black;
+  @include mixins.flexbox-space-between-column;
+  padding: 20px 30px 30px;
+  box-sizing: border-box;
+  border-radius: 20px;
+
+  .input-model-top {
+    width: 100%;
+    @include mixins.flexbox-space-between;
+    margin-bottom: 30px !important;
+
+    .input-model-top-left {
+      @include mixins.flexbox-start;
+
+      img {
+        height: 30px;
+        margin-right: 15px;
+      }
+    }
+  }
+
+  >:not(:last-child) {
+    margin-bottom: 20px;
+  }
+
+  .MuiTextField-root {
+    width: 100%;
+  }
+}
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 768px) {
+  .input-model {
+    width: 100% !important;
+    max-width: none;
+    border-radius: 0px;
+    border-left: 0;
+    border-right: 0;
+  }
+}

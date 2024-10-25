@@ -1,3 +1,6 @@
+@use '../../scss/variables';
+
 nav {
   width: 100%;
+  background: variables.$off-black;
 }
