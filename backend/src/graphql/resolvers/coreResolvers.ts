@@ -3,6 +3,7 @@ import axios from "axios"
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
 import { activeAPIsArr, cleanUrl } from "../../shared/utility"
+import { commandData } from "../../models/data"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -10,6 +11,16 @@ const coreResolvers = {
     const activeAPIs = await activeAPIsArr(settings)
     // Loop through all of the active API's and send the relevant command request to search for wanted missing
     activeAPIs.forEach(async (c) => {
+      if (c.data.commands) {
+        const alreadySearching = (commands: commandData[]) =>
+          commands.some((c) => c.name.toLowerCase().startsWith("missing"))
+
+        if (alreadySearching(c.data.commands)) {
+          logger.info(`search_wanted_missing: ${c.name} is already searching.`)
+          return
+        }
+      }
+
       // We require the commands list for this API for this resolver
       if (!c.data.commandList) {
         logger.warn(`search_wanted_missing: No commands could be found for ${c.name}`)
