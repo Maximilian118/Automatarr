@@ -86,8 +86,7 @@ const startServer = async () => {
     logger.info(`Error starting MongoDB or server: ${err}`)
   }
 
-  // If first run, initialise stats and settings
-  await Resolvers.newStats() // Stats to display in stats tab
+  // If first run, initialise settings and data
   await Resolvers.newSettings() // Settings for the app
   await Resolvers.newData() // Data retrieved from every API
 
@@ -100,9 +99,16 @@ const startServer = async () => {
   await Resolvers.getData()
 
   // Main loops
+  // Check for monitored content in libraries that has not been downloaded and is wanted missing
   dynamicLoop("wanted_missing_loop", async (settings) => {
     if (settings.wanted_missing) {
       await Resolvers.search_wanted_missing(settings)
+    }
+  })
+  // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
+  dynamicLoop("import_blocked_loop", async (settings) => {
+    if (settings.import_blocked) {
+      await Resolvers.import_blocked_handler(settings)
     }
   })
 }

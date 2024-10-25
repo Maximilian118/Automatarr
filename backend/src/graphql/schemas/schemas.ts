@@ -1,15 +1,12 @@
 import { buildSchema } from "graphql"
-import statsSchema from "./statsSchema"
 import settingsSchema from "./settingsSchema"
 import dataSchema from "./dataSchema"
 
 const Schema = buildSchema(`
-  ${statsSchema}
   ${settingsSchema}
   ${dataSchema}
 
   type RootQuery {
-    getStats: Stats
     getSettings: Settings
     getData: Data
     checkRadarr: Int!
@@ -21,8 +18,6 @@ const Schema = buildSchema(`
   }
 
   type RootMutation {
-    newStats: Stats
-    updateStats(statsInput: statsInput): Stats
     newSettings: Settings
     updateSettings(settingsInput: settingsInput): Settings
   }

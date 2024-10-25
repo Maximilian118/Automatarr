@@ -1,8 +1,9 @@
-import Data, { commandData, commandList, commandsData, dataType } from "../../models/data"
+import Data, { commandList, commandsData, dataType } from "../../models/data"
 import { activeAPIsArr, cleanUrl, scrapeCommandsFromURL } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
+import { commandData } from "../../types"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -27,7 +28,7 @@ const dataResolvers = {
     await newData.save()
     logger.info("newData: New data object created.")
 
-    return newData._doc
+    return newData
   },
   getData: async (): Promise<dataType | void> => {
     // Get latest settings

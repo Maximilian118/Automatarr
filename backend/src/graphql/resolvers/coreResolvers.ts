@@ -1,9 +1,9 @@
-// import axios from "axios"
 import axios from "axios"
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import { activeAPIsArr, cleanUrl } from "../../shared/utility"
-import { commandData } from "../../models/data"
+import { activeAPIsArr, cleanUrl, getQueueItem } from "../../shared/utility"
+import Data from "../../models/data"
+import { commandData } from "../../types"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -53,6 +53,40 @@ const coreResolvers = {
         logger.error(`search_wanted_missing: ${c.name} error: ${err}.`)
       }
     })
+  },
+  import_blocked_handler: async (settings: settingsType): Promise<void> => {
+    // Only get data for API's that have been checked and are active
+    const activeAPIs = await activeAPIsArr(settings)
+    // Loop through all of the active API's
+    for (const API of activeAPIs) {
+      // Create a downloadQueue object and retrieve the latest queue data
+      const queueItem = await getQueueItem(API)
+
+      if (!queueItem) {
+        logger.error(`import_blocked_handler: ${API.name} download queue could not be retrieved.`)
+        continue
+      }
+
+      // Retrieve the data object from the db
+      const data = await Data.findOne()
+
+      if (!data) {
+        logger.error("import_blocked_handler: Could not find data object in db.")
+        continue
+      }
+
+      // Find the matching API download queue and update it
+      data.downloadQueues = data.downloadQueues.map((item) =>
+        item.name === queueItem.name ? queueItem : item,
+      )
+
+      // If there is no matching API download queue, add it
+      if (!data.downloadQueues.some((item) => item.name === queueItem.name)) {
+        data.downloadQueues.push(queueItem)
+      }
+
+      await data.save()
+    }
   },
 }
 

@@ -1,8 +1,9 @@
 import axios from "axios"
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
-import Data, { commandData } from "../models/data"
+import Data, { downloadQueue } from "../models/data"
 import { settingsType } from "../models/settings"
+import { commandData, DownloadStatus } from "../types"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -131,5 +132,21 @@ export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] |
   } catch (err) {
     console.error(`scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${err}`)
     return []
+  }
+}
+
+// Create a downloadQueue object and retrieve the latest queue data
+export const getQueueItem = async (API: APIData): Promise<downloadQueue | void> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/queue?page=1&pageSize=1000&apikey=${API.data.KEY}`,
+      ),
+    )
+
+    return { name: API.name, data: res.data.records as DownloadStatus[] }
+  } catch (err) {
+    logger.error(`import_blocked_handler: ${API.name} Error: ${err}`)
+    return
   }
 }
