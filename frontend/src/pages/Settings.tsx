@@ -6,7 +6,7 @@ import { initSettingsErrors } from "../shared/init"
 import { inputLabel, updateInput } from "../shared/formValidation"
 import { settingsErrorType } from "../shared/types"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
-import InputModel from "../components/model/inputModel/inputModel"
+import InputModel from "../components/model/inputModel/InputModel"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)

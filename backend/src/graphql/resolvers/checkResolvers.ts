@@ -113,7 +113,7 @@ const checkResolvers = {
 
     try {
       const res = await axios.get(
-        cleanUrl(`${settings.lidarr_URL}/api?apikey=${settings.lidarr_URL}`),
+        cleanUrl(`${settings.lidarr_URL}/api?apikey=${settings.lidarr_KEY}`),
       )
 
       status = res.status
