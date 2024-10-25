@@ -2,7 +2,7 @@ import mongoose from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
 
-// All of the data for a single command retrieved from the backend
+// All of the data for a single command
 export type commandData = {
   name: string
   commandName: string
@@ -28,10 +28,17 @@ export type commandsData = {
   data: commandData[]
 }
 
+// A name to catagorise a list of available commands
+export type commandList = {
+  name: string
+  data: string[]
+}
+
 // Main dataType
 export interface dataType {
   _id: ObjectId
   commands: commandsData[]
+  commandList: commandList[]
   created_at: string
   updated_at: string
   _doc: dataType
@@ -67,9 +74,15 @@ const commandsSchema = new mongoose.Schema<commandsData>({
   data: { type: [commandSchema], required: true }, // Array of commandData
 })
 
+const commandListSchema = new mongoose.Schema<commandList>({
+  name: { type: String, required: true },
+  data: { type: [String], required: true }, // Array of commandData
+})
+
 // Data Mongoose Schema
 const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
+  commandList: { type: [commandListSchema], default: [] },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

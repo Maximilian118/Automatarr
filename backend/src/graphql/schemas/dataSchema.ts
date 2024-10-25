@@ -20,12 +20,18 @@ const dataSchema = `
 
   type Commands {
     name: String!
-    data: [Command!]!
+    data: [Command!]
+  }
+
+  type CommandList {
+    name: String!
+    data: [String!]
   }
 
   type Data {
     _id: ID!
-    commands: [Commands!]!
+    commands: [Commands!]
+    commandList: [CommandList!]
     created_at: String!
     updated_at: String!
   }

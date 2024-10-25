@@ -1,3 +1,4 @@
+import axios from "axios"
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
 import Data, { commandData } from "../models/data"
@@ -47,6 +48,7 @@ type APIDataFields = {
   API_version: string
   active: boolean
   commands?: commandData[]
+  commandList?: string[]
 }
 
 type APIData = {
@@ -97,9 +99,37 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
         ...API,
         data: {
           ...API.data,
-          commands: data.commands.filter((c) => API.name !== c.name).flatMap((c) => c.data),
+          commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
+          commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
         },
       }
     })
+  }
+}
+
+// Function to scrape commands from a given URL
+export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] | []> => {
+  const url = `https://raw.githubusercontent.com/${APIname}/${APIname}/develop/frontend/src/Commands/commandNames.js`
+
+  try {
+    // Fetch the content from the provided URL
+    const { data } = await axios.get(url)
+
+    // Use regex to find the command values
+    const commandRegex = /'([\w\s]+)'/g
+    const commands: string[] = []
+
+    let match
+    // Loop through all matches and populate the array
+    while ((match = commandRegex.exec(data)) !== null) {
+      const value = match[1]
+      commands.push(value)
+    }
+
+    // Return the command array
+    return commands
+  } catch (err) {
+    console.error(`scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${err}`)
+    return []
   }
 }

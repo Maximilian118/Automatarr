@@ -1,8 +1,8 @@
 // import axios from "axios"
+import axios from "axios"
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import { activeAPIsArr } from "../../shared/utility"
-import { commandData } from "../../models/data"
+import { activeAPIsArr, cleanUrl } from "../../shared/utility"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -11,43 +11,36 @@ const coreResolvers = {
     // Loop through all of the active API's and send the relevant command request to search for wanted missing
     activeAPIs.forEach(async (c) => {
       // We require the commands list for this API for this resolver
-      if (!c.data.commands) {
+      if (!c.data.commandList) {
         logger.warn(`search_wanted_missing: No commands could be found for ${c.name}`)
         return
       }
-      // Find the command required to triggure a search for wanted missing content
-      const missingSearchString = (cs: commandData[]) => {
-        // Find the first occurrence of a name starting with 'missing' (case-insensitive)
-        const missingCommand = cs.find((c) => {
-          // console.log(c.name.toLowerCase())
-          return c.name.toLowerCase().startsWith("missing")
-        })
-        // If found, return the name; otherwise, return undefined
-        return missingCommand ? missingCommand.name : undefined
-      }
-
-      if (!missingSearchString(c.data.commands)) {
+      // Retrieve the first string that matches startsWith('missing')
+      const missingSearchString = (arr: string[]) =>
+        arr.find((str) => str.toLowerCase().startsWith("missing"))
+      // If no string is found, return.
+      if (!missingSearchString(c.data.commandList)) {
         logger.warn("search_wanted_missing: Could not retrieve search command.")
         return
       }
+      // Send the command to search for missing content
+      try {
+        await axios.post(
+          cleanUrl(`${c.data.URL}/api/${c.data.API_version}/command?apikey=${c.data.KEY}`),
+          {
+            name: missingSearchString(c.data.commandList),
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        )
 
-      // try {
-      //   await axios.post(
-      //     cleanUrl(`${c.data.URL}/api/${c.data.API_version}/command?apikey=${c.data.KEY}`),
-      //     {
-      //       name: c.command,
-      //     },
-      //     {
-      //       headers: {
-      //         "Content-Type": "application/json",
-      //       },
-      //     },
-      //   )
-
-      //   logger.info(`search_wanted_missing: ${c.name} search started.`)
-      // } catch (err) {
-      //   logger.error(`search_wanted_missing: ${c.name} error: ${err}.`)
-      // }
+        logger.info(`search_wanted_missing: ${c.name} search started.`)
+      } catch (err) {
+        logger.error(`search_wanted_missing: ${c.name} error: ${err}.`)
+      }
     })
   },
 }

@@ -1,5 +1,5 @@
-import Data, { commandData, commandsData, dataType } from "../../models/data"
-import { activeAPIsArr, cleanUrl } from "../../shared/utility"
+import Data, { commandData, commandList, commandsData, dataType } from "../../models/data"
+import { activeAPIsArr, cleanUrl, scrapeCommandsFromURL } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
@@ -41,8 +41,14 @@ const dataResolvers = {
     // Only get data for active APIs
     const activeAPIs = await activeAPIsArr(settings._doc)
 
-    // Loop through all of the activeAPIs and return all of the possible commands
-    const commandLists: commandsData[] = await Promise.all(
+    // If there are no command lists, return. Don't want to erase what's in the db.
+    if (activeAPIs.length === 0) {
+      logger.error("getData: No active API's. Blimey!")
+      return
+    }
+
+    // Loop through all of the activeAPIs and return all of the latest commands
+    const commands: commandsData[] = await Promise.all(
       activeAPIs.map(async (API) => {
         try {
           const res = await axios.get(
@@ -57,10 +63,24 @@ const dataResolvers = {
       }),
     )
 
-    // If there are no command lists, return. We shouldn't have made it this far anyway!
-    if (commandLists.length === 0) {
-      logger.error("getData: No commands could be found for any API. Blimey!")
-      return
+    // If there are no current commands, return. We shouldn't have made it this far anyway!
+    if (commands.length === 0) {
+      logger.error("getData: No latest commands could be found for any API. Blimey!")
+    }
+
+    // Loop through all of the activeAPIs and return all of the latest commands
+    const commandList: commandList[] = await Promise.all(
+      activeAPIs.map(async (API) => {
+        return {
+          name: API.name,
+          data: await scrapeCommandsFromURL(API.name),
+        }
+      }),
+    )
+
+    // If there are no available commands, return. We shouldn't have made it this far anyway!
+    if (commandList.length === 0) {
+      logger.error("getData: No available commands could be found for any API. Blimey!")
     }
 
     // Retreive the data object from the db
@@ -71,7 +91,8 @@ const dataResolvers = {
       return
     }
 
-    data.commands = commandLists
+    data.commands = commands.length === 0 ? data.commands : commands
+    data.commandList = commandList.length === 0 ? data.commandList : commandList
 
     const newData = await data.save()
 
