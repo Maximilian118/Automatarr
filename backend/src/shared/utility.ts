@@ -1,7 +1,7 @@
 import axios from "axios"
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
-import Data, { downloadQueue } from "../models/data"
+import Data, { downloadQueue, rootFolder } from "../models/data"
 import { settingsType } from "../models/settings"
 import { commandData, DownloadStatus } from "../types"
 
@@ -146,7 +146,31 @@ export const getQueueItem = async (API: APIData): Promise<downloadQueue | void> 
 
     return { name: API.name, data: res.data.records as DownloadStatus[] }
   } catch (err) {
-    logger.error(`import_blocked_handler: ${API.name} Error: ${err}`)
+    logger.error(`getQueueItem: ${API.name} Error: ${err}`)
     return
   }
+}
+
+// Retrieve the root folder from the API
+export const getRootFolder = async (API: APIData): Promise<rootFolder | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/rootfolder?apikey=${API.data.KEY}`),
+    )
+    return {
+      name: API.name,
+      data: res.data[0],
+    }
+  } catch (err) {
+    logger.error(`getRootFolder: ${API.name} Error: ${err}`)
+    return
+  }
+}
+
+// Retrieve the root folders from all active APIs
+export const getAllRootFolders = async (activeAPIs: APIData[]): Promise<rootFolder[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getRootFolder(API)))
+
+  // Filter out undefined values to ensure results is of type rootFolder[]
+  return results.filter((folder): folder is rootFolder => folder !== undefined)
 }

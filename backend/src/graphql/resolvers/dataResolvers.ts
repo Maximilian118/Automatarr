@@ -1,5 +1,10 @@
 import Data, { commandList, commandsData, dataType } from "../../models/data"
-import { activeAPIsArr, cleanUrl, scrapeCommandsFromURL } from "../../shared/utility"
+import {
+  activeAPIsArr,
+  cleanUrl,
+  getAllRootFolders,
+  scrapeCommandsFromURL,
+} from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
@@ -44,7 +49,7 @@ const dataResolvers = {
 
     // If there are no command lists, return. Don't want to erase what's in the db.
     if (activeAPIs.length === 0) {
-      logger.error("getData: No active API's. Blimey!")
+      logger.error("getData: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻")
       return
     }
 
@@ -94,6 +99,7 @@ const dataResolvers = {
 
     data.commands = commands.length === 0 ? data.commands : commands
     data.commandList = commandList.length === 0 ? data.commandList : commandList
+    data.rootFolders = await getAllRootFolders(activeAPIs)
 
     const newData = await data.save()
 

@@ -3,7 +3,7 @@ import logger from "../../logger"
 import { settingsType } from "../../models/settings"
 import { activeAPIsArr, cleanUrl, getQueueItem } from "../../shared/utility"
 import Data from "../../models/data"
-import { commandData } from "../../types"
+import { commandData, DownloadStatus } from "../../types"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -85,7 +85,37 @@ const coreResolvers = {
         data.downloadQueues.push(queueItem)
       }
 
+      // Save the latest download queue data to the db
       await data.save()
+
+      // Find all of the items in the queue that have trackedDownloadState of importBlocked
+      const importBlockedArr: DownloadStatus[] = queueItem.data.filter(
+        (item) => item.trackedDownloadState === "importBlocked",
+      )
+
+      // Find all of the items in the queue that have trackedDownloadState of importBlocked
+      // const importFailedArr: DownloadStatus[] = queueItem.data.filter(
+      //   (item) => item.trackedDownloadState === "importFailed",
+      // )
+
+      // Loop through all of the files that have importBlocked
+      for (const blockedFile of importBlockedArr) {
+        const oneMessage = blockedFile.statusMessages.length < 2
+        const RadarrIDConflict = blockedFile.statusMessages.some((status) =>
+          status.messages.some((message) => message.includes("release was matched to movie by ID")),
+        )
+        const SonarrIDConflict = blockedFile.statusMessages.some((status) =>
+          status.messages.some((message) =>
+            message.includes("release was matched to series by ID"),
+          ),
+        )
+
+        if (oneMessage && RadarrIDConflict) {
+        }
+
+        if (oneMessage && SonarrIDConflict) {
+        }
+      }
     }
   },
 }

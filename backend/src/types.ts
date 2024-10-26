@@ -87,3 +87,25 @@ export type commandData = {
   lastExecutionTime?: string
   id: number
 }
+
+export type unmappedFolders = {
+  name: string
+  path: string
+  relativePath: string
+}
+
+// Root Folder information
+export type rootFolderData = {
+  id: number
+  name?: string
+  path: string
+  accessible: boolean
+  freeSpace: number
+  totalSpace?: number
+  defaultTags?: number[]
+  unmappedFolders?: unmappedFolders[]
+  defaultNewItemMonitorOption?: string
+  defaultMonitorOption?: string
+  defaultQualityProfileId?: number
+  defaultMetadataProfileId?: number
+}

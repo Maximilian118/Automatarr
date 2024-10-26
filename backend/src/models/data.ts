@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
-import { commandData, DownloadStatus } from "../types"
+import { commandData, DownloadStatus, rootFolderData, unmappedFolders } from "../types"
 
 // A name to categorize each set of commands for a specific API
 export type commandsData = {
@@ -21,12 +21,19 @@ export type downloadQueue = {
   data: DownloadStatus[]
 }
 
+// A name to categorize the root folder for each API
+export type rootFolder = {
+  name: string
+  data: rootFolderData
+}
+
 // Main dataType
 export interface dataType extends Document {
   _id: ObjectId
   commands: commandsData[]
   commandList: commandList[]
   downloadQueues: downloadQueue[]
+  rootFolders: rootFolder[]
   created_at: string
   updated_at: string
 }
@@ -121,6 +128,29 @@ const commandSchema = new mongoose.Schema<commandData>({
   id: { type: Number, required: true },
 })
 
+// Define the unmappedFolders schema
+const unmappedFoldersSchema = new mongoose.Schema<unmappedFolders>({
+  name: { type: String, required: true }, // The name of the unmapped folder
+  path: { type: String, required: true }, // The full path of the unmapped folder
+  relativePath: { type: String, required: true }, // The relative path of the unmapped folder
+})
+
+// Define the rootFolderData schema
+const rootFolderDataSchema = new mongoose.Schema<rootFolderData>({
+  id: { type: Number, required: true }, // An identifier for the root folder
+  name: { type: String, required: false }, // Optional name for the root folder
+  path: { type: String, required: true }, // The path of the root folder
+  accessible: { type: Boolean, required: true }, // Whether the root folder is accessible
+  freeSpace: { type: Number, required: true }, // The amount of free space in the root folder
+  totalSpace: { type: Number, required: false }, // Optional total space of the root folder
+  defaultTags: { type: [Number], required: false }, // Optional array of default tags (numbers)
+  unmappedFolders: { type: [unmappedFoldersSchema], default: [] }, // Optional array of unmapped folders
+  defaultNewItemMonitorOption: { type: String, required: false }, // Optional default new item monitor option
+  defaultMonitorOption: { type: String, required: false }, // Optional default monitor option
+  defaultQualityProfileId: { type: Number, required: false }, // Optional default quality profile ID
+  defaultMetadataProfileId: { type: Number, required: false }, // Optional default metadata profile ID
+})
+
 const commandsSchema = new mongoose.Schema<commandsData>({
   name: { type: String, required: true },
   data: { type: [commandSchema], required: true }, // Array of commandData
@@ -131,10 +161,14 @@ const commandListSchema = new mongoose.Schema<commandList>({
   data: { type: [String], required: true }, // Array of commandData
 })
 
-// Download Queues Schema
 const downloadQueuesSchema = new mongoose.Schema<downloadQueue>({
   name: { type: String, required: true },
   data: { type: [downloadStatusSchema], required: true }, // Array of download statuses
+})
+
+const rootFoldersSchema = new mongoose.Schema<rootFolder>({
+  name: { type: String, required: true },
+  data: { type: rootFolderDataSchema, required: true }, // The root folder directory
 })
 
 // Data Mongoose Schema
@@ -142,6 +176,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
   commandList: { type: [commandListSchema], default: [] },
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
+  rootFolders: { type: [rootFoldersSchema], default: [] },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })
