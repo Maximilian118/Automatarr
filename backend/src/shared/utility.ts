@@ -63,6 +63,7 @@ type APIDataFields = {
   commandList?: string[]
   rootFolder?: rootFolderData
   library?: (Movie | Series | Artist)[]
+  episodes?: Episode[]
   missingWanted?: (Movie | Series | Artist)[]
 }
 
@@ -110,6 +111,8 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
     return activeApis
   } else {
     return activeApis.map((API) => {
+      const subData = data.libraries.find((c) => API.name === c.name)?.subData
+
       return {
         ...API,
         data: {
@@ -123,6 +126,7 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
           missingWanted: data.missingWanteds
             .filter((c) => API.name === c.name)
             .flatMap((c) => c.data as (Movie | Series | Artist)[]),
+          ...(subData ? { [getContentName(API, true, true)]: subData } : {}), // Add subData only if subData exists
         },
       }
     })
@@ -199,7 +203,8 @@ export const getAllRootFolders = async (activeAPIs: APIData[]): Promise<rootFold
 }
 
 // Return the name of the library content for one of the Starr apps
-export const getContentName = (API: APIData): string => {
+// Optionally, ask for an alternative to differ from the default return string
+export const getContentName = (API: APIData, alt?: boolean, plural?: boolean): string => {
   let content = "movie"
 
   switch (API.name) {
@@ -207,7 +212,7 @@ export const getContentName = (API: APIData): string => {
       content = "movie"
       break
     case "Sonarr":
-      content = "series" // dataset not checked
+      content = alt ? "episode" : "series" // dataset not checked
       break
     case "Lidarr":
       content = "artist"
@@ -215,6 +220,11 @@ export const getContentName = (API: APIData): string => {
     default:
       content = "movie"
       break
+  }
+
+  // If plural is true, add "s" to the end of the string unless it already ends with "s"
+  if (plural && !content.endsWith("s")) {
+    content += "s"
   }
 
   return content
