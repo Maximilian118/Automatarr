@@ -1,7 +1,10 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
-import { commandData, DownloadStatus, rootFolderData, unmappedFolders } from "../types"
+import { commandData, DownloadStatus, rootFolderData, unmappedFolders } from "../types/types"
+import { Movie } from "../types/movieTypes"
+import { Series } from "../types/seriesTypes"
+import { Artist } from "../types/artistTypes"
 
 // A name to categorize each set of commands for a specific API
 export type commandsData = {
@@ -27,6 +30,12 @@ export type rootFolder = {
   data: rootFolderData
 }
 
+// A name to categorize each library
+export type library = {
+  name: string
+  data: Movie[] | Series[] | Artist[]
+}
+
 // Main dataType
 export interface dataType extends Document {
   _id: ObjectId
@@ -34,6 +43,7 @@ export interface dataType extends Document {
   commandList: commandList[]
   downloadQueues: downloadQueue[]
   rootFolders: rootFolder[]
+  libraries: library[]
   created_at: string
   updated_at: string
 }
@@ -171,12 +181,18 @@ const rootFoldersSchema = new mongoose.Schema<rootFolder>({
   data: { type: rootFolderDataSchema, required: true }, // The root folder directory
 })
 
+const librariesSchema = new mongoose.Schema<library>({
+  name: { type: String, required: true },
+  data: { type: mongoose.Schema.Types.Mixed, required: true }, // No limitations on the structure
+})
+
 // Data Mongoose Schema
 const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
   commandList: { type: [commandListSchema], default: [] },
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
+  libraries: { type: [librariesSchema], default: [] },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

@@ -3,7 +3,7 @@ import logger from "../../logger"
 import { settingsType } from "../../models/settings"
 import { activeAPIsArr, cleanUrl, getQueueItem } from "../../shared/utility"
 import Data from "../../models/data"
-import { commandData, DownloadStatus } from "../../types"
+import { commandData, DownloadStatus } from "../../types/types"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -90,30 +90,32 @@ const coreResolvers = {
 
       // Find all of the items in the queue that have trackedDownloadState of importBlocked
       const importBlockedArr: DownloadStatus[] = queueItem.data.filter(
-        (item) => item.trackedDownloadState === "importBlocked",
+        (item) =>
+          item.trackedDownloadState === "importBlocked" ||
+          item.trackedDownloadState === "importFailed",
       )
 
-      // Find all of the items in the queue that have trackedDownloadState of importBlocked
-      // const importFailedArr: DownloadStatus[] = queueItem.data.filter(
-      //   (item) => item.trackedDownloadState === "importFailed",
-      // )
+      // Check for a certain reason/message for importBlocked/importFailed
+      const msgCheck = (status: DownloadStatus, msg: string) => {
+        return status.statusMessages.some((status) =>
+          status.messages.some((message) => message.includes(msg)),
+        )
+      }
 
-      // Loop through all of the files that have importBlocked
+      // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length < 2
-        const RadarrIDConflict = blockedFile.statusMessages.some((status) =>
-          status.messages.some((message) => message.includes("release was matched to movie by ID")),
-        )
-        const SonarrIDConflict = blockedFile.statusMessages.some((status) =>
-          status.messages.some((message) =>
-            message.includes("release was matched to series by ID"),
-          ),
-        )
+        const RadarrIDConflict = msgCheck(blockedFile, "release was matched to movie by ID")
+        const SonarrIDConflict = msgCheck(blockedFile, "release was matched to series by ID")
+        const missing = msgCheck(blockedFile, "not imported or missing")
 
         if (oneMessage && RadarrIDConflict) {
         }
 
         if (oneMessage && SonarrIDConflict) {
+        }
+
+        if (missing) {
         }
       }
     }

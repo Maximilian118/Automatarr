@@ -1,9 +1,12 @@
 import axios from "axios"
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
-import Data, { downloadQueue, rootFolder } from "../models/data"
+import Data, { downloadQueue, library, rootFolder } from "../models/data"
 import { settingsType } from "../models/settings"
-import { commandData, DownloadStatus } from "../types"
+import { commandData, DownloadStatus } from "../types/types"
+import { Series } from "../types/seriesTypes"
+import { Artist } from "../types/artistTypes"
+import { Movie } from "../types/movieTypes"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -173,4 +176,73 @@ export const getAllRootFolders = async (activeAPIs: APIData[]): Promise<rootFold
 
   // Filter out undefined values to ensure results is of type rootFolder[]
   return results.filter((folder): folder is rootFolder => folder !== undefined)
+}
+
+// Return the name of the library content for one of the Starr apps
+export const getContentName = (API: APIData): string => {
+  let content = "movie"
+
+  switch (API.name) {
+    case "Radarr":
+      content = "movie"
+      break
+    case "Sonarr":
+      content = "series" // dataset not checked
+      break
+    case "Lidarr":
+      content = "artist"
+      break
+    default:
+      content = "movie"
+      break
+  }
+
+  return content
+}
+
+// Retrieve the entire library of one of the Starr apps
+export const getLibrary = async (API: APIData): Promise<library | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/${getContentName(API)}?apikey=${API.data.KEY}`,
+      ),
+    )
+
+    return {
+      name: API.name,
+      data: res.data,
+    }
+  } catch (err) {
+    logger.info(`getLibrary: ${API.name} ${getContentName(API)} search error: ${err}`)
+    return
+  }
+}
+
+// Retrieve library from all active APIs
+export const getAllLibraries = async (activeAPIs: APIData[]): Promise<library[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getLibrary(API)))
+
+  // Filter out undefined values
+  return results.filter((lib): lib is library => lib !== undefined)
+}
+
+// Check if a file already exists in the API library
+export const existsInLibrary = async (
+  ID: number,
+  API: APIData,
+): Promise<Movie | Series | Artist | undefined> => {
+  try {
+    const res = await axios.get(
+      // prettier-ignore
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/${getContentName(API)}/${ID}?apikey=${API.data.KEY}`,
+      ),
+    )
+
+    return res.data
+  } catch (err) {
+    logger.info(`existsInLibrary: ${API.name} ${getContentName(API)} search error: ${err}`)
+    return
+  }
 }

@@ -2,13 +2,14 @@ import Data, { commandList, commandsData, dataType } from "../../models/data"
 import {
   activeAPIsArr,
   cleanUrl,
+  getAllLibraries,
   getAllRootFolders,
   scrapeCommandsFromURL,
 } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
-import { commandData } from "../../types"
+import { commandData } from "../../types/types"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -100,10 +101,9 @@ const dataResolvers = {
     data.commands = commands.length === 0 ? data.commands : commands
     data.commandList = commandList.length === 0 ? data.commandList : commandList
     data.rootFolders = await getAllRootFolders(activeAPIs)
+    data.libraries = await getAllLibraries(activeAPIs)
 
-    const newData = await data.save()
-
-    return newData
+    return await data.save()
   },
 }
 

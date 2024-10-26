@@ -71,7 +71,7 @@ const startServer = async () => {
 
   try {
     // Get the MongoDB URI
-    const mongoUri = mongoServer.getUri()
+    const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/automatarr"
 
     // Connect to MongoDB using the URI
     await mongoose.connect(mongoUri)
