@@ -241,7 +241,7 @@ export const getLibrary = async (API: APIData): Promise<library | undefined> => 
   }
 }
 
-// As Radarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
+// As Sonarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
 export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode[] | undefined> => {
   const seriesIDArr = data.libraries
     .filter((app) => API.name === app.name)
