@@ -5,6 +5,7 @@ import { commandData, DownloadStatus, rootFolderData, unmappedFolders } from "..
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
+import { Episode } from "../types/episodeTypes"
 
 // A name to categorize each set of commands for a specific API
 export type commandsData = {
@@ -34,6 +35,7 @@ export type rootFolder = {
 export type library = {
   name: string
   data: (Movie | Series | Artist)[]
+  subData?: Episode[] // Sonarr Episodes
 }
 
 // Main dataType
@@ -185,6 +187,7 @@ const rootFoldersSchema = new mongoose.Schema<rootFolder>({
 const librariesSchema = new mongoose.Schema<library>({
   name: { type: String, required: true },
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // No limitations on the structure
+  subData: { type: mongoose.Schema.Types.Mixed, required: false }, // No limitations on the structure
 })
 
 // Data Mongoose Schema

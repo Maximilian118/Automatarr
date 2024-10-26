@@ -1,12 +1,13 @@
 import axios from "axios"
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
-import Data, { downloadQueue, library, rootFolder } from "../models/data"
+import Data, { dataType, downloadQueue, library, rootFolder } from "../models/data"
 import { settingsType } from "../models/settings"
 import { commandData, DownloadStatus, graphqlErr, rootFolderData } from "../types/types"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Movie } from "../types/movieTypes"
+import { Episode } from "../types/episodeTypes"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -115,7 +116,7 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
           ...API.data,
           commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
           commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
-          rootFolder: data.rootFolders.find((c) => API.name === c.name)?.data,
+          rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
           library: data.libraries
             .filter((c) => API.name === c.name)
             .flatMap((c) => c.data as (Movie | Series | Artist)[]),
@@ -240,9 +241,63 @@ export const getLibrary = async (API: APIData): Promise<library | undefined> => 
   }
 }
 
+// As Radarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
+export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode[] | undefined> => {
+  const seriesIDArr = data.libraries
+    .filter((app) => API.name === app.name)
+    .flatMap((a) => a.data)
+    .map((c) => c.id)
+
+  const episodes: Episode[] = []
+
+  await Promise.all(
+    seriesIDArr.map(async (seriesID) => {
+      try {
+        const res = await axios.get(
+          cleanUrl(
+            `${API.data.URL}/api/${API.data.API_version}/episode?seriesId=${seriesID}&apikey=${API.data.KEY}`,
+          ),
+        )
+
+        if (!Array.isArray(res.data)) {
+          logger.error(
+            `getEpisodes: Could not retrieve episodes for series ${seriesID}. Response is not an array.`,
+          )
+          return
+        }
+
+        // Add the episodes to the episodes array
+        episodes.push(...res.data)
+      } catch (err) {
+        console.log(err)
+        logger.error(
+          `getEpisodes: ${API.name} episode search error for ID ${seriesID}: ${errCodeAndMsg(err)}`,
+        )
+      }
+    }),
+  )
+
+  return episodes
+}
+
 // Retrieve library from all active APIs
-export const getAllLibraries = async (activeAPIs: APIData[]): Promise<library[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getLibrary(API)))
+export const getAllLibraries = async (
+  data: dataType,
+  activeAPIs: APIData[],
+): Promise<library[]> => {
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => {
+      const episodes = API.name === "Sonarr" ? await getEpisodes(data, API) : undefined
+      const library = await getLibrary(API)
+
+      return library
+        ? {
+            ...library,
+            ...(episodes ? { subData: episodes } : {}), // Only add subData if episodes exist
+          }
+        : undefined
+    }),
+  )
 
   // Filter out undefined values
   return results.filter((lib): lib is library => lib !== undefined)

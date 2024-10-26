@@ -102,7 +102,7 @@ const dataResolvers = {
     data.commands = commands.length === 0 ? data.commands : commands
     data.commandList = commandList.length === 0 ? data.commandList : commandList
     data.rootFolders = await getAllRootFolders(activeAPIs)
-    data.libraries = await getAllLibraries(activeAPIs)
+    data.libraries = await getAllLibraries(data, activeAPIs)
     data.missingWanteds = await getAllMissingwanted(activeAPIs)
 
     return await data.save()
