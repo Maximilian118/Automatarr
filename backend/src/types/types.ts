@@ -1,3 +1,18 @@
+// Graphql err type
+export interface graphqlErr {
+  response: {
+    status: number
+    statusText: string
+    headers: object
+    config: object
+    request: object
+    data: {
+      message: string
+      content: string
+    }
+  }
+}
+
 // Type for the LanguageSchema
 type Language = {
   id: number

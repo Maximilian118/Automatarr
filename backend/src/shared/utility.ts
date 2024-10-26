@@ -3,7 +3,7 @@ import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
 import Data, { downloadQueue, library, rootFolder } from "../models/data"
 import { settingsType } from "../models/settings"
-import { commandData, DownloadStatus, rootFolderData } from "../types/types"
+import { commandData, DownloadStatus, graphqlErr, rootFolderData } from "../types/types"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Movie } from "../types/movieTypes"
@@ -15,6 +15,13 @@ export const secsToMins = (secs: number): number => secs / 60
 
 // Simple string mutations
 export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1)
+
+// Function to exteact code and message as a string for logger.error
+export const errCodeAndMsg = (err: unknown): string => {
+  const error = err as graphqlErr
+  const res = error.response
+  return `${res.status} ${res.data.message}`
+}
 
 // Dynamically loop based on up-to-date settings
 export const dynamicLoop = async (
@@ -38,7 +45,7 @@ export const dynamicLoop = async (
     setTimeout(() => dynamicLoop(loop_name, content), minsToMillisecs(loopMins))
   } catch (err) {
     // If error, retry after interval
-    logger.error(`${loop_name} Error: ${err}`)
+    logger.error(`${loop_name} Error: ${errCodeAndMsg(err)}`)
     setTimeout(() => dynamicLoop(loop_name, content), minsToMillisecs(loopMins))
   }
 }
@@ -143,7 +150,9 @@ export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] |
     // Return the command array
     return commands
   } catch (err) {
-    console.error(`scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${err}`)
+    console.error(
+      `scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${errCodeAndMsg(err)}`,
+    )
     return []
   }
 }
@@ -159,7 +168,7 @@ export const getQueueItem = async (API: APIData): Promise<downloadQueue | void> 
 
     return { name: API.name, data: res.data.records as DownloadStatus[] }
   } catch (err) {
-    logger.error(`getQueueItem: ${API.name} Error: ${err}`)
+    logger.error(`getQueueItem: ${API.name} Error: ${errCodeAndMsg(err)}`)
     return
   }
 }
@@ -175,7 +184,7 @@ export const getRootFolder = async (API: APIData): Promise<rootFolder | undefine
       data: res.data[0],
     }
   } catch (err) {
-    logger.error(`getRootFolder: ${API.name} Error: ${err}`)
+    logger.error(`getRootFolder: ${API.name} Error: ${errCodeAndMsg(err)}`)
     return
   }
 }
@@ -224,7 +233,9 @@ export const getLibrary = async (API: APIData): Promise<library | undefined> => 
       data: res.data,
     }
   } catch (err) {
-    logger.info(`getLibrary: ${API.name} ${getContentName(API)} search error: ${err}`)
+    logger.info(
+      `getLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
+    )
     return
   }
 }
@@ -252,7 +263,9 @@ export const existsInLibrary = async (
 
     return res.data
   } catch (err) {
-    logger.info(`existsInLibrary: ${API.name} ${getContentName(API)} search error: ${err}`)
+    logger.info(
+      `existsInLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
+    )
     return
   }
 }
@@ -272,7 +285,7 @@ export const getMissingwanted = async (API: APIData): Promise<library | undefine
       data: res.data.records,
     }
   } catch (err) {
-    logger.info(`getMissingWanted: ${API.name} missing wanted search error: ${err}`)
+    logger.info(`getMissingWanted: ${API.name} missing wanted search error: ${errCodeAndMsg(err)}`)
     return
   }
 }

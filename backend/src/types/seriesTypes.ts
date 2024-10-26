@@ -1,4 +1,4 @@
-type Image = {
+export type SeriesImage = {
   coverType: string
   url: string
   remoteUrl: string
@@ -32,7 +32,7 @@ type Season = {
   seasonNumber: number
   monitored: boolean
   statistics: SeasonStatistics
-  images: Image[]
+  images: SeriesImage[]
 }
 
 type AddOptions = {
@@ -71,7 +71,7 @@ export type Series = {
   previousAiring: string
   network: string
   airTime: string
-  images: Image[]
+  images: SeriesImage[]
   originalLanguage: Language
   remotePoster: string
   seasons: Season[]
