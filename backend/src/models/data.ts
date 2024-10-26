@@ -44,6 +44,7 @@ export interface dataType extends Document {
   downloadQueues: downloadQueue[]
   rootFolders: rootFolder[]
   libraries: library[]
+  missingWanteds: library[]
   created_at: string
   updated_at: string
 }
@@ -193,6 +194,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
   libraries: { type: [librariesSchema], default: [] },
+  missingWanteds: { type: [librariesSchema], default: [] },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

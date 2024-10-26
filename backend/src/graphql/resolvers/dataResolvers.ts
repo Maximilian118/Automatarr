@@ -3,6 +3,7 @@ import {
   activeAPIsArr,
   cleanUrl,
   getAllLibraries,
+  getAllMissingwanted,
   getAllRootFolders,
   scrapeCommandsFromURL,
 } from "../../shared/utility"
@@ -102,6 +103,7 @@ const dataResolvers = {
     data.commandList = commandList.length === 0 ? data.commandList : commandList
     data.rootFolders = await getAllRootFolders(activeAPIs)
     data.libraries = await getAllLibraries(activeAPIs)
+    data.missingWanteds = await getAllMissingwanted(activeAPIs)
 
     return await data.save()
   },

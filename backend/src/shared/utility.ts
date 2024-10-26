@@ -246,3 +246,31 @@ export const existsInLibrary = async (
     return
   }
 }
+
+// Retrieve all files in missing wanted list
+export const getMissingwanted = async (API: APIData): Promise<library | undefined> => {
+  try {
+    const res = await axios.get(
+      // prettier-ignore
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/wanted/missing?page=1&pageSize=1000&apikey=${API.data.KEY}`,
+      ),
+    )
+
+    return {
+      name: API.name,
+      data: res.data.records,
+    }
+  } catch (err) {
+    logger.info(`getMissingWanted: ${API.name} missing wanted search error: ${err}`)
+    return
+  }
+}
+
+// Retrieve missing wanted files from all active APIs
+export const getAllMissingwanted = async (activeAPIs: APIData[]): Promise<library[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getMissingwanted(API)))
+
+  // Filter out undefined values
+  return results.filter((lib): lib is library => lib !== undefined)
+}
