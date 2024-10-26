@@ -3,7 +3,7 @@ import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
 import Data, { downloadQueue, library, rootFolder } from "../models/data"
 import { settingsType } from "../models/settings"
-import { commandData, DownloadStatus } from "../types/types"
+import { commandData, DownloadStatus, rootFolderData } from "../types/types"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Movie } from "../types/movieTypes"
@@ -53,6 +53,9 @@ type APIDataFields = {
   active: boolean
   commands?: commandData[]
   commandList?: string[]
+  rootFolder?: rootFolderData
+  library?: (Movie | Series | Artist)[]
+  missingWanted?: (Movie | Series | Artist)[]
 }
 
 type APIData = {
@@ -105,6 +108,13 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
           ...API.data,
           commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
           commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
+          rootFolder: data.rootFolders.find((c) => API.name === c.name)?.data,
+          library: data.libraries
+            .filter((c) => API.name === c.name)
+            .flatMap((c) => c.data as (Movie | Series | Artist)[]),
+          missingWanted: data.missingWanteds
+            .filter((c) => API.name === c.name)
+            .flatMap((c) => c.data as (Movie | Series | Artist)[]),
         },
       }
     })
@@ -231,7 +241,7 @@ export const getAllLibraries = async (activeAPIs: APIData[]): Promise<library[]>
 export const existsInLibrary = async (
   ID: number,
   API: APIData,
-): Promise<Movie | Series | Artist | undefined> => {
+): Promise<(Movie | Series | Artist)[] | undefined> => {
   try {
     const res = await axios.get(
       // prettier-ignore

@@ -33,7 +33,7 @@ export type rootFolder = {
 // A name to categorize each library
 export type library = {
   name: string
-  data: Movie[] | Series[] | Artist[]
+  data: (Movie | Series | Artist)[]
 }
 
 // Main dataType
