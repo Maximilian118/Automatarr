@@ -32,6 +32,7 @@ services:
     volumes:
       - ./automatarr/database:/app/automatarr_database
       - ./automatarr/logs:/app/automatarr_logs
+      - /:/host_fs # Mount the host filesystem
     environment:
       # - VITE_BACKEND_IP=192.168.1.2 # Optional
       # - VITE_BACKEND_PORT=8091 # Optional
@@ -42,4 +43,6 @@ services:
 2. `docker-compose pull`
 3. `docker-compose up -d`
 
-If successful and the application is running a directory named `automatarr` will have been created along side the `docker-compose.yml` file. The `automatarr` directory contains the `database` directory where MongoDB stores the local database. A `logs` directory will also be created where we can find all logs from the backend.
+If successful and the application is running, a directory named `automatarr` will be created alongside the `docker-compose.yml` file. The `automatarr` directory contains a `database` directory where `MongoDB` stores its local database, as well as a `logs` directory where all backend logs are stored.
+
+`/:/host_fs` exposes your machine's entire filesystem to Automatarr. If you're not comfortable with this, that's absolutely fine — simply omit it. However, this means Automatarr will not have access to, and therefore cannot manipulate, content outside of what is achievable through API requests.

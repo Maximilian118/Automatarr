@@ -9,4 +9,11 @@ export default defineConfig({
     strictPort: true,
     host: "0.0.0.0", // Listen on all interfaces
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: "modern", // Use the modern API for Sass
+      },
+    },
+  },
 })
