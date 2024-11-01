@@ -132,10 +132,12 @@ const coreResolvers = {
         }
 
         if (missing || unsupported) {
+          // Delete the item from the queue. If successful, attempt to delete from filesystem as well.
+          // The request should delete the file from filesystem with removeFromClient=true but we've also added our own solution just in case.
           if (await deleteFromQueue(blockedFile, API)) {
             let deletedfromFS = false
-
-            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath)) {
+            // If we have the current file path and we have permission to delete the file, delete it.
+            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath, ["delete"])) {
               deletedfromFS = deleteFromMachine(currentFileOrDirPath)
             }
             // prettier-ignore
