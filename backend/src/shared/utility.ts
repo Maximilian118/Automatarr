@@ -1,5 +1,4 @@
-import fs from "fs"
-import { graphqlErr } from "../types/types"
+import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 
 // Simple calculations
@@ -14,7 +13,8 @@ export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCas
 export const errCodeAndMsg = (err: unknown): string => {
   const error = err as graphqlErr
   const res = error.response
-  return `${res.status} ${res.data.message}`
+  const message = res.data.message ? res.data.message : res.statusText
+  return `${res.status} ${message ? message : "Unknown"}`
 }
 
 // Clean up a URL string removing any unneeded double forward slashes
@@ -48,19 +48,10 @@ export const getContentName = (API: APIData, alt?: boolean, plural?: boolean): s
   return content
 }
 
-// Delete a file from the file system of the machine
-export const deleteFromMachine = (filePath: string): boolean => {
-  try {
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath)
-
-      return true
-    } else {
-      console.warn(`File not found: ${filePath}`)
-      return false
-    }
-  } catch (err) {
-    console.error(`Error deleting file: ${errCodeAndMsg(err)}`)
-    return false
-  }
+// Return the content ID of a DownloadStatus object
+export const findDownloadContentID = (obj: DownloadStatus): number | null => {
+  if (obj.movieId !== undefined) return obj.movieId
+  if (obj.episodeId !== undefined) return obj.episodeId
+  if (obj.albumId !== undefined) return obj.albumId
+  return null // No ID found
 }

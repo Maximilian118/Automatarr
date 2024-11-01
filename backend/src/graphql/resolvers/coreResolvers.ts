@@ -1,11 +1,13 @@
 import axios from "axios"
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import { cleanUrl, deleteFromMachine } from "../../shared/utility"
+import { cleanUrl } from "../../shared/utility"
 import Data from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
 import { deleteFromQueue, getQueueItem } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
+import { deleteFromMachine } from "../../shared/fileSystem"
+import { checkPermissions } from "../../shared/permissions"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -108,7 +110,7 @@ const coreResolvers = {
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length === 1
-        const currentFilePath = blockedFile.outputPath
+        const currentFileOrDirPath = blockedFile.outputPath
         const radarrIDConflict = msgCheck(blockedFile, "release was matched to movie by ID")
         const sonarrIDConflict = msgCheck(blockedFile, "release was matched to series by ID")
         const anyIDConflict = radarrIDConflict || sonarrIDConflict
@@ -117,7 +119,7 @@ const coreResolvers = {
 
         if (!oneMessage && anyIDConflict) {
           logger.info(
-            `import_blocked_handler: ${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,
+            `${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,
           )
         }
 
@@ -129,18 +131,16 @@ const coreResolvers = {
           continue
         }
 
-        if (missing) {
+        if (missing || unsupported) {
           if (await deleteFromQueue(blockedFile, API)) {
-            currentFilePath && deleteFromMachine(currentFilePath)
+            let deletedfromFS = false
 
-            logger.info(
-              `import_blocked_handler: ${API.name}: ${blockedFile.title} was missing files and has been deleted from the ${API.name} queue and the filesystem.`,
-            )
-          } // Error messages handled in deleteFromQueue request
-          continue
-        }
-
-        if (unsupported) {
+            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath)) {
+              deletedfromFS = deleteFromMachine(currentFileOrDirPath)
+            }
+            // prettier-ignore
+            logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS ? ` and filesystem` : ""}.`)
+          } // deleteFromQueue will log any failures
           continue
         }
       }

@@ -214,17 +214,15 @@ export const getAllMissingwanted = async (activeAPIs: APIData[]): Promise<librar
 // Delete a single item from the queue
 export const deleteFromQueue = async (file: DownloadStatus, API: APIData): Promise<boolean> => {
   try {
-    // const res = await axios.get(
-    //   cleanUrl(
-    //     `${API.data.URL}/api/${API.data.API_version}/queue/${file.id}?removeFromClient=true&apikey=${API.data.KEY}`,
-    //   ),
-    // )
+    await axios.delete(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/queue/${file.id}?removeFromClient=true&apikey=${API.data.KEY}`,
+      ),
+    )
 
     return true
   } catch (err) {
-    logger.info(
-      `deleteFromQueue: Could not delete ${file.title} from ${API.name}: ${errCodeAndMsg(err)}`,
-    )
+    logger.info(`deleteFromQueue: Could not delete ${file.title}: ${errCodeAndMsg(err)}`)
     return false
   }
 }
