@@ -8,7 +8,8 @@ import corsHandler from "./middleware/corsHandler"
 import path from "path"
 import fs from "fs"
 import logger from "./logger"
-import { dynamicLoop } from "./shared/utility"
+import { dynamicLoop } from "./shared/dynamicLoop"
+import { bootPermissions } from "./shared/permissions"
 
 // Initialise express.
 const app = express()
@@ -41,12 +42,19 @@ if (!fs.existsSync(databasePath)) {
 }
 
 const startServer = async () => {
+  const db_IP = process.env.VITE_DATABASE_IP || "127.0.0.1"
+  const db_PORT = process.env.VITE_DATABASE_PORT || "27020"
+  const backend_IP = "0.0.0.0"
+  const backend_PORT = process.env.VITE_BACKEND_PORT || "8091"
+
   // Set up MongoMemoryServer to store data in the local 'database' folder
   const mongoServer = await MongoMemoryServer.create({
     instance: {
       dbPath: databasePath,
-      dbName: "automatarr", // Name of the database
+      dbName: "automatarr",
       storageEngine: "wiredTiger", // Use the persistent storage engine
+      ip: db_IP,
+      port: Number(db_PORT),
     },
   })
 
@@ -70,33 +78,35 @@ const startServer = async () => {
   })
 
   try {
-    // Get the MongoDB URI
-    const mongoUri = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/automatarr"
+    // Create the MongoDB URI
+    const mongoUri = `mongodb://${db_IP}:${db_PORT}/automatarr`
 
     // Connect to MongoDB using the URI
     await mongoose.connect(mongoUri)
 
     // Start the server once MongoDB is connected
-    const PORT = Number(process.env.PORT) || 8091
-    app.listen(PORT, "0.0.0.0", () => {
-      logger.info(`Server started on port ${PORT}`)
-      logger.info(`MongoDB URI: ${mongoUri}`)
+    app.listen(Number(backend_PORT), backend_IP, () => {
+      logger.info(`Server started at ${backend_IP}:${backend_PORT}`)
+      logger.info(`MongoDB started at ${mongoUri}`)
     })
   } catch (err) {
     logger.info(`Error starting MongoDB or server: ${err}`)
   }
 
   // If first run, initialise settings and data
-  await Resolvers.newSettings() // Settings for the app
+  await Resolvers.newSettings() // Settings for Automatarr
   await Resolvers.newData() // Data retrieved from every API
 
-  // Check connection to each API
+  // Check connection to every API
   await Resolvers.checkRadarr() // No data passed = Will fetch settings data from db
   await Resolvers.checkSonarr() // No data passed = Will fetch settings data from db
   await Resolvers.checkLidarr() // No data passed = Will fetch settings data from db
 
-  // Collect the latest data from each API
-  await Resolvers.getData()
+  // Collect the latest data from all active APIs
+  const data = await Resolvers.getData()
+
+  // Check Automatarr has the filesystem permissions it needs
+  bootPermissions(data)
 
   // Main loops
   // Check for monitored content in libraries that has not been downloaded and is wanted missing

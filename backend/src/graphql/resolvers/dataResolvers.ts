@@ -1,16 +1,16 @@
 import Data, { commandList, commandsData, dataType } from "../../models/data"
-import {
-  activeAPIsArr,
-  cleanUrl,
-  getAllLibraries,
-  getAllMissingwanted,
-  getAllRootFolders,
-  scrapeCommandsFromURL,
-} from "../../shared/utility"
+import { cleanUrl } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
 import { commandData } from "../../types/types"
+import { activeAPIsArr } from "../../shared/activeAPIsArr"
+import {
+  getAllLibraries,
+  getAllMissingwanted,
+  getAllRootFolders,
+  scrapeCommandsFromURL,
+} from "../../shared/StarrRequests"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -37,7 +37,7 @@ const dataResolvers = {
 
     return newData
   },
-  getData: async (): Promise<dataType | void> => {
+  getData: async (): Promise<dataType | undefined> => {
     // Get latest settings
     const settings = (await Settings.findOne()) as unknown as settingsType
 

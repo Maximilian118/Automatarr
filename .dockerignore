@@ -1,0 +1,7 @@
+automatarr_database/
+automatarr_logs/
+node_modules
+npm-debug.log
+Dockerfile
+.git
+.gitignore
