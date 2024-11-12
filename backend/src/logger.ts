@@ -25,10 +25,10 @@ const logger = winston.createLogger({
     }),
   ),
   transports: [
-    // Console transport with colorized output
+    // Simplified Console transport without colorization
     new transports.Console({
       format: format.combine(
-        format.colorize(), // Colorize the output
+        format.timestamp({ format: timestampFormat }),
         format.printf(({ timestamp, level, message }) => {
           return `[${timestamp}] [${level.toUpperCase()}] ${message}`
         }),
@@ -74,11 +74,5 @@ const logger = winston.createLogger({
     }),
   ],
 })
-
-// Example of logging messages with different levels
-// logger.info("This is an info message")
-// logger.error("This is an error message")
-// logger.warn("This is a warning message")
-// logger.debug("This is a debug message")
 
 export default logger
