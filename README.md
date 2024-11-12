@@ -34,7 +34,7 @@ services:
       - ./automatarr/logs:/app/automatarr_logs
       - /:/host_fs # Mount the host filesystem
     environment:
-      # - VITE_BACKEND_IP=192.168.1.2 # Optional
+      # - VITE_BACKEND_IP=192.168.1.2 # Optional - Recommended
       # - VITE_BACKEND_PORT=8091 # Optional
       # - VITE_DATABASE_IP=172.0.0.2 # Optional
       # - VITE_DATABASE_PORT=27020 # Optional
@@ -42,6 +42,8 @@ services:
 
 2. `docker-compose pull`
 3. `docker-compose up -d`
+
+If you're accessing the frontend from a remote machine, I.E not localhost, you will need to tell the frontend where to find the backend server with the `VITE_BACKEND_IP` environment variable. This will be the IP of the machine docker-compose is running on.
 
 If successful and the application is running, a directory named `automatarr` will be created alongside the `docker-compose.yml` file. The `automatarr` directory contains a `database` directory where `MongoDB` stores its local database, as well as a `logs` directory where all backend logs are stored.
 
