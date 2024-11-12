@@ -1,7 +1,4 @@
-type Language = {
-  id: number
-  name: string
-}
+import { Language, Quality } from "./types"
 
 type AlternateTitle = {
   sourceType: string
@@ -46,11 +43,6 @@ type MediaInfo = {
   runTime: string
   scanType: string
   subtitles: string
-}
-
-type Quality = {
-  quality: { [key: string]: any }
-  revision: { [key: string]: any }
 }
 
 type MovieFile = {

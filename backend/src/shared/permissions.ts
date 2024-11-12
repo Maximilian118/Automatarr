@@ -27,6 +27,11 @@ export const checkPermissions = (
   perms?: permissionTypes[],
   APIName?: string,
 ): boolean => {
+  if (process.env.NODE_ENV === "development") {
+    logger.info("Permissions Check bypassed. In Development mode.")
+    return true
+  }
+
   // If no host file system, there there's no data to check with so just return
   if (!isHostFsAvailable(isDocker)) {
     return false
@@ -114,12 +119,12 @@ export const checkPermissions = (
 // Check all needed directories on boot
 export const bootPermissions = (data: dataType | undefined): void => {
   if (!isHostFsAvailable(isDocker)) {
-    logger.warn(`Permissions: Cannot find host file system.`)
+    logger.warn(`bootPermissions: Cannot find host file system.`)
     return
   }
 
   if (!data) {
-    logger.error(`Permissions: No Root File Data.`)
+    logger.error(`bootPermissions: No data.`)
     return
   }
 

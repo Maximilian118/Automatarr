@@ -1,12 +1,9 @@
+import { Language } from "./types"
+
 export type SeriesImage = {
   coverType: string
   url: string
   remoteUrl: string
-}
-
-type Language = {
-  id: number
-  name: string
 }
 
 type AlternateTitle = {

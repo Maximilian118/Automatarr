@@ -11,6 +11,7 @@ import {
   getAllRootFolders,
   scrapeCommandsFromURL,
 } from "../../shared/StarrRequests"
+import moment from "moment"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -19,7 +20,7 @@ const dataResolvers = {
 
     // Return data object if it already exists
     if (data) {
-      logger.info("newData: Found data object.")
+      logger.info("Found existing data object in database.")
       return data
     }
 
@@ -33,7 +34,7 @@ const dataResolvers = {
 
     // Push data object to the database
     await newData.save()
-    logger.info("newData: New data object created.")
+    logger.info("New data object created.")
 
     return newData
   },
@@ -99,12 +100,22 @@ const dataResolvers = {
       return
     }
 
-    data.commands = commands.length === 0 ? data.commands : commands
+    data.commands = commands
     data.commandList = commandList.length === 0 ? data.commandList : commandList
     data.rootFolders = await getAllRootFolders(activeAPIs)
-    data.libraries = await getAllLibraries(data, activeAPIs)
     data.missingWanteds = await getAllMissingwanted(activeAPIs)
+    data.libraries = await getAllLibraries(data, activeAPIs)
 
+    // As getAllLibraries is very heavy, let's not send those requests on every getData execution.
+    // Check if an hour has passed since that last getAllLibraries call.
+    const hours = 1
+    const timeLeft = moment().diff(moment(data.updated_at), "hours")
+
+    if (timeLeft >= hours) {
+      data.libraries = await getAllLibraries(data, activeAPIs)
+    }
+
+    data.updated_at = moment().format()
     return await data.save()
   },
 }

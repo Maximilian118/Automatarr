@@ -2,7 +2,7 @@ import axios from "axios"
 import { dataType, downloadQueue, library, rootFolder } from "../models/data"
 import { APIData } from "./activeAPIsArr"
 import { cleanUrl, errCodeAndMsg, getContentName } from "./utility"
-import { DownloadStatus } from "../types/types"
+import { DownloadStatus, ManualImportResponse } from "../types/types"
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
@@ -71,7 +71,7 @@ export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] |
     // Return the command array
     return commands
   } catch (err) {
-    console.error(
+    logger.error(
       `scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${errCodeAndMsg(err)}`,
     )
     return []
@@ -127,7 +127,6 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
         // Add the episodes to the episodes array
         episodes.push(...res.data)
       } catch (err) {
-        console.log(err)
         logger.error(
           `getEpisodes: ${API.name} episode search error for ID ${seriesID}: ${errCodeAndMsg(err)}`,
         )
@@ -212,17 +211,143 @@ export const getAllMissingwanted = async (activeAPIs: APIData[]): Promise<librar
 }
 
 // Delete a single item from the queue
-export const deleteFromQueue = async (file: DownloadStatus, API: APIData): Promise<boolean> => {
+export const deleteFromQueue = async (
+  download: DownloadStatus,
+  API: APIData,
+): Promise<number | boolean> => {
   try {
-    await axios.delete(
+    const res = await axios.delete(
       cleanUrl(
-        `${API.data.URL}/api/${API.data.API_version}/queue/${file.id}?removeFromClient=true&apikey=${API.data.KEY}`,
+        `${API.data.URL}/api/${API.data.API_version}/queue/${download.id}?removeFromClient=true&apikey=${API.data.KEY}`,
       ),
     )
 
+    return res.status
+  } catch (err) {
+    logger.info(`deleteFromQueue: Could not delete ${download.title}: ${errCodeAndMsg(err)}`)
+    return false
+  }
+}
+
+// Start a search for all wanted missing content for passed API
+export const searchMissing = async (API: APIData): Promise<boolean> => {
+  // Ensure we have a list of commands for this API
+  if (!API.data.commandList) {
+    logger.error(`wantedMissing: Could not find any commands for ${API.name}.`)
+    return false
+  }
+
+  // Retrieve the first string that matches startsWith('missing')
+  const missingSearchString = API.data.commandList.find((str) =>
+    str.toLowerCase().startsWith("missing"),
+  )
+
+  // Ensure missingSearchString is populated
+  if (!missingSearchString) {
+    logger.error(`wantedMissing: Could not find a command string ${API.name}.`)
+    return false
+  }
+
+  try {
+    await axios.post(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
+      {
+        name: missingSearchString,
+      },
+    )
+
+    logger.info(`wantedMissing: ${API.name} search started.`)
     return true
   } catch (err) {
-    logger.info(`deleteFromQueue: Could not delete ${file.title}: ${errCodeAndMsg(err)}`)
+    logger.error(`wantedMissing: ${API.name} error: ${err}.`)
+    return false
+  }
+}
+
+// Get preliminary information for a manual import command
+export const getManualImport = async (
+  download: DownloadStatus,
+  API: APIData,
+): Promise<ManualImportResponse | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/manualimport?downloadId=${download.downloadId}&filterExistingFiles=false&apikey=${API.data.KEY}`,
+      ),
+    )
+
+    if (res.data.length === 0 || Number(res.status) !== 200) {
+      const deletionStatus = await deleteFromQueue(download, API)
+      let deletionMsg = ""
+
+      switch (true) {
+        case /^20\d$/.test(deletionStatus.toString()):
+          deletionMsg = "Deleted from queue."
+          break
+        case deletionStatus === 404:
+          deletionMsg = "Also, Could not find a file to delete."
+          break
+        default:
+          deletionMsg = "Deletion failed as well."
+          break
+      }
+
+      logger.error(
+        `getManualImport: ${API.name}: Could not retrieve data for ${download.title}. ${deletionMsg}`,
+      )
+      return
+    } else {
+      return res.data[0]
+    }
+  } catch (err) {
+    logger.error(`getManualImport: ${errCodeAndMsg(err)}`)
+    return
+  }
+}
+
+// Import a file from the queue
+export const importCommand = async (download: DownloadStatus, API: APIData): Promise<boolean> => {
+  const manualImport = await getManualImport(download, API)
+
+  if (!manualImport) {
+    logger.error(
+      `importCommand: ${API.name}: Failed to retrieve preliminary data from getManualImport request.`,
+    )
+    return false
+  }
+
+  try {
+    const res = await axios.post(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
+      {
+        name: "ManualImport",
+        importMode: "auto",
+        files: [
+          {
+            path: manualImport.path,
+            downloadId: manualImport.downloadId,
+            folderName: manualImport.folderName,
+            indexerFlags: manualImport.indexerFlags,
+            languages: manualImport.languages,
+            quality: manualImport.quality,
+            releaseGroup: manualImport.releaseGroup,
+            ...(manualImport.movie && { movieId: manualImport.movie.id }), // Radarr
+            ...(manualImport.series && { seriesId: manualImport.series.id }), // Sonarr
+            ...(manualImport.episodes && { episodeIds: manualImport.episodes.map((e) => e.id) }), // Sonarr
+            ...(manualImport.releaseType && { releaseType: manualImport.releaseType }), // Sonarr
+          },
+        ],
+      },
+    )
+
+    if (Number(res.status) !== 201) {
+      logger.error(`importCommand: Unexpected Status code: ${res.status}`)
+      return false
+    }
+
+    return true
+  } catch (err) {
+    logger.error(`importCommand: ${errCodeAndMsg(err)}`)
     return false
   }
 }

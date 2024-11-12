@@ -1,10 +1,13 @@
-import axios from "axios"
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import { cleanUrl } from "../../shared/utility"
 import Data from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
-import { deleteFromQueue, getQueueItem } from "../../shared/StarrRequests"
+import {
+  deleteFromQueue,
+  getQueueItem,
+  importCommand,
+  searchMissing,
+} from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { deleteFromMachine } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
@@ -14,49 +17,21 @@ const coreResolvers = {
     // Only get data for API's that have been checked and are active
     const activeAPIs = await activeAPIsArr(settings)
     // Loop through all of the active API's and send the relevant command request to search for wanted missing
-    activeAPIs.forEach(async (c) => {
-      if (c.data.commands) {
+    for (const API of activeAPIs) {
+      // If this API is already searching, return
+      if (API.data.commands) {
         const alreadySearching = (commands: commandData[]) =>
-          commands.some((c) => c.name.toLowerCase().startsWith("missing"))
+          commands.some((a) => a.name.toLowerCase().startsWith("missing"))
 
-        if (alreadySearching(c.data.commands)) {
-          logger.info(`search_wanted_missing: ${c.name} is already searching.`)
-          return
+        if (alreadySearching(API.data.commands)) {
+          logger.info(`wantedMissing: ${API.name} is already searching.`)
+          continue
         }
       }
 
-      // We require the commands list for this API for this resolver
-      if (!c.data.commandList) {
-        logger.warn(`search_wanted_missing: No commands could be found for ${c.name}`)
-        return
-      }
-      // Retrieve the first string that matches startsWith('missing')
-      const missingSearchString = (arr: string[]) =>
-        arr.find((str) => str.toLowerCase().startsWith("missing"))
-      // If no string is found, return.
-      if (!missingSearchString(c.data.commandList)) {
-        logger.warn("search_wanted_missing: Could not retrieve search command.")
-        return
-      }
-      // Send the command to search for missing content
-      try {
-        await axios.post(
-          cleanUrl(`${c.data.URL}/api/${c.data.API_version}/command?apikey=${c.data.KEY}`),
-          {
-            name: missingSearchString(c.data.commandList),
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          },
-        )
-
-        logger.info(`search_wanted_missing: ${c.name} search started.`)
-      } catch (err) {
-        logger.error(`search_wanted_missing: ${c.name} error: ${err}.`)
-      }
-    })
+      // Send the command request
+      await searchMissing(API)
+    }
   },
   import_blocked_handler: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
@@ -67,7 +42,7 @@ const coreResolvers = {
       const queueItem = await getQueueItem(API)
 
       if (!queueItem) {
-        logger.error(`import_blocked_handler: ${API.name} download queue could not be retrieved.`)
+        logger.error(`importBlocked: ${API.name} download queue could not be retrieved.`)
         continue
       }
 
@@ -75,7 +50,7 @@ const coreResolvers = {
       const data = await Data.findOne()
 
       if (!data) {
-        logger.error("import_blocked_handler: Could not find data object in db.")
+        logger.error("importBlocked: Could not find data object in db.")
         continue
       }
 
@@ -99,38 +74,36 @@ const coreResolvers = {
           item.trackedDownloadState === "importFailed",
       )
 
+      // If no blocked files, return.
+      if (importBlockedArr.length === 0) {
+        logger.info(`importBlocked: There are no blocked files in the ${API.name} Queue.`)
+        continue
+      }
+
       // Check for a certain reason/message for importBlocked/importFailed
-      const msgCheck = (status: DownloadStatus, msg: string) => {
-        return status.statusMessages.some(
-          (status) =>
-            status.title.includes(msg) || status.messages.some((message) => message.includes(msg)),
+      const msgCheck = (blockedFile: DownloadStatus, msg: string): boolean => {
+        if (!blockedFile.status) {
+          logger.error("msgCheck: No status object could be found.")
+          return false
+        }
+
+        return blockedFile.statusMessages.some(
+          (statusMsg) =>
+            statusMsg?.title?.includes(msg) ||
+            statusMsg?.messages?.some((message) => message?.includes(msg)),
         )
       }
 
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
-        const oneMessage = blockedFile.statusMessages.length === 1
+        const oneMessage = blockedFile.statusMessages.length < 2
         const currentFileOrDirPath = blockedFile.outputPath
         const radarrIDConflict = msgCheck(blockedFile, "release was matched to movie by ID")
         const sonarrIDConflict = msgCheck(blockedFile, "release was matched to series by ID")
         const anyIDConflict = radarrIDConflict || sonarrIDConflict
         const missing = msgCheck(blockedFile, "missing")
         const unsupported = msgCheck(blockedFile, "unsupported")
-
-        if (!oneMessage && anyIDConflict) {
-          logger.info(
-            `${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,
-          )
-        }
-
-        if (oneMessage && radarrIDConflict) {
-          continue
-        }
-
-        if (oneMessage && sonarrIDConflict) {
-          continue
-        }
-
+        // First of all, check if any files are missing or unsupported. If true, we don't want them regardless of anything else.
         if (missing || unsupported) {
           // Delete the item from the queue. If successful, attempt to delete from filesystem as well.
           // The request should delete the file from filesystem with removeFromClient=true but we've also added our own solution just in case.
@@ -144,6 +117,16 @@ const coreResolvers = {
             logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS ? ` and filesystem` : ""}.`)
           } // deleteFromQueue will log any failures
           continue
+        }
+        // If the problem is an ID conflict and that's the only problem, import.
+        if (anyIDConflict) {
+          if (!oneMessage) {
+            // prettier-ignore
+            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,)
+          } else {
+            await importCommand(blockedFile, API)
+            continue
+          }
         }
       }
     }

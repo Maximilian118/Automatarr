@@ -1,4 +1,5 @@
 import { Series, SeriesImage } from "./seriesTypes"
+import { Language, Quality } from "./types"
 
 type SelectOption = {
   value: number
@@ -44,27 +45,6 @@ type CustomFormat = {
   name: string
   includeCustomFormatWhenRenaming: boolean
   specifications: Specification[]
-}
-
-type QualityRevision = {
-  version: number
-  real: number
-  isRepack: boolean
-}
-
-type Quality = {
-  quality: {
-    id: number
-    name: string
-    source: string
-    resolution: number
-  }
-  revision: QualityRevision
-}
-
-type Language = {
-  id: number
-  name: string
 }
 
 type MediaInfo = {

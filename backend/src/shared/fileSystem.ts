@@ -14,7 +14,7 @@ export const deleteFromMachine = (dirOrFilePath: string): boolean => {
   try {
     // Check if the path exists
     if (!fs.existsSync(dirOrFilePath)) {
-      console.warn(`deleteFromMachine: File or directory not found: ${dirOrFilePath}`)
+      logger.warn(`deleteFromMachine: File or directory not found: ${dirOrFilePath}`)
       return false
     }
 
@@ -33,7 +33,7 @@ export const deleteFromMachine = (dirOrFilePath: string): boolean => {
 
     return true
   } catch (err) {
-    console.error(`deleteFromMachine: Error deleting file or directory: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteFromMachine: Error deleting file or directory: ${errCodeAndMsg(err)}`)
     return false
   }
 }

@@ -9,12 +9,18 @@ export const secsToMins = (secs: number): number => secs / 60
 // Simple string mutations
 export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1)
 
-// Function to exteact code and message as a string for logger.error
 export const errCodeAndMsg = (err: unknown): string => {
-  const error = err as graphqlErr
-  const res = error.response
-  const message = res.data.message ? res.data.message : res.statusText
-  return `${res.status} ${message ? message : "Unknown"}`
+  try {
+    const error = err as graphqlErr
+    const res = error?.response
+    const status = res?.status ?? "Unknown Status"
+    const message = res?.data?.message ?? res?.statusText ?? "Unknown Message"
+    const errors = res?.data?.errors ? res.data.errors : []
+
+    return `${status} - ${errors.length !== 0 ? JSON.stringify(errors) : message}`
+  } catch (e) {
+    return "Unknown Error - Failed to extract error details."
+  }
 }
 
 // Clean up a URL string removing any unneeded double forward slashes
@@ -49,9 +55,9 @@ export const getContentName = (API: APIData, alt?: boolean, plural?: boolean): s
 }
 
 // Return the content ID of a DownloadStatus object
-export const findDownloadContentID = (obj: DownloadStatus): number | null => {
-  if (obj.movieId !== undefined) return obj.movieId
-  if (obj.episodeId !== undefined) return obj.episodeId
-  if (obj.albumId !== undefined) return obj.albumId
+export const getDownloadContentID = (download: DownloadStatus): number | null => {
+  if (download.movieId !== undefined) return download.movieId
+  if (download.seriesId !== undefined) return download.seriesId
+  if (download.albumId !== undefined) return download.albumId
   return null // No ID found
 }

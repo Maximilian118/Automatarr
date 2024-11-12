@@ -1,3 +1,7 @@
+import { Episode } from "./episodeTypes"
+import { Movie } from "./movieTypes"
+import { Series } from "./seriesTypes"
+
 // Graphql err type
 export interface graphqlErr {
   response: {
@@ -9,36 +13,42 @@ export interface graphqlErr {
     data: {
       message: string
       content: string
+      type?: string // if it's an error from the Starr App
+      title?: string // if it's an error from the Starr App
+      status?: number // if it's an error from the Starr App
+      traceId?: string // if it's an error from the Starr App
+      errors?: Record<string, string[]> // if it's an error from the Starr App
     }
   }
 }
 
 // Type for the LanguageSchema
-type Language = {
+export type Language = {
   id: number
   name: string
 }
 
 // Type for the basicQualitySchema
 type BasicQuality = {
-  id?: number
-  name?: string
+  id: number
+  name: string
+  source: string
+  resolution: number
 }
 
 // Type for the qualityRevisionSchema
 type QualityRevision = {
-  version?: number
-  real?: number
-  isRepack?: boolean
+  version: number
+  real: number
+  isRepack: boolean
 }
-
 // Type for the qualitySchema
-type Quality = {
-  quality?: BasicQuality
-  revision?: QualityRevision
+export type Quality = {
+  quality: BasicQuality
   version?: number
   real?: number
   isRepack?: boolean
+  revision: QualityRevision
 }
 
 // Type for the statusMessageSchema
@@ -57,8 +67,8 @@ export type DownloadStatus = {
   size: number
   title: string
   sizeleft: number
-  timeleft: string
-  estimatedCompletionTime: string
+  timeleft?: string
+  estimatedCompletionTime?: string
   added: string
   status: string
   trackedDownloadStatus: string
@@ -95,10 +105,10 @@ export type commandData = {
   started?: string
   ended?: string
   duration?: string
-  trigger: string
-  stateChangeTime: string
-  sendUpdatesToClient: boolean
-  updateScheduledTask: boolean
+  trigger?: string
+  stateChangeTime?: string
+  sendUpdatesToClient?: boolean
+  updateScheduledTask?: boolean
   lastExecutionTime?: string
   id: number
 }
@@ -123,4 +133,33 @@ export type rootFolderData = {
   defaultMonitorOption?: string
   defaultQualityProfileId?: number
   defaultMetadataProfileId?: number
+}
+
+type Rejection = {
+  reason: string
+  type: string
+}
+
+export type ManualImportResponse = {
+  id: number
+  path: string
+  relativePath: string
+  folderName: string
+  name: string
+  size: number
+  movie?: Movie // Radarr
+  series?: Series // Sonarr
+  episodes?: Episode[] // Sonarr
+  // artists?: Artist // Lidarr prediction
+  seasonNumber?: number // Sonarr
+  quality: Quality
+  languages: Language[]
+  releaseGroup: string
+  releaseType?: string // Sonarr
+  qualityWeight: number
+  downloadId: string
+  customFormats: any[] // A lot of types for something I think will never need to be directely referenced
+  customFormatScore: number
+  indexerFlags: number
+  rejections: Rejection[]
 }

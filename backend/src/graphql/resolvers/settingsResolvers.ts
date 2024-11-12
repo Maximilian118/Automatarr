@@ -8,7 +8,7 @@ const settingsResolvers = {
 
     // Return settings object if it already exists
     if (settings) {
-      logger.info("newSettings: Found settings object.")
+      logger.info("Found existing settings object in database.")
       return settings
     }
 
@@ -22,7 +22,7 @@ const settingsResolvers = {
 
     // Push settings object to the database
     await newSettings.save()
-    logger.info("newSettings: New settings object created.")
+    logger.info("New settings object created.")
 
     return newSettings._doc
   },
