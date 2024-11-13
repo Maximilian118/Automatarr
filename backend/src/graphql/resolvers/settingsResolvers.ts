@@ -1,5 +1,6 @@
 import logger from "../../logger"
 import Settings, { settingsType } from "../../models/settings"
+import Resolvers from "./resolvers"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -84,6 +85,9 @@ const settingsResolvers = {
 
     // Save the updated object
     await settings.save()
+
+    // Update the data object in the database
+    await Resolvers.getData(settings)
 
     // Return the updated object
     return settings._doc

@@ -1,3 +1,4 @@
+import moment from "moment"
 import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 
@@ -60,4 +61,25 @@ export const getDownloadContentID = (download: DownloadStatus): number | null =>
   if (download.seriesId !== undefined) return download.seriesId
   if (download.albumId !== undefined) return download.albumId
   return null // No ID found
+}
+
+// prettier-ignore
+type momentTimeUnit = "years" | "months" | "weeks" | "days" | "hours" | "minutes" | "seconds" | "milliseconds"
+
+// Return true if enough time has passed since a databse object was last updated.
+// Pass the check if the object was created in the past minute.
+export const checkTimePassed = (
+  created: string,
+  lastUpdated: string,
+  wait: number,
+  unit: momentTimeUnit,
+): boolean => {
+  const diffFromCreated = moment().diff(moment(created), "minutes")
+  const diffFromNow = moment().diff(moment(lastUpdated), unit)
+  // If the db object was created in the last minute, return true.
+  if (diffFromCreated <= 1) {
+    return true
+  }
+  // If the db object was updated longer ago than the wait time, return true.
+  return diffFromNow >= wait
 }

@@ -1,5 +1,5 @@
 import Data, { commandList, commandsData, dataType } from "../../models/data"
-import { cleanUrl } from "../../shared/utility"
+import { checkTimePassed, cleanUrl } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
@@ -38,9 +38,10 @@ const dataResolvers = {
 
     return newData
   },
-  getData: async (): Promise<dataType | undefined> => {
+  getData: async (newSettings?: settingsType): Promise<dataType | undefined> => {
     // Get latest settings
-    const settings = (await Settings.findOne()) as unknown as settingsType
+    // prettier-ignore
+    const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsType
 
     if (!settings) {
       logger.error("checkRadarr: No Settings object were found.")
@@ -108,11 +109,9 @@ const dataResolvers = {
 
     // As getAllLibraries is very heavy, let's not send those requests on every getData execution.
     // Check if an hour has passed since that last getAllLibraries call.
-    const hours = 1
-    const timeLeft = moment().diff(moment(data.updated_at), "hours")
-
-    if (timeLeft >= hours) {
+    if (checkTimePassed(data.created_at, data.updated_at, 1, "hours")) {
       data.libraries = await getAllLibraries(data, activeAPIs)
+      logger.info(`getData: Retrieving library information.`)
     }
 
     data.updated_at = moment().format()

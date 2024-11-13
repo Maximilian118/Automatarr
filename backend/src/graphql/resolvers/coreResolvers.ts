@@ -1,13 +1,8 @@
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import Data from "../../models/data"
+import Data, { downloadQueue } from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
-import {
-  deleteFromQueue,
-  getQueueItem,
-  importCommand,
-  searchMissing,
-} from "../../shared/StarrRequests"
+import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { deleteFromMachine } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
@@ -39,36 +34,15 @@ const coreResolvers = {
     // Loop through all of the active API's
     for (const API of activeAPIs) {
       // Create a downloadQueue object and retrieve the latest queue data
-      const queueItem = await getQueueItem(API)
+      let queue = await getQueue(API)
 
-      if (!queueItem) {
+      if (!queue) {
         logger.error(`importBlocked: ${API.name} download queue could not be retrieved.`)
         continue
       }
 
-      // Retrieve the data object from the db
-      const data = await Data.findOne()
-
-      if (!data) {
-        logger.error("importBlocked: Could not find data object in db.")
-        continue
-      }
-
-      // Find the matching API download queue and update it
-      data.downloadQueues = data.downloadQueues.map((item) =>
-        item.name === queueItem.name ? queueItem : item,
-      )
-
-      // If there is no matching API download queue, add it
-      if (!data.downloadQueues.some((item) => item.name === queueItem.name)) {
-        data.downloadQueues.push(queueItem)
-      }
-
-      // Save the latest download queue data to the db
-      await data.save()
-
       // Find all of the items in the queue that have trackedDownloadState of importBlocked
-      const importBlockedArr: DownloadStatus[] = queueItem.data.filter(
+      const importBlockedArr: DownloadStatus[] = queue.data.filter(
         (item) =>
           item.trackedDownloadState === "importBlocked" ||
           item.trackedDownloadState === "importFailed",
@@ -94,6 +68,17 @@ const coreResolvers = {
         )
       }
 
+      // Remove the removed queue item from the respective downloadQueue in db
+      const removeFromQueue = (
+        queue: downloadQueue,
+        blockedFile: DownloadStatus,
+      ): downloadQueue => {
+        return {
+          ...queue,
+          data: queue.data.filter((q) => q.id !== blockedFile.id),
+        }
+      }
+
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length < 2
@@ -114,7 +99,9 @@ const coreResolvers = {
               deletedfromFS = deleteFromMachine(currentFileOrDirPath)
             }
             // prettier-ignore
-            logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS ? ` and filesystem` : ""}.`)
+            logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS && " and filesystem"}.`)
+            // Update the db with the removed queue item
+            queue = removeFromQueue(queue, blockedFile)
           } // deleteFromQueue will log any failures
           continue
         }
@@ -124,11 +111,35 @@ const coreResolvers = {
             // prettier-ignore
             logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,)
           } else {
+            // Import the queue item
             await importCommand(blockedFile, API)
+            // Update the db with the removed queue item
+            queue = removeFromQueue(queue, blockedFile)
             continue
           }
         }
       }
+
+      // Retrieve the data object from the db
+      const data = await Data.findOne()
+
+      if (!data) {
+        logger.error("importBlocked: Could not find data object in db.")
+        continue
+      }
+
+      // Find the matching API download queue and update it
+      data.downloadQueues = data.downloadQueues.map((item) =>
+        item.name === queue.name ? queue : item,
+      )
+
+      // If there is no matching API download queue, add it
+      if (!data.downloadQueues.some((item) => item.name === queue.name)) {
+        data.downloadQueues.push(queue)
+      }
+
+      // Save the latest download queue data to the db
+      await data.save()
     }
   },
 }

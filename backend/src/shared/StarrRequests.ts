@@ -10,7 +10,7 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 
 // Create a downloadQueue object and retrieve the latest queue data
-export const getQueueItem = async (API: APIData): Promise<downloadQueue | void> => {
+export const getQueue = async (API: APIData): Promise<downloadQueue | void> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -20,7 +20,7 @@ export const getQueueItem = async (API: APIData): Promise<downloadQueue | void> 
 
     return { name: API.name, data: res.data.records as DownloadStatus[] }
   } catch (err) {
-    logger.error(`getQueueItem: ${API.name} Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getQueue: ${API.name} Error: ${errCodeAndMsg(err)}`)
     return
   }
 }
