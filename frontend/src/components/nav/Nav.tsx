@@ -33,6 +33,11 @@ const Nav: React.FC = () => {
 
   return (
     <nav>
+      <img 
+        alt="Automatarr" 
+        src="../../../public/assets/automatarr_logo_cropped.webp" 
+        onClick={() => navigate("/")}
+      />
       <Tabs value={value} onChange={handleChange}>
         {navItems.map((item, i) => 
           <Tab 

@@ -96,6 +96,36 @@ const Settings: React.FC = () => {
           error={!!formErr.lidarr_KEY}
         />
       </InputModel>
+      <InputModel 
+        title="qBittorrent" 
+        startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
+        status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
+      >
+        <TextField 
+          label={inputLabel("qBittorrent_URL", formErr)}
+          name="qBittorrent_URL"
+          value={settings.qBittorrent_URL}
+          onChange={(e) => updateInput(e, setSettings, setFormErr)}
+          color={settings.qBittorrent_active ? "success" : "primary"}
+          error={!!formErr.qBittorrent_URL}
+        />
+        <TextField 
+          label={inputLabel("qBittorrent_username", formErr)}
+          name="qBittorrent_username"
+          value={settings.qBittorrent_username}
+          onChange={(e) => updateInput(e, setSettings, setFormErr)}
+          color={settings.qBittorrent_active ? "success" : "primary"}
+          error={!!formErr.qBittorrent_username}
+        />
+        <TextField 
+          label={inputLabel("qBittorrent_password", formErr)}
+          name="qBittorrent_password"
+          value={settings.qBittorrent_password}
+          onChange={(e) => updateInput(e, setSettings, setFormErr)}
+          color={settings.qBittorrent_active ? "success" : "primary"}
+          error={!!formErr.qBittorrent_password}
+        />
+      </InputModel>
       <Button 
         type="submit"
         variant="contained"
