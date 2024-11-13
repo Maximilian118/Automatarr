@@ -129,3 +129,47 @@ export const checkLidarr = async (settings?: settingsType): Promise<boolean> => 
     return false
   }
 }
+// Checks if API connection is working. If settings not passed, check with params in db.
+export const checkqBittorrent = async (settings?: settingsType): Promise<boolean> => {
+  // prettier-ignore
+  try { 
+    const res = await axios.post("", settings ?
+      {
+        variables: {
+          URL: settings?.qBittorrent_URL,
+          USER: settings?.qBittorrent_username,
+          PASS: settings?.qBittorrent_password,
+        },
+        query: `
+          query CheckNewqBittorrent( $URL: String!, $USER: String!, $PASS: String! ) {
+            checkNewqBittorrent(URL: $URL, USER: $USER, PASS: $PASS)
+          }
+        `,
+      } : {
+        query: `
+          query {
+            checkqBittorrent
+          }
+        `,
+      }
+    )
+    // Retrieve name of request for logging
+    const APIName = Object.keys(res.data.data)[0]
+    
+    if (res.data.errors) {
+      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
+      return false
+    } else {
+      if (Number(res.data.data[APIName]) === 200) {
+        console.log(`${APIName}: OK!`)
+        return true
+      } else {
+        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        return false
+      }
+    }
+  } catch (err) {
+    console.error(`Lidarr API Check Error: ${err}`)
+    return false
+  }
+}

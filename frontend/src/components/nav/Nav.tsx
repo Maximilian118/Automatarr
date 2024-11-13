@@ -35,7 +35,7 @@ const Nav: React.FC = () => {
     <nav>
       <img 
         alt="Automatarr" 
-        src="../../../public/assets/automatarr_logo_cropped.webp" 
+        src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped.webp" 
         onClick={() => navigate("/")}
       />
       <Tabs value={value} onChange={handleChange}>

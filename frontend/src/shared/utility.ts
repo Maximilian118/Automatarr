@@ -1,15 +1,21 @@
 import { settingsType } from "./types"
-import { checkLidarr, checkRadarr, checkSonarr } from "./requests/checkAPIRequests"
+import {
+  checkLidarr,
+  checkqBittorrent,
+  checkRadarr,
+  checkSonarr,
+} from "./requests/checkAPIRequests"
 
 // Check the status of each API
 export const checkAPIs = async (
   settings: settingsType,
   newCredentials?: true,
 ): Promise<settingsType> => {
-  const [radarr_active, sonarr_active, lidarr_active] = await Promise.all([
+  const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active] = await Promise.all([
     checkRadarr(newCredentials && settings),
     checkSonarr(newCredentials && settings),
     checkLidarr(newCredentials && settings),
+    checkqBittorrent(newCredentials && settings),
   ])
 
   return {
@@ -17,5 +23,6 @@ export const checkAPIs = async (
     radarr_active,
     sonarr_active,
     lidarr_active,
+    qBittorrent_active,
   }
 }

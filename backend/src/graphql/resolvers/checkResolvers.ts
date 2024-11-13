@@ -2,36 +2,19 @@ import Settings from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
 import { cleanUrl } from "../../shared/utility"
+import { checkStarr, checkURL } from "../../shared/validation"
 
-// Check for skip API check cases
-const CheckAPISkip = (name: string, URL: string, KEY: string): boolean => {
-  if (!URL && !KEY) {
-    logger.warn(`${name} | No Settings. Skipping...`)
-    return true
-  }
-
-  if (!URL) {
-    logger.warn(`${name} | No URL set. Skipping...`)
-    return true
-  } else if (!/^(http:\/\/)?(localhost|(\d{1,3}\.){3}\d{1,3}):\d{1,5}(\/)?$/.test(URL)) {
-    logger.warn(`${name} | URL invalid. Skipping...`)
-    return true
-  }
-
-  if (!KEY) {
-    logger.warn(`${name} | No KEY set. Skipping...`)
-    return true
-  } else if (!/^[a-fA-F0-9]{32}$/.test(KEY)) {
-    logger.warn(`${name} | KEY invalid. Skipping...`)
-    return true
-  }
-
-  return false
+interface baseCheck {
+  URL: string
 }
 
-type checkNewType = {
-  URL: string
+interface checkNew extends baseCheck {
   KEY: string
+}
+
+interface checkNewWithCreds extends baseCheck {
+  USER: string
+  PASS: string
 }
 
 const checkResolvers = {
@@ -45,7 +28,7 @@ const checkResolvers = {
       return 500
     }
 
-    if (CheckAPISkip("Radarr", settings.radarr_URL, settings.radarr_KEY)) {
+    if (checkStarr("Radarr", settings.radarr_URL, settings.radarr_KEY)) {
       return 500
     }
 
@@ -76,7 +59,7 @@ const checkResolvers = {
       return 500
     }
 
-    if (CheckAPISkip("Sonarr", settings.sonarr_URL, settings.sonarr_KEY)) {
+    if (checkStarr("Sonarr", settings.sonarr_URL, settings.sonarr_KEY)) {
       return 500
     }
 
@@ -107,7 +90,7 @@ const checkResolvers = {
       return 500
     }
 
-    if (CheckAPISkip("Lidarr", settings.lidarr_URL, settings.lidarr_KEY)) {
+    if (checkStarr("Lidarr", settings.lidarr_URL, settings.lidarr_KEY)) {
       return 500
     }
 
@@ -128,10 +111,43 @@ const checkResolvers = {
 
     return status
   },
-  checkNewRadarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+  checkqBittorrent: async (): Promise<number> => {
     let status = 500
 
-    if (CheckAPISkip("Radarr", URL, KEY)) {
+    const settings = await Settings.findOne()
+
+    if (!settings) {
+      logger.error("checkqBittorrent: No Settings object was found.")
+      return 500
+    }
+
+    if (checkURL("qBittorrent", settings.qBittorrent_URL)) {
+      return 500
+    }
+
+    try {
+      const res = await axios.post(
+        cleanUrl(
+          `${settings.qBittorrent_URL}/api/v2/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
+        ),
+      )
+
+      status = res.status
+      logger.info(`qBittorrent | OK!`)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        logger.error(`checkqBittorrent: ${err}`)
+      } else {
+        logger.error(`checkqBittorrent: ${err}`)
+      }
+    }
+
+    return status
+  },
+  checkNewRadarr: async ({ URL, KEY }: checkNew): Promise<number> => {
+    let status = 500
+
+    if (checkStarr("Radarr", URL, KEY)) {
       return 500
     }
 
@@ -150,10 +166,10 @@ const checkResolvers = {
 
     return status
   },
-  checkNewSonarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+  checkNewSonarr: async ({ URL, KEY }: checkNew): Promise<number> => {
     let status = 500
 
-    if (CheckAPISkip("Sonarr", URL, KEY)) {
+    if (checkStarr("Sonarr", URL, KEY)) {
       return 500
     }
 
@@ -172,10 +188,10 @@ const checkResolvers = {
 
     return status
   },
-  checkNewLidarr: async ({ URL, KEY }: checkNewType): Promise<number> => {
+  checkNewLidarr: async ({ URL, KEY }: checkNew): Promise<number> => {
     let status = 500
 
-    if (CheckAPISkip("Lidarr", URL, KEY)) {
+    if (checkStarr("Lidarr", URL, KEY)) {
       return 500
     }
 
@@ -189,6 +205,30 @@ const checkResolvers = {
         logger.error(`checkNewLidarr: ${err}`)
       } else {
         logger.error(`checkNewLidarr: ${err}`)
+      }
+    }
+
+    return status
+  },
+  checkNewqBittorrent: async ({ URL, USER, PASS }: checkNewWithCreds): Promise<number> => {
+    let status = 500
+
+    if (checkURL("qBittorrent", URL)) {
+      return 500
+    }
+
+    try {
+      const res = await axios.post(
+        cleanUrl(`${URL}/api/v2/auth/login?username=${USER}&password=${PASS}`),
+      )
+
+      status = res.status
+      logger.info(`qBittorrent | OK!`)
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        logger.error(`checkqBittorrent: ${err}`)
+      } else {
+        logger.error(`checkqBittorrent: ${err}`)
       }
     }
 

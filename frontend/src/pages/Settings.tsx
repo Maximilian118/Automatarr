@@ -124,6 +124,7 @@ const Settings: React.FC = () => {
           onChange={(e) => updateInput(e, setSettings, setFormErr)}
           color={settings.qBittorrent_active ? "success" : "primary"}
           error={!!formErr.qBittorrent_password}
+          type="password"
         />
       </InputModel>
       <Button 

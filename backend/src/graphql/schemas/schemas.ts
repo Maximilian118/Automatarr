@@ -12,9 +12,11 @@ const Schema = buildSchema(`
     checkRadarr: Int!
     checkSonarr: Int!
     checkLidarr: Int!
+    checkqBittorrent: Int!
     checkNewRadarr(URL: String!, KEY: String!): Int!
     checkNewSonarr(URL: String!, KEY: String!): Int!
     checkNewLidarr(URL: String!, KEY: String!): Int!
+    checkNewqBittorrent(URL: String!, USER: String!, PASS: String!): Int!
   }
 
   type RootMutation {

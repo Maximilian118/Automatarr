@@ -1,4 +1,4 @@
-<img alt="Automatarr" src="./frontend/public/assets/automatarr_logo.webp" width=300/>
+<img alt="Automatarr" src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo.webp" width=300/>
 
 _Like this app? Thanks for giving it a_ ⭐️
 

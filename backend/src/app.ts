@@ -104,6 +104,7 @@ const startServer = async () => {
   await Resolvers.checkRadarr() // No data passed = Will fetch settings data from db
   await Resolvers.checkSonarr() // No data passed = Will fetch settings data from db
   await Resolvers.checkLidarr() // No data passed = Will fetch settings data from db
+  await Resolvers.checkqBittorrent() // No data passed = Will fetch settings data from db
 
   // Collect the latest data from all active APIs
   const data = await Resolvers.getData()
