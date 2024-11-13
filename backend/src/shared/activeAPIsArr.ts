@@ -32,9 +32,14 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
   // Helper function to capitalize the first letter
   const capsFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
+  // A list of API's that we don't want to include in the Arr
+  const exclusionList = ["qBittorrent"]
+
   // Iterate over all keys to find active APIs
   Object.keys(settings).forEach((key) => {
-    if (key.endsWith("_active") && settings[key] === true) {
+    const notExcluded = !exclusionList.some((excluded) => key.includes(excluded))
+
+    if (key.endsWith("_active") && settings[key] === true && notExcluded) {
       // Get the API name prefix (like "radarr" from "radarr_active")
       const apiName = key.split("_active")[0]
 
