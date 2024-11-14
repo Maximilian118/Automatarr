@@ -3,7 +3,7 @@ import { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
 import { cleanUrl, errCodeAndMsg } from "./utility"
 import logger from "../logger"
-import { Torrent } from "../types/qBittorrentTypes"
+import { Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 
 // Retreive qBittorrent cookie
 export const getqBittorrentCookie = async (settings: settingsType): Promise<string> => {
@@ -41,7 +41,7 @@ export const getqBittorrentTorrents = async (
   settings: settingsType,
   cookie: string,
 ): Promise<Torrent[]> => {
-  const torrents: Torrent[] = []
+  let torrents: Torrent[] = []
 
   try {
     const res = await axios.get(cleanUrl(`${settings.qBittorrent_URL}/api/v2/torrents/info`), {
@@ -50,12 +50,42 @@ export const getqBittorrentTorrents = async (
       },
     })
 
-    return res.data
+    torrents = res.data
   } catch (err) {
     logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
   }
 
   return torrents
+}
+
+// Get all current torrents
+export const getqBittorrentCategories = async (
+  settings: settingsType,
+  cookie: string,
+): Promise<TorrentCategory[]> => {
+  let categories: TorrentCategory[] = []
+
+  try {
+    // Ensure that res.data is typed as CategoryResponse
+    const res = await axios.get<{ [key: string]: TorrentCategory }>(
+      cleanUrl(`${settings.qBittorrent_URL}/api/v2/torrents/categories`),
+      {
+        headers: {
+          cookie: cookie,
+        },
+      },
+    )
+
+    // Convert the object of categories to an array
+    categories = Object.values(res.data).map((c) => ({
+      name: c.name,
+      savePath: c.savePath,
+    }))
+  } catch (err) {
+    logger.error(`getqBittorrentCategories: Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return categories
 }
 
 // Retrieve all data Automatarr requires from qBittorrent
@@ -69,5 +99,6 @@ export const getqBittorrentData = async (
     ...data.qBittorrent,
     cookie: cookie,
     torrents: await getqBittorrentTorrents(settings, cookie),
+    categories: await getqBittorrentCategories(settings, cookie),
   }
 }

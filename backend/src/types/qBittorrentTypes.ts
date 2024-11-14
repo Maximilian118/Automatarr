@@ -51,3 +51,8 @@ export type Torrent = {
   uploaded_session: number
   upspeed: number
 }
+
+export type TorrentCategory = {
+  name: string
+  savePath: string
+}

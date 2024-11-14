@@ -6,7 +6,7 @@ import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
-import { Torrent } from "../types/qBittorrentTypes"
+import { Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 
 export interface baseData {
   name: string
@@ -44,6 +44,7 @@ export interface library extends baseData {
 export interface qBittorrent extends baseData {
   cookie: string
   torrents: Torrent[]
+  categories: TorrentCategory[]
 }
 
 // Main dataType
@@ -211,6 +212,7 @@ const qBittorrentSchema = new mongoose.Schema<qBittorrent>({
   ...baseSchema,
   cookie: { type: String, default: "" },
   torrents: { type: mongoose.Schema.Types.Mixed, default: [] },
+  categories: { type: mongoose.Schema.Types.Mixed, default: [] },
 })
 
 const initqBittorrent: qBittorrent = {
@@ -219,6 +221,7 @@ const initqBittorrent: qBittorrent = {
   updated_at: moment().format(),
   cookie: "",
   torrents: [],
+  categories: [],
 }
 
 // Data Mongoose Schema
