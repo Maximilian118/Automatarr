@@ -3,6 +3,7 @@ import { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
 import { cleanUrl, errCodeAndMsg } from "./utility"
 import logger from "../logger"
+import { Torrent } from "../types/qBittorrentTypes"
 
 // Retreive qBittorrent cookie
 export const getqBittorrentCookie = async (settings: settingsType): Promise<string> => {
@@ -35,6 +36,28 @@ export const getqBittorrentCookie = async (settings: settingsType): Promise<stri
   return cookie
 }
 
+// Get all current torrents
+export const getqBittorrentTorrents = async (
+  settings: settingsType,
+  cookie: string,
+): Promise<Torrent[]> => {
+  const torrents: Torrent[] = []
+
+  try {
+    const res = await axios.get(cleanUrl(`${settings.qBittorrent_URL}/api/v2/torrents/info`), {
+      headers: {
+        cookie: cookie,
+      },
+    })
+
+    return res.data
+  } catch (err) {
+    logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return torrents
+}
+
 // Retrieve all data Automatarr requires from qBittorrent
 export const getqBittorrentData = async (
   settings: settingsType,
@@ -45,5 +68,6 @@ export const getqBittorrentData = async (
   return {
     ...data.qBittorrent,
     cookie: cookie,
+    torrents: await getqBittorrentTorrents(settings, cookie),
   }
 }
