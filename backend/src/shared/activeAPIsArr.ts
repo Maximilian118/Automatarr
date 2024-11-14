@@ -81,6 +81,9 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
           ...API.data,
           commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
           commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
+          downloadQueue: data.downloadQueues
+            .filter((d) => API.name === d.name)
+            .flatMap((d) => d.data),
           rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
           library: data.libraries
             .filter((c) => API.name === c.name)

@@ -86,18 +86,31 @@ export const checkTimePassed = (
 }
 
 // Boilerplate for adding standard fields to objects in data in db
-export const dataBoilerplate = (API: APIData, dataArr: baseData[]): baseData => {
-  let APIData = dataArr.find((d) => d.name === API.name)
+export const dataBoilerplate = <T extends baseData | { _doc: baseData }>(
+  API: APIData,
+  dataArr: T[],
+): baseData => {
+  // Search for the item with matching name or _doc.name
+  const APIData = dataArr
+    .map((d) => {
+      if ("_doc" in d) {
+        return d._doc.name === API.name ? d._doc : null // If _doc exists, return _doc
+      }
+      return d.name === API.name ? d : null // Otherwise, check directly on name
+    })
+    .find((item) => item !== null) // Find the first non-null item
 
+  // If no match is found, create a new APIData object with default fields
   if (!APIData) {
-    APIData = {
+    return {
       name: API.name,
       created_at: moment().format(),
       updated_at: moment().format(),
     }
   }
 
-  return APIData
+  // Since APIData is guaranteed to be of type baseData here, return it
+  return APIData as baseData
 }
 
 // Update the data db object with latest queue information.
@@ -117,7 +130,7 @@ export const updateDownloadQueue = (
 
   // Create a new Queue object with the removed blockedFile
   const newQueue: downloadQueue = {
-    ...queue,
+    ...dataBoilerplate(API, data.downloadQueues),
     data: blockedFile ? queue.data.filter((q) => q.id !== blockedFile.id) : queue.data,
   }
 
@@ -131,6 +144,7 @@ export const updateDownloadQueue = (
     // Add newQueue if it doesn't exist in data.downloadQueues
     data.downloadQueues.push(newQueue)
   }
+
   // This function assumes we're updating the data db object with data.save() later
   return newQueue
 }
