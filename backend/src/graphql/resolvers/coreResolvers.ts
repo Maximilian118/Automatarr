@@ -1,11 +1,12 @@
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
-import Data, { downloadQueue } from "../../models/data"
+import Data from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
 import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { deleteFromMachine } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
+import { updateDownloadQueue } from "../../shared/utility"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -31,12 +32,22 @@ const coreResolvers = {
   import_blocked_handler: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
     const activeAPIs = await activeAPIsArr(settings)
+
+    // Retrieve the data object from the db
+    const data = await Data.findOne()
+
+    if (!data) {
+      logger.error("importBlocked: Could not find data object in db.")
+      return
+    }
+
     // Loop through all of the active API's
     for (const API of activeAPIs) {
       // Create a downloadQueue object and retrieve the latest queue data
-      let queue = await getQueue(API)
+      let queue = await getQueue(API, data)
 
       if (!queue) {
+        updateDownloadQueue(API, data)
         logger.error(`importBlocked: ${API.name} download queue could not be retrieved.`)
         continue
       }
@@ -50,6 +61,7 @@ const coreResolvers = {
 
       // If no blocked files, return.
       if (importBlockedArr.length === 0) {
+        updateDownloadQueue(API, data, queue)
         logger.info(`importBlocked: There are no blocked files in the ${API.name} Queue.`)
         continue
       }
@@ -66,17 +78,6 @@ const coreResolvers = {
             statusMsg?.title?.includes(msg) ||
             statusMsg?.messages?.some((message) => message?.includes(msg)),
         )
-      }
-
-      // Remove the removed queue item from the respective downloadQueue in db
-      const removeFromQueue = (
-        queue: downloadQueue,
-        blockedFile: DownloadStatus,
-      ): downloadQueue => {
-        return {
-          ...queue,
-          data: queue.data.filter((q) => q.id !== blockedFile.id),
-        }
       }
 
       // Loop through all of the files that have importBlocked and handle them depending on message
@@ -101,7 +102,7 @@ const coreResolvers = {
             // prettier-ignore
             logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS && " and filesystem"}.`)
             // Update the db with the removed queue item
-            queue = removeFromQueue(queue, blockedFile)
+            updateDownloadQueue(API, data, queue, blockedFile)
           } // deleteFromQueue will log any failures
           continue
         }
@@ -114,33 +115,15 @@ const coreResolvers = {
             // Import the queue item
             await importCommand(blockedFile, API)
             // Update the db with the removed queue item
-            queue = removeFromQueue(queue, blockedFile)
+            updateDownloadQueue(API, data, queue, blockedFile)
             continue
           }
         }
       }
-
-      // Retrieve the data object from the db
-      const data = await Data.findOne()
-
-      if (!data) {
-        logger.error("importBlocked: Could not find data object in db.")
-        continue
-      }
-
-      // Find the matching API download queue and update it
-      data.downloadQueues = data.downloadQueues.map((item) =>
-        item.name === queue.name ? queue : item,
-      )
-
-      // If there is no matching API download queue, add it
-      if (!data.downloadQueues.some((item) => item.name === queue.name)) {
-        data.downloadQueues.push(queue)
-      }
-
-      // Save the latest download queue data to the db
-      await data.save()
     }
+
+    // Save the latest download queue data to the db
+    await data.save()
   },
 }
 

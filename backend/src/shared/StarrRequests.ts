@@ -1,8 +1,8 @@
 import axios from "axios"
-import { dataType, downloadQueue, library, rootFolder } from "../models/data"
+import { commandsData, dataType, downloadQueue, library, rootFolder } from "../models/data"
 import { APIData } from "./activeAPIsArr"
-import { cleanUrl, errCodeAndMsg, getContentName } from "./utility"
-import { DownloadStatus, ManualImportResponse } from "../types/types"
+import { cleanUrl, dataBoilerplate, errCodeAndMsg, getContentName } from "./utility"
+import { commandData, DownloadStatus, ManualImportResponse } from "../types/types"
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
@@ -10,7 +10,7 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 
 // Create a downloadQueue object and retrieve the latest queue data
-export const getQueue = async (API: APIData): Promise<downloadQueue | void> => {
+export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -18,7 +18,10 @@ export const getQueue = async (API: APIData): Promise<downloadQueue | void> => {
       ),
     )
 
-    return { name: API.name, data: res.data.records as DownloadStatus[] }
+    return {
+      ...dataBoilerplate(API, data.downloadQueues),
+      data: res.data.records as DownloadStatus[],
+    }
   } catch (err) {
     logger.error(`getQueue: ${API.name} Error: ${errCodeAndMsg(err)}`)
     return
@@ -26,13 +29,16 @@ export const getQueue = async (API: APIData): Promise<downloadQueue | void> => {
 }
 
 // Retrieve the root folder from the API
-export const getRootFolder = async (API: APIData): Promise<rootFolder | undefined> => {
+export const getRootFolder = async (
+  API: APIData,
+  data: dataType,
+): Promise<rootFolder | undefined> => {
   try {
     const res = await axios.get(
       cleanUrl(`${API.data.URL}/api/${API.data.API_version}/rootfolder?apikey=${API.data.KEY}`),
     )
     return {
-      name: API.name,
+      ...dataBoilerplate(API, data.rootFolders),
       data: res.data[0],
     }
   } catch (err) {
@@ -41,45 +47,50 @@ export const getRootFolder = async (API: APIData): Promise<rootFolder | undefine
   }
 }
 
+// Get all of the current active commands in the system > tasks tab for a specific Starr API
+export const getCommands = async (
+  API: APIData,
+  data: dataType,
+): Promise<commandsData | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
+    )
+
+    return {
+      ...dataBoilerplate(API, data.commands),
+      data: res.data as commandData[],
+    }
+  } catch (err) {
+    logger.error(`getData: Could not retrieve commands from ${API.name}: ${err}.`)
+    return
+  }
+}
+
+// Loop through all of the activeAPIs and return all of the latest active commands
+export const getAllCommands = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<commandsData[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getCommands(API, data)))
+
+  // Filter out undefined values
+  return results.filter((c): c is commandsData => c !== undefined)
+}
+
 // Retrieve the root folders from all active APIs
-export const getAllRootFolders = async (activeAPIs: APIData[]): Promise<rootFolder[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getRootFolder(API)))
+export const getAllRootFolders = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<rootFolder[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getRootFolder(API, data)))
 
   // Filter out undefined values to ensure results is of type rootFolder[]
   return results.filter((folder): folder is rootFolder => folder !== undefined)
 }
 
-// Function to scrape commands from a given URL
-export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] | []> => {
-  const url = `https://raw.githubusercontent.com/${APIname}/${APIname}/develop/frontend/src/Commands/commandNames.js`
-
-  try {
-    // Fetch the content from the provided URL
-    const { data } = await axios.get(url)
-
-    // Use regex to find the command values
-    const commandRegex = /'([\w\s]+)'/g
-    const commands: string[] = []
-
-    let match
-    // Loop through all matches and populate the array
-    while ((match = commandRegex.exec(data)) !== null) {
-      const value = match[1]
-      commands.push(value)
-    }
-
-    // Return the command array
-    return commands
-  } catch (err) {
-    logger.error(
-      `scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${errCodeAndMsg(err)}`,
-    )
-    return []
-  }
-}
-
 // Retrieve the entire library of one of the Starr apps
-export const getLibrary = async (API: APIData): Promise<library | undefined> => {
+export const getLibrary = async (API: APIData, data: dataType): Promise<library | undefined> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -88,7 +99,7 @@ export const getLibrary = async (API: APIData): Promise<library | undefined> => 
     )
 
     return {
-      name: API.name,
+      ...dataBoilerplate(API, data.libraries),
       data: res.data,
     }
   } catch (err) {
@@ -139,13 +150,13 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
 
 // Retrieve library from all active APIs
 export const getAllLibraries = async (
-  data: dataType,
   activeAPIs: APIData[],
+  data: dataType,
 ): Promise<library[]> => {
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
       const episodes = API.name === "Sonarr" ? await getEpisodes(data, API) : undefined
-      const library = await getLibrary(API)
+      const library = await getLibrary(API, data)
 
       return library
         ? {
@@ -183,7 +194,10 @@ export const existsInLibrary = async (
 }
 
 // Retrieve all files in missing wanted list
-export const getMissingwanted = async (API: APIData): Promise<library | undefined> => {
+export const getMissingwanted = async (
+  API: APIData,
+  data: dataType,
+): Promise<library | undefined> => {
   try {
     const res = await axios.get(
       // prettier-ignore
@@ -193,7 +207,7 @@ export const getMissingwanted = async (API: APIData): Promise<library | undefine
     )
 
     return {
-      name: API.name,
+      ...dataBoilerplate(API, data.missingWanteds),
       data: res.data.records,
     }
   } catch (err) {
@@ -203,8 +217,13 @@ export const getMissingwanted = async (API: APIData): Promise<library | undefine
 }
 
 // Retrieve missing wanted files from all active APIs
-export const getAllMissingwanted = async (activeAPIs: APIData[]): Promise<library[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getMissingwanted(API)))
+export const getAllMissingwanted = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<library[]> => {
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getMissingwanted(API, data)),
+  )
 
   // Filter out undefined values
   return results.filter((lib): lib is library => lib !== undefined)

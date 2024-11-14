@@ -1,17 +1,16 @@
-import Data, { commandList, commandsData, dataType } from "../../models/data"
-import { checkTimePassed, cleanUrl } from "../../shared/utility"
+import Data, { dataType } from "../../models/data"
+import { checkTimePassed } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
-import axios from "axios"
-import { commandData } from "../../types/types"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import {
+  getAllCommands,
   getAllLibraries,
   getAllMissingwanted,
   getAllRootFolders,
-  scrapeCommandsFromURL,
 } from "../../shared/StarrRequests"
 import moment from "moment"
+import { getCommandLists } from "../../shared/miscRequests"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -57,42 +56,6 @@ const dataResolvers = {
       return
     }
 
-    // Loop through all of the activeAPIs and return all of the latest commands
-    const commands: commandsData[] = await Promise.all(
-      activeAPIs.map(async (API) => {
-        try {
-          const res = await axios.get(
-            cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
-          )
-
-          return { name: API.name, data: res.data as commandData[] }
-        } catch (err) {
-          logger.error(`getData: Could not retrieve commands from ${API.name}: ${err}.`)
-          return { name: API.name, data: [] as commandData[] }
-        }
-      }),
-    )
-
-    // If there are no current commands, return. We shouldn't have made it this far anyway!
-    if (commands.length === 0) {
-      logger.error("getData: No latest commands could be found for any API. Blimey!")
-    }
-
-    // Loop through all of the activeAPIs and return all of the latest commands
-    const commandList: commandList[] = await Promise.all(
-      activeAPIs.map(async (API) => {
-        return {
-          name: API.name,
-          data: await scrapeCommandsFromURL(API.name),
-        }
-      }),
-    )
-
-    // If there are no available commands, return. We shouldn't have made it this far anyway!
-    if (commandList.length === 0) {
-      logger.error("getData: No available commands could be found for any API. Blimey!")
-    }
-
     // Retreive the data object from the db
     const data = await Data.findOne()
 
@@ -101,16 +64,18 @@ const dataResolvers = {
       return
     }
 
-    data.commands = commands
-    data.commandList = commandList.length === 0 ? data.commandList : commandList
-    data.rootFolders = await getAllRootFolders(activeAPIs)
-    data.missingWanteds = await getAllMissingwanted(activeAPIs)
-    data.libraries = await getAllLibraries(data, activeAPIs)
+    // Loop through all of the activeAPIs and return all of the possible commands for the Starr apps command endpoint
+    const commandList = await getCommandLists(activeAPIs, data)
+
+    data.commands = await getAllCommands(activeAPIs, data)
+    data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
+    data.rootFolders = await getAllRootFolders(activeAPIs, data)
+    data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
 
     // As getAllLibraries is very heavy, let's not send those requests on every getData execution.
     // Check if an hour has passed since that last getAllLibraries call.
     if (checkTimePassed(data.created_at, data.updated_at, 1, "hours")) {
-      data.libraries = await getAllLibraries(data, activeAPIs)
+      data.libraries = await getAllLibraries(activeAPIs, data)
       logger.info(`getData: Retrieving library information.`)
     }
 

@@ -7,33 +7,34 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
 
-// A name to categorize each set of commands for a specific API
-export type commandsData = {
+export interface baseData {
   name: string
+  created_at: string
+  updated_at: string
+}
+
+// A name to categorize each set of commands for a specific API
+export interface commandsData extends baseData {
   data: commandData[]
 }
 
 // A name to categorize a list of available commands
-export type commandList = {
-  name: string
+export interface commandList extends baseData {
   data: string[]
 }
 
 // A name to categorize a list of items currently in the download queues
-export type downloadQueue = {
-  name: string
+export interface downloadQueue extends baseData {
   data: DownloadStatus[]
 }
 
 // A name to categorize the root folder for each API
-export type rootFolder = {
-  name: string
+export interface rootFolder extends baseData {
   data: rootFolderData
 }
 
 // A name to categorize each library
-export type library = {
-  name: string
+export interface library extends baseData {
   data: (Movie | Series | Artist)[]
   subData?: Episode[] // Sonarr Episodes
 }
@@ -164,28 +165,36 @@ const rootFolderDataSchema = new mongoose.Schema<rootFolderData>({
   defaultMetadataProfileId: { type: Number, required: false }, // Optional default metadata profile ID
 })
 
-const commandsSchema = new mongoose.Schema<commandsData>({
+// Define the base schema with common fields
+const baseSchema = {
   name: { type: String, required: true },
+  created_at: { type: String, default: moment().format() },
+  updated_at: { type: String, default: moment().format() },
+}
+
+// Define individual schemas by using base schema fields and adding specific fields
+const commandsSchema = new mongoose.Schema<commandsData>({
+  ...baseSchema,
   data: { type: [commandSchema], required: true }, // Array of commandData
 })
 
 const commandListSchema = new mongoose.Schema<commandList>({
-  name: { type: String, required: true },
+  ...baseSchema,
   data: { type: [String], required: true }, // Array of commandData
 })
 
 const downloadQueuesSchema = new mongoose.Schema<downloadQueue>({
-  name: { type: String, required: true },
+  ...baseSchema,
   data: { type: [downloadStatusSchema], required: true }, // Array of download statuses
 })
 
 const rootFoldersSchema = new mongoose.Schema<rootFolder>({
-  name: { type: String, required: true },
+  ...baseSchema,
   data: { type: rootFolderDataSchema, required: true }, // The root folder directory
 })
 
 const librariesSchema = new mongoose.Schema<library>({
-  name: { type: String, required: true },
+  ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // No limitations on the structure
   subData: { type: mongoose.Schema.Types.Mixed, required: false }, // No limitations on the structure
 })

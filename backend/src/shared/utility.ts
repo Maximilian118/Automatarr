@@ -1,6 +1,7 @@
 import moment from "moment"
 import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
+import { baseData, dataType, downloadQueue } from "../models/data"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -82,4 +83,54 @@ export const checkTimePassed = (
   }
   // If the db object was updated longer ago than the wait time, return true.
   return diffFromNow >= wait
+}
+
+// Boilerplate for adding standard fields to objects in data in db
+export const dataBoilerplate = (API: APIData, dataArr: baseData[]): baseData => {
+  let APIData = dataArr.find((d) => d.name === API.name)
+
+  if (!APIData) {
+    APIData = {
+      name: API.name,
+      created_at: moment().format(),
+      updated_at: moment().format(),
+    }
+  }
+
+  return APIData
+}
+
+// Update the data db object with latest queue information.
+export const updateDownloadQueue = (
+  API: APIData,
+  data: dataType,
+  queue?: downloadQueue, // If we have the queue object from a successfull getQueue request, use it.
+  blockedFile?: DownloadStatus, // If we have a blockedFile, remove it from the newQueue.
+): downloadQueue => {
+  // If no queue, create a downloadQueue object with no data
+  if (!queue) {
+    return {
+      ...dataBoilerplate(API, data.downloadQueues),
+      data: [],
+    }
+  }
+
+  // Create a new Queue object with the removed blockedFile
+  const newQueue: downloadQueue = {
+    ...queue,
+    data: blockedFile ? queue.data.filter((q) => q.id !== blockedFile.id) : queue.data,
+  }
+
+  // Check if a queue with the same name already exists
+  const existingQueueIndex = data.downloadQueues.findIndex((q) => q.name === queue.name)
+
+  if (existingQueueIndex >= 0) {
+    // Update the existing queue
+    data.downloadQueues[existingQueueIndex] = newQueue
+  } else {
+    // Add newQueue if it doesn't exist in data.downloadQueues
+    data.downloadQueues.push(newQueue)
+  }
+  // This function assumes we're updating the data db object with data.save() later
+  return newQueue
 }

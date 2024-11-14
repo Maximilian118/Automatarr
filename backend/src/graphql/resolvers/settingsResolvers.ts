@@ -89,6 +89,15 @@ const settingsResolvers = {
     // Update the data object in the database
     await Resolvers.getData(settings)
 
+    // Call the core loop functions once with the new settings
+    if (settings.wanted_missing) {
+      await Resolvers.search_wanted_missing(settings._doc)
+    }
+
+    if (settings.import_blocked) {
+      await Resolvers.import_blocked_handler(settings._doc)
+    }
+
     // Return the updated object
     return settings._doc
   },
