@@ -10,6 +10,7 @@ import {
 } from "../../shared/StarrRequests"
 import moment from "moment"
 import { getCommandLists } from "../../shared/miscRequests"
+import { getqBittorrentData } from "../../shared/qBittorrentRequests"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -65,12 +66,14 @@ const dataResolvers = {
 
     // Loop through all of the activeAPIs and return all of the possible commands for the Starr apps command endpoint
     const commandList = await getCommandLists(activeAPIs, data)
-
+    // Starr Apps
     data.commands = await getAllCommands(activeAPIs, data)
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
+    // qBittorrent
+    data.qBittorrent = await getqBittorrentData(settings, data)
 
     data.updated_at = moment().format()
     return await data.save()

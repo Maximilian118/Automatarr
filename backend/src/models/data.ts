@@ -39,6 +39,11 @@ export interface library extends baseData {
   subData?: Episode[] // Sonarr Episodes
 }
 
+// An object with qBittorrent data
+export interface qBittorrent extends baseData {
+  cookie: string
+}
+
 // Main dataType
 export interface dataType extends Document {
   _id: ObjectId
@@ -48,6 +53,7 @@ export interface dataType extends Document {
   rootFolders: rootFolder[]
   libraries: library[]
   missingWanteds: library[]
+  qBittorrent: qBittorrent
   created_at: string
   updated_at: string
 }
@@ -199,6 +205,18 @@ const librariesSchema = new mongoose.Schema<library>({
   subData: { type: mongoose.Schema.Types.Mixed, required: false }, // No limitations on the structure
 })
 
+const qBittorrentSchema = new mongoose.Schema<qBittorrent>({
+  ...baseSchema,
+  cookie: { type: String, default: "" },
+})
+
+const initqBittorrent: qBittorrent = {
+  name: "qBittorrent",
+  created_at: moment().format(),
+  updated_at: moment().format(),
+  cookie: "",
+}
+
 // Data Mongoose Schema
 const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
@@ -207,6 +225,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   rootFolders: { type: [rootFoldersSchema], default: [] },
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },
+  qBittorrent: { type: qBittorrentSchema, default: initqBittorrent },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })
