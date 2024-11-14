@@ -1,7 +1,13 @@
 import axios from "axios"
 import { commandsData, dataType, downloadQueue, library, rootFolder } from "../models/data"
 import { APIData } from "./activeAPIsArr"
-import { cleanUrl, dataBoilerplate, errCodeAndMsg, getContentName } from "./utility"
+import {
+  checkTimePassed,
+  cleanUrl,
+  dataBoilerplate,
+  errCodeAndMsg,
+  getContentName,
+} from "./utility"
 import { commandData, DownloadStatus, ManualImportResponse } from "../types/types"
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
@@ -149,26 +155,31 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
 }
 
 // Retrieve library from all active APIs
+// Due to how heavy the getLibrary request can be, limit the request to one request per hour for each API.
 export const getAllLibraries = async (
   activeAPIs: APIData[],
   data: dataType,
 ): Promise<library[]> => {
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
-      const episodes = API.name === "Sonarr" ? await getEpisodes(data, API) : undefined
-      const library = await getLibrary(API, data)
+      // Retrieve library timing data for this API
+      const created_at = data.libraries.find((l) => API.name === l.name)?.created_at
+      const updated_at = data.libraries.find((l) => API.name === l.name)?.updated_at
 
-      return library
-        ? {
-            ...library,
-            ...(episodes ? { subData: episodes } : {}), // Only add subData if episodes exist
-          }
-        : undefined
+      // If the library does not exist in db or if an hour has passed since last updated, update the library.
+      if (checkTimePassed(1, "hours", created_at, updated_at)) {
+        logger.info(`${API.name} | Retrieving library.`)
+
+        return {
+          ...(await getLibrary(API, data)),
+          ...(API.name === "Sonarr" && { subData: await getEpisodes(data, API) }),
+        }
+      }
     }),
   )
 
   // Filter out undefined values
-  return results.filter((lib): lib is library => lib !== undefined)
+  return results.filter((l): l is library => l !== undefined)
 }
 
 // Check if a file already exists in the API library

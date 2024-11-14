@@ -70,17 +70,24 @@ type momentTimeUnit = "years" | "months" | "weeks" | "days" | "hours" | "minutes
 // Return true if enough time has passed since a databse object was last updated.
 // Pass the check if the object was created in the past minute.
 export const checkTimePassed = (
-  created: string,
-  lastUpdated: string,
   wait: number,
   unit: momentTimeUnit,
+  created?: string,
+  lastUpdated?: string,
 ): boolean => {
+  // If no timing data is passed, most likely due to an object not existing
+  if (!created && !lastUpdated) {
+    return true
+  }
+
   const diffFromCreated = moment().diff(moment(created), "minutes")
   const diffFromNow = moment().diff(moment(lastUpdated), unit)
+
   // If the db object was created in the last minute, return true.
   if (diffFromCreated <= 1) {
     return true
   }
+
   // If the db object was updated longer ago than the wait time, return true.
   return diffFromNow >= wait
 }
@@ -110,7 +117,10 @@ export const dataBoilerplate = <T extends baseData | { _doc: baseData }>(
   }
 
   // Since APIData is guaranteed to be of type baseData here, return it
-  return APIData as baseData
+  return {
+    ...APIData,
+    updated_at: moment().format(),
+  } as baseData
 }
 
 // Update the data db object with latest queue information.

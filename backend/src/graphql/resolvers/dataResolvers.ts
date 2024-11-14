@@ -1,5 +1,4 @@
 import Data, { dataType } from "../../models/data"
-import { checkTimePassed } from "../../shared/utility"
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
@@ -71,13 +70,7 @@ const dataResolvers = {
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
-
-    // As getAllLibraries is very heavy, let's not send those requests on every getData execution.
-    // Check if an hour has passed since that last getAllLibraries call.
-    if (checkTimePassed(data.created_at, data.updated_at, 1, "hours")) {
-      data.libraries = await getAllLibraries(activeAPIs, data)
-      logger.info(`getData: Retrieving library information.`)
-    }
+    data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
 
     data.updated_at = moment().format()
     return await data.save()
