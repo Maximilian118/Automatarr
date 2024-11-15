@@ -61,12 +61,19 @@ export const updateSettings = async (
           $lidarr_active: Boolean
           $import_blocked: Boolean
           $wanted_missing: Boolean
+          $remove_failed: Boolean
+          $remove_missing: Boolean
+          $permissions_change: Boolean
           $import_blocked_loop: Int
           $wanted_missing_loop: Int
+          $remove_failed_loop: Int
+          $remove_missing_loop: Int
+          $permissions_change_loop: Int
           $qBittorrent_URL: String
           $qBittorrent_username: String
           $qBittorrent_password: String
           $qBittorrent_active: Boolean
+          $qBittorrent_API_version: String
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -84,12 +91,19 @@ export const updateSettings = async (
             lidarr_active: $lidarr_active
             import_blocked: $import_blocked
             wanted_missing: $wanted_missing
+            remove_failed: $remove_failed
+            remove_missing: $remove_missing
+            permissions_change: $permissions_change
             import_blocked_loop: $import_blocked_loop
             wanted_missing_loop: $wanted_missing_loop
+            remove_failed_loop: $remove_failed_loop
+            remove_missing_loop: $remove_missing_loop
+            permissions_change_loop: $permissions_change_loop
             qBittorrent_URL: $qBittorrent_URL
             qBittorrent_username: $qBittorrent_username
             qBittorrent_password: $qBittorrent_password
             qBittorrent_active: $qBittorrent_active
+            qBittorrent_API_version: $qBittorrent_API_version
           }) {
             ${populateSettings}
           }

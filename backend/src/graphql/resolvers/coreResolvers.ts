@@ -4,9 +4,9 @@ import Data from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
 import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
-import { deleteFromMachine } from "../../shared/fileSystem"
+import { deleteFailedDownloads, deleteFromMachine } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
-import { updateDownloadQueue } from "../../shared/utility"
+import { currentPaths, updateDownloadQueue } from "../../shared/utility"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -124,6 +124,31 @@ const coreResolvers = {
 
     // Save the latest download queue data to the db
     await data.save()
+  },
+  remove_failed: async (): Promise<void> => {
+    // Retrieve the data object from the db
+    const data = await Data.findOne()
+
+    if (!data) {
+      logger.error("removeFailed: Could not find data object in db.")
+      return
+    }
+
+    if (!data.qBittorrent || (!data.qBittorrent.categories && !data.qBittorrent.preferences)) {
+      logger.error("removeFailed: qBittorrent data required.")
+      return
+    }
+
+    // Get all download paths and delete files with a substring of "_FAILED_"
+    const stats = await deleteFailedDownloads(currentPaths(data))
+
+    // Stats for logging
+    const searched = stats.reduce((sum, { searched }) => sum + searched, 0)
+    const deletions = stats.reduce((sum, { deletions }) => sum + deletions, 0)
+
+    logger.info(
+      `removeFailed: Removed ${deletions} failed downloads out of ${searched} from ${stats.length} directories.`,
+    )
   },
 }
 

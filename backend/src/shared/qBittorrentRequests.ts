@@ -3,7 +3,8 @@ import { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
 import { cleanUrl, errCodeAndMsg } from "./utility"
 import logger from "../logger"
-import { Torrent, TorrentCategory } from "../types/qBittorrentTypes"
+import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
+import moment from "moment"
 
 // Retreive qBittorrent cookie
 export const getqBittorrentCookie = async (settings: settingsType): Promise<string> => {
@@ -12,7 +13,7 @@ export const getqBittorrentCookie = async (settings: settingsType): Promise<stri
   try {
     const res = await axios.post(
       cleanUrl(
-        `${settings.qBittorrent_URL}/api/v2/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
       ),
     )
 
@@ -44,11 +45,14 @@ export const getqBittorrentTorrents = async (
   let torrents: Torrent[] = []
 
   try {
-    const res = await axios.get(cleanUrl(`${settings.qBittorrent_URL}/api/v2/torrents/info`), {
-      headers: {
-        cookie: cookie,
+    const res = await axios.get(
+      cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/info`),
+      {
+        headers: {
+          cookie: cookie,
+        },
       },
-    })
+    )
 
     torrents = res.data
   } catch (err) {
@@ -58,7 +62,7 @@ export const getqBittorrentTorrents = async (
   return torrents
 }
 
-// Get all current torrents
+// Get all current catagories
 export const getqBittorrentCategories = async (
   settings: settingsType,
   cookie: string,
@@ -68,7 +72,9 @@ export const getqBittorrentCategories = async (
   try {
     // Ensure that res.data is typed as CategoryResponse
     const res = await axios.get<{ [key: string]: TorrentCategory }>(
-      cleanUrl(`${settings.qBittorrent_URL}/api/v2/torrents/categories`),
+      cleanUrl(
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/categories`,
+      ),
       {
         headers: {
           cookie: cookie,
@@ -88,11 +94,43 @@ export const getqBittorrentCategories = async (
   return categories
 }
 
+// Get all preferences
+export const getqBittorrentPreferences = async (
+  settings: settingsType,
+  cookie: string,
+): Promise<qBittorrentPreferences> => {
+  let preferences = {} as qBittorrentPreferences
+
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/app/preferences`,
+      ),
+      {
+        headers: {
+          cookie: cookie,
+        },
+      },
+    )
+
+    preferences = res.data
+  } catch (err) {
+    logger.error(`getqBittorrentPreferences: Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return preferences
+}
+
 // Retrieve all data Automatarr requires from qBittorrent
 export const getqBittorrentData = async (
   settings: settingsType,
   data: dataType,
 ): Promise<qBittorrent> => {
+  // If qBittorent is not active, do not make any requests.
+  if (!settings.qBittorrent_active) {
+    return data.qBittorrent
+  }
+
   const cookie = await getqBittorrentCookie(settings)
 
   return {
@@ -100,5 +138,7 @@ export const getqBittorrentData = async (
     cookie: cookie,
     torrents: await getqBittorrentTorrents(settings, cookie),
     categories: await getqBittorrentCategories(settings, cookie),
+    preferences: await getqBittorrentPreferences(settings, cookie),
+    updated_at: moment().format(),
   }
 }

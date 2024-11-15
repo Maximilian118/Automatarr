@@ -98,6 +98,10 @@ const settingsResolvers = {
       await Resolvers.import_blocked_handler(settings._doc)
     }
 
+    if (settings.remove_failed) {
+      await Resolvers.remove_failed()
+    }
+
     // Return the updated object
     return settings._doc
   },

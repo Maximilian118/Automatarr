@@ -15,12 +15,19 @@ export const populateSettings = `
   lidarr_active
   import_blocked
   wanted_missing
+  remove_failed
+  remove_missing
+  permissions_change
   import_blocked_loop
   wanted_missing_loop
+  remove_failed_loop
+  remove_missing_loop
+  permissions_change_loop
   qBittorrent_URL
   qBittorrent_username
   qBittorrent_password
   qBittorrent_active
+  qBittorrent_API_version
   created_at
   updated_at
 `

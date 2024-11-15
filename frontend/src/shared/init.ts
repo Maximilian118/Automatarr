@@ -1,7 +1,7 @@
-import { settingsErrorType } from "./types"
+import { settingsErrorType, settingsType } from "./types"
 
 // Initialise the settings object with defaults
-export const initSettings = {
+export const initSettings: settingsType = {
   _id: "",
   radarr_URL: "",
   radarr_KEY: "",
@@ -17,12 +17,19 @@ export const initSettings = {
   lidarr_active: false,
   import_blocked: true,
   wanted_missing: true,
+  remove_failed: true,
+  remove_missing: true,
+  permissions_change: true,
   import_blocked_loop: 10,
   wanted_missing_loop: 240,
+  remove_failed_loop: 60,
+  remove_missing_loop: 60,
+  permissions_change_loop: 10,
   qBittorrent_URL: "",
   qBittorrent_username: "",
   qBittorrent_password: "",
   qBittorrent_active: false,
+  qBittorrent_API_version: "v2",
   created_at: "",
   updated_at: "",
 }

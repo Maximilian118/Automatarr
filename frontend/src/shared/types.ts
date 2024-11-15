@@ -14,12 +14,19 @@ export interface settingsType {
   lidarr_active: boolean
   import_blocked: boolean
   wanted_missing: boolean
+  remove_failed: boolean
+  remove_missing: boolean
+  permissions_change: boolean
   import_blocked_loop: number
   wanted_missing_loop: number
+  remove_failed_loop: number
+  remove_missing_loop: number
+  permissions_change_loop: number
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string
   qBittorrent_active: boolean
+  qBittorrent_API_version: string
   created_at: string
   updated_at: string
 }
@@ -40,12 +47,19 @@ export interface settingsErrorType {
   lidarr_active: string
   import_blocked: string
   wanted_missing: string
+  remove_failed: string
+  remove_missing: string
+  permissions_change: string
   import_blocked_loop: string
   wanted_missing_loop: string
+  remove_failed_loop: string
+  remove_missing_loop: string
+  permissions_change_loop: string
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string
   qBittorrent_active: string
+  qBittorrent_API_version: string
   created_at: string
   updated_at: string
 }

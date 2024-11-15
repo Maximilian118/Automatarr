@@ -113,7 +113,7 @@ const startServer = async () => {
   bootPermissions(data)
 
   // Main loops
-  // Check for monitored content in libraries that has not been downloaded and is wanted missing
+  // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   dynamicLoop("wanted_missing_loop", async (settings) => {
     if (settings.wanted_missing) {
       await Resolvers.search_wanted_missing(settings)
@@ -123,6 +123,12 @@ const startServer = async () => {
   dynamicLoop("import_blocked_loop", async (settings) => {
     if (settings.import_blocked) {
       await Resolvers.import_blocked_handler(settings)
+    }
+  })
+  // Check for any failed downloads and delete them from the file system.
+  dynamicLoop("remove_failed_loop", async (settings) => {
+    if (settings.remove_failed) {
+      await Resolvers.remove_failed()
     }
   })
 }

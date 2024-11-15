@@ -2,6 +2,7 @@ import moment from "moment"
 import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 import { baseData, dataType, downloadQueue } from "../models/data"
+import logger from "../logger"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -157,4 +158,36 @@ export const updateDownloadQueue = (
 
   // This function assumes we're updating the data db object with data.save() later
   return newQueue
+}
+
+// Create an array of path strings
+export const currentPaths = (data: dataType): string[] => {
+  let paths: string[] = []
+
+  // If there's no qBittorrent data to check, return
+  if (!data.qBittorrent || (!data.qBittorrent.categories && !data.qBittorrent.preferences)) {
+    logger.warn("currentPaths: qBittorrent data required.")
+    return paths
+  }
+
+  // Add all qBittorrent download location paths
+  if (data.qBittorrent.categories.length > 0) {
+    for (const qBitCat of data.qBittorrent.categories) {
+      paths.push(qBitCat.savePath)
+    }
+  }
+
+  const prefs = data.qBittorrent.preferences
+
+  // If data.qBittorrent.preferences is populated
+  if (prefs && Object.keys(prefs).length > 0) {
+    paths.push(prefs.save_path)
+
+    // If the temp path is in use, add it
+    if (prefs.temp_path_enabled) {
+      paths.push(prefs.temp_path)
+    }
+  }
+
+  return paths
 }

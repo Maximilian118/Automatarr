@@ -128,7 +128,7 @@ const checkResolvers = {
     try {
       const res = await axios.post(
         cleanUrl(
-          `${settings.qBittorrent_URL}/api/v2/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
+          `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
         ),
       )
 
@@ -217,18 +217,27 @@ const checkResolvers = {
       return 500
     }
 
+    const settings = await Settings.findOne()
+
+    if (!settings) {
+      logger.error("checkNewqBittorrent: No Settings object was found.")
+      return 500
+    }
+
     try {
       const res = await axios.post(
-        cleanUrl(`${URL}/api/v2/auth/login?username=${USER}&password=${PASS}`),
+        cleanUrl(
+          `${URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${USER}&password=${PASS}`,
+        ),
       )
 
       status = res.status
       logger.info(`qBittorrent | OK!`)
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        logger.error(`checkqBittorrent: ${err}`)
+        logger.error(`checkNewqBittorrent: ${err}`)
       } else {
-        logger.error(`checkqBittorrent: ${err}`)
+        logger.error(`checkNewqBittorrent: ${err}`)
       }
     }
 
