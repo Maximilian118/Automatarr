@@ -1,6 +1,6 @@
 import fs from "fs"
 import path from "path"
-import { errCodeAndMsg, capsFirstLetter } from "./utility"
+import { errCodeAndMsg, capsFirstLetter, currentPaths } from "./utility"
 import { dataType } from "../models/data"
 import logger from "../logger"
 import { isDocker } from "../app"
@@ -128,7 +128,13 @@ export const bootPermissions = (data: dataType | undefined): void => {
     return
   }
 
+  // Loop through all rootFolders and check permissions
   for (const rootFolder of data.rootFolders) {
     checkPermissions(rootFolder.data.path, ["all"], rootFolder.name)
+  }
+
+  // Loop through all download folders and check permissions
+  for (const downDir of currentPaths(data)) {
+    checkPermissions(downDir, ["all"], "qBittorrent")
   }
 }
