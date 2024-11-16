@@ -3,6 +3,7 @@ import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 import { baseData, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
+import { settingsType } from "../models/settings"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -160,12 +161,26 @@ export const updateDownloadQueue = (
   return newQueue
 }
 
+// Check if qBittorrent data exists for currentPaths function
+export const qBittorrentDataExists = (data: dataType): boolean => {
+  const noqBit =
+    !data.qBittorrent ||
+    (data.qBittorrent.categories.length === 0 &&
+      Object.keys(data.qBittorrent.preferences || {}).length === 0)
+
+  if (noqBit) {
+    return false
+  } else {
+    return true
+  }
+}
+
 // Create an array of path strings
 export const currentPaths = (data: dataType): string[] => {
   let paths: string[] = []
 
   // If there's no qBittorrent data to check, return
-  if (!data.qBittorrent || (!data.qBittorrent.categories && !data.qBittorrent.preferences)) {
+  if (!qBittorrentDataExists(data)) {
     logger.warn("currentPaths: qBittorrent data required.")
     return paths
   }
@@ -190,4 +205,19 @@ export const currentPaths = (data: dataType): string[] => {
   }
 
   return paths
+}
+
+// Check to see if all Loops are deactivated
+export const allLoopsDeactivated = (settings: settingsType): boolean => {
+  const allDeactivated = Object.keys(settings)
+    .filter((key) => key.endsWith("_loop")) // Find keys ending with '_loop'
+    .map((loopKey) => settings[loopKey.replace("_loop", "")]) // Map to the corresponding value
+    .every((loop) => loop === false) // Check if every array item is false
+
+  if (allDeactivated) {
+    logger.warn(`allLoopsDeactivated: All Loops are deactivated. This is fine... ¿ⓧ_ⓧﮌ`)
+    return true
+  }
+
+  return false
 }

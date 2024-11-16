@@ -4,7 +4,7 @@ import './input-model.scss'
 interface InputModelType {
   children: ReactNode
   title?: string
-  startIcon?: string
+  startIcon?: ReactNode
   status?: "Connected" | "Disconnected"
 }
 
@@ -22,7 +22,7 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
     <div className="input-model">
       <div className="input-model-top">
         <div className="input-model-top-left">
-          {startIcon && <img alt="API Symbol" src={startIcon} />}
+          {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
           {title && <h2>{title}</h2>}
         </div>
         {status && <p style={{ color: statusColours(status) }}>{status}</p>}

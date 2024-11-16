@@ -1,12 +1,14 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Send } from "@mui/icons-material"
+import { Loop as MuiLoop, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { inputLabel, updateInput } from "../shared/formValidation"
-import { settingsErrorType } from "../shared/types"
+import { settingsErrorType, settingsType } from "../shared/types"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
+import Loop from "../components/loop/Loop"
+import LoopTime from "../components/loop/looptime/Looptime"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
@@ -28,6 +30,42 @@ const Settings: React.FC = () => {
     await updateSettings(setLoading, settings, setSettings)
   }
 
+  const settingsTextField = (name: keyof settingsType, settings: settingsType, type?: string) => (
+    <TextField 
+      label={inputLabel(name, formErr)}
+      name={name as unknown as string}
+      value={settings[name]}
+      onChange={(e) => updateInput(e, setSettings, setFormErr)}
+      color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
+      error={!!formErr[name]}
+      type={type}
+    />
+  )
+
+  const loop = (
+    name: keyof settingsType, 
+    desc?: string,
+    params?: JSX.Element,
+  ) => (
+    <Loop
+      title={name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+      loop={name}
+      settings={settings}
+      setSettings={setSettings}
+      desc={desc}
+      params={(
+        <>
+          <LoopTime
+            loop={`${name}_loop` as keyof settingsType}
+            settings={settings}
+            setSettings={setSettings}
+          />
+          {params}
+        </>
+      )}
+    />
+  )
+
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
       <InputModel 
@@ -35,97 +73,58 @@ const Settings: React.FC = () => {
         startIcon="https://radarr.video/img/logo.png"
         status={settings.radarr_active ? "Connected" : "Disconnected"}
       >
-        <TextField 
-          label={inputLabel("radarr_URL", formErr)}
-          name="radarr_URL"
-          value={settings.radarr_URL}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.radarr_active ? "success" : "primary"}
-          error={!!formErr.radarr_URL}
-        />
-        <TextField 
-          label={inputLabel("radarr_KEY", formErr)}
-          name="radarr_KEY"
-          value={settings.radarr_KEY}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.radarr_active ? "success" : "primary"}
-          error={!!formErr.radarr_KEY}
-        />
+        {settingsTextField("radarr_URL", settings)}
+        {settingsTextField("radarr_KEY", settings)}
       </InputModel>
       <InputModel 
         title="Sonarr" 
         startIcon="https://sonarr.tv/img/logo.png"
         status={settings.sonarr_active ? "Connected" : "Disconnected"}
       >
-        <TextField 
-          label={inputLabel("sonarr_URL", formErr)}
-          name="sonarr_URL"
-          value={settings.sonarr_URL}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.sonarr_active ? "success" : "primary"}
-          error={!!formErr.sonarr_URL}
-        />
-        <TextField 
-          label={inputLabel("sonarr_KEY", formErr)}
-          name="sonarr_KEY"
-          value={settings.sonarr_KEY}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.sonarr_active ? "success" : "primary"}
-          error={!!formErr.sonarr_KEY}
-        />
+        {settingsTextField("sonarr_URL", settings)}
+        {settingsTextField("sonarr_KEY", settings)}
       </InputModel>
       <InputModel 
         title="Lidarr" 
         startIcon="https://lidarr.audio/img/logo.png"
         status={settings.lidarr_active ? "Connected" : "Disconnected"}
       >
-        <TextField 
-          label={inputLabel("lidarr_URL", formErr)}
-          name="lidarr_URL"
-          value={settings.lidarr_URL}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.lidarr_active ? "success" : "primary"}
-          error={!!formErr.lidarr_URL}
-        />
-        <TextField 
-          label={inputLabel("lidarr_KEY", formErr)}
-          name="lidarr_KEY"
-          value={settings.lidarr_KEY}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.lidarr_active ? "success" : "primary"}
-          error={!!formErr.lidarr_KEY}
-        />
+        {settingsTextField("lidarr_URL", settings)}
+        {settingsTextField("lidarr_KEY", settings)}
       </InputModel>
       <InputModel 
         title="qBittorrent" 
         startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
         status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
       >
-        <TextField 
-          label={inputLabel("qBittorrent_URL", formErr)}
-          name="qBittorrent_URL"
-          value={settings.qBittorrent_URL}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.qBittorrent_active ? "success" : "primary"}
-          error={!!formErr.qBittorrent_URL}
-        />
-        <TextField 
-          label={inputLabel("qBittorrent_username", formErr)}
-          name="qBittorrent_username"
-          value={settings.qBittorrent_username}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.qBittorrent_active ? "success" : "primary"}
-          error={!!formErr.qBittorrent_username}
-        />
-        <TextField 
-          label={inputLabel("qBittorrent_password", formErr)}
-          name="qBittorrent_password"
-          value={settings.qBittorrent_password}
-          onChange={(e) => updateInput(e, setSettings, setFormErr)}
-          color={settings.qBittorrent_active ? "success" : "primary"}
-          error={!!formErr.qBittorrent_password}
-          type="password"
-        />
+        {settingsTextField("qBittorrent_URL", settings)}
+        {settingsTextField("qBittorrent_username", settings)}
+        {settingsTextField("qBittorrent_password", settings, "password")}
+      </InputModel>
+      <InputModel 
+        title="Loops" 
+        startIcon={<MuiLoop/>}
+      >
+        {loop(
+          "import_blocked",
+          "Import all downloads that have a status of 'importBlocked' or 'importFailed' in Starr App queues. If a download has 'missing' files or is 'unsupported' in any way, delete it.",
+        )}
+        {loop(
+          "wanted_missing",
+          "Start a search for all missing content in the Wanted > Missing tabs.",
+        )}
+        {loop(
+          "remove_failed",
+          "Remove all downloads in qBittorrent download paths that have failed.",
+        )}
+        {loop(
+          "remove_missing",
+          "Remove any content in the file system that doesn't appear in Starr app libraries. Particularly useful when using dynamic import lists.",
+        )}
+        {loop(
+          "permissions_change",
+          "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
+        )}
       </InputModel>
       <Button 
         type="submit"

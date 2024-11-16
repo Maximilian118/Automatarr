@@ -1,0 +1,11 @@
+@use '../../../scss/mixins';
+
+.loop-time {
+  width: 100%;
+  height: 50px;
+  @include mixins.flexbox-start;
+
+  >:not(:last-child) {
+    margin-right: 10px;
+  }
+}

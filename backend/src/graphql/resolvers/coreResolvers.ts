@@ -6,7 +6,7 @@ import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../s
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { deleteFailedDownloads, deleteFromMachine } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
-import { currentPaths, updateDownloadQueue } from "../../shared/utility"
+import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -134,8 +134,9 @@ const coreResolvers = {
       return
     }
 
-    if (!data.qBittorrent || (!data.qBittorrent.categories && !data.qBittorrent.preferences)) {
-      logger.error("removeFailed: qBittorrent data required.")
+    // If there's no qBittorrent data to check, return
+    if (!qBittorrentDataExists(data)) {
+      logger.warn("removeFailed: qBittorrent data required.")
       return
     }
 
@@ -149,6 +150,22 @@ const coreResolvers = {
     logger.info(
       `removeFailed: Removed ${deletions} failed downloads out of ${searched} from ${stats.length} directories.`,
     )
+  },
+  permissions_change: async (): Promise<void> => {
+    // Retrieve the data object from the db
+    const data = await Data.findOne()
+
+    if (!data) {
+      logger.error("permissionsChange: Could not find data object in db.")
+      return
+    }
+
+    if (!data.rootFolders) {
+      logger.error("permissionsChange: No Starr App root folders found.")
+      return
+    }
+
+    console.log("permissionsChange")
   },
 }
 

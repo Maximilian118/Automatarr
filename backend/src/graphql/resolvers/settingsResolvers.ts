@@ -1,5 +1,6 @@
 import logger from "../../logger"
 import Settings, { settingsType } from "../../models/settings"
+import { allLoopsDeactivated } from "../../shared/utility"
 import Resolvers from "./resolvers"
 
 const settingsResolvers = {
@@ -44,12 +45,19 @@ const settingsResolvers = {
       lidarr_active,
       import_blocked,
       wanted_missing,
+      remove_failed,
+      remove_missing,
+      permissions_change,
       import_blocked_loop,
       wanted_missing_loop,
+      remove_failed_loop,
+      remove_missing_loop,
+      permissions_change_loop,
       qBittorrent_URL,
       qBittorrent_username,
       qBittorrent_password,
       qBittorrent_active,
+      qBittorrent_API_version,
     } = args.settingsInput
 
     // Find settings object by ID
@@ -76,18 +84,27 @@ const settingsResolvers = {
     settings.lidarr_active = lidarr_active
     settings.import_blocked = import_blocked
     settings.wanted_missing = wanted_missing
+    settings.remove_failed = remove_failed
+    settings.remove_missing = remove_missing
+    settings.permissions_change = permissions_change
     settings.import_blocked_loop = import_blocked_loop
     settings.wanted_missing_loop = wanted_missing_loop
+    settings.remove_failed_loop = remove_failed_loop
+    settings.remove_missing_loop = remove_missing_loop
+    settings.permissions_change_loop = permissions_change_loop
     settings.qBittorrent_URL = qBittorrent_URL
     settings.qBittorrent_username = qBittorrent_username
     settings.qBittorrent_password = qBittorrent_password
     settings.qBittorrent_active = qBittorrent_active
+    settings.qBittorrent_API_version = qBittorrent_API_version
 
     // Save the updated object
     await settings.save()
 
     // Update the data object in the database
-    await Resolvers.getData(settings)
+    if (!allLoopsDeactivated(settings._doc)) {
+      await Resolvers.getData(settings)
+    }
 
     // Call the core loop functions once with the new settings
     if (settings.wanted_missing) {
@@ -100,6 +117,10 @@ const settingsResolvers = {
 
     if (settings.remove_failed) {
       await Resolvers.remove_failed()
+    }
+
+    if (settings.permissions_change) {
+      await Resolvers.permissions_change()
     }
 
     // Return the updated object

@@ -1,0 +1,17 @@
+@use '../../scss/mixins';
+
+.loop {
+  width: 100%;
+  @include mixins.flexbox-start-column;
+
+  .title-and-toggle {
+    width: 100%;
+    @include mixins.flexbox-space-between;
+  }
+
+  .loop-params {
+    width: 100%;
+    @include mixins.flexbox-start;
+    margin-top: 15px;
+  }
+}

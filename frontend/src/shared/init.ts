@@ -19,7 +19,7 @@ export const initSettings: settingsType = {
   wanted_missing: true,
   remove_failed: true,
   remove_missing: true,
-  permissions_change: true,
+  permissions_change: false,
   import_blocked_loop: 10,
   wanted_missing_loop: 240,
   remove_failed_loop: 60,

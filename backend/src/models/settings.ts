@@ -54,7 +54,7 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   wanted_missing: { type: Boolean, default: true }, // Enable or disable automation of searching for missing and monitored library items
   remove_failed: { type: Boolean, default: true }, // Enable or disable automation of removing failed downloads
   remove_missing: { type: Boolean, default: true }, // Enable or disable automation of removing files that no longer appear in any Starr app library
-  permissions_change: { type: Boolean, default: true }, // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
+  permissions_change: { type: Boolean, default: false }, // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
   import_blocked_loop: { type: Number, default: 10 }, // Loop timer for importBlocked. Unit = minutes
   wanted_missing_loop: { type: Number, default: 240 }, // Loop timer for wanted missing search. Unit = minutes
   remove_failed_loop: { type: Number, default: 60 }, // Loop timer for remove_failed. Unit = minutes

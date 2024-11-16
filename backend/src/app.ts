@@ -10,6 +10,7 @@ import fs from "fs"
 import logger from "./logger"
 import { dynamicLoop } from "./shared/dynamicLoop"
 import { bootPermissions } from "./shared/permissions"
+import { allLoopsDeactivated } from "./shared/utility"
 
 // Initialise express.
 const app = express()
@@ -97,7 +98,7 @@ const startServer = async () => {
   }
 
   // If first run, initialise settings and data
-  await Resolvers.newSettings() // Settings for Automatarr
+  const bootSettings = await Resolvers.newSettings() // Settings for Automatarr
   await Resolvers.newData() // Data retrieved from every API
 
   // Check connection to every API
@@ -112,24 +113,25 @@ const startServer = async () => {
   // Check Automatarr has the filesystem permissions it needs
   bootPermissions(data)
 
+  // Log if all Loops are deactivated
+  allLoopsDeactivated(bootSettings._doc)
+
   // Main loops
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   dynamicLoop("wanted_missing_loop", async (settings) => {
-    if (settings.wanted_missing) {
-      await Resolvers.search_wanted_missing(settings)
-    }
+    await Resolvers.search_wanted_missing(settings)
   })
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
   dynamicLoop("import_blocked_loop", async (settings) => {
-    if (settings.import_blocked) {
-      await Resolvers.import_blocked_handler(settings)
-    }
+    await Resolvers.import_blocked_handler(settings)
   })
   // Check for any failed downloads and delete them from the file system.
-  dynamicLoop("remove_failed_loop", async (settings) => {
-    if (settings.remove_failed) {
-      await Resolvers.remove_failed()
-    }
+  dynamicLoop("remove_failed_loop", async () => {
+    await Resolvers.remove_failed()
+  })
+  // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
+  dynamicLoop("permissions_change_loop", async () => {
+    await Resolvers.permissions_change()
   })
 }
 
