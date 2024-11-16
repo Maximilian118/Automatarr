@@ -25,6 +25,8 @@ export const initSettings: settingsType = {
   remove_failed_loop: 60,
   remove_missing_loop: 60,
   permissions_change_loop: 10,
+  permissions_change_chown: "",
+  permissions_change_chmod: "",
   qBittorrent_URL: "",
   qBittorrent_username: "",
   qBittorrent_password: "",

@@ -53,6 +53,8 @@ const settingsResolvers = {
       remove_failed_loop,
       remove_missing_loop,
       permissions_change_loop,
+      permissions_change_chown,
+      permissions_change_chmod,
       qBittorrent_URL,
       qBittorrent_username,
       qBittorrent_password,
@@ -92,6 +94,8 @@ const settingsResolvers = {
     settings.remove_failed_loop = remove_failed_loop
     settings.remove_missing_loop = remove_missing_loop
     settings.permissions_change_loop = permissions_change_loop
+    settings.permissions_change_chown = permissions_change_chown
+    settings.permissions_change_chmod = permissions_change_chmod
     settings.qBittorrent_URL = qBittorrent_URL
     settings.qBittorrent_username = qBittorrent_username
     settings.qBittorrent_password = qBittorrent_password

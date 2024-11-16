@@ -30,15 +30,16 @@ const Settings: React.FC = () => {
     await updateSettings(setLoading, settings, setSettings)
   }
 
-  const settingsTextField = (name: keyof settingsType, settings: settingsType, type?: string) => (
+  const settingsTextField = (name: keyof settingsType, altLabel?: string, size?: "small" | "medium", maxLength?: number) => (
     <TextField 
-      label={inputLabel(name, formErr)}
+      label={inputLabel(name, formErr, altLabel)}
       name={name as unknown as string}
       value={settings[name]}
       onChange={(e) => updateInput(e, setSettings, setFormErr)}
       color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
       error={!!formErr[name]}
-      type={type}
+      size={size}
+      slotProps={maxLength ? { htmlInput: { maxLength: maxLength } } : {}}
     />
   )
 
@@ -73,33 +74,33 @@ const Settings: React.FC = () => {
         startIcon="https://radarr.video/img/logo.png"
         status={settings.radarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("radarr_URL", settings)}
-        {settingsTextField("radarr_KEY", settings)}
+        {settingsTextField("radarr_URL")}
+        {settingsTextField("radarr_KEY")}
       </InputModel>
       <InputModel 
         title="Sonarr" 
         startIcon="https://sonarr.tv/img/logo.png"
         status={settings.sonarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("sonarr_URL", settings)}
-        {settingsTextField("sonarr_KEY", settings)}
+        {settingsTextField("sonarr_URL")}
+        {settingsTextField("sonarr_KEY")}
       </InputModel>
       <InputModel 
         title="Lidarr" 
         startIcon="https://lidarr.audio/img/logo.png"
         status={settings.lidarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("lidarr_URL", settings)}
-        {settingsTextField("lidarr_KEY", settings)}
+        {settingsTextField("lidarr_URL")}
+        {settingsTextField("lidarr_KEY")}
       </InputModel>
       <InputModel 
         title="qBittorrent" 
         startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
         status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("qBittorrent_URL", settings)}
-        {settingsTextField("qBittorrent_username", settings)}
-        {settingsTextField("qBittorrent_password", settings, "password")}
+        {settingsTextField("qBittorrent_URL")}
+        {settingsTextField("qBittorrent_username")}
+        {settingsTextField("qBittorrent_password", "password")}
       </InputModel>
       <InputModel 
         title="Loops" 
@@ -124,6 +125,10 @@ const Settings: React.FC = () => {
         {loop(
           "permissions_change",
           "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
+          <>
+            {settingsTextField("permissions_change_chown", "User : Group", "small")}
+            {settingsTextField("permissions_change_chmod", "Permissions", "small", 3)}
+          </>
         )}
       </InputModel>
       <Button 

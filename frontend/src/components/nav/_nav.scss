@@ -6,6 +6,7 @@ nav {
   background: variables.$off-black;
   @include mixins.flexbox-start;
   height: 48px;
+  border-bottom: 2px solid black;
 
   img {
     height: 65%;

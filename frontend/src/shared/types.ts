@@ -22,6 +22,8 @@ export interface settingsType {
   remove_failed_loop: number
   remove_missing_loop: number
   permissions_change_loop: number
+  permissions_change_chown: string
+  permissions_change_chmod: string
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string
@@ -55,6 +57,8 @@ export interface settingsErrorType {
   remove_failed_loop: string
   remove_missing_loop: string
   permissions_change_loop: string
+  permissions_change_chown: string
+  permissions_change_chmod: string
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string

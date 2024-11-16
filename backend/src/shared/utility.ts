@@ -209,10 +209,12 @@ export const currentPaths = (data: dataType): string[] => {
 
 // Check to see if all Loops are deactivated
 export const allLoopsDeactivated = (settings: settingsType): boolean => {
-  const allDeactivated = Object.keys(settings)
-    .filter((key) => key.endsWith("_loop")) // Find keys ending with '_loop'
-    .map((loopKey) => settings[loopKey.replace("_loop", "")]) // Map to the corresponding value
-    .every((loop) => loop === false) // Check if every array item is false
+  const allDeactivated =
+    settings &&
+    Object.keys(settings)
+      .filter((key) => key.endsWith("_loop")) // Find keys ending with '_loop'
+      .map((loopKey) => settings[loopKey.replace("_loop", "")]) // Map to the corresponding value
+      .every((loop) => loop === false) // Check if every array item is false
 
   if (allDeactivated) {
     logger.warn(`allLoopsDeactivated: All Loops are deactivated. This is fine... ¿ⓧ_ⓧﮌ`)

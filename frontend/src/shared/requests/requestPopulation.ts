@@ -23,6 +23,8 @@ export const populateSettings = `
   remove_failed_loop
   remove_missing_loop
   permissions_change_loop
+  permissions_change_chown
+  permissions_change_chmod
   qBittorrent_URL
   qBittorrent_username
   qBittorrent_password

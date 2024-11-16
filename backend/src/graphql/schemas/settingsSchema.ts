@@ -23,6 +23,8 @@ const settingsSchema = `
     remove_failed_loop: Int!
     remove_missing_loop: Int!
     permissions_change_loop: Int!
+    permissions_change_chown: String!
+    permissions_change_chmod: String!
     qBittorrent_URL: String!
     qBittorrent_username: String!
     qBittorrent_password: String!
@@ -56,6 +58,8 @@ const settingsSchema = `
     remove_failed_loop: Int
     remove_missing_loop: Int
     permissions_change_loop: Int
+    permissions_change_chown: String
+    permissions_change_chmod: String
     qBittorrent_URL: String
     qBittorrent_username: String
     qBittorrent_password: String

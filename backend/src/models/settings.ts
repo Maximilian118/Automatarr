@@ -26,6 +26,8 @@ export interface settingsType {
   remove_failed_loop: number
   remove_missing_loop: number
   permissions_change_loop: number
+  permissions_change_chown: string
+  permissions_change_chmod: string
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string
@@ -60,6 +62,8 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   remove_failed_loop: { type: Number, default: 60 }, // Loop timer for remove_failed. Unit = minutes
   remove_missing_loop: { type: Number, default: 60 }, // Loop timer for remove_missing. Unit = minutes
   permissions_change_loop: { type: Number, default: 10 }, // Loop timer for permissions_change. Unit = minutes
+  permissions_change_chown: { type: String, default: "" }, // Intended ownership of all content inside Starr app root folders
+  permissions_change_chmod: { type: String, default: "" }, // Intended permissions of all content inside Starr app root folders
   qBittorrent_URL: { type: String, default: "" }, // URL including port to reach qBittorrent API
   qBittorrent_username: { type: String, default: "" }, // Username for qBittorrent if it requires credentials
   qBittorrent_password: { type: String, default: "" }, // Password for qBittorrent if it requires credentials

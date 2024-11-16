@@ -69,6 +69,8 @@ export const updateSettings = async (
           $remove_failed_loop: Int
           $remove_missing_loop: Int
           $permissions_change_loop: Int
+          $permissions_change_chown: String
+          $permissions_change_chmod: String
           $qBittorrent_URL: String
           $qBittorrent_username: String
           $qBittorrent_password: String
@@ -99,6 +101,8 @@ export const updateSettings = async (
             remove_failed_loop: $remove_failed_loop
             remove_missing_loop: $remove_missing_loop
             permissions_change_loop: $permissions_change_loop
+            permissions_change_chown: $permissions_change_chown
+            permissions_change_chmod: $permissions_change_chmod
             qBittorrent_URL: $qBittorrent_URL
             qBittorrent_username: $qBittorrent_username
             qBittorrent_password: $qBittorrent_password

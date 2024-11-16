@@ -11,7 +11,12 @@
 
   .loop-params {
     width: 100%;
-    @include mixins.flexbox-start;
-    margin-top: 15px;
+    @include mixins.flexbox-start-column;
+    align-items: start;
+
+    >* {
+      margin-top: 20px;
+      max-width: 265px;
+    }
   }
 }
