@@ -7,6 +7,7 @@ interface LoopTimeType {
   loop: keyof settingsType
   settings: settingsType
   setSettings: Dispatch<SetStateAction<settingsType>>
+  disabled?: boolean
 }
 
 type UnitsType = "minutes" | "hours" | "days" | "weeks"
@@ -56,6 +57,7 @@ const LoopTime: React.FC<LoopTimeType> = ({
   loop,
   settings,
   setSettings,
+  disabled,
 }) => {
   const [ int, setInt ] = useState(minutesToInterval(settings[loop] as number))
 
@@ -85,6 +87,7 @@ const LoopTime: React.FC<LoopTimeType> = ({
         sx={{ width: "110px" }}
         renderInput={(params) => <TextField {...params} label="Interval"/>}
         size="small"
+        disabled={disabled}
       />
       <Autocomplete
         value={int.unit}
@@ -101,6 +104,7 @@ const LoopTime: React.FC<LoopTimeType> = ({
         sx={{ width: "145px"}}
         renderInput={(params) => <TextField {...params} label="Unit"/>}
         size="small"
+        disabled={disabled}
       />
     </div>
   )

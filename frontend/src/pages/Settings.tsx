@@ -31,7 +31,12 @@ const Settings: React.FC = () => {
     await updateSettings(setLoading, settings, setSettings, formErr)
   }
 
-  const settingsTextField = (name: keyof settingsType, label?: string, size?: "small" | "medium", maxLength?: number) => (
+  const settingsTextField = (
+    name: keyof settingsType, 
+    label?: string, 
+    size?: "small" | "medium", 
+    maxLength?: number
+  ) => (
     <MUITextField 
       label={label}
       name={name}
@@ -48,6 +53,7 @@ const Settings: React.FC = () => {
     name: keyof settingsType, 
     desc?: string,
     params?: JSX.Element,
+    disabled?: boolean,
   ) => (
     <Loop
       title={name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -55,12 +61,14 @@ const Settings: React.FC = () => {
       settings={settings}
       setSettings={setSettings}
       desc={desc}
+      disabled={disabled}
       params={(
         <>
           <LoopTime
             loop={`${name}_loop` as keyof settingsType}
             settings={settings}
             setSettings={setSettings}
+            disabled={disabled}
           />
           {params}
         </>
@@ -118,6 +126,8 @@ const Settings: React.FC = () => {
         {loop(
           "remove_failed",
           "Remove all downloads in qBittorrent download paths that have failed.",
+          undefined,
+          !settings.qBittorrent_active,
         )}
         {loop(
           "remove_missing",

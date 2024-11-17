@@ -10,9 +10,18 @@ interface LoopType {
   setSettings: Dispatch<SetStateAction<settingsType>>
   desc?: string
   params?: JSX.Element
+  disabled?: boolean
 }
 
-const Loop: React.FC<LoopType> = ({ title, loop, settings, setSettings, desc, params }) => {
+const Loop: React.FC<LoopType> = ({ 
+  title, 
+  loop, 
+  settings, 
+  setSettings, 
+  desc, 
+  params,
+  disabled,
+}) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSettings(prevSettings => {
       return {
@@ -26,11 +35,12 @@ const Loop: React.FC<LoopType> = ({ title, loop, settings, setSettings, desc, pa
     <div className="loop">
       <div className="title-and-toggle">
         <h4>{title}</h4>
-        <Switch
-          checked={settings[loop] as boolean}
-          onChange={handleSwitchChange}
-          inputProps={{ 'aria-label': 'controlled' }}
-        />
+          <Switch
+            checked={disabled ? false : settings[loop] as boolean}
+            onChange={handleSwitchChange}
+            inputProps={{ 'aria-label': 'controlled' }}
+            disabled={disabled}
+          />
       </div>
       {desc && <p>{desc}</p>}
       {params && (

@@ -14,6 +14,7 @@ type MUITextFieldType = {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
   color?: "error" | "primary" | "secondary" | "info" | "success" | "warning"
   type?: HTMLInputTypeAttribute
+  disabled?: boolean
 }
 
 // Exists for perfomance purposes.
@@ -30,6 +31,7 @@ const MUITextField: React.FC<MUITextFieldType> = ({
   onChange,
   color,
   type,
+  disabled,
 }) => {
   const [ localValue, setLocalValue ] = useState(value)
 
@@ -57,6 +59,7 @@ const MUITextField: React.FC<MUITextFieldType> = ({
       error={!!formErr[name]}
       size={size}
       slotProps={maxLength ? { htmlInput: { maxLength: maxLength } } : {}}
+      disabled={disabled}
       type={type}
     />
   )
