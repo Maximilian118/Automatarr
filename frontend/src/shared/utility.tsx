@@ -1,4 +1,4 @@
-import { settingsType } from "./types"
+import { settingsErrorType, settingsType } from "./types"
 import {
   checkLidarr,
   checkqBittorrent,
@@ -26,3 +26,6 @@ export const checkAPIs = async (
     qBittorrent_active,
   }
 }
+
+// Check if a form error object has any populated strings. I.E if there are some errors return true.
+export const formHasErr = (obj: settingsErrorType) => Object.values(obj).some((value) => value.trim() !== "")

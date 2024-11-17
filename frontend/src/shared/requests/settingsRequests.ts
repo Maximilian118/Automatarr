@@ -1,8 +1,8 @@
 import axios from "axios"
 import { Dispatch, SetStateAction } from "react"
-import { settingsType } from "../types"
+import { settingsErrorType, settingsType } from "../types"
 import { populateSettings } from "./requestPopulation"
-import { checkAPIs } from "../utility"
+import { checkAPIs, formHasErr } from "../utility"
 
 export const getSettings = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
@@ -38,8 +38,15 @@ export const updateSettings = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   settings: settingsType,
   setSettings: Dispatch<SetStateAction<settingsType>>,
+  formErr: settingsErrorType,
 ): Promise<void> => {
   setLoading(true)
+
+  if (formHasErr(formErr)) {
+    setLoading(false)
+    console.error("updateSettings: Form has errors.")
+    return
+  }
 
   try {
     const res = await axios.post("", {

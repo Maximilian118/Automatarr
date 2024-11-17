@@ -1,14 +1,15 @@
-import { Button, CircularProgress, TextField } from "@mui/material"
+import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Loop as MuiLoop, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
-import { inputLabel, updateInput } from "../shared/formValidation"
+import { updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../shared/types"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
 import Loop from "../components/loop/Loop"
 import LoopTime from "../components/loop/looptime/Looptime"
+import MUITextField from "../components/utility/MUITextField/MUITextField"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
@@ -27,19 +28,19 @@ const Settings: React.FC = () => {
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    await updateSettings(setLoading, settings, setSettings)
+    await updateSettings(setLoading, settings, setSettings, formErr)
   }
 
-  const settingsTextField = (name: keyof settingsType, altLabel?: string, size?: "small" | "medium", maxLength?: number) => (
-    <TextField 
-      label={inputLabel(name, formErr, altLabel)}
-      name={name as unknown as string}
-      value={settings[name]}
-      onChange={(e) => updateInput(e, setSettings, setFormErr)}
+  const settingsTextField = (name: keyof settingsType, label?: string, size?: "small" | "medium", maxLength?: number) => (
+    <MUITextField 
+      label={label}
+      name={name}
+      value={settings[name] as string}
+      formErr={formErr}
       color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
-      error={!!formErr[name]}
       size={size}
-      slotProps={maxLength ? { htmlInput: { maxLength: maxLength } } : {}}
+      maxLength={maxLength}
+      onBlur={(e) => updateInput(e, setSettings, setFormErr)}
     />
   )
 
