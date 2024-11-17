@@ -1,6 +1,6 @@
 import axios from "axios"
 import { Dispatch, SetStateAction } from "react"
-import { settingsErrorType, settingsType } from "../types"
+import { settingsErrorType, settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 

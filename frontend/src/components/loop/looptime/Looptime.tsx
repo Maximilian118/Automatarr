@@ -1,7 +1,7 @@
 import { Autocomplete, TextField } from "@mui/material"
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
 import './_loopTime.scss'
-import { settingsType } from "../../../shared/types"
+import { settingsType } from "../../../types/settingsType"
 
 interface LoopTimeType {
   loop: keyof settingsType

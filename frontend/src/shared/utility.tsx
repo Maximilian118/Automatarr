@@ -1,4 +1,4 @@
-import { settingsErrorType, settingsType } from "./types"
+import { settingsErrorType, settingsType } from "../types/settingsType"
 import {
   checkLidarr,
   checkqBittorrent,

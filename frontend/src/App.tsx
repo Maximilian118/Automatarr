@@ -4,14 +4,16 @@ import "./scss/base.scss"
 import Nav from './components/nav/Nav'
 import Footer from './components/footer/Footer'
 import Router from './Router'
-import { settingsType } from './shared/types'
-import { initSettings } from './shared/init'
+import { initData, initSettings } from './shared/init'
+import { settingsType } from './types/settingsType'
+import { dataType } from './types/dataType'
 
 const App: React.FC = () => {
-  const [ settings, setSettings ] = useState<settingsType>(initSettings)
+  const [ settings, setSettings] = useState<settingsType>(initSettings)
+  const [ data, setData ] = useState<dataType>(initData)
 
   return (  
-    <AppContext.Provider value={{ settings, setSettings }}>
+    <AppContext.Provider value={{ settings, setSettings, data, setData }}>
       <Nav/>
       <Router/>
       <Footer/>

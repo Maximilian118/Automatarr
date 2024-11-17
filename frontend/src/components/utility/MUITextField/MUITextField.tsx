@@ -1,7 +1,7 @@
 import { TextField } from "@mui/material"
 import React, { HTMLInputTypeAttribute, useEffect, useState } from "react"
 import { inputLabel } from "../../../shared/formValidation"
-import { settingsErrorType, settingsType } from "../../../shared/types"
+import { settingsErrorType, settingsType } from "../../../types/settingsType"
 
 type MUITextFieldType = {
   name: keyof settingsType

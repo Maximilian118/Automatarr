@@ -1,4 +1,6 @@
-import { settingsErrorType, settingsType } from "./types"
+import { dataType, qBittorrent } from "../types/dataType"
+import { qBittorrentPreferences } from "../types/qBittorrentTypes"
+import { settingsErrorType, settingsType } from "../types/settingsType"
 
 // Initialise the settings object with defaults
 export const initSettings: settingsType = {
@@ -47,4 +49,28 @@ export const initSettingsErrors = (): settingsErrorType => {
   }
 
   return errObj
+}
+
+const initqBittorrent: qBittorrent = {
+  name: "qBittorrent",
+  cookie: "",
+  torrents: [],
+  categories: [],
+  preferences: {} as qBittorrentPreferences,
+  created_at: "",
+  updated_at: "",
+}
+
+// Initialise the data object with defaults
+export const initData: dataType = {
+  _id: "",
+  commands: [],
+  commandList: [],
+  downloadQueues: [],
+  rootFolders: [],
+  libraries: [],
+  missingWanteds: [],
+  qBittorrent: initqBittorrent,
+  created_at: "",
+  updated_at: "",
 }

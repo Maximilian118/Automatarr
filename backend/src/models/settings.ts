@@ -1,7 +1,8 @@
-import mongoose from "mongoose"
+import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
 
+// Main settingsType
 export interface settingsType {
   _id: ObjectId
   radarr_URL: string
@@ -35,8 +36,13 @@ export interface settingsType {
   qBittorrent_API_version: string
   created_at: string
   updated_at: string
-  _doc: settingsType
   [key: string]: any
+}
+
+// Settings object from MongoDB Database
+export interface settingsDocType extends settingsType, Document {
+  _id: ObjectId
+  _doc: settingsType
 }
 
 const settingsSchema = new mongoose.Schema<settingsType>({

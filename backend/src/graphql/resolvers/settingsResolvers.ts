@@ -1,5 +1,5 @@
 import logger from "../../logger"
-import Settings, { settingsType } from "../../models/settings"
+import Settings, { settingsDocType, settingsType } from "../../models/settings"
 import { allLoopsDeactivated } from "../../shared/utility"
 import Resolvers from "./resolvers"
 
@@ -23,10 +23,10 @@ const settingsResolvers = {
     })
 
     // Push settings object to the database
-    await newSettings.save()
+    const createdSettings = (await newSettings.save()) as settingsDocType
     logger.info("New settings object created.")
 
-    return newSettings._doc
+    return createdSettings._doc
   },
   updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
     const {
@@ -63,7 +63,7 @@ const settingsResolvers = {
     } = args.settingsInput
 
     // Find settings object by ID
-    const settings = await Settings.findById(_id)
+    const settings = (await Settings.findById(_id)) as settingsDocType
 
     // Throw error if no object was found
     if (!settings) {
@@ -132,7 +132,7 @@ const settingsResolvers = {
   },
   getSettings: async (): Promise<settingsType> => {
     // Find what should be the only settings object in the db
-    const settings = await Settings.findOne()
+    const settings = (await Settings.findOne()) as settingsDocType
 
     // Throw error if no object was found
     if (!settings) {

@@ -1,5 +1,6 @@
 import axios from "axios"
-import { settingsType } from "../types"
+import { settingsType } from "../../types/settingsType"
+
 // Checks if API connection is working. If settings not passed, check with params in db.
 export const checkRadarr = async (settings?: settingsType): Promise<boolean> => {
   // prettier-ignore

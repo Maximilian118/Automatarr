@@ -11,6 +11,7 @@ import logger from "./logger"
 import { dynamicLoop } from "./shared/dynamicLoop"
 import { bootPermissions } from "./shared/permissions"
 import { allLoopsDeactivated } from "./shared/utility"
+import { settingsDocType } from "./models/settings"
 
 // Initialise express.
 const app = express()
@@ -98,7 +99,7 @@ const startServer = async () => {
   }
 
   // If first run, initialise settings and data
-  const bootSettings = await Resolvers.newSettings() // Settings for Automatarr
+  const bootSettings = (await Resolvers.newSettings()) as settingsDocType // Settings for Automatarr
   await Resolvers.newData() // Data retrieved from every API
 
   // Check connection to every API

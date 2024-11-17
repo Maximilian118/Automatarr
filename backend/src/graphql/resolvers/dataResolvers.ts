@@ -1,5 +1,5 @@
 import Data, { dataType } from "../../models/data"
-import Settings, { settingsType } from "../../models/settings"
+import Settings, { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import {
@@ -37,10 +37,10 @@ const dataResolvers = {
 
     return newData
   },
-  getData: async (newSettings?: settingsType): Promise<dataType | undefined> => {
+  getData: async (newSettings?: settingsDocType): Promise<dataType | undefined> => {
     // Get latest settings
     // prettier-ignore
-    const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsType
+    const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsDocType
 
     if (!settings) {
       logger.error("checkRadarr: No Settings object were found.")
@@ -73,7 +73,7 @@ const dataResolvers = {
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
     // qBittorrent
-    data.qBittorrent = await getqBittorrentData(settings, data)
+    data.qBittorrent = await getqBittorrentData(settings._doc, data)
 
     data.updated_at = moment().format()
     return await data.save()

@@ -49,7 +49,7 @@ export interface qBittorrent extends baseData {
 }
 
 // Main dataType
-export interface dataType extends Document {
+export interface dataType {
   _id: ObjectId
   commands: commandsData[]
   commandList: commandList[]
@@ -60,6 +60,13 @@ export interface dataType extends Document {
   qBittorrent: qBittorrent
   created_at: string
   updated_at: string
+  [key: string]: any
+}
+
+// Data object from MongoDB Database
+export interface dataDocType extends dataType, Document {
+  _id: ObjectId
+  _doc: dataType
 }
 
 // Define the base schema with common fields

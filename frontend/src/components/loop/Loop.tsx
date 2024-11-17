@@ -1,7 +1,7 @@
 import React, { Dispatch, SetStateAction } from "react"
 import { Switch } from '@mui/material'
-import { settingsType } from "../../shared/types"
 import './_loop.scss'
+import { settingsType } from "../../types/settingsType"
 
 interface LoopType {
   title: string

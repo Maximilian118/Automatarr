@@ -1,3 +1,4 @@
+// Main settingsType
 export interface settingsType {
   _id: string
   radarr_URL: string
@@ -33,37 +34,7 @@ export interface settingsType {
   updated_at: string
 }
 
-export interface settingsErrorType {
-  _id: string
-  radarr_URL: string
-  radarr_KEY: string
-  radarr_API_version: string
-  radarr_active: string
-  sonarr_URL: string
-  sonarr_KEY: string
-  sonarr_API_version: string
-  sonarr_active: string
-  lidarr_URL: string
-  lidarr_KEY: string
-  lidarr_API_version: string
-  lidarr_active: string
-  import_blocked: string
-  wanted_missing: string
-  remove_failed: string
-  remove_missing: string
-  permissions_change: string
-  import_blocked_loop: string
-  wanted_missing_loop: string
-  remove_failed_loop: string
-  remove_missing_loop: string
-  permissions_change_loop: string
-  permissions_change_chown: string
-  permissions_change_chmod: string
-  qBittorrent_URL: string
-  qBittorrent_username: string
-  qBittorrent_password: string
-  qBittorrent_active: string
-  qBittorrent_API_version: string
-  created_at: string
-  updated_at: string
+// An error type mirroring settingsType to use with forms
+export type settingsErrorType = {
+  [K in keyof settingsType]: string
 }

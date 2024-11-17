@@ -1,5 +1,5 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react"
-import { settingsErrorType, settingsType } from "./types"
+import { settingsErrorType, settingsType } from "../types/settingsType"
 
 export const inputLabel = (
   type: keyof settingsErrorType,
