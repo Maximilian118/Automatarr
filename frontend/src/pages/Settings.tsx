@@ -54,6 +54,7 @@ const Settings: React.FC = () => {
     desc?: string,
     params?: JSX.Element,
     disabled?: boolean,
+    disabledText?: string
   ) => (
     <Loop
       title={name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -62,6 +63,7 @@ const Settings: React.FC = () => {
       setSettings={setSettings}
       desc={desc}
       disabled={disabled}
+      disabledText={disabledText}
       params={(
         <>
           <LoopTime
@@ -128,6 +130,7 @@ const Settings: React.FC = () => {
           "Remove all downloads in qBittorrent download paths that have failed.",
           undefined,
           !settings.qBittorrent_active,
+          "qBittorrent Required"
         )}
         {loop(
           "remove_missing",

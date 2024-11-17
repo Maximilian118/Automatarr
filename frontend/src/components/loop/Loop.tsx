@@ -11,6 +11,7 @@ interface LoopType {
   desc?: string
   params?: JSX.Element
   disabled?: boolean
+  disabledText?: string
 }
 
 const Loop: React.FC<LoopType> = ({ 
@@ -21,6 +22,7 @@ const Loop: React.FC<LoopType> = ({
   desc, 
   params,
   disabled,
+  disabledText,
 }) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSettings(prevSettings => {
@@ -34,7 +36,10 @@ const Loop: React.FC<LoopType> = ({
   return (
     <div className="loop">
       <div className="title-and-toggle">
-        <h4>{title}</h4>
+        <div className="loop-title">
+          <h4>{title}</h4>
+          {disabled && disabledText && <h4 className="disabled-text">{`- ${disabledText}`}</h4>}
+        </div>
           <Switch
             checked={disabled ? false : settings[loop] as boolean}
             onChange={handleSwitchChange}
