@@ -123,7 +123,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
 
                 if (stats.isDirectory()) {
                   // Delete directory recursively
-                  await fs.promises.rmdir(childPath, { recursive: true })
+                  await fs.promises.rm(childPath, { recursive: true, force: true })
                   logger.info(`deleteFailedDownloads: Deleted directory: ${childPath}`)
                 } else if (stats.isFile()) {
                   // Delete file

@@ -5,8 +5,8 @@ import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 
 export const getSettings = async (
-  setLoading: Dispatch<SetStateAction<boolean>>,
   setSettings: Dispatch<SetStateAction<settingsType>>,
+  setLoading: Dispatch<SetStateAction<boolean>>,
 ): Promise<void> => {
   setLoading(true)
 

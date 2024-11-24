@@ -1,40 +1,66 @@
-import axios from "axios"
-import { dataType, qBittorrent } from "../models/data"
+import axios, { AxiosResponse } from "axios"
+import Data, { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
 import { cleanUrl, errCodeAndMsg } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
 
-// Retreive qBittorrent cookie
-export const getqBittorrentCookie = async (settings: settingsType): Promise<string> => {
-  let cookie = ""
+// Retreive qBittorrent cookie from check request headers
+export const getqBitCookieFromHeaders = async (
+  res: AxiosResponse<any, any>,
+): Promise<string | undefined> => {
+  const cookiesInHeader = res.headers["set-cookie"]
 
-  try {
-    const res = await axios.post(
-      cleanUrl(
-        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
-      ),
-    )
-
-    const cookiesInHeader = res.headers["set-cookie"]
-
-    if (cookiesInHeader && cookiesInHeader.length > 0) {
-      const regexedCookie = cookiesInHeader[0].match(/SID=[^;]+/)
-
-      if (regexedCookie) {
-        cookie = regexedCookie[0]
-      } else {
-        logger.error(`getqBittorrentData: Could not find cookie in set-cookie string.`)
-      }
-    } else {
-      logger.error(`getqBittorrentData: Could not find cookie in response headers.`)
-    }
-  } catch (err) {
-    logger.error(`getqBittorrentData: Error: ${errCodeAndMsg(err)}`)
+  if (!cookiesInHeader || cookiesInHeader.length === 0) {
+    logger.error(`qBittorrent | Could not find cookie in response headers.`)
+    return
   }
 
-  return cookie
+  const regexedCookie = cookiesInHeader[0].match(/SID=[^;]+/)
+
+  if (!regexedCookie) {
+    logger.error(`qBittorrent | Could not find cookie in set-cookie string.`)
+    return
+  }
+
+  // Retreive the data object from the db
+  const data = await Data.findOne()
+
+  if (!data) {
+    logger.error("qBittorrent | Could not find data object in db.")
+    return
+  }
+
+  data.qBittorrent.cookie = regexedCookie[0]
+  data.qBittorrent.cookie_expiry = moment()
+    .add(data.qBittorrent.preferences?.web_ui_session_timeout || 3600, "seconds")
+    .format()
+
+  await data.save()
+
+  return regexedCookie[0]
+}
+
+// Check if cookie has expired
+export const qBitCookieExpired = async (): Promise<boolean> => {
+  // Retrieve the data object from the db
+  const data = await Data.findOne()
+
+  if (!data) {
+    logger.error("qBittorrent | Could not find data object in db.")
+    return false
+  }
+
+  // Compare the current time with the cookie expiry
+  const cookieExpiry = data.qBittorrent?.cookie_expiry
+
+  if (!cookieExpiry) {
+    logger.warn("qBittorrent | Cookie expiry not set in data object.")
+    return true // Assume expired if no expiry is set
+  }
+
+  return moment().isAfter(moment(cookieExpiry))
 }
 
 // Get all current torrents
@@ -131,14 +157,16 @@ export const getqBittorrentData = async (
     return data.qBittorrent
   }
 
-  const cookie = await getqBittorrentCookie(settings)
+  if (!data.qBittorrent.cookie) {
+    logger.error(`getqBittorrentData: No Cookie!`)
+    return data.qBittorrent
+  }
 
   return {
     ...data.qBittorrent,
-    cookie: cookie,
-    torrents: await getqBittorrentTorrents(settings, cookie),
-    categories: await getqBittorrentCategories(settings, cookie),
-    preferences: await getqBittorrentPreferences(settings, cookie),
+    torrents: await getqBittorrentTorrents(settings, data.qBittorrent.cookie),
+    categories: await getqBittorrentCategories(settings, data.qBittorrent.cookie),
+    preferences: await getqBittorrentPreferences(settings, data.qBittorrent.cookie),
     updated_at: moment().format(),
   }
 }

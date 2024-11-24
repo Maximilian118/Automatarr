@@ -43,6 +43,7 @@ export interface library extends baseData {
 // An object with qBittorrent data
 export interface qBittorrent extends baseData {
   cookie: string
+  cookie_expiry: string
   torrents: Torrent[]
   categories: TorrentCategory[]
   preferences: qBittorrentPreferences
@@ -106,6 +107,7 @@ const librariesSchema = new mongoose.Schema<library>({
 const qBittorrentSchema = new mongoose.Schema<qBittorrent>({
   ...baseSchema,
   cookie: { type: String, default: "" },
+  cookie_expiry: { type: String, default: "" },
   torrents: { type: mongoose.Schema.Types.Mixed, default: [] },
   categories: { type: mongoose.Schema.Types.Mixed, default: [] },
   preferences: { type: mongoose.Schema.Types.Mixed, default: {} },
@@ -116,6 +118,7 @@ const initqBittorrent: qBittorrent = {
   created_at: moment().format(),
   updated_at: moment().format(),
   cookie: "",
+  cookie_expiry: "",
   torrents: [],
   categories: [],
   preferences: {} as qBittorrentPreferences,

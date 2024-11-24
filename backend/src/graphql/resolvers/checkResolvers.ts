@@ -1,8 +1,9 @@
 import Settings from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
-import { cleanUrl } from "../../shared/utility"
+import { cleanUrl, errCodeAndMsg } from "../../shared/utility"
 import { checkStarr, checkURL } from "../../shared/validation"
+import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
 
 interface baseCheck {
   URL: string
@@ -40,11 +41,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Radarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkRadarr: ${err}`)
-      } else {
-        logger.error(`checkRadarr: ${err}`)
-      }
+      logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -71,11 +68,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Sonarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkSonarr: ${err}`)
-      } else {
-        logger.error(`checkSonarr: ${err}`)
-      }
+      logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -102,11 +95,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Lidarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkLidarr: ${err}`)
-      } else {
-        logger.error(`checkLidarr: ${err}`)
-      }
+      logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -125,21 +114,34 @@ const checkResolvers = {
       return 500
     }
 
+    if (!(await qBitCookieExpired())) {
+      logger.info("qBittorrent | Cookie OK!")
+      return 200
+    }
+
     try {
       const res = await axios.post(
-        cleanUrl(
-          `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${settings.qBittorrent_username}&password=${settings.qBittorrent_password}`,
-        ),
+        cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login`),
+        new URLSearchParams({
+          username: settings.qBittorrent_username,
+          password: settings.qBittorrent_password,
+        }),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
       )
 
-      status = res.status
-      logger.info(`qBittorrent | OK!`)
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkqBittorrent: ${err}`)
-      } else {
-        logger.error(`checkqBittorrent: ${err}`)
+      const cookie = await getqBitCookieFromHeaders(res)
+
+      if (!cookie) {
+        // getqBitCookieFromHeaders will handle err logs
+        return 500
       }
+
+      logger.info("qBittorrent | Login OK!")
+      return res.status
+    } catch (err) {
+      logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -157,11 +159,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Radarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkNewRadarr: ${err}`)
-      } else {
-        logger.error(`checkNewRadarr: ${err}`)
-      }
+      logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -179,11 +177,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Sonarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkNewSonarr: ${err}`)
-      } else {
-        logger.error(`checkNewSonarr: ${err}`)
-      }
+      logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -201,11 +195,7 @@ const checkResolvers = {
       status = res.status
       logger.info(`Lidarr | OK!`)
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkNewLidarr: ${err}`)
-      } else {
-        logger.error(`checkNewLidarr: ${err}`)
-      }
+      logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
     }
 
     return status
@@ -226,19 +216,27 @@ const checkResolvers = {
 
     try {
       const res = await axios.post(
-        cleanUrl(
-          `${URL}/api/${settings.qBittorrent_API_version}/auth/login?username=${USER}&password=${PASS}`,
-        ),
+        cleanUrl(`${URL}/api/${settings.qBittorrent_API_version}/auth/login`),
+        new URLSearchParams({
+          username: USER,
+          password: PASS,
+        }),
+        {
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        },
       )
 
-      status = res.status
-      logger.info(`qBittorrent | OK!`)
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        logger.error(`checkNewqBittorrent: ${err}`)
-      } else {
-        logger.error(`checkNewqBittorrent: ${err}`)
+      const cookie = await getqBitCookieFromHeaders(res)
+
+      if (!cookie) {
+        // getqBitCookieFromHeaders will handle err logs
+        return 500
       }
+
+      logger.info("qBittorrent | Login OK!")
+      return res.status
+    } catch (err) {
+      logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
     }
 
     return status

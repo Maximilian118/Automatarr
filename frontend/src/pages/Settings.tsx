@@ -15,15 +15,13 @@ const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
-  const [ reqSent, setReqSent ] = useState<boolean>(false)
 
-  // Get latest settings from db on page load
+  // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
-    if (!reqSent) {
-      setReqSent(true)
-      getSettings(setLoading, setSettings)
+    if (!settings.updated_at) {
+      getSettings(setSettings, setLoading)
     }
-  }, [setSettings, reqSent])
+  }, [settings, setSettings])
 
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
@@ -35,7 +33,8 @@ const Settings: React.FC = () => {
     name: keyof settingsType, 
     label?: string, 
     size?: "small" | "medium", 
-    maxLength?: number
+    maxLength?: number,
+    type?: string
   ) => (
     <MUITextField 
       label={label}
@@ -46,6 +45,7 @@ const Settings: React.FC = () => {
       size={size}
       maxLength={maxLength}
       onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+      type={type}
     />
   )
 
@@ -111,7 +111,7 @@ const Settings: React.FC = () => {
       >
         {settingsTextField("qBittorrent_URL")}
         {settingsTextField("qBittorrent_username")}
-        {settingsTextField("qBittorrent_password", "password")}
+        {settingsTextField("qBittorrent_password", undefined, undefined, undefined, "password")}
       </InputModel>
       <InputModel 
         title="Loops" 
