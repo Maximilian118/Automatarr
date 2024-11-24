@@ -147,9 +147,11 @@ const coreResolvers = {
     const searched = stats.reduce((sum, { searched }) => sum + searched, 0)
     const deletions = stats.reduce((sum, { deletions }) => sum + deletions, 0)
 
-    logger.info(
-      `removeFailed: Removed ${deletions} failed downloads out of ${searched} downloads from ${stats.length} directories.`,
-    )
+    if (stats.length !== 0) {
+      logger.info(
+        `removeFailed: Removed ${deletions} failed downloads out of ${searched} downloads from ${stats.length} directories.`,
+      )
+    }
   },
   permissions_change: async (): Promise<void> => {
     // Retrieve the data object from the db
