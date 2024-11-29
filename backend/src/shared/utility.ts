@@ -30,6 +30,11 @@ export const errCodeAndMsg = (err: unknown): string => {
 // Clean up a URL string removing any unneeded double forward slashes
 export const cleanUrl = (url: string): string => url.replace(/([^:]\/)\/+/g, "$1")
 
+// Ensure a string is of POSIX standard
+export const isPosix = (str: string): boolean => /^[a-zA-Z][a-zA-Z0-9_.-]{0,31}$/.test(str)
+// Ensure a string is of a three-digit octal mode representation for commands such as chmod
+export const isThreeDigitOctal = (str: string) => /^[0-7]{3}$/.test(str)
+
 // Return the name of the library content for one of the Starr apps
 // Optionally, ask for an alternative to differ from the default return string
 export const getContentName = (API: APIData, alt?: boolean, plural?: boolean): string => {

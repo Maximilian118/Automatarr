@@ -4,7 +4,7 @@ import Data from "../../models/data"
 import { commandData, DownloadStatus } from "../../types/types"
 import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
-import { deleteFailedDownloads, deleteFromMachine } from "../../shared/fileSystem"
+import { deleteFailedDownloads, deleteFromMachine, updatePaths } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
 import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
 
@@ -153,7 +153,7 @@ const coreResolvers = {
       )
     }
   },
-  permissions_change: async (): Promise<void> => {
+  permissions_change: async (settings: settingsType): Promise<void> => {
     // Retrieve the data object from the db
     const data = await Data.findOne()
 
@@ -167,7 +167,30 @@ const coreResolvers = {
       return
     }
 
-    console.log("permissionsChange")
+    const paths = data.rootFolders.map((p) => p.data.path)
+
+    if (!paths || paths.length === 0) {
+      logger.error("permissionsChange: No root paths.")
+      return
+    }
+
+    const stats = await updatePaths(
+      paths,
+      settings.permissions_change_chown,
+      settings.permissions_change_chmod,
+    )
+
+    if (stats.length === 0) {
+      logger.warn("permissionsChange: No stats... how curious...")
+      return
+    }
+
+    const updated = stats.map((s) => s.updated).reduce((acc, curr) => acc + curr, 0)
+    const searched = stats.map((s) => s.searched).reduce((acc, curr) => acc + curr, 0)
+
+    logger.info(
+      `permissionsChange: Updated ${updated} items of ${searched} searched from ${stats.length} directories.`,
+    )
   },
 }
 

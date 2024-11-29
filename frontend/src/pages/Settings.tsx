@@ -3,18 +3,25 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Loop as MuiLoop, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
-import { updateInput } from "../shared/formValidation"
+import { checkChownValidity, updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
 import Loop from "../components/loop/Loop"
 import LoopTime from "../components/loop/looptime/Looptime"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
+import { getGroups, getUsers } from "../shared/requests/fileSystemRequests"
+import { createChownString } from "../shared/utility"
+import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
+  const [ user, setUser ] = useState<string | null>(null)
+  const [ users, setUsers ] = useState<string[]>([])
+  const [ group, setGroup ] = useState<string | null>(null)
+  const [ groups, setGroups ] = useState<string[]>([])
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -22,6 +29,37 @@ const Settings: React.FC = () => {
       getSettings(setSettings, setLoading)
     }
   }, [settings, setSettings])
+
+  // Retrieve users of the OS the backend is running on
+  useEffect(() => {
+    if (users.length === 0) {
+      getUsers(setUsers)
+    }
+  }, [users])
+
+  // Retrieve groups of the OS the backend is running on
+  useEffect(() => {
+    if (groups.length === 0) {
+      getGroups(setGroups)
+    }
+  }, [groups])
+
+  // Create a chown string from user and group states
+  useEffect(() => {
+    createChownString(user, group, settings, setSettings)
+  }, [user, group, settings, setSettings])
+
+  // initialise user and group autocompletes
+  useEffect(() => {
+    // Extract user and group from the chown string
+    const chown = settings.permissions_change_chown
+
+    if (chown) {
+      const [initialUser, initialGroup] = chown.split(":")
+      setUser(initialUser || null)
+      setGroup(initialGroup || null)
+    }
+  }, [settings])
 
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
@@ -34,7 +72,8 @@ const Settings: React.FC = () => {
     label?: string, 
     size?: "small" | "medium", 
     maxLength?: number,
-    type?: string
+    type?: string, 
+    disabled?: boolean
   ) => (
     <MUITextField 
       label={label}
@@ -46,6 +85,7 @@ const Settings: React.FC = () => {
       maxLength={maxLength}
       onBlur={(e) => updateInput(e, setSettings, setFormErr)}
       type={type}
+      disabled={disabled}
     />
   )
 
@@ -70,7 +110,9 @@ const Settings: React.FC = () => {
             loop={`${name}_loop` as keyof settingsType}
             settings={settings}
             setSettings={setSettings}
-            disabled={disabled}
+            formErr={formErr}
+            setFormErr={setFormErr}
+            disabled={!settings[name] || disabled}
           />
           {params}
         </>
@@ -140,8 +182,33 @@ const Settings: React.FC = () => {
           "permissions_change",
           "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
           <>
-            {settingsTextField("permissions_change_chown", "User : Group", "small")}
-            {settingsTextField("permissions_change_chmod", "Permissions", "small", 3)}
+            <MUIAutocomplete
+              label="User"
+              options={users}
+              value={user}
+              setValue={(val) => setUser(val)}
+              size="small"
+              disabled={!settings.permissions_change}
+              onBlur={(e) => {
+                checkChownValidity(user, group, setFormErr)
+                updateInput(e, setSettings, setFormErr)
+              }}
+              error={!!formErr.permissions_change_chown}
+            />
+            <MUIAutocomplete
+              label="Group"
+              options={groups}
+              value={group}
+              setValue={val => setGroup(val)}
+              size="small"
+              disabled={!settings.permissions_change}
+              onBlur={(e) => {
+                checkChownValidity(user, group, setFormErr)
+                updateInput(e, setSettings, setFormErr)
+              }}
+              error={!!formErr.permissions_change_chown}
+            />
+            {settingsTextField("permissions_change_chmod", "Permissions", "small", 3, undefined, !settings.permissions_change)}
           </>
         )}
       </InputModel>

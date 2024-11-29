@@ -12,6 +12,7 @@ import { dynamicLoop } from "./shared/dynamicLoop"
 import { bootPermissions } from "./shared/permissions"
 import { allLoopsDeactivated } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
+import { isOnCorrectLAN } from "./shared/network"
 
 // Initialise express.
 const app = express()
@@ -100,6 +101,9 @@ const startServer = async () => {
 
   // If first run, initialise settings and data
   const bootSettings = (await Resolvers.newSettings()) as settingsDocType // Settings for Automatarr
+  // Ping API's with populated credentials to check if backend is running on correct LAN
+  isOnCorrectLAN(bootSettings)
+
   await Resolvers.newData() // Data retrieved from every API
 
   // Check connection to every API
@@ -131,8 +135,8 @@ const startServer = async () => {
     await Resolvers.remove_failed()
   })
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
-  dynamicLoop("permissions_change_loop", async () => {
-    await Resolvers.permissions_change()
+  dynamicLoop("permissions_change_loop", async (settings) => {
+    await Resolvers.permissions_change(settings)
   })
 }
 

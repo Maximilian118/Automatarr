@@ -17,6 +17,8 @@ const Schema = buildSchema(`
     checkNewSonarr(URL: String!, KEY: String!): Int!
     checkNewLidarr(URL: String!, KEY: String!): Int!
     checkNewqBittorrent(URL: String!, USER: String!, PASS: String!): Int!
+    checkUsers: [String!]
+    checkGroups: [String!]
   }
 
   type RootMutation {

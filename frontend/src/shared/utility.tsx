@@ -1,3 +1,4 @@
+import { Dispatch, SetStateAction } from "react"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import {
   checkLidarr,
@@ -29,3 +30,26 @@ export const checkAPIs = async (
 
 // Check if a form error object has any populated strings. I.E if there are some errors return true.
 export const formHasErr = (obj: settingsErrorType) => Object.values(obj).some((value) => value.trim() !== "")
+
+// Return chown string
+export const createChownString = (
+  user: string | null, 
+  group: string | null, 
+  settings: settingsType, 
+  setSettings: Dispatch<SetStateAction<settingsType>>
+) => {
+  let chown = `${user ? user : ""}:${group ? group : ""}`
+
+  if (!user || !group) {
+    chown = ""
+  }
+  
+  if (settings.permissions_change_chown !== chown) {
+    setSettings(prevSettings => {
+      return {
+        ...prevSettings,
+        permissions_change_chown: chown,
+      }
+    })
+  }
+}

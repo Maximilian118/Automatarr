@@ -1,12 +1,14 @@
 import { Autocomplete, TextField } from "@mui/material"
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
 import './_loopTime.scss'
-import { settingsType } from "../../../types/settingsType"
+import { settingsErrorType, settingsType } from "../../../types/settingsType"
 
 interface LoopTimeType {
   loop: keyof settingsType
   settings: settingsType
   setSettings: Dispatch<SetStateAction<settingsType>>
+  formErr: settingsErrorType
+  setFormErr: Dispatch<SetStateAction<settingsErrorType>>
   disabled?: boolean
 }
 
@@ -57,24 +59,44 @@ const LoopTime: React.FC<LoopTimeType> = ({
   loop,
   settings,
   setSettings,
+  formErr,
+  setFormErr,
   disabled,
 }) => {
   const [ int, setInt ] = useState(minutesToInterval(settings[loop] as number))
 
   useEffect(() => {
+    const mins = intervalToMinutes(int.interval, int.unit)
+
+    if (Number.isNaN(mins)) {
+      setFormErr(prevErrs => {
+        return {
+          ...prevErrs,
+          [loop]: "Loop value is not a number.",
+        }
+      })
+    }
+
     setSettings(prevSettings => {
       return {
         ...prevSettings,
-        [loop]: intervalToMinutes(int.interval, int.unit),
+        [loop]: mins,
       }
     })
-  }, [int, loop, setSettings])
+  }, [int, loop, setSettings, setFormErr])
 
   return (
     <div className="loop-time">
       <Autocomplete
         value={String(int.interval)}
         onChange={(_, interval: string | null) => {
+          setFormErr(prevErrs => {
+            return {
+              ...prevErrs,
+              [loop]: "",
+            }
+          })
+          
           setInt(prevInt => {
             return {
               ...prevInt,
@@ -85,13 +107,20 @@ const LoopTime: React.FC<LoopTimeType> = ({
         disablePortal
         options={mins()}
         sx={{ width: "110px" }}
-        renderInput={(params) => <TextField {...params} label="Interval"/>}
+        renderInput={(params) => <TextField {...params} label="Interval" error={!!formErr[loop]}/>}
         size="small"
         disabled={disabled}
       />
       <Autocomplete
         value={int.unit}
         onChange={(_, unit: string | null) => {
+          setFormErr(prevErrs => {
+            return {
+              ...prevErrs,
+              [loop]: "",
+            }
+          })
+          
           setInt(prevInt => {
             return {
               ...prevInt,
@@ -102,7 +131,7 @@ const LoopTime: React.FC<LoopTimeType> = ({
         disablePortal
         options={["minutes", "hours", "days", "weeks"]}
         sx={{ width: "145px"}}
-        renderInput={(params) => <TextField {...params} label="Unit"/>}
+        renderInput={(params) => <TextField {...params} label="Unit" error={!!formErr[loop]}/>}
         size="small"
         disabled={disabled}
       />

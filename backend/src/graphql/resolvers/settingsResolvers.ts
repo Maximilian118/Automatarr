@@ -26,7 +26,7 @@ const settingsResolvers = {
     const createdSettings = (await newSettings.save()) as settingsDocType
     logger.info("New settings object created.")
 
-    return createdSettings._doc
+    return createdSettings
   },
   updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
     const {
@@ -124,7 +124,7 @@ const settingsResolvers = {
     }
 
     if (settings.permissions_change) {
-      await Resolvers.permissions_change()
+      await Resolvers.permissions_change(settings)
     }
 
     // Return the updated object

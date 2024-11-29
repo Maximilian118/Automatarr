@@ -61,18 +61,6 @@ export const updateInput = (
     }
   }
 
-  // Match valid chown request user and group syntax. E.G user : group
-  const caseChown = () => {
-    if (
-      /^[a-zA-Z0-9._-]+\s*:\s*[a-zA-Z0-9._-]+$/.test(e.target.value) ||
-      e.target.value.trim() === ""
-    ) {
-      inputErr(e.target.name, setFormErr, "")
-    } else {
-      inputErr(e.target.name, setFormErr, "Invalid Syntax.")
-    }
-  }
-
   // Match valid chmod request. E.G 775
   const caseChmod = () => {
     if (/^[0-7]{3}$/.test(e.target.value) || e.target.value.trim() === "") {
@@ -82,13 +70,46 @@ export const updateInput = (
     }
   }
 
+  const casePosix = () => {
+    if (/^[a-zA-Z][a-zA-Z0-9_.-]{0,31}$/.test(e.target.value) || e.target.value.trim() === "") {
+      inputErr(e.target.name, setFormErr, "")
+    } else {
+      inputErr(e.target.name, setFormErr, "Must meet the POSIX standard.")
+    }
+  }
+
   // Depending on the current element do some basic validation checks.
   // prettier-ignore
   switch (true) {
     case e.target.name.includes("URL"): caseURL(); break
     case e.target.name.includes("KEY"): caseKEY(); break
-    case e.target.name.includes("chown"): caseChown(); break
+    case e.target.name.includes("user"): casePosix(); break
+    case e.target.name.includes("group"): casePosix(); break
     case e.target.name.includes("chmod"): caseChmod(); break
     default: setFormErr(prevFormErr => prevFormErr)
   }
+}
+
+// A function to check that both user and group fields are not null on updateSettings
+export const checkChownValidity = (
+  user: string | null,
+  group: string | null,
+  setFormErr: Dispatch<SetStateAction<settingsErrorType>>,
+): boolean => {
+  const formErr = (msg: string) => {
+    setFormErr((prevErrs) => {
+      return {
+        ...prevErrs,
+        permissions_change_chown: msg,
+      }
+    })
+  }
+
+  if ((user && !group) || (!user && group)) {
+    formErr("Both user and group must be populated.")
+    return true
+  }
+
+  formErr("")
+  return false
 }

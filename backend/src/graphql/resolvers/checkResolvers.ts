@@ -4,6 +4,7 @@ import axios from "axios"
 import { cleanUrl, errCodeAndMsg } from "../../shared/utility"
 import { checkStarr, checkURL } from "../../shared/validation"
 import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
+import { getUnixGroups, getUnixUsers } from "../../shared/fileSystem"
 
 interface baseCheck {
   URL: string
@@ -241,6 +242,8 @@ const checkResolvers = {
 
     return status
   },
+  checkUsers: (): string[] => getUnixUsers(),
+  checkGroups: (): string[] => getUnixGroups(),
 }
 
 export default checkResolvers
