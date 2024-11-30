@@ -19,6 +19,11 @@ export const isOnCorrectLAN = async (
     )
     .map(([_, value]) => value) // Include the full URL with protocol and port
 
+  // If no API URL's are populated
+  if (testURLs.length === 0) {
+    return true
+  }
+
   // Iterate over all URLs
   for (const url of testURLs) {
     try {

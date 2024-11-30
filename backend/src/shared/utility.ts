@@ -79,24 +79,15 @@ type momentTimeUnit = "years" | "months" | "weeks" | "days" | "hours" | "minutes
 export const checkTimePassed = (
   wait: number,
   unit: momentTimeUnit,
-  created?: string,
-  lastUpdated?: string,
+  updated_at?: string,
 ): boolean => {
-  // If no timing data is passed, most likely due to an object not existing
-  if (!created && !lastUpdated) {
-    return true
-  }
-
-  const diffFromCreated = moment().diff(moment(created), "minutes")
-  const diffFromNow = moment().diff(moment(lastUpdated), unit)
-
-  // If the db object was created in the last minute, return true.
-  if (diffFromCreated <= 1) {
+  // If no timing data is passed, most likely due to an object not existing, return true.
+  if (!updated_at) {
     return true
   }
 
   // If the db object was updated longer ago than the wait time, return true.
-  return diffFromNow >= wait
+  return moment().diff(moment(updated_at), unit) >= wait
 }
 
 // Boilerplate for adding standard fields to objects in data in db

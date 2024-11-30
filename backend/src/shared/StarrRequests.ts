@@ -14,6 +14,7 @@ import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
+import moment from "moment"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
@@ -162,18 +163,21 @@ export const getAllLibraries = async (
 ): Promise<library[]> => {
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
-      // Retrieve library timing data for this API
-      const created_at = data.libraries.find((l) => API.name === l.name)?.created_at
-      const updated_at = data.libraries.find((l) => API.name === l.name)?.updated_at
+      // Find the library for this API in db
+      const library = data.libraries.find((l) => API.name === l.name)
 
-      // If the library does not exist in db or if an hour has passed since last updated, update the library.
-      if (checkTimePassed(1, "hours", created_at, updated_at)) {
-        logger.info(`${API.name} | Retrieving library.`)
+      // Check if an hour has passed since the last request
+      if (!checkTimePassed(1, "hours", library?.updated_at)) {
+        logger.info(`${API.name} | Skipping library retrieval. Only Once per Hour.`)
+        return library
+      }
 
-        return {
-          ...(await getLibrary(API, data)),
-          ...(API.name === "Sonarr" && { subData: await getEpisodes(data, API) }),
-        }
+      logger.info(`${API.name} | Retrieving library.`)
+
+      return {
+        ...(await getLibrary(API, data)),
+        ...(API.name === "Sonarr" && { subData: await getEpisodes(data, API) }),
+        created_at: library ? library.created_at : moment().format(),
       }
     }),
   )
