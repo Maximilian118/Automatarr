@@ -8,9 +8,8 @@ import corsHandler from "./middleware/corsHandler"
 import path from "path"
 import fs from "fs"
 import logger from "./logger"
-import { dynamicLoop } from "./shared/dynamicLoop"
 import { bootPermissions } from "./shared/permissions"
-import { allLoopsDeactivated } from "./shared/utility"
+import { allAPIsDeactivated, allLoopsDeactivated, coreLoops } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
 
@@ -99,12 +98,14 @@ const startServer = async () => {
     logger.info(`Error starting MongoDB or server: ${err}`)
   }
 
-  // If first run, initialise settings and data
+  // Initialise settings in db if first boot
   const bootSettings = (await Resolvers.newSettings()) as settingsDocType // Settings for Automatarr
+
   // Ping API's with populated credentials to check if backend is running on correct LAN
   isOnCorrectLAN(bootSettings)
 
-  await Resolvers.newData() // Data retrieved from every API
+  // Initialise data in db if first boot
+  await Resolvers.newData()
 
   // Check connection to every API
   await Resolvers.checkRadarr() // No data passed = Will fetch settings data from db
@@ -112,32 +113,20 @@ const startServer = async () => {
   await Resolvers.checkLidarr() // No data passed = Will fetch settings data from db
   await Resolvers.checkqBittorrent() // No data passed = Will fetch settings data from db
 
-  // Collect the latest data from all active APIs
-  const data = await Resolvers.getData()
+  // Check that at least one API is active
+  if (!allAPIsDeactivated(bootSettings._doc)) {
+    // Collect the latest data from all active APIs
+    const data = await Resolvers.getData()
 
-  // Check Automatarr has the filesystem permissions it needs
-  bootPermissions(data)
+    // Check Automatarr has the filesystem permissions it needs
+    bootPermissions(data)
 
-  // Log if all Loops are deactivated
-  allLoopsDeactivated(bootSettings._doc)
+    // Log if all Loops are deactivated
+    allLoopsDeactivated(bootSettings._doc)
 
-  // Main loops
-  // Check for monitored content in libraries that has not been downloaded and is wanted missing.
-  dynamicLoop("wanted_missing_loop", async (settings) => {
-    await Resolvers.search_wanted_missing(settings)
-  })
-  // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  dynamicLoop("import_blocked_loop", async (settings) => {
-    await Resolvers.import_blocked_handler(settings)
-  })
-  // Check for any failed downloads and delete them from the file system.
-  dynamicLoop("remove_failed_loop", async () => {
-    await Resolvers.remove_failed()
-  })
-  // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
-  dynamicLoop("permissions_change_loop", async (settings) => {
-    await Resolvers.permissions_change(settings)
-  })
+    // Start main loops
+    coreLoops()
+  }
 }
 
 // Start the application

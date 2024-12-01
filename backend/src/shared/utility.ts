@@ -3,7 +3,9 @@ import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 import { baseData, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
-import { settingsType } from "../models/settings"
+import { settingsDocType, settingsType } from "../models/settings"
+import { dynamicLoop } from "./dynamicLoop"
+import Resolvers from "../graphql/resolvers/resolvers"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -213,9 +215,66 @@ export const allLoopsDeactivated = (settings: settingsType): boolean => {
       .every((loop) => loop === false) // Check if every array item is false
 
   if (allDeactivated) {
-    logger.warn(`allLoopsDeactivated: All Loops are deactivated. This is fine... ¿ⓧ_ⓧﮌ`)
+    logger.warn(`All Loops are deactivated. This is fine... ¿ⓧ_ⓧﮌ`)
     return true
   }
 
   return false
+}
+
+// Check to see if all API's are deactivated
+export const allAPIsDeactivated = (settings: settingsType): boolean => {
+  const allDeactivated =
+    settings &&
+    Object.entries(settings)
+      .filter(([key]) => key.endsWith("_active"))
+      .every(([_, val]) => !val)
+
+  if (allDeactivated) {
+    logger.warn(`Every API is deactivated. First time?`)
+    return true
+  }
+
+  return false
+}
+
+// Start looping through all of the core loops
+// prettier-ignore
+export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
+  // Check for monitored content in libraries that has not been downloaded and is wanted missing.
+  dynamicLoop("wanted_missing_loop", async (settings) => {
+    await Resolvers.search_wanted_missing(settings)
+  }, skipFirst)
+  // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
+  dynamicLoop("import_blocked_loop", async (settings) => {
+    await Resolvers.import_blocked_handler(settings)
+  }, skipFirst)
+  // Check for any failed downloads and delete them from the file system.
+  dynamicLoop("remove_failed_loop", async () => {
+    await Resolvers.remove_failed()
+  }, skipFirst)
+  // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
+  dynamicLoop("permissions_change_loop", async (settings) => {
+    await Resolvers.permissions_change(settings)
+  }, skipFirst)
+}
+
+// Call all core loop functions once
+export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void> => {
+  // Check for monitored content in libraries that has not been downloaded and is wanted missing.
+  if (settings.wanted_missing) {
+    await Resolvers.search_wanted_missing(settings._doc)
+  }
+  // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
+  if (settings.import_blocked) {
+    await Resolvers.import_blocked_handler(settings._doc)
+  }
+  // Check for any failed downloads and delete them from the file system.
+  if (settings.remove_failed) {
+    await Resolvers.remove_failed()
+  }
+  // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
+  if (settings.permissions_change) {
+    await Resolvers.permissions_change(settings._doc)
+  }
 }

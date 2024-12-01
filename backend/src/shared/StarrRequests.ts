@@ -35,6 +35,17 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
   }
 }
 
+// Loop through all of the activeAPIs and return all of the latest downloadQueues
+export const getAllDownloadQueues = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<downloadQueue[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getQueue(API, data)))
+
+  // Filter out undefined values
+  return results.filter((c): c is downloadQueue => c !== undefined)
+}
+
 // Retrieve the root folder from the API
 export const getRootFolder = async (
   API: APIData,

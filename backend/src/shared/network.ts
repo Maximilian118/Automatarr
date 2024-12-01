@@ -27,7 +27,7 @@ export const isOnCorrectLAN = async (
   // Iterate over all URLs
   for (const url of testURLs) {
     try {
-      const result = await axios.get(url, { timeout: 1000 }) // Try sending a GET request to the URL
+      const result = await axios.get(url, { timeout: 2000 }) // Try sending a GET request to the URL
 
       if (result.status >= 200 && result.status < 300) {
         log && logger.info(`isOnCorrectLAN: Successfully reached ${url}`)

@@ -1,6 +1,6 @@
 import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
-import { allLoopsDeactivated } from "../../shared/utility"
+import { allLoopsDeactivated, coreFunctionsOnce, coreLoops } from "../../shared/utility"
 import Resolvers from "./resolvers"
 
 const settingsResolvers = {
@@ -110,22 +110,11 @@ const settingsResolvers = {
       await Resolvers.getData(settings)
     }
 
-    // Call the core loop functions once with the new settings
-    if (settings.wanted_missing) {
-      await Resolvers.search_wanted_missing(settings._doc)
-    }
-
-    if (settings.import_blocked) {
-      await Resolvers.import_blocked_handler(settings._doc)
-    }
-
-    if (settings.remove_failed) {
-      await Resolvers.remove_failed()
-    }
-
-    if (settings.permissions_change) {
-      await Resolvers.permissions_change(settings)
-    }
+    // Call the core loop functions once
+    coreFunctionsOnce(settings)
+    // Ensure the active loops have been started
+    // True = Skip first content execution as we've just called content functions once above
+    coreLoops(true)
 
     // Return the updated object
     return settings._doc
@@ -136,8 +125,7 @@ const settingsResolvers = {
 
     // Throw error if no object was found
     if (!settings) {
-      logger.error("getSettings: No Settings by that ID were found.")
-      throw new Error("No settings by that ID were found.")
+      logger.error("getSettings: No Settings were found.")
     }
 
     // Return the settings object
