@@ -22,6 +22,7 @@ export interface settingsType {
   wanted_missing_loop: number
   remove_failed_loop: number
   remove_missing_loop: number
+  remove_missing_level: "Library" | "Import List"
   permissions_change_loop: number
   permissions_change_chown: string
   permissions_change_chmod: string

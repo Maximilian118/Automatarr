@@ -46,7 +46,7 @@ const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({
       renderInput={(params) => (
         <TextField 
           {...params}
-          name={label.toLocaleLowerCase()}
+          name={label.toLocaleLowerCase().replace(/\s+/g, '_')}
           label={label} 
           size={size} 
           onBlur={e => onBlur && onBlur(e)}

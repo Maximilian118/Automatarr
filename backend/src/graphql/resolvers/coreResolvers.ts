@@ -1,12 +1,13 @@
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
 import Data from "../../models/data"
-import { commandData, DownloadStatus } from "../../types/types"
+import { commandData, DownloadStatus, MdblistItem } from "../../types/types"
 import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { deleteFailedDownloads, deleteFromMachine, updatePaths } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
 import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
+import { getMdbListItems } from "../../shared/mdbListRequests"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -191,6 +192,38 @@ const coreResolvers = {
     logger.info(
       `permissionsChange: Updated ${updated} items of ${searched} searched from ${stats.length} directories.`,
     )
+  },
+  remove_missing: async (settings: settingsType): Promise<void> => {
+    // Only get data for API's that have been checked and are active
+    const activeAPIs = await activeAPIsArr(settings)
+
+    // Loop through each active API
+    for (const API of activeAPIs) {
+      // Skip if this API has no import lists
+      if (!API.data.importLists || API.data.importLists.length === 0) {
+        logger.warn(`removeMissing: ${API.name} has no Import Lists.`)
+        continue
+      }
+
+      // An array of items to be deleted from the file system and library
+      // let deleteArr: any[] = []
+
+      // If we're removing anything that's not in Import Lists from library and file system
+      if (settings.remove_missing_level === "Import List") {
+        // An array of items from import lists from various list API's such as mdbList
+        let importListItems: MdblistItem[] | any[] = []
+
+        // Add mdbList items to importListItems
+        importListItems = [...importListItems, ...(await getMdbListItems(API))]
+
+        console.log(importListItems.length)
+      }
+
+      // If we're just checking if there's anything in the file system that isn't in the library
+      if (settings.remove_missing_level === "Library") {
+        console.log("remove stuff from fs")
+      }
+    }
   },
 }
 

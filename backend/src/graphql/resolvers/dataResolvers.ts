@@ -5,6 +5,7 @@ import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import {
   getAllCommands,
   getAllDownloadQueues,
+  getAllImportLists,
   getAllLibraries,
   getAllMissingwanted,
   getAllRootFolders,
@@ -71,6 +72,7 @@ const dataResolvers = {
     data.commands = await getAllCommands(activeAPIs, data)
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
     data.downloadQueues = await getAllDownloadQueues(activeAPIs, data)
+    data.importLists = await getAllImportLists(activeAPIs, data)
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API

@@ -52,6 +52,7 @@ const settingsResolvers = {
       wanted_missing_loop,
       remove_failed_loop,
       remove_missing_loop,
+      remove_missing_level,
       permissions_change_loop,
       permissions_change_chown,
       permissions_change_chmod,
@@ -93,6 +94,7 @@ const settingsResolvers = {
     settings.wanted_missing_loop = wanted_missing_loop
     settings.remove_failed_loop = remove_failed_loop
     settings.remove_missing_loop = remove_missing_loop
+    settings.remove_missing_level = remove_missing_level
     settings.permissions_change_loop = permissions_change_loop
     settings.permissions_change_chown = permissions_change_chown
     settings.permissions_change_chmod = permissions_change_chmod

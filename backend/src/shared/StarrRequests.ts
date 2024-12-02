@@ -1,5 +1,12 @@
 import axios from "axios"
-import { commandsData, dataType, downloadQueue, library, rootFolder } from "../models/data"
+import {
+  commandsData,
+  dataType,
+  downloadQueue,
+  importList,
+  library,
+  rootFolder,
+} from "../models/data"
 import { APIData } from "./activeAPIsArr"
 import {
   checkTimePassed,
@@ -8,7 +15,7 @@ import {
   errCodeAndMsg,
   getContentName,
 } from "./utility"
-import { commandData, DownloadStatus, ManualImportResponse } from "../types/types"
+import { commandData, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
@@ -395,4 +402,35 @@ export const importCommand = async (download: DownloadStatus, API: APIData): Pro
     logger.error(`importCommand: ${errCodeAndMsg(err)}`)
     return false
   }
+}
+
+// Get all import lists
+export const getImportLists = async (
+  API: APIData,
+  data: dataType,
+): Promise<importList | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist?apikey=${API.data.KEY}`),
+    )
+
+    return {
+      ...dataBoilerplate(API, data.importLists),
+      data: res.data as ImportListData[],
+    }
+  } catch (err) {
+    logger.info(`getImportLists: ${errCodeAndMsg(err)}`)
+    return
+  }
+}
+
+// Loop through all of the activeAPIs and return all of the latest import lists
+export const getAllImportLists = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<importList[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getImportLists(API, data)))
+
+  // Filter out undefined values
+  return results.filter((c): c is importList => c !== undefined)
 }

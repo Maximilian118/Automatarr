@@ -22,6 +22,7 @@ const settingsSchema = `
     wanted_missing_loop: Int!
     remove_failed_loop: Int!
     remove_missing_loop: Int!
+    remove_missing_level: String!
     permissions_change_loop: Int!
     permissions_change_chown: String!
     permissions_change_chmod: String!
@@ -57,6 +58,7 @@ const settingsSchema = `
     wanted_missing_loop: Int
     remove_failed_loop: Int
     remove_missing_loop: Int
+    remove_missing_level: String
     permissions_change_loop: Int
     permissions_change_chown: String
     permissions_change_chmod: String

@@ -22,6 +22,7 @@ export const populateSettings = `
   wanted_missing_loop
   remove_failed_loop
   remove_missing_loop
+  remove_missing_level
   permissions_change_loop
   permissions_change_chown
   permissions_change_chmod

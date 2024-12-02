@@ -163,3 +163,51 @@ export type ManualImportResponse = {
   indexerFlags: number
   rejections: Rejection[]
 }
+
+// Objects in a res.data array from an mdblist response
+export type MdblistItem = {
+  id: number
+  rank: number
+  adult: number
+  title: string
+  tvdbid: number | null
+  imdb_id: string
+  mediatype: string
+  release_year: number
+}
+
+export type ImportListField = {
+  order: number
+  name: string
+  label: string
+  helpText: string
+  value: string
+  type: string
+  advanced: boolean
+  privacy: string
+  isFloat: boolean
+}
+
+// Response objects from importList requests
+export type ImportListData = {
+  id: number
+  enabled?: boolean
+  enableAutomaticAdd?: boolean
+  searchForMissingEpisodes?: boolean
+  shouldMonitor: string
+  monitorNewItems: string
+  rootFolderPath: string
+  qualityProfileId: number
+  seriesType: string
+  seasonFolder: boolean
+  listType: string
+  listOrder: number
+  minRefreshInterval: string
+  name: string
+  fields: ImportListField[]
+  implementationName: string
+  implementation: string
+  configContract: string
+  infoLink: string
+  tags: []
+}

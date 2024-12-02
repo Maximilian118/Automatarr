@@ -61,6 +61,15 @@ export const updateInput = (
     }
   }
 
+  // Has to match any of the remove_missing_level options
+  const caseRMLOptions = () => {
+    if (e.target.value === "Library" || e.target.value === "Import List") {
+      inputErr(e.target.name, setFormErr, "")
+    } else {
+      inputErr(e.target.name, setFormErr, "Must be one of the remove_missing_level options.")
+    }
+  }
+
   // Match valid chmod request. E.G 775
   const caseChmod = () => {
     if (/^[0-7]{3}$/.test(e.target.value) || e.target.value.trim() === "") {
@@ -83,6 +92,7 @@ export const updateInput = (
   switch (true) {
     case e.target.name.includes("URL"): caseURL(); break
     case e.target.name.includes("KEY"): caseKEY(); break
+    case e.target.name.includes("level"): caseRMLOptions(); break
     case e.target.name.includes("user"): casePosix(); break
     case e.target.name.includes("group"): casePosix(); break
     case e.target.name.includes("chmod"): caseChmod(); break

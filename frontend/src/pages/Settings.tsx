@@ -177,6 +177,21 @@ const Settings: React.FC = () => {
         {loop(
           "remove_missing",
           "Remove any content in the file system that doesn't appear in Starr app libraries. Particularly useful when using dynamic import lists.",
+          <MUIAutocomplete
+            label="Remove Missing Level"
+            options={["Library", "Import List"]}
+            value={settings.remove_missing_level}
+            setValue={(val) => setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                remove_missing_level: val as "Library" | "Import List"
+              }
+            })}
+            size="small"
+            disabled={!settings.remove_missing}
+            onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+            error={!!formErr.remove_missing_level}
+          />
         )}
         {loop(
           "permissions_change",

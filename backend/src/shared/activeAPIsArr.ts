@@ -5,7 +5,7 @@ import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
-import { commandData, rootFolderData } from "../types/types"
+import { commandData, DownloadStatus, ImportListData, rootFolderData } from "../types/types"
 import { getContentName } from "./utility"
 
 type APIDataFields = {
@@ -15,6 +15,8 @@ type APIDataFields = {
   active: boolean
   commands?: commandData[]
   commandList?: string[]
+  downloadQueue?: DownloadStatus[]
+  importLists?: ImportListData[]
   rootFolder?: rootFolderData
   library?: (Movie | Series | Artist)[]
   episodes?: Episode[]
@@ -84,6 +86,7 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
           downloadQueue: data.downloadQueues
             .filter((d) => API.name === d.name)
             .flatMap((d) => d.data),
+          importLists: data.importLists.filter((l) => API.name === l.name).flatMap((l) => l.data),
           rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
           library: data.libraries
             .filter((c) => API.name === c.name)

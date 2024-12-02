@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
-import { commandData, DownloadStatus, rootFolderData } from "../types/types"
+import { commandData, DownloadStatus, ImportListData, rootFolderData } from "../types/types"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
@@ -27,6 +27,11 @@ export interface commandList extends baseData {
 // A name to categorize a list of items currently in the download queues
 export interface downloadQueue extends baseData {
   data: DownloadStatus[]
+}
+
+// A name to categorize a list of import lists
+export interface importList extends baseData {
+  data: ImportListData[]
 }
 
 // A name to categorize the root folder for each API
@@ -55,6 +60,7 @@ export interface dataType {
   commands: commandsData[]
   commandList: commandList[]
   downloadQueues: downloadQueue[]
+  importLists: importList[]
   rootFolders: rootFolder[]
   libraries: library[]
   missingWanteds: library[]
@@ -93,6 +99,11 @@ const downloadQueuesSchema = new mongoose.Schema<downloadQueue>({
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of download statuses
 })
 
+const importListSchema = new mongoose.Schema<importList>({
+  ...baseSchema,
+  data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of import lists
+})
+
 const rootFoldersSchema = new mongoose.Schema<rootFolder>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // The root folder directory
@@ -129,6 +140,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
   commandList: { type: [commandListSchema], default: [] },
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
+  importLists: { type: [importListSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },
