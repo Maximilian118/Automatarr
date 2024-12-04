@@ -186,7 +186,10 @@ export const getAllLibraries = async (
 
       // Check if an hour has passed since the last request
       if (!checkTimePassed(1, "hours", library?.updated_at)) {
-        logger.info(`${API.name} | Skipping library retrieval. Only Once per Hour.`)
+        const timePassed = 60 - moment().diff(moment(library?.updated_at), "minutes")
+        logger.info(
+          `${API.name} | Skipping library retrieval. Only Once per Hour. ${timePassed} minutes left.`,
+        )
         return library
       }
 

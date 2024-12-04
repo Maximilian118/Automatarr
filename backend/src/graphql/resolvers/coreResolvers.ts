@@ -21,6 +21,7 @@ import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../
 import { getMdbListItems } from "../../shared/mdbListRequests"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
+import moment from "moment"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -210,6 +211,14 @@ const coreResolvers = {
     // Only get data for API's that have been checked and are active
     const activeAPIs = await activeAPIsArr(settings)
 
+    // Retreive the data object from the db
+    const data = await Data.findOne()
+
+    if (!data) {
+      logger.error("removeMissing: Could not find data object in db.")
+      return
+    }
+
     // Loop through each active API
     for (const API of activeAPIs) {
       // Skip Lidarr... might add later
@@ -252,9 +261,27 @@ const coreResolvers = {
 
           // If no match is found, delete from library and file system
           if (!matchesTmdb && !matchesImdb && !matchesTvdb) {
+            // Request also deletes through Starr API
             await deleteFromLibrary(libraryItem, API)
+            // Update Library with the removed library items.
+            data.libraries = data.libraries.map((lib) => {
+              if (lib.name === API.name) {
+                return {
+                  ...lib,
+                  data: lib.data.filter((l) => l.id !== libraryItem.id),
+                  updated_at: moment().format(),
+                }
+              }
+              return lib // Return other libraries unchanged
+            })
+
             deletedCount++
           }
+        }
+
+        if (deletedCount > 0) {
+          data.updated_at = moment().format()
+          await data.save()
         }
       }
 
