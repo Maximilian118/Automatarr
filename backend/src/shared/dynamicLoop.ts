@@ -1,7 +1,7 @@
 import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
 import { settingsType } from "../models/settings"
-import { errCodeAndMsg, minsToMillisecs } from "./utility"
+import { minsToMillisecs } from "./utility"
 
 // A global Set to track active loops
 const activeLoops = new Set<keyof settingsType>()
@@ -56,7 +56,7 @@ export const dynamicLoop = async (
     }, minsToMillisecs(loopMins)) // Execute loop again with latest loopMins
   } catch (err) {
     // If error, retry after interval
-    logger.error(`${loop_name} Error: ${errCodeAndMsg(err)}`)
+    logger.error(`${loop_name} Error: ${err}`)
 
     setTimeout(() => {
       activeLoops.delete(loop_name) // Clear the flag before restarting

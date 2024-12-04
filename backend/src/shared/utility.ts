@@ -277,6 +277,10 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   if (settings.remove_failed) {
     await Resolvers.remove_failed()
   }
+  // Check for any failed downloads and delete them from the file system.
+  if (settings.remove_missing) {
+    await Resolvers.remove_missing(settings._doc)
+  }
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {
     await Resolvers.permissions_change(settings._doc)

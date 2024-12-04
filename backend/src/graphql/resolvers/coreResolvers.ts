@@ -1,13 +1,26 @@
 import logger from "../../logger"
 import { settingsType } from "../../models/settings"
 import Data from "../../models/data"
-import { commandData, DownloadStatus, MdblistItem } from "../../types/types"
-import { deleteFromQueue, getQueue, importCommand, searchMissing } from "../../shared/StarrRequests"
+import { commandData, DownloadStatus } from "../../types/types"
+import {
+  deleteFromLibrary,
+  deleteFromQueue,
+  getQueue,
+  importCommand,
+  searchMissing,
+} from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
-import { deleteFailedDownloads, deleteFromMachine, updatePaths } from "../../shared/fileSystem"
+import {
+  deleteFailedDownloads,
+  deleteFromMachine,
+  getChildPaths,
+  updatePaths,
+} from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
 import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
 import { getMdbListItems } from "../../shared/mdbListRequests"
+import { Movie } from "../../types/movieTypes"
+import { Series } from "../../types/seriesTypes"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -199,30 +212,80 @@ const coreResolvers = {
 
     // Loop through each active API
     for (const API of activeAPIs) {
+      // Skip Lidarr... might add later
+      if (API.name === "Lidarr") {
+        continue
+      }
+
       // Skip if this API has no import lists
       if (!API.data.importLists || API.data.importLists.length === 0) {
         logger.warn(`removeMissing: ${API.name} has no Import Lists.`)
         continue
       }
 
-      // An array of items to be deleted from the file system and library
-      // let deleteArr: any[] = []
+      const library = API.data.library as (Movie | Series)[]
 
-      // If we're removing anything that's not in Import Lists from library and file system
+      // Ensure library for this API exists
+      if (!library) {
+        logger.error(`removeMissing: No library data for ${API.name}.`)
+        continue
+      }
+
+      // Count the amount of deleted items
+      let deletedCount = 0
+
+      // Remove anything that's not in Import Lists
       if (settings.remove_missing_level === "Import List") {
-        // An array of items from import lists from various list API's such as mdbList
-        let importListItems: MdblistItem[] | any[] = []
+        // An array of items from import lists from various list APIs such as mdbList
+        const importListItems = await getMdbListItems(API)
 
-        // Add mdbList items to importListItems
-        importListItems = [...importListItems, ...(await getMdbListItems(API))]
+        // Create a Set of all identifiers for quick lookups
+        const tmdbSet = new Set(importListItems.map((item) => item.id))
+        const imdbSet = new Set(importListItems.map((item) => item.imdb_id))
+        const tvdbSet = new Set(importListItems.map((item) => item.tvdbid).filter(Boolean)) // Exclude null/undefined
 
-        console.log(importListItems.length)
+        // Filter the library for items not in the import list
+        for (const libraryItem of library) {
+          const matchesTmdb = tmdbSet.has(libraryItem.tmdbId)
+          const matchesImdb = imdbSet.has(libraryItem.imdbId)
+          const matchesTvdb = "tvdbId" in libraryItem && tvdbSet.has(libraryItem.tvdbId)
+
+          // If no match is found, delete from library and file system
+          if (!matchesTmdb && !matchesImdb && !matchesTvdb) {
+            await deleteFromLibrary(libraryItem, API)
+            deletedCount++
+          }
+        }
       }
 
       // If we're just checking if there's anything in the file system that isn't in the library
       if (settings.remove_missing_level === "Library") {
-        console.log("remove stuff from fs")
+        // Check we have root folder path
+        if (!API.data.rootFolder) {
+          logger.error(`removeMissing: Root folder data missing for ${API.name}.`)
+          continue
+        }
+
+        // Retrieve an array of paths for the root folder
+        const rootChildrenPaths = getChildPaths(API.data.rootFolder.path)
+
+        // Create a Set of paths for all currnet library items
+        const libraryPaths = new Set(library.map((item) => item.path))
+
+        // Loop through all of the paths
+        for (const childPath of rootChildrenPaths) {
+          // If the directory in host file system is not present in library
+          if (!libraryPaths.has(childPath)) {
+            // Delete the directory recursively from the file system
+            deleteFromMachine(childPath)
+            deletedCount++
+          }
+        }
       }
+
+      logger.info(
+        `removeMissing: Level: ${settings.remove_missing_level}. ${API.name}: Deleted ${deletedCount} items of ${library.length}.`,
+      )
     }
   },
 }

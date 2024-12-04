@@ -517,3 +517,31 @@ export const getUnixGroups = (): string[] => {
   // Return a unique, filtered list of groups
   return Array.from(unixGroups).filter((g) => !g.startsWith("_") && !g.startsWith("#"))
 }
+
+// Return an array of paths for every child directory
+export const getChildPaths = (parentPath: string): string[] => {
+  if (process.env.NODE_ENV === "development") {
+    logger.info("getChildPaths cancelled. In Development mode.")
+    return []
+  }
+
+  let actualPath = parentPath
+
+  // Prepend `/host_fs` if running in a Docker container
+  if (isDocker) {
+    actualPath = path.join("/host_fs", parentPath)
+  }
+
+  try {
+    // Read the contents of the parent directory
+    const childNames = fs.readdirSync(actualPath, { withFileTypes: true })
+
+    // Filter only directories and resolve their full paths
+    return childNames
+      .filter((dir) => dir.isDirectory()) // Only directories
+      .map((dir) => path.join(parentPath, dir.name)) // Map to full path without /host_fs
+  } catch (err) {
+    logger.error(`getChildPaths: Error reading directory ${actualPath}:`, err)
+    return []
+  }
+}

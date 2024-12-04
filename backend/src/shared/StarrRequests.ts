@@ -281,6 +281,27 @@ export const deleteFromQueue = async (
   }
 }
 
+// Delete a single item from the library and remove files from file system
+export const deleteFromLibrary = async (
+  libraryItem: Movie | Series,
+  API: APIData,
+): Promise<number | boolean> => {
+  try {
+    const res = await axios.delete(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/${getContentName(API)}/${
+          libraryItem.id
+        }?deleteFiles=true&apikey=${API.data.KEY}`,
+      ),
+    )
+
+    return res.status
+  } catch (err) {
+    logger.info(`deleteFromLibrary: Could not delete ${libraryItem.title}: ${errCodeAndMsg(err)}`)
+    return false
+  }
+}
+
 // Start a search for all wanted missing content for passed API
 export const searchMissing = async (API: APIData): Promise<boolean> => {
   // Ensure we have a list of commands for this API
