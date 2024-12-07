@@ -20,13 +20,15 @@ const Settings: React.FC = () => {
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
   const [ unixUser, setUnixUser ] = useState<string | null>(null)
   const [ unixGroup, setUnixGroup ] = useState<string | null>(null)
+  const [ gotSettings, setGotSettings ] = useState<boolean>(false)
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
-    if (!settings.updated_at) {
+    if (!settings.updated_at && !gotSettings) {
+      setGotSettings(true)
       getSettings(setSettings, setLoading)
     }
-  }, [settings, setSettings])
+  }, [settings, setSettings, gotSettings])
 
   // Retrieve unixUsers of the OS the backend is running on
   useEffect(() => {
