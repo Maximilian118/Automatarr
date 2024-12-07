@@ -7,12 +7,14 @@ import { CircularProgress } from "@mui/material"
 const Stats: React.FC = () => {
   const { data, setData, settings } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
+  const [ gotData, setGotData] = useState<boolean>(false)
 
   useEffect(() => {
-    if (!data._id) {
+    if (!gotData) {
+      setGotData(true)
       getData(setData, setLoading)
     }
-  }, [data, setData, loading])
+  }, [data, setData, loading, gotData])
   
   return (
     <main>

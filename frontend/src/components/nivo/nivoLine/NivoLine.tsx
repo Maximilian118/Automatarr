@@ -43,7 +43,6 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
               truncateTickAt: 0
           }}
           colors={{ scheme: 'nivo' }}
-          enablePoints={false}
           pointSize={10}
           pointColor={{ theme: 'background' }}
           pointBorderWidth={2}
@@ -59,7 +58,7 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
               justify: false,
               translateX: -20,
               translateY: 60,
-              itemsSpacing: 0,
+              itemsSpacing: 40,
               itemDirection: 'left-to-right',
               itemWidth: 80,
               itemHeight: 20,
