@@ -1,5 +1,4 @@
-import { dataType, qBittorrent } from "../types/dataType"
-import { qBittorrentPreferences } from "../types/qBittorrentTypes"
+import { dataType, nivoCharts } from "../types/dataType"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 
 // Initialise the settings object with defaults
@@ -52,12 +51,13 @@ export const initSettingsErrors = (): settingsErrorType => {
   return errObj
 }
 
-const initqBittorrent: qBittorrent = {
-  name: "qBittorrent",
-  cookie: "",
-  torrents: [],
-  categories: [],
-  preferences: {} as qBittorrentPreferences,
+const initNivoCharts: nivoCharts = {
+  name: "nivoCharts",
+  wanted_mising: [],
+  import_blocked: [],
+  remove_failed: [],
+  remove_missing: [],
+  permissions_change: [],
   created_at: "",
   updated_at: "",
 }
@@ -65,13 +65,7 @@ const initqBittorrent: qBittorrent = {
 // Initialise the data object with defaults
 export const initData: dataType = {
   _id: "",
-  commands: [],
-  commandList: [],
-  downloadQueues: [],
-  rootFolders: [],
-  libraries: [],
-  missingWanteds: [],
-  qBittorrent: initqBittorrent,
+  nivoCharts: initNivoCharts,
   created_at: "",
   updated_at: "",
 }

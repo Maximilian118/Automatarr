@@ -1,0 +1,28 @@
+@use "../../../scss/variables";
+
+.nivo-line {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: 600px;
+  background: variables.$off-black;
+  margin-bottom: 20px;
+  padding: 20px 30px 30px;
+  box-sizing: border-box;
+
+  text {
+    fill: rgb(255, 255, 255) !important;
+  }
+}
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 768px) {
+  body {
+    #root {
+      main {
+        .nivo-line {
+          height: 300px;
+        }
+      }
+    }
+  }
+}

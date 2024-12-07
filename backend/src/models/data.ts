@@ -54,6 +54,42 @@ export interface qBittorrent extends baseData {
   preferences: qBittorrentPreferences
 }
 
+// The data a Nivo Line chart expects
+export type nivoData = {
+  id: string
+  data: {
+    x: string
+    y: number
+  }[]
+}
+
+type nivoStats = {
+  remove_failed: {
+    deletions: number
+    searched: number
+  }
+  remove_missing: {
+    name: string
+    deletions: number
+    searched: number
+  }[]
+  permissions_change: {
+    updated: number
+    searched: number
+  }
+}
+
+// Data prepared for Nivo frontend charts
+export interface nivoCharts extends baseData {
+  wanted_mising: nivoData[]
+  import_blocked: nivoData[]
+  remove_failed: nivoData[]
+  remove_missing: nivoData[]
+  permissions_change: nivoData[]
+  stats: nivoStats
+  [key: string]: nivoData[] | string | any
+}
+
 // Main dataType
 export interface dataType {
   _id: ObjectId
@@ -65,6 +101,7 @@ export interface dataType {
   libraries: library[]
   missingWanteds: library[]
   qBittorrent: qBittorrent
+  nivoCharts: nivoCharts
   created_at: string
   updated_at: string
   [key: string]: any
@@ -135,6 +172,63 @@ const initqBittorrent: qBittorrent = {
   preferences: {} as qBittorrentPreferences,
 }
 
+const nivoDataSchema = new mongoose.Schema<nivoData>({
+  id: { type: mongoose.Schema.Types.Mixed, required: true },
+  data: {
+    type: [
+      {
+        x: mongoose.Schema.Types.Mixed,
+        y: mongoose.Schema.Types.Mixed,
+      },
+    ],
+    default: [],
+  },
+})
+
+const initNivoStats = {
+  remove_failed: {
+    deletions: 0,
+    searched: 0,
+  },
+  remove_missing: [],
+  permissions_change: {
+    updated: 0,
+    searched: 0,
+  },
+}
+
+const nivoChartsSchema = new mongoose.Schema<nivoCharts>({
+  ...baseSchema,
+  wanted_mising: { type: [nivoDataSchema], default: [] },
+  import_blocked: { type: [nivoDataSchema], default: [] },
+  remove_failed: { type: [nivoDataSchema], default: [] },
+  remove_missing: { type: [nivoDataSchema], default: [] },
+  permissions_change: { type: [nivoDataSchema], default: [] },
+  stats: { type: mongoose.Schema.Types.Mixed, default: initNivoStats },
+})
+
+export const initNivoCharts: nivoCharts = {
+  name: "nivoCharts",
+  wanted_mising: [],
+  import_blocked: [],
+  remove_failed: [],
+  remove_missing: [],
+  permissions_change: [],
+  stats: {
+    remove_failed: {
+      deletions: 0,
+      searched: 0,
+    },
+    remove_missing: [],
+    permissions_change: {
+      updated: 0,
+      searched: 0,
+    },
+  },
+  created_at: moment().format(),
+  updated_at: moment().format(),
+}
+
 // Data Mongoose Schema
 const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
@@ -145,6 +239,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },
   qBittorrent: { type: qBittorrentSchema, default: initqBittorrent },
+  nivoCharts: { type: nivoChartsSchema, default: initNivoCharts },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

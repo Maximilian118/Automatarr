@@ -34,3 +34,47 @@ export const populateSettings = `
   created_at
   updated_at
 `
+
+export const populateData = `
+  _id
+  nivoCharts {
+    name
+    wanted_mising {
+      id
+      data {
+        x
+        y
+      }
+    }
+    import_blocked {
+      id
+      data {
+        x
+        y
+      }
+    }
+    remove_failed {
+      id
+      data {
+        x
+        y
+      }
+    }
+    remove_missing {
+      id
+      data {
+        x
+        y
+      }
+    }
+    permissions_change {
+      id
+      data {
+        x
+        y
+      }
+    }
+  }
+  created_at
+  updated_at
+`

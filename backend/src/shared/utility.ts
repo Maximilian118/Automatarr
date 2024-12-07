@@ -1,7 +1,15 @@
 import moment from "moment"
 import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
-import { baseData, dataType, downloadQueue } from "../models/data"
+import {
+  baseData,
+  dataDocType,
+  dataType,
+  downloadQueue,
+  initNivoCharts,
+  nivoCharts,
+  nivoData,
+} from "../models/data"
 import logger from "../logger"
 import { settingsDocType, settingsType } from "../models/settings"
 import { dynamicLoop } from "./dynamicLoop"
@@ -285,4 +293,77 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   if (settings.permissions_change) {
     await Resolvers.permissions_change(settings._doc)
   }
+}
+
+// Return updated data.nivoChart data
+export const updateNivoData = (nivoChartsArray: nivoData[], id: string, y: number): nivoData[] => {
+  const timestamp = moment().startOf("hour").format("HH Do MMM") // Current timestamp
+  const oneYearAgo = moment().subtract(1, "year") // Date 1 year ago
+
+  return nivoChartsArray.some((nivoChart) => nivoChart.id === id)
+    ? nivoChartsArray.map((nivoChart) =>
+        nivoChart.id === id
+          ? {
+              ...nivoChart,
+              data: [
+                ...nivoChart.data.filter((d) => moment(d.x).isAfter(oneYearAgo)), // Remove data from +1y ago
+                { x: timestamp, y }, // Add new data point
+              ],
+            }
+          : nivoChart,
+      )
+    : [...nivoChartsArray, { id, data: [{ x: timestamp, y }] }]
+}
+
+// Return updated data.nivoCharts
+export const updateNivoCharts = async (
+  activeAPIs: APIData[],
+  data: dataDocType,
+): Promise<nivoCharts> => {
+  const nivoCharts = data.nivoCharts
+
+  // prettier-ignore
+  for (const API of activeAPIs) {
+    // Count the amount of missing wanted items
+    if (API.data.missingWanted) {
+      nivoCharts.wanted_mising = updateNivoData(nivoCharts.wanted_mising, API.name, API.data.missingWanted.length)
+    }
+    // Count the amount of items in the downloadQueue that are blocked from being imported
+    if (API.data.downloadQueue) {
+      // Find all of the items in the queue that have trackedDownloadState of importBlocked
+      const queue = data.downloadQueues.find(q => q.name === API.name)
+      const importBlockedArr = queue ? importBlockeditems(queue) : []
+      nivoCharts.import_blocked = updateNivoData(nivoCharts.import_blocked, API.name, importBlockedArr.length)
+    }
+    // Count the amount of file system deletions for this API
+    const rmStats = data.nivoCharts.stats.remove_missing.find(rm => rm.name === API.name)
+    nivoCharts.remove_missing = updateNivoData(nivoCharts.remove_missing, API.name, rmStats ? rmStats.deletions : 0)
+  }
+
+  // Loops that don't need API specific data
+  // Count the amount of deletions from the last remove_failed loop
+  const deletions = data.nivoCharts.stats.remove_failed.deletions
+  nivoCharts.remove_failed = updateNivoData(nivoCharts.remove_failed, "remove_failed", deletions)
+
+  // Count the amount of dir or file chown or chmod changes
+  const updated = data.nivoCharts.stats.permissions_change.updated
+  nivoCharts.permissions_change = updateNivoData(
+    nivoCharts.permissions_change,
+    "permissions_change",
+    updated,
+  )
+
+  // Reinitialise stats
+  nivoCharts.stats = initNivoCharts.stats
+
+  // return the updated data.nivoCharts object
+  return nivoCharts
+}
+
+// Create an array of importBlocked or importFailed downloadQueue items
+export const importBlockeditems = (queue: downloadQueue): DownloadStatus[] => {
+  return queue.data.filter(
+    (item) =>
+      item.trackedDownloadState === "importBlocked" || item.trackedDownloadState === "importFailed",
+  )
 }

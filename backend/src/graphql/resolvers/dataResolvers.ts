@@ -1,4 +1,4 @@
-import Data, { dataType } from "../../models/data"
+import Data, { dataDocType, dataType } from "../../models/data"
 import Settings, { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
@@ -13,6 +13,7 @@ import {
 import moment from "moment"
 import { getCommandLists } from "../../shared/miscRequests"
 import { getqBittorrentData } from "../../shared/qBittorrentRequests"
+import { updateNivoCharts } from "../../shared/utility"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -39,13 +40,13 @@ const dataResolvers = {
 
     return newData
   },
-  getData: async (newSettings?: settingsDocType): Promise<dataType | undefined> => {
+  updateData: async (newSettings?: settingsDocType): Promise<dataType | undefined> => {
     // Get latest settings
     // prettier-ignore
     const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsDocType
 
     if (!settings) {
-      logger.error("checkRadarr: No Settings object were found.")
+      logger.error("updateData: No Settings object were found.")
       return
     }
 
@@ -54,21 +55,22 @@ const dataResolvers = {
 
     // If there are no command lists, return. Don't want to erase what's in the db.
     if (activeAPIs.length === 0) {
-      logger.error("getData: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻")
+      logger.error("updateData: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻")
       return
     }
 
     // Retreive the data object from the db
-    const data = await Data.findOne()
+    const data = (await Data.findOne()) as dataDocType
 
     if (!data) {
-      logger.error("getData: Could not find data object in db.")
+      logger.error("updateData: Could not find data object in db.")
       return
     }
 
     // Loop through all of the activeAPIs and return all of the possible commands for the Starr apps command endpoint
     const commandList = await getCommandLists(activeAPIs, data)
-    // Starr Apps
+
+    // Starr apps
     data.commands = await getAllCommands(activeAPIs, data)
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
     data.downloadQueues = await getAllDownloadQueues(activeAPIs, data)
@@ -76,11 +78,26 @@ const dataResolvers = {
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
+
     // qBittorrent
     data.qBittorrent = await getqBittorrentData(settings._doc, data)
 
+    // Nivo charts
+    data.nivoCharts = await updateNivoCharts(activeAPIs, data)
+
     data.updated_at = moment().format()
     return await data.save()
+  },
+  getData: async (): Promise<dataType | undefined> => {
+    // Retreive the data object from the db
+    const data = (await Data.findOne()) as dataDocType
+
+    if (!data) {
+      logger.error("getData: Could not find data object in db.")
+      return
+    }
+
+    return data._doc
   },
 }
 

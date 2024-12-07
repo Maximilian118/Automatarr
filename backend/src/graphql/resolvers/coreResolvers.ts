@@ -17,7 +17,12 @@ import {
   updatePaths,
 } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
-import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
+import {
+  currentPaths,
+  importBlockeditems,
+  qBittorrentDataExists,
+  updateDownloadQueue,
+} from "../../shared/utility"
 import { getMdbListItems } from "../../shared/mdbListRequests"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
@@ -68,11 +73,7 @@ const coreResolvers = {
       }
 
       // Find all of the items in the queue that have trackedDownloadState of importBlocked
-      const importBlockedArr: DownloadStatus[] = queue.data.filter(
-        (item) =>
-          item.trackedDownloadState === "importBlocked" ||
-          item.trackedDownloadState === "importFailed",
-      )
+      const importBlockedArr = importBlockeditems(queue)
 
       // If no blocked files, return.
       if (importBlockedArr.length === 0) {
@@ -138,6 +139,7 @@ const coreResolvers = {
     }
 
     // Save the latest download queue data to the db
+    data.updated_at = moment().format()
     await data.save()
   },
   remove_failed: async (): Promise<void> => {
@@ -161,6 +163,16 @@ const coreResolvers = {
     // Stats for logging
     const searched = stats.reduce((sum, { searched }) => sum + searched, 0)
     const deletions = stats.reduce((sum, { deletions }) => sum + deletions, 0)
+
+    // Update nivoCharts stats with the latest data
+    const dbStats = data.nivoCharts.stats.remove_failed
+    data.nivoCharts.stats.remove_failed = {
+      searched: dbStats.searched + searched, // Accumulate until reinitialised in updateNivoCharts
+      deletions: dbStats.deletions + deletions, // Accumulate until reinitialised in updateNivoCharts
+    }
+
+    data.updated_at = moment().format()
+    await data.save()
 
     if (stats.length !== 0) {
       logger.info(
@@ -202,6 +214,16 @@ const coreResolvers = {
 
     const updated = stats.map((s) => s.updated).reduce((acc, curr) => acc + curr, 0)
     const searched = stats.map((s) => s.searched).reduce((acc, curr) => acc + curr, 0)
+
+    // Update nivoCharts stats with the latest data
+    const dbStats = data.nivoCharts.stats.permissions_change
+    data.nivoCharts.stats.permissions_change = {
+      updated: dbStats.updated + updated, // Accumulate until reinitialised in updateNivoCharts
+      searched: dbStats.searched + searched, // Accumulate until reinitialised in updateNivoCharts
+    }
+
+    data.updated_at = moment().format()
+    await data.save()
 
     logger.info(
       `permissionsChange: Updated ${updated} items of ${searched} searched from ${stats.length} directories.`,
@@ -278,11 +300,6 @@ const coreResolvers = {
             deletedCount++
           }
         }
-
-        if (deletedCount > 0) {
-          data.updated_at = moment().format()
-          await data.save()
-        }
       }
 
       // If we're just checking if there's anything in the file system that isn't in the library
@@ -310,10 +327,36 @@ const coreResolvers = {
         }
       }
 
+      // Update nivoCharts stats with the latest data
+      const dbStats = data.nivoCharts.stats.remove_missing.find((m) => m.name === API.name)
+
+      if (dbStats) {
+        data.nivoCharts.stats.remove_missing = data.nivoCharts.stats.remove_missing.map((stats) => {
+          if (stats.name === API.name) {
+            return {
+              ...stats,
+              deletions: dbStats.deletions + deletedCount, // Accumulate until reinitialised in updateNivoCharts
+              searched: dbStats.searched + library.length, // Accumulate until reinitialised in updateNivoCharts
+            }
+          } else {
+            return stats
+          }
+        })
+      } else {
+        data.nivoCharts.stats.remove_missing.push({
+          name: API.name,
+          deletions: deletedCount,
+          searched: library.length,
+        })
+      }
+
       logger.info(
         `removeMissing: Level: ${settings.remove_missing_level}. ${API.name}: Deleted ${deletedCount} items of ${library.length}.`,
       )
     }
+
+    data.updated_at = moment().format()
+    await data.save()
   },
 }
 

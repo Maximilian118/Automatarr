@@ -37,7 +37,7 @@ body {
       flex-grow: 1;
       @include mixins.flexbox-start-column;
       overflow-y: auto;
-      padding: 40px 0;
+      padding: 20px 0;
       box-sizing: border-box;
     }
 
@@ -46,6 +46,11 @@ body {
         margin-bottom: 20px;
       }
     }
+  }
+
+  .spinner-centre {
+    height: 100%;
+    @include mixins.flexbox-column;
   }
 }
 

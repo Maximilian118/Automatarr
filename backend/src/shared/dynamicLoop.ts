@@ -13,8 +13,9 @@ export const dynamicLoop = async (
   skipFirst?: boolean, // Optionally skip the first execution if we've just called the content function outside of dynamicLoop
 ) => {
   const settings = await Resolvers.getSettings()
-  const loopMins = Number(settings[loop_name])
-  const isActive = settings[String(loop_name).replace(/_loop$/, "")]
+  const key = settings[loop_name]
+  const loopMins = key ? Number(key) : 360
+  const isActive = key ? settings[String(loop_name).replace(/_loop$/, "")] : true
 
   // If the loop is inactive, stop further execution
   if (!isActive) {

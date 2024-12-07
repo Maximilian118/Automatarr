@@ -1,5 +1,5 @@
 import logger from "../logger"
-import Data from "../models/data"
+import Data, { dataDocType } from "../models/data"
 import { settingsType } from "../models/settings"
 import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
@@ -68,7 +68,7 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
     }
   })
 
-  const data = await Data.findOne()
+  const data = (await Data.findOne()) as dataDocType
 
   if (!data) {
     logger.warn("active API's Check: Could not retrieve data for API.")

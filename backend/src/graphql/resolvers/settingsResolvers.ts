@@ -109,7 +109,7 @@ const settingsResolvers = {
 
     // Update the data object in the database
     if (!allLoopsDeactivated(settings._doc)) {
-      await Resolvers.getData(settings)
+      await Resolvers.updateData(settings)
     }
 
     // Call the core loop functions once
