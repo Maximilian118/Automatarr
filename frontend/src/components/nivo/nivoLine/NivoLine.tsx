@@ -14,9 +14,9 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
   return (
     <div className="nivo-line">
       <h4>{title}</h4>
-      {loading ? 
+      {loading || data.length === 0 ? 
         <div className="spinner-centre">
-          <CircularProgress/>
+          { data.length === 0 ? <h4>No Data</h4> : <CircularProgress/>}
         </div>
         : 
         <ResponsiveLine
