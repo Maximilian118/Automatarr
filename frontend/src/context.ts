@@ -8,6 +8,10 @@ export interface AppContextType {
   setSettings: Dispatch<SetStateAction<settingsType>>
   data: dataType
   setData: Dispatch<SetStateAction<dataType>>
+  unixUsers: string[]
+  setUnixUsers: Dispatch<SetStateAction<string[]>>
+  unixGroups: string[]
+  setUnixGroups: Dispatch<SetStateAction<string[]>>
 }
 
 const AppContext = createContext<AppContextType>({
@@ -15,6 +19,10 @@ const AppContext = createContext<AppContextType>({
   setSettings: () => initSettings,
   data: initData,
   setData: () => initData,
+  unixUsers: [],
+  setUnixUsers: () => [],
+  unixGroups: [],
+  setUnixGroups: () => [],
 })
 
 export default AppContext

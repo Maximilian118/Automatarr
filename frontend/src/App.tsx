@@ -11,9 +11,20 @@ import { dataType } from './types/dataType'
 const App: React.FC = () => {
   const [ settings, setSettings] = useState<settingsType>(initSettings)
   const [ data, setData ] = useState<dataType>(initData)
+  const [ unixUsers, setUnixUsers ] = useState<string[]>([])
+  const [ unixGroups, setUnixGroups ] = useState<string[]>([])
 
   return (  
-    <AppContext.Provider value={{ settings, setSettings, data, setData }}>
+    <AppContext.Provider value={{ 
+      settings, 
+      setSettings, 
+      data, 
+      setData, 
+      unixUsers, 
+      setUnixUsers, 
+      unixGroups, 
+      setUnixGroups 
+    }}>
       <Nav/>
       <Router/>
       <Footer/>

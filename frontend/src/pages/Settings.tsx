@@ -15,13 +15,11 @@ import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 
 const Settings: React.FC = () => {
-  const { settings, setSettings } = useContext(AppContext)
+  const { settings, setSettings, unixUsers, setUnixUsers, unixGroups, setUnixGroups } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
-  const [ user, setUser ] = useState<string | null>(null)
-  const [ users, setUsers ] = useState<string[]>([])
-  const [ group, setGroup ] = useState<string | null>(null)
-  const [ groups, setGroups ] = useState<string[]>([])
+  const [ unixUser, setUnixUser ] = useState<string | null>(null)
+  const [ unixGroup, setUnixGroup ] = useState<string | null>(null)
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -30,24 +28,24 @@ const Settings: React.FC = () => {
     }
   }, [settings, setSettings])
 
-  // Retrieve users of the OS the backend is running on
+  // Retrieve unixUsers of the OS the backend is running on
   useEffect(() => {
-    if (users.length === 0) {
-      getUsers(setUsers)
+    if (unixUsers.length === 0) {
+      getUsers(setUnixUsers)
     }
-  }, [users])
+  }, [unixUsers, setUnixUsers])
 
-  // Retrieve groups of the OS the backend is running on
+  // Retrieve unixGroups of the OS the backend is running on
   useEffect(() => {
-    if (groups.length === 0) {
-      getGroups(setGroups)
+    if (unixGroups.length === 0) {
+      getGroups(setUnixGroups)
     }
-  }, [groups])
+  }, [unixGroups, setUnixGroups])
 
   // Create a chown string from user and group states
   useEffect(() => {
-    createChownString(user, group, settings, setSettings)
-  }, [user, group, settings, setSettings])
+    createChownString(unixUser, unixGroup, settings, setSettings)
+  }, [unixUser, unixGroup, settings, setSettings])
 
   // initialise user and group autocompletes
   useEffect(() => {
@@ -56,8 +54,8 @@ const Settings: React.FC = () => {
 
     if (chown) {
       const [initialUser, initialGroup] = chown.split(":")
-      setUser(initialUser || null)
-      setGroup(initialGroup || null)
+      setUnixUser(initialUser || null)
+      setUnixGroup(initialGroup || null)
     }
   }, [settings])
 
@@ -199,26 +197,26 @@ const Settings: React.FC = () => {
           <>
             <MUIAutocomplete
               label="User"
-              options={users}
-              value={user}
-              setValue={(val) => setUser(val)}
+              options={unixUsers}
+              value={unixUser}
+              setValue={(val) => setUnixUser(val)}
               size="small"
               disabled={!settings.permissions_change}
               onBlur={(e) => {
-                checkChownValidity(user, group, setFormErr)
+                checkChownValidity(unixUser, unixGroup, setFormErr)
                 updateInput(e, setSettings, setFormErr)
               }}
               error={!!formErr.permissions_change_chown}
             />
             <MUIAutocomplete
               label="Group"
-              options={groups}
-              value={group}
-              setValue={val => setGroup(val)}
+              options={unixGroups}
+              value={unixGroup}
+              setValue={val => setUnixGroup(val)}
               size="small"
               disabled={!settings.permissions_change}
               onBlur={(e) => {
-                checkChownValidity(user, group, setFormErr)
+                checkChownValidity(unixUser, unixGroup, setFormErr)
                 updateInput(e, setSettings, setFormErr)
               }}
               error={!!formErr.permissions_change_chown}
