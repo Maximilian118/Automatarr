@@ -113,10 +113,10 @@ const settingsResolvers = {
     }
 
     // Call the core loop functions once
-    coreFunctionsOnce(settings)
+    await coreFunctionsOnce(settings)
     // Ensure the active loops have been started
     // True = Skip first content execution as we've just called content functions once above
-    coreLoops(true)
+    await coreLoops(true)
 
     // Return the updated object
     return settings._doc

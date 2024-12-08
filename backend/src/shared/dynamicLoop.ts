@@ -14,7 +14,7 @@ export const dynamicLoop = async (
 ) => {
   const settings = await Resolvers.getSettings()
   const key = settings[loop_name]
-  const loopMins = key ? Number(key) : 360
+  const loopMins = key ? Number(key) : 60
   const isActive = key ? settings[String(loop_name).replace(/_loop$/, "")] : true
 
   // If the loop is inactive, stop further execution

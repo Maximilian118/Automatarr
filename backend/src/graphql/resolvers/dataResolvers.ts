@@ -99,6 +99,32 @@ const dataResolvers = {
 
     return data._doc
   },
+  updateNivoCharts: async (): Promise<undefined> => {
+    // Get latest settings
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("updateData: No Settings object were found.")
+      return
+    }
+
+    // Only get data for active APIs
+    const activeAPIs = await activeAPIsArr(settings._doc)
+
+    // Retreive the data object from the db
+    const data = (await Data.findOne()) as dataDocType
+
+    if (!data) {
+      logger.error("updateData: Could not find data object in db.")
+      return
+    }
+
+    // Nivo charts
+    data.nivoCharts = await updateNivoCharts(activeAPIs, data)
+
+    data.updated_at = moment().format()
+    await data.save()
+  },
 }
 
 export default dataResolvers

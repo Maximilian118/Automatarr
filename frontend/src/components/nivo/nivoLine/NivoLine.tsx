@@ -3,6 +3,8 @@ import { ResponsiveLine } from '@nivo/line'
 import { nivoData } from "../../../types/dataType"
 import './_nivoLine.scss'
 import { CircularProgress } from "@mui/material"
+import { transformNivoData } from "../../../shared/utility"
+import Legend from "./legend/Legend"
 
 interface NivoLineType {
   title: string
@@ -11,6 +13,18 @@ interface NivoLineType {
 }
 
 const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
+  const nivoColours = [
+    '#ff8c00', // Orange
+    '#f47560', // Coral
+    '#e8c1a0', // Light Peach
+    '#61c0bf', // Teal
+    '#6c68fb', // Indigo
+    '#b0e0e6', // Powder Blue
+    '#ff69b4', // Hot Pink
+  ]
+
+  const nivoData = transformNivoData(data)
+
   return (
     <div className="nivo-line">
       <h4>{title}</h4>
@@ -18,66 +32,39 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
         <div className="spinner-centre">
           { data.length === 0 ? <h4>No Data</h4> : <CircularProgress/>}
         </div>
-        : 
-        <ResponsiveLine
-          data={data}
-          margin={{ top: 50, right: 20, bottom: 70, left: 20 }}
-          xScale={{ type: 'point' }}
-          yScale={{
-            type: 'linear',
-            min: 'auto',
-            max: 'auto',
-            stacked: true,
-            reverse: false
-          }}
-          yFormat=" >-.2f"
-          axisTop={null}
-          axisRight={null}
-          axisLeft={{
-              tickSize: 5,
-              tickPadding: 5,
-              tickRotation: 0,
-              legend: 'Count',
-              legendOffset: -40,
-              legendPosition: 'middle',
-              truncateTickAt: 0
-          }}
-          colors={{ scheme: 'nivo' }}
-          pointSize={10}
-          pointColor={{ theme: 'background' }}
-          pointBorderWidth={2}
-          pointBorderColor={{ from: 'serieColor' }}
-          pointLabel="data.yFormatted"
-          pointLabelYOffset={-12}
-          enableTouchCrosshair={true}
-          useMesh={true}
-          legends={[
-            {
-              anchor: 'bottom-left',
-              direction: 'row',
-              justify: false,
-              translateX: -20,
-              translateY: 60,
-              itemsSpacing: 40,
-              itemDirection: 'left-to-right',
-              itemWidth: 80,
-              itemHeight: 20,
-              itemOpacity: 0.75,
-              symbolSize: 12,
-              symbolShape: 'circle',
-              symbolBorderColor: 'rgba(0, 0, 0, .5)',
-              effects: [
-                {
-                  on: 'hover',
-                  style: {
-                    itemBackground: 'rgba(0, 0, 0, .03)',
-                    itemOpacity: 1
-                  }
-                }
-              ]
-            }
-          ]}
-        />
+        :
+        <>
+          <ResponsiveLine
+            data={nivoData}
+            margin={{ top: 50, right: 40, bottom: 50, left: 50 }}
+            xScale={{ type: 'point' }}
+            yScale={{
+              type: 'linear',
+              min: data.length === 0 ? 0 : 'auto',
+              max: data.length === 0 ? 10 : 'auto',
+              stacked: true,
+              reverse: false
+            }}
+            yFormat=" >-.2f"
+            axisTop={null}
+            axisRight={null}
+            colors={nivoColours}
+            pointSize={10}
+            pointColor={{ theme: 'background' }}
+            pointBorderWidth={2}
+            pointBorderColor={{ from: 'serieColor' }}
+            pointLabel="data.yFormatted"
+            pointLabelYOffset={-12}
+            enableTouchCrosshair={true}
+            useMesh={true}
+            tooltip={({ point }) => (
+              <div className="tooltip">
+                <strong>{`${point.serieId}: ${point.data.y}`}</strong>
+              </div>
+            )}
+          />
+          <Legend data={nivoData} colors={nivoColours}/>
+        </>
       }
     </div>
   )

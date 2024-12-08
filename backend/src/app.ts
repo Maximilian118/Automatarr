@@ -12,7 +12,6 @@ import { bootPermissions } from "./shared/permissions"
 import { allAPIsDeactivated, allLoopsDeactivated, coreLoops } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
-import { dynamicLoop } from "./shared/dynamicLoop"
 
 // Initialise express.
 const app = express()
@@ -124,12 +123,6 @@ const startServer = async () => {
 
     // Log if all Loops are deactivated
     allLoopsDeactivated(bootSettings._doc)
-
-    // Generally get latest data from API's every 6h
-    // prettier-ignore
-    dynamicLoop("get_data", async () => {
-      await Resolvers.updateData()
-    }, true) // Skip first execution as we're already calling updateData on boot
 
     // Start main loops
     coreLoops()

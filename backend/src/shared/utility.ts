@@ -269,6 +269,8 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   dynamicLoop("permissions_change_loop", async (settings) => {
     await Resolvers.permissions_change(settings)
   }, skipFirst)
+  // Update Nivo Chart data every hour
+  dynamicLoop("update_nivo_charts", async () => await Resolvers.updateNivoCharts(), skipFirst)
 }
 
 // Call all core loop functions once
@@ -371,7 +373,7 @@ export const updateNivoCharts = async (
       nivoCharts.import_blocked, // Current Nivo data
       `${API.name} Blocked`, // Amount of blocked items X
       importBlockedArr.length, // Amount of blocked items Y
-      `${API.name} Total`, // Total in queue X
+      `${API.name} Queue`, // Total in queue X
       queue && queue.data.length, // Total in queue Y
     )
 
