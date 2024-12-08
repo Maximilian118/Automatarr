@@ -13,6 +13,7 @@ interface NivoLineType {
 }
 
 const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
+  // Legend colours
   const nivoColours = [
     '#ff8c00', // Orange
     '#f47560', // Coral
@@ -22,8 +23,10 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
     '#b0e0e6', // Powder Blue
     '#ff69b4', // Hot Pink
   ]
-
+  // Transform moment timestamps into something more friendly
   const nivoData = transformNivoData(data)
+  // Check if all of the fields are 0
+  const allData0 = data.every(d => d.data.every(d => d.y === 0))
 
   return (
     <div className="nivo-line">
@@ -40,8 +43,8 @@ const NivoLine: React.FC<NivoLineType> = ({ title, data, loading }) => {
             xScale={{ type: 'point' }}
             yScale={{
               type: 'linear',
-              min: data.length === 0 ? 0 : 'auto',
-              max: data.length === 0 ? 10 : 'auto',
+              min: allData0 ? 0 : 'auto',
+              max: allData0 ? 10 : 'auto',
               stacked: true,
               reverse: false
             }}
