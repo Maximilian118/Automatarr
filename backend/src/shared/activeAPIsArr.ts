@@ -28,8 +28,13 @@ export type APIData = {
   data: APIDataFields
 }
 
-export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> => {
-  const activeApis: APIData[] = []
+export type ActiveAPIs = {
+  activeAPIs: APIData[] // An array filled with data for each API
+  data: dataDocType // The original data. Passed so that we don't have to make multiple requests
+}
+
+export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs> => {
+  let activeAPIs: APIData[] = []
 
   // Helper function to capitalize the first letter
   const capsFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
@@ -60,8 +65,8 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
       // Ensure all fields of APIDataFields are filled before casting
       const apiDataFieldsComplete = APIDataFields as APIDataFields
 
-      // Push the constructed API data to the activeApis array
-      activeApis.push({
+      // Push the constructed API data to the activeAPIs array
+      activeAPIs.push({
         name: capsFirstLetter(apiName) as "Radarr" | "Sonarr" | "Lidarr",
         data: apiDataFieldsComplete,
       })
@@ -72,9 +77,12 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
 
   if (!data) {
     logger.warn("active API's Check: Could not retrieve data for API.")
-    return activeApis
+    return {
+      activeAPIs,
+      data,
+    }
   } else {
-    return activeApis.map((API) => {
+    activeAPIs = activeAPIs.map((API) => {
       const subData = data.libraries.find((c) => API.name === c.name)?.subData
 
       return {
@@ -98,5 +106,10 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
         },
       }
     })
+
+    return {
+      activeAPIs,
+      data,
+    }
   }
 }

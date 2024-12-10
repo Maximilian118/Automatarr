@@ -51,19 +51,11 @@ const dataResolvers = {
     }
 
     // Only get data for active APIs
-    const activeAPIs = await activeAPIsArr(settings._doc)
+    const { activeAPIs, data } = await activeAPIsArr(settings._doc)
 
     // If there are no command lists, return. Don't want to erase what's in the db.
     if (activeAPIs.length === 0) {
       logger.error("updateData: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻")
-      return
-    }
-
-    // Retreive the data object from the db
-    const data = (await Data.findOne()) as dataDocType
-
-    if (!data) {
-      logger.error("updateData: Could not find data object in db.")
       return
     }
 
@@ -109,15 +101,7 @@ const dataResolvers = {
     }
 
     // Only get data for active APIs
-    const activeAPIs = await activeAPIsArr(settings._doc)
-
-    // Retreive the data object from the db
-    const data = (await Data.findOne()) as dataDocType
-
-    if (!data) {
-      logger.error("updateData: Could not find data object in db.")
-      return
-    }
+    const { activeAPIs, data } = await activeAPIsArr(settings._doc)
 
     // Nivo charts
     data.nivoCharts = await updateNivoCharts(activeAPIs, data)
