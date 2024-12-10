@@ -18,8 +18,8 @@ import {
 } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
 import {
+  blockedItems,
   currentPaths,
-  importBlockeditems,
   qBittorrentDataExists,
   updateDownloadQueue,
 } from "../../shared/utility"
@@ -64,7 +64,7 @@ const coreResolvers = {
       }
 
       // Find all of the items in the queue that have trackedDownloadState of importBlocked
-      const importBlockedArr = importBlockeditems(queue)
+      const importBlockedArr = blockedItems(queue)
 
       // If no blocked files, update downloadQueue in db and continue.
       if (importBlockedArr.length === 0) {

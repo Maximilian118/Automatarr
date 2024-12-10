@@ -290,125 +290,92 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
 }
 
 // Return updated data.nivoChart data
-export const updateNivoData = (
-  nivoChartsArray: nivoData[],
-  id: string,
-  y: number,
-  id2?: string,
-  y2?: number,
-): nivoData[] => {
-  const timestamp = moment().startOf("hour").format() // Current timestamp
+export const updateNivoData = (nivoChartsArray: nivoData[], id: string, y: number): nivoData[] => {
+  const timestamp = moment().format() // Current timestamp
   const oneYearAgo = moment().subtract(1, "year") // Date 1 year ago
 
-  // Update the main id and y
-  let updatedCharts = nivoChartsArray.some((nivoChart) => nivoChart.id === id)
-    ? nivoChartsArray.map((nivoChart) =>
-        nivoChart.id === id
-          ? {
-              ...nivoChart,
-              data: [
-                ...nivoChart.data.filter((d) => moment(d.x).isAfter(oneYearAgo)), // Remove data from +1y ago
-                { x: timestamp, y }, // Add new data point
-              ],
-            }
-          : nivoChart,
-      )
-    : [...nivoChartsArray, { id, data: [{ x: timestamp, y }] }]
+  // Find the existing chart by id
+  const existingChartIndex = nivoChartsArray.findIndex((nivoChart) => nivoChart.id === id)
 
-  // If id2 and y2 are provided, update or add a second nivoData object
-  if (id2 && y2 !== undefined) {
-    updatedCharts = updatedCharts.some((nivoChart) => nivoChart.id === id2)
-      ? updatedCharts.map((nivoChart) =>
-          nivoChart.id === id2
-            ? {
-                ...nivoChart,
-                data: [
-                  ...nivoChart.data.filter((d) => moment(d.x).isAfter(oneYearAgo)), // Remove data from +1y ago
-                  { x: timestamp, y: y2 }, // Add new data point
-                ],
-              }
-            : nivoChart,
-        )
-      : [...updatedCharts, { id: id2, data: [{ x: timestamp, y: y2 }] }]
+  // If the chart exists, update it
+  if (existingChartIndex !== -1) {
+    const existingChart = nivoChartsArray[existingChartIndex]
+
+    // Update the data of the existing chart
+    existingChart.data = [
+      ...existingChart.data.filter((d) => moment(d.x).isAfter(oneYearAgo)), // Remove data older than 1 year
+      { x: timestamp, y }, // Add new data point
+    ]
+
+    // Return the updated array with the modified chart at the same index
+    return [
+      ...nivoChartsArray.slice(0, existingChartIndex), // All charts before the modified one
+      existingChart, // The modified chart
+      ...nivoChartsArray.slice(existingChartIndex + 1), // All charts after the modified one
+    ]
+  } else {
+    // If no chart with the id exists, create a new chart and add it to the array
+    const newChart: nivoData = { id, data: [{ x: timestamp, y }] }
+
+    // Return the array with the new chart added at the end, leaving other objects unchanged
+    return [...nivoChartsArray, newChart]
   }
-
-  return updatedCharts
 }
 
 // Return updated data.nivoCharts
+// prettier-ignore
 export const updateNivoCharts = async (
   activeAPIs: APIData[], // A means of only using active API data
   data: dataDocType, // The updated data
 ): Promise<nivoCharts> => {
   const nivoCharts = data.nivoCharts
 
-  // prettier-ignore
   for (const API of activeAPIs) {
     // Count the amount of missing wanted items
     if (data.missingWanteds) {
       const library = data.libraries.find(l => l.name === API.name)
-
-      nivoCharts.wanted_mising = updateNivoData(
-        nivoCharts.wanted_mising, // Current Nivo data
-        `${API.name} Missing`, // Amount of wanted missing items X
-        data.missingWanteds.length, // Amount of wanted missing items Y
-        `${API.name} Library`, // Library Total X
-        library && library.data.length, // Library Total Y
-      )
+      if (library) {
+        nivoCharts.wanted_mising = updateNivoData(nivoCharts.wanted_mising, `${API.name} Library`, library.data.length)
+      }
+      nivoCharts.wanted_mising = updateNivoData(nivoCharts.wanted_mising, `${API.name} Missing`, data.missingWanteds.length)
     }
 
     // Find all of the items in the queue that have trackedDownloadState of importBlocked
     const queue = data.downloadQueues.find(q => q.name === API.name)
-    const importBlockedArr = queue ? importBlockeditems(queue) : []
-
-    nivoCharts.import_blocked = updateNivoData(
-      nivoCharts.import_blocked, // Current Nivo data
-      `${API.name} Blocked`, // Amount of blocked items X
-      importBlockedArr.length, // Amount of blocked items Y
-      `${API.name} Queue`, // Total in queue X
-      queue && queue.data.length, // Total in queue Y
-    )
+    const importBlockedArr = queue ? blockedItems(queue) : []
+    if (queue) {
+      nivoCharts.import_blocked = updateNivoData(nivoCharts.import_blocked, `${API.name} Queue`, queue.data.length)
+    }
+    nivoCharts.import_blocked = updateNivoData(nivoCharts.import_blocked, `${API.name} Blocked`, importBlockedArr.length)
 
     // Count the amount of file system deletions for this API
     const rmStats = data.nivoCharts.stats.remove_missing.find(rm => rm.name === API.name)
-
-    nivoCharts.remove_missing = updateNivoData(
-      nivoCharts.remove_missing, // Current Nivo data
-      `${API.name} Searched`, // Amount of directories searched X
-      rmStats ? rmStats.searched : 0, // Amount of directories searched Y
-      `${API.name} Deletions`, // Amount of deletions searched X
-      rmStats ? rmStats.deletions : 0, // Amount of deletions searched Y
-    )
+    if (rmStats) {
+      nivoCharts.remove_missing = updateNivoData(nivoCharts.remove_missing, `${API.name} Searched`, rmStats.searched)
+      nivoCharts.remove_missing = updateNivoData(nivoCharts.remove_missing, `${API.name} Deletions`, rmStats.deletions)
+    }
   }
+
+  const stats = nivoCharts.stats
 
   // Loops that don't need API specific data
   // Count the amount of deletions from the last remove_failed loop
-  nivoCharts.remove_failed = updateNivoData(
-    nivoCharts.remove_failed, // Current Nivo data
-    "Searched", // Amount of directories searched X
-    data.nivoCharts.stats.remove_failed.searched, // Amount of directories searched Y
-    "Deletions", // Amount of deletions X
-    data.nivoCharts.stats.remove_failed.deletions, // Amount of deletions Y
-  )
+  nivoCharts.remove_failed = updateNivoData(nivoCharts.remove_failed, "Searched", stats.remove_failed.searched)
+  nivoCharts.remove_failed = updateNivoData(nivoCharts.remove_failed, "Deletions", stats.remove_failed.deletions)
 
   // Count the amount of dir or file chown or chmod changes
-  nivoCharts.permissions_change = updateNivoData(
-    nivoCharts.permissions_change, // Current Nivo data
-    "Searched", // Amount of directories searched X
-    data.nivoCharts.stats.permissions_change.searched, // Amount of directories searched Y
-    "Updated", // Amount of dirs or files updated X
-    data.nivoCharts.stats.permissions_change.updated, // Amount of dirs or files updated Y
-  )
+  nivoCharts.permissions_change = updateNivoData(nivoCharts.permissions_change, "Searched", stats.permissions_change.searched)
+  nivoCharts.permissions_change = updateNivoData(nivoCharts.permissions_change, "Updated", stats.permissions_change.updated)
 
-  // Reinitialise stats
+  // Reinitialize stats
   nivoCharts.stats = initNivoCharts.stats
 
-  // return the updated data.nivoCharts object
+  // Return the updated data.nivoCharts object
   return nivoCharts
 }
 
 // Create an array of importBlocked or importFailed downloadQueue items
-export const importBlockeditems = (queue: downloadQueue): DownloadStatus[] => {
+export const blockedItems = (queue: downloadQueue): DownloadStatus[] => {
   return queue.data.filter(
     (item) =>
       item.trackedDownloadState === "importBlocked" || item.trackedDownloadState === "importFailed",
