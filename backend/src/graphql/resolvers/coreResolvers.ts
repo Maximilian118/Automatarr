@@ -26,7 +26,7 @@ import moment from "moment"
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
-    const activeAPIs = await activeAPIsArr(settings)
+    const { activeAPIs } = await activeAPIsArr(settings)
     // Loop through all of the active API's and send the relevant command request to search for wanted missing
     for (const API of activeAPIs) {
       // If this API is already searching, return
@@ -46,15 +46,7 @@ const coreResolvers = {
   },
   import_blocked_handler: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
-    const activeAPIs = await activeAPIsArr(settings)
-
-    // Retrieve the data object from the db
-    const data = await Data.findOne()
-
-    if (!data) {
-      logger.error("importBlocked: Could not find data object in db.")
-      return
-    }
+    const { data, activeAPIs } = await activeAPIsArr(settings)
 
     // Loop through all of the active API's
     for (const API of activeAPIs) {
@@ -209,15 +201,7 @@ const coreResolvers = {
   },
   remove_missing: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
-    const activeAPIs = await activeAPIsArr(settings)
-
-    // Retreive the data object from the db
-    const data = await Data.findOne()
-
-    if (!data) {
-      logger.error("removeMissing: Could not find data object in db.")
-      return
-    }
+    const { data, activeAPIs } = await activeAPIsArr(settings)
 
     // Loop through each active API
     for (const API of activeAPIs) {

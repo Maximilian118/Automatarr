@@ -1,5 +1,5 @@
 import logger from "../logger"
-import Data from "../models/data"
+import Data, { dataDocType } from "../models/data"
 import { settingsType } from "../models/settings"
 import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
@@ -28,8 +28,13 @@ export type APIData = {
   data: APIDataFields
 }
 
-export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> => {
-  const activeApis: APIData[] = []
+export type ActiveAPIs = {
+  data: dataDocType
+  activeAPIs: APIData[]
+}
+
+export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs> => {
+  let activeAPIs: APIData[] = []
 
   // Helper function to capitalize the first letter
   const capsFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
@@ -60,43 +65,49 @@ export const activeAPIsArr = async (settings: settingsType): Promise<APIData[]> 
       // Ensure all fields of APIDataFields are filled before casting
       const apiDataFieldsComplete = APIDataFields as APIDataFields
 
-      // Push the constructed API data to the activeApis array
-      activeApis.push({
+      // Push the constructed API data to the activeAPIs array
+      activeAPIs.push({
         name: capsFirstLetter(apiName) as "Radarr" | "Sonarr" | "Lidarr",
         data: apiDataFieldsComplete,
       })
     }
   })
 
-  const data = await Data.findOne()
+  const data = (await Data.findOne()) as dataDocType
 
   if (!data) {
-    logger.warn("active API's Check: Could not retrieve data for API.")
-    return activeApis
+    logger.warn("active API's Check: Could not retrieve data from db.")
+    return {
+      data,
+      activeAPIs,
+    }
   } else {
-    return activeApis.map((API) => {
-      const subData = data.libraries.find((c) => API.name === c.name)?.subData
+    return {
+      data,
+      activeAPIs: activeAPIs.map((API) => {
+        const subData = data.libraries.find((c) => API.name === c.name)?.subData
 
-      return {
-        ...API,
-        data: {
-          ...API.data,
-          commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
-          commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
-          downloadQueue: data.downloadQueues
-            .filter((d) => API.name === d.name)
-            .flatMap((d) => d.data),
-          importLists: data.importLists.filter((l) => API.name === l.name).flatMap((l) => l.data),
-          rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
-          library: data.libraries
-            .filter((c) => API.name === c.name)
-            .flatMap((c) => c.data as (Movie | Series | Artist)[]),
-          missingWanted: data.missingWanteds
-            .filter((c) => API.name === c.name)
-            .flatMap((c) => c.data as (Movie | Series | Artist)[]),
-          ...(subData ? { [getContentName(API, true, true)]: subData } : {}), // Add subData only if subData exists
-        },
-      }
-    })
+        return {
+          ...API,
+          data: {
+            ...API.data,
+            commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
+            commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
+            downloadQueue: data.downloadQueues
+              .filter((d) => API.name === d.name)
+              .flatMap((d) => d.data),
+            importLists: data.importLists.filter((l) => API.name === l.name).flatMap((l) => l.data),
+            rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
+            library: data.libraries
+              .filter((c) => API.name === c.name)
+              .flatMap((c) => c.data as (Movie | Series | Artist)[]),
+            missingWanted: data.missingWanteds
+              .filter((c) => API.name === c.name)
+              .flatMap((c) => c.data as (Movie | Series | Artist)[]),
+            ...(subData ? { [getContentName(API, true, true)]: subData } : {}), // Add subData only if subData exists
+          },
+        }
+      }),
+    }
   }
 }

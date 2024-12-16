@@ -50,19 +50,11 @@ const dataResolvers = {
     }
 
     // Only get data for active APIs
-    const activeAPIs = await activeAPIsArr(settings._doc)
+    const { data, activeAPIs } = await activeAPIsArr(settings._doc)
 
     // If there are no command lists, return. Don't want to erase what's in the db.
     if (activeAPIs.length === 0) {
       logger.error("getData: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻")
-      return
-    }
-
-    // Retreive the data object from the db
-    const data = await Data.findOne()
-
-    if (!data) {
-      logger.error("getData: Could not find data object in db.")
       return
     }
 

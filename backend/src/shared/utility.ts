@@ -242,23 +242,23 @@ export const allAPIsDeactivated = (settings: settingsType): boolean => {
 // prettier-ignore
 export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
-  dynamicLoop("wanted_missing_loop", async (settings) => {
+  await dynamicLoop("wanted_missing_loop", async (settings) => {
     await Resolvers.search_wanted_missing(settings)
   }, skipFirst)
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  dynamicLoop("import_blocked_loop", async (settings) => {
+  await dynamicLoop("import_blocked_loop", async (settings) => {
     await Resolvers.import_blocked_handler(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
-  dynamicLoop("remove_failed_loop", async () => {
+  await dynamicLoop("remove_failed_loop", async () => {
     await Resolvers.remove_failed()
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
-  dynamicLoop("remove_missing_loop", async (settings) => {
+  await dynamicLoop("remove_missing_loop", async (settings) => {
     await Resolvers.remove_missing(settings)
   }, skipFirst)
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
-  dynamicLoop("permissions_change_loop", async (settings) => {
+  await dynamicLoop("permissions_change_loop", async (settings) => {
     await Resolvers.permissions_change(settings)
   }, skipFirst)
 }
