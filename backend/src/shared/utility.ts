@@ -257,6 +257,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("remove_missing_loop", async (settings) => {
     await Resolvers.remove_missing(settings)
   }, skipFirst)
+  // Remove all unwanted files and directories in the provided paths.
+  await dynamicLoop("tidy_directories_loop", async (settings) => {
+    await Resolvers.tidy_directories(settings)
+  }, skipFirst)
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   await dynamicLoop("permissions_change_loop", async (settings) => {
     await Resolvers.permissions_change(settings)
@@ -280,6 +284,10 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {
     await Resolvers.remove_missing(settings._doc)
+  }
+  // Remove all unwanted files and directories in the provided paths.
+  if (settings.tidy_directories) {
+    await Resolvers.tidy_directories(settings._doc)
   }
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {

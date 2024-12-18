@@ -53,3 +53,17 @@ export const createChownString = (
     })
   }
 }
+
+// Output the last two dirs for the given path
+export const shortPath = (path: string, depth: number = 2, ellipsis: boolean = true): string => {
+  const parts = path.split('/').filter(Boolean) // Split and clean up the path
+  
+  // If the number of parts is less than or equal to depth, return the full path
+  if (parts.length <= depth) {
+    return `/${parts.join('/')}`
+  }
+
+  // If there are more parts than the depth, shorten the path
+  const lastDirs = parts.slice(-depth).join('/') // Get the last `depth` directories
+  return `${ellipsis ? ".../" : ""}${lastDirs}` // Show "..." for the parent directories, then the last `depth` directories
+}

@@ -64,3 +64,40 @@ export const getGroups = async (
     return []
   }
 }
+
+// Return an array of path strings
+export const getChildPaths = async (
+  path: string | null,
+  setChildren: Dispatch<SetStateAction<string[]>>,
+  setLoading: Dispatch<SetStateAction<boolean>>,
+): Promise<string[]> => {
+  setLoading(true)
+
+  try {
+    const res = await axios.post("", {
+      variables: {
+        path,
+      },
+      query: `
+        query GetChildPaths( $path: String ) {
+          getChildPaths( path: $path )
+        }
+      `,
+    })
+
+    if (res.data.errors) {
+      console.error(`getChildPaths Error: ${res.data.errors[0].message}`)
+      return []
+    } else {
+      console.log(`getChildPaths: Path children for retrieved for ${path ? path : "/"}`)
+      const children = res.data.data.getChildPaths
+      setChildren(children)
+      return children
+    }
+  } catch (err) {
+    console.error(`getChildPaths Error: ${err}`)
+    return []
+  } finally {
+    setLoading(false)
+  }
+}

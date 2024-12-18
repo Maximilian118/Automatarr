@@ -1,4 +1,9 @@
 const settingsSchema = `
+  type TidyPaths {
+    path: String!
+    allowedDirs: [String!]
+  }
+
   type Settings {
     _id: ID!
     radarr_URL: String!
@@ -18,6 +23,7 @@ const settingsSchema = `
     remove_failed: Boolean!
     remove_missing: Boolean!
     permissions_change: Boolean!
+    tidy_directories: Boolean!
     import_blocked_loop: Int!
     wanted_missing_loop: Int!
     remove_failed_loop: Int!
@@ -26,6 +32,8 @@ const settingsSchema = `
     permissions_change_loop: Int!
     permissions_change_chown: String!
     permissions_change_chmod: String!
+    tidy_directories_loop: Int!
+    tidy_directories_paths: [TidyPaths!]!
     qBittorrent_URL: String!
     qBittorrent_username: String!
     qBittorrent_password: String!
@@ -33,6 +41,11 @@ const settingsSchema = `
     qBittorrent_API_version: String!
     created_at: String!
     updated_at: String!
+  }
+
+  input tidyPaths {
+    path: String!
+    allowedDirs: [String!]
   }
 
   input settingsInput {
@@ -54,6 +67,7 @@ const settingsSchema = `
     remove_failed: Boolean
     remove_missing: Boolean
     permissions_change: Boolean
+    tidy_directories: Boolean
     import_blocked_loop: Int
     wanted_missing_loop: Int
     remove_failed_loop: Int
@@ -62,6 +76,8 @@ const settingsSchema = `
     permissions_change_loop: Int
     permissions_change_chown: String
     permissions_change_chmod: String
+    tidy_directories_loop: Int
+    tidy_directories_paths: [tidyPaths!]!
     qBittorrent_URL: String
     qBittorrent_username: String
     qBittorrent_password: String

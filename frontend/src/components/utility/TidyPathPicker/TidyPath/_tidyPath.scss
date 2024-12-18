@@ -1,0 +1,51 @@
+@use '../../../../scss/variables';
+@use '../../../../scss/mixins';
+
+.tidy-path {
+  width: 100%;
+  @include mixins.flexbox-space-between;
+  padding: 10px 14px;
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+  cursor: pointer;
+
+  p {
+    max-width: 90%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+    color: white;
+  }
+
+  .tidy-path-checkbox {
+    height: 18px;
+    width: 18px;
+  }
+
+  .Mui-checked {
+    svg {
+      color: variables.$mui-success;
+    }
+  }
+}
+
+.tidy-path-disabled {
+  pointer-events: none;
+
+  p, svg {
+    color: variables.$mui-disabled !important;
+  }
+}
+
+.tidy-path-error {
+  svg, p {
+    color: variables.$mui-error;
+  }
+}

@@ -3,7 +3,7 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Loop as MuiLoop, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
-import { checkChownValidity, updateInput } from "../shared/formValidation"
+import { checkChownValidity, inputLabel, updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
@@ -13,6 +13,7 @@ import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { getGroups, getUsers } from "../shared/requests/fileSystemRequests"
 import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
+import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
@@ -191,6 +192,18 @@ const Settings: React.FC = () => {
             disabled={!settings.remove_missing}
             onBlur={(e) => updateInput(e, setSettings, setFormErr)}
             error={!!formErr.remove_missing_level}
+          />
+        )}
+        {loop(
+          "tidy_directories",
+          "Remove all unwanted files and directories in the provided paths. Only keep children specified in the allowed directories section. Unwanted children will be removed if they still exists after 3 loops.",
+          <TidyPathPicker
+            label={inputLabel("tidy_directories", formErr, "Directories")}
+            paths={settings.tidy_directories_paths}
+            setSettings={setSettings}
+            setFormErr={setFormErr}
+            disabled={!settings.tidy_directories}
+            error={!!formErr.tidy_directories}
           />
         )}
         {loop(

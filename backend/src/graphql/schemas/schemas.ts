@@ -9,6 +9,7 @@ const Schema = buildSchema(`
   type RootQuery {
     getSettings: Settings
     getData: Data
+    getChildPaths(path: String): [String!]!
     checkRadarr: Int!
     checkSonarr: Int!
     checkLidarr: Int!

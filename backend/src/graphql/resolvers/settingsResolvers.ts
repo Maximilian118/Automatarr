@@ -48,6 +48,7 @@ const settingsResolvers = {
       remove_failed,
       remove_missing,
       permissions_change,
+      tidy_directories,
       import_blocked_loop,
       wanted_missing_loop,
       remove_failed_loop,
@@ -56,6 +57,8 @@ const settingsResolvers = {
       permissions_change_loop,
       permissions_change_chown,
       permissions_change_chmod,
+      tidy_directories_loop,
+      tidy_directories_paths,
       qBittorrent_URL,
       qBittorrent_username,
       qBittorrent_password,
@@ -90,6 +93,7 @@ const settingsResolvers = {
     settings.remove_failed = remove_failed
     settings.remove_missing = remove_missing
     settings.permissions_change = permissions_change
+    settings.tidy_directories = tidy_directories
     settings.import_blocked_loop = import_blocked_loop
     settings.wanted_missing_loop = wanted_missing_loop
     settings.remove_failed_loop = remove_failed_loop
@@ -98,6 +102,8 @@ const settingsResolvers = {
     settings.permissions_change_loop = permissions_change_loop
     settings.permissions_change_chown = permissions_change_chown
     settings.permissions_change_chmod = permissions_change_chmod
+    settings.tidy_directories_loop = tidy_directories_loop
+    settings.tidy_directories_paths = tidy_directories_paths
     settings.qBittorrent_URL = qBittorrent_URL
     settings.qBittorrent_username = qBittorrent_username
     settings.qBittorrent_password = qBittorrent_password

@@ -1,3 +1,8 @@
+export type tidyPaths = {
+  path: string
+  allowedDirs: string[]
+}
+
 // Main settingsType
 export interface settingsType {
   _id: string
@@ -18,6 +23,7 @@ export interface settingsType {
   remove_failed: boolean
   remove_missing: boolean
   permissions_change: boolean
+  tidy_directories: boolean
   import_blocked_loop: number
   wanted_missing_loop: number
   remove_failed_loop: number
@@ -26,6 +32,8 @@ export interface settingsType {
   permissions_change_loop: number
   permissions_change_chown: string
   permissions_change_chmod: string
+  tidy_directories_loop: number
+  tidy_directories_paths: tidyPaths[]
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string

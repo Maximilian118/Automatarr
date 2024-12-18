@@ -1,3 +1,30 @@
+@use '../../../scss/mixins';
+
 .mui-autocomplete {
   width: 100%;
+}
+
+.mui-autocomplete-option {
+  @include mixins.flexbox-space-between;
+  cursor: pointer;
+  padding: 6px 12px 6px 16px;
+  box-sizing: border-box;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+
+  span {
+    max-width: 85%;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+}
+
+.mui-autocomplete-no-end-adornment {
+  pointer-events: none;
+  
+  .MuiAutocomplete-endAdornment {
+    display: none;
+  }
 }

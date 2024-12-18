@@ -18,6 +18,7 @@ export const populateSettings = `
   remove_failed
   remove_missing
   permissions_change
+  tidy_directories
   import_blocked_loop
   wanted_missing_loop
   remove_failed_loop
@@ -26,6 +27,11 @@ export const populateSettings = `
   permissions_change_loop
   permissions_change_chown
   permissions_change_chmod
+  tidy_directories_loop
+  tidy_directories_paths {
+    path
+    allowedDirs
+  }
   qBittorrent_URL
   qBittorrent_username
   qBittorrent_password

@@ -8,6 +8,11 @@ import { execSync } from "child_process"
 
 // Delete a file or directory from the filesystem of the machine
 export const deleteFromMachine = (dirOrFilePath: string): boolean => {
+  if (process.env.NODE_ENV === "development") {
+    logger.info("deleteFromMachine bypassed. In Development mode... risky stuff!")
+    return false
+  }
+
   // If code is running in a Docker container, prepend /host_fs to the path.
   if (isDocker) {
     dirOrFilePath = path.join("/host_fs", dirOrFilePath)
@@ -520,11 +525,6 @@ export const getUnixGroups = (): string[] => {
 
 // Return an array of paths for every child directory
 export const getChildPaths = (parentPath: string): string[] => {
-  if (process.env.NODE_ENV === "development") {
-    logger.info("getChildPaths cancelled. In Development mode.")
-    return []
-  }
-
   let actualPath = parentPath
 
   // Prepend `/host_fs` if running in a Docker container

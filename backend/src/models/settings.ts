@@ -16,7 +16,11 @@ import { ObjectId } from "mongodb"
 // - shared > init.ts // Init
 // - shared > requests > settingsRequests.ts > updateSettings // request
 // - shared > requestPopulation.ts // requested return fields
-//
+
+type tidyPaths = {
+  path: string
+  allowedDirs: string[]
+}
 
 // Main settingsType
 export interface settingsType {
@@ -38,6 +42,7 @@ export interface settingsType {
   remove_failed: boolean
   remove_missing: boolean
   permissions_change: boolean
+  tidy_directories: boolean
   import_blocked_loop: number
   wanted_missing_loop: number
   remove_failed_loop: number
@@ -46,6 +51,8 @@ export interface settingsType {
   permissions_change_loop: number
   permissions_change_chown: string
   permissions_change_chmod: string
+  tidy_directories_loop: number
+  tidy_directories_paths: tidyPaths[]
   qBittorrent_URL: string
   qBittorrent_username: string
   qBittorrent_password: string
@@ -61,6 +68,11 @@ export interface settingsDocType extends settingsType, Document {
   _id: ObjectId
   _doc: settingsType
 }
+
+export const tidyDirPathsSchema = new mongoose.Schema<tidyPaths>({
+  path: { type: String, required: true },
+  allowedDirs: { type: [String], required: true },
+})
 
 const settingsSchema = new mongoose.Schema<settingsType>({
   radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API. Example: localhost:7878/api/v3
@@ -80,6 +92,7 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   remove_failed: { type: Boolean, default: true }, // Enable or disable automation of removing failed downloads
   remove_missing: { type: Boolean, default: true }, // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: { type: Boolean, default: false }, // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
+  tidy_directories: { type: Boolean, default: false }, // Enable or disable automation of removing unwanted files in specified directories
   import_blocked_loop: { type: Number, default: 10 }, // Loop timer for importBlocked. Unit = minutes
   wanted_missing_loop: { type: Number, default: 240 }, // Loop timer for wanted missing search. Unit = minutes
   remove_failed_loop: { type: Number, default: 60 }, // Loop timer for remove_failed. Unit = minutes
@@ -88,6 +101,8 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   permissions_change_loop: { type: Number, default: 10 }, // Loop timer for permissions_change. Unit = minutes
   permissions_change_chown: { type: String, default: "" }, // Intended ownership of all content inside Starr app root folders
   permissions_change_chmod: { type: String, default: "" }, // Intended permissions of all content inside Starr app root folders
+  tidy_directories_loop: { type: Number, default: 60 }, // Loop timer for tidy_directories. Unit = minutes
+  tidy_directories_paths: { type: [tidyDirPathsSchema], default: [] }, // An Array of paths to loop through removing all children that are not allowed. Allowed children are specified in the allowedDirs array.
   qBittorrent_URL: { type: String, default: "" }, // URL including port to reach qBittorrent API
   qBittorrent_username: { type: String, default: "" }, // Username for qBittorrent if it requires credentials
   qBittorrent_password: { type: String, default: "" }, // Password for qBittorrent if it requires credentials
