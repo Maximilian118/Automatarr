@@ -29,6 +29,11 @@ const checkResolvers = {
       return 500
     }
 
+    if (!settings.sonarr_active) {
+      logger.info("Radarr | Inactive")
+      return 500
+    }
+
     if (checkStarr("Radarr", settings.radarr_URL, settings.radarr_KEY)) {
       return 500
     }
@@ -53,6 +58,11 @@ const checkResolvers = {
 
     if (!settings) {
       logger.error("checkSonarr: No Settings object was found.")
+      return 500
+    }
+
+    if (!settings.sonarr_active) {
+      logger.info("Sonarr | Inactive")
       return 500
     }
 
@@ -83,6 +93,11 @@ const checkResolvers = {
       return 500
     }
 
+    if (!settings.lidarr_active) {
+      logger.info("Lidarr | Inactive")
+      return 500
+    }
+
     if (checkStarr("Lidarr", settings.lidarr_URL, settings.lidarr_KEY)) {
       return 500
     }
@@ -107,6 +122,11 @@ const checkResolvers = {
 
     if (!settings) {
       logger.error("checkqBittorrent: No Settings object was found.")
+      return 500
+    }
+
+    if (!settings.qBittorrent_active) {
+      logger.info("qBittorrent | Inactive")
       return 500
     }
 

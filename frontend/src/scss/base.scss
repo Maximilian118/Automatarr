@@ -37,7 +37,7 @@ body {
       flex-grow: 1;
       @include mixins.flexbox-start-column;
       overflow-y: auto;
-      padding: 40px 0;
+      padding: 20px 0;
       box-sizing: border-box;
     }
 
