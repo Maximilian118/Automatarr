@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import AppContext from './context'
 import "./scss/base.scss"
 import Nav from './components/nav/Nav'
-import Footer from './components/footer/Footer'
 import Router from './Router'
 import { initData, initSettings } from './shared/init'
 import { settingsType } from './types/settingsType'
@@ -16,7 +15,6 @@ const App: React.FC = () => {
     <AppContext.Provider value={{ settings, setSettings, data, setData }}>
       <Nav/>
       <Router/>
-      <Footer/>
     </AppContext.Provider>
   )
 }

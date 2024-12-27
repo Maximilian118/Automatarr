@@ -37,7 +37,7 @@ body {
       flex-grow: 1;
       @include mixins.flexbox-start-column;
       overflow-y: auto;
-      padding: 20px 0;
+      padding: 20px 0 0;
       box-sizing: border-box;
     }
 
@@ -45,6 +45,10 @@ body {
       >:not(:last-child) {
         margin-bottom: 20px;
       }
+    }
+
+    footer {
+      flex-shrink: 0;
     }
   }
 }

@@ -1,9 +1,11 @@
 import React from "react"
+import Footer from "../components/footer/Footer"
 
 const Stats: React.FC = () => {
   return (
-    <main>
-      
+    // style = just for now while we have no content
+    <main style={{ justifyContent: "flex-end" }}> 
+      <Footer/>
     </main>
   )
 }

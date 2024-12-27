@@ -14,6 +14,7 @@ import { getGroups, getUsers } from "../shared/requests/fileSystemRequests"
 import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
+import Footer from "../components/footer/Footer"
 
 const Settings: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
@@ -243,12 +244,13 @@ const Settings: React.FC = () => {
       <Button 
         type="submit"
         variant="contained"
-        sx={{ marginTop: "20px" }}
+        sx={{ margin: "20px 0" }}
         endIcon={loading ? 
           <CircularProgress size={20} color="inherit"/> : 
           <Send color="inherit"/>
         }
       >Submit</Button>
+      <Footer/>
     </form>
   )
 }
