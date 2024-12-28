@@ -211,12 +211,6 @@ const coreResolvers = {
         continue
       }
 
-      // Skip if this API has no import lists
-      if (!API.data.importLists || API.data.importLists.length === 0) {
-        logger.warn(`removeMissing: ${API.name} has no Import Lists.`)
-        continue
-      }
-
       const library = API.data.library as (Movie | Series)[]
 
       // Ensure library for this API exists
@@ -230,6 +224,12 @@ const coreResolvers = {
 
       // Remove anything that's not in Import Lists
       if (settings.remove_missing_level === "Import List") {
+        // Skip if this API has no import lists
+        if (!API.data.importLists || API.data.importLists.length === 0) {
+          logger.warn(`removeMissing: ${API.name} has no Import Lists.`)
+          continue
+        }
+
         // An array of items from import lists from various list APIs such as mdbList
         const importListItems = await getMdbListItems(API)
 
