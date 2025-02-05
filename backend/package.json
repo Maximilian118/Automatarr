@@ -28,6 +28,6 @@
     "@types/node": "^22.7.6",
     "@types/winston": "^2.4.4",
     "nodemon": "^3.1.7",
-    "typescript": "^5.6.3"
+    "typescript": "^5.7.3"
   }
 }
