@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios"
 import Data, { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
-import { cleanUrl, errCodeAndMsg } from "./utility"
+import { cleanUrl, errCodeAndMsg, requestSuccess, secsToMins } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
@@ -169,4 +169,57 @@ export const getqBittorrentData = async (
     preferences: await getqBittorrentPreferences(settings, data.qBittorrent.cookie),
     updated_at: moment().format(),
   }
+}
+
+// Delete a qBittorrent torrent
+export const deleteqBittorrent = async (
+  settings: settingsType,
+  cookie: string,
+  torrent: Torrent,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/delete?hashes=${torrent.hash}&deleteFiles=true`,
+      ),
+      {
+        headers: {
+          cookie: cookie,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.info(`Torrent deleted: ${torrent.name}`)
+      return true
+    } else {
+      logger.error(`deleteqBittorrentTorrent: Unknown error. Status: ${res.status}`)
+    }
+  } catch (err) {
+    logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
+}
+
+// Check if a torrent has exceeded its seeding requirements
+export const torrentSeedCheck = (torrent: Torrent): boolean => {
+  const { ratio, ratio_limit, seeding_time, seeding_time_limit, name } = torrent
+  const seeding_time_mins = Number(secsToMins(seeding_time).toFixed(0))
+  const exceededRatio = ratio > ratio_limit
+  const exceededTime = seeding_time_mins > seeding_time_limit
+
+  if (exceededRatio && exceededTime) {
+    return true
+  }
+
+  if (!exceededRatio && !exceededTime) {
+    logger.info(`Torrent has not met any seeding requirements: ${name}`)
+  } else if (!exceededRatio) {
+    logger.info(`Torrent seed ratio is ${ratio.toFixed(2)} out of required ${ratio_limit}: ${name}`)
+  } else if (!exceededTime) {
+    logger.info(`Torrent seed time is ${seeding_time_mins} minutes out of required ${seeding_time_limit}: ${name}`) // prettier-ignore
+  }
+
+  return false
 }

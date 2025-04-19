@@ -1,3 +1,4 @@
+import { Torrent } from "./qBittorrentTypes"
 import { Language, Quality } from "./types"
 
 type AlternateTitle = {
@@ -80,6 +81,7 @@ export type Movie = {
   originalTitle: string
   originalLanguage: Language
   alternateTitles: AlternateTitle[]
+  secondaryYear?: number
   secondaryYearSourceId: number
   sortTitle: string
   sizeOnDisk: number
@@ -118,5 +120,7 @@ export type Movie = {
   popularity: number
   lastSearchTime: string
   statistics: Statistics
+  torrent: boolean
+  torrentFile?: Torrent
   id: number
 }

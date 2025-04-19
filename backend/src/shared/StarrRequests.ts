@@ -14,6 +14,7 @@ import {
   dataBoilerplate,
   errCodeAndMsg,
   getContentName,
+  requestSuccess,
 } from "./utility"
 import { commandData, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
 import logger from "../logger"
@@ -288,7 +289,7 @@ export const deleteFromQueue = async (
 export const deleteFromLibrary = async (
   libraryItem: Movie | Series,
   API: APIData,
-): Promise<number | boolean> => {
+): Promise<boolean> => {
   try {
     const res = await axios.delete(
       cleanUrl(
@@ -298,11 +299,17 @@ export const deleteFromLibrary = async (
       ),
     )
 
-    return res.status
+    if (requestSuccess(res.status)) {
+      logger.info(`${API.name}: ${libraryItem.title} deleted! 🔥`)
+      return true
+    } else {
+      logger.error(`deleteFromLibrary: Unkown error. Status: ${res.status}`)
+    }
   } catch (err) {
     logger.info(`deleteFromLibrary: Could not delete ${libraryItem.title}: ${errCodeAndMsg(err)}`)
-    return false
   }
+
+  return false
 }
 
 // Start a search for all wanted missing content for passed API

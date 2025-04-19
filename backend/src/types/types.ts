@@ -211,3 +211,11 @@ export type ImportListData = {
   infoLink: string
   tags: []
 }
+
+export type LogFile = {
+  filename: string
+  lastWriteTime: string
+  contentsUrl: string
+  downloadUrl: string
+  id: number
+}

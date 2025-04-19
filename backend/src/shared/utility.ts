@@ -6,6 +6,9 @@ import logger from "../logger"
 import { settingsDocType, settingsType } from "../models/settings"
 import { dynamicLoop } from "./dynamicLoop"
 import Resolvers from "../graphql/resolvers/resolvers"
+import { Movie } from "../types/movieTypes"
+import { Series } from "../types/seriesTypes"
+import { Torrent } from "../types/qBittorrentTypes"
 
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
@@ -15,6 +18,10 @@ export const secsToMins = (secs: number): number => secs / 60
 // Simple string mutations
 export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1)
 
+// Simple request response success indication
+export const requestSuccess = (status: number): boolean => status >= 200 && status < 300
+
+// Form easy to read request error messages
 export const errCodeAndMsg = (err: unknown): string => {
   try {
     const error = err as graphqlErr
@@ -292,5 +299,92 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {
     await Resolvers.permissions_change(settings._doc)
+  }
+}
+
+// Takes a string and splits words by full stops or spaces and returns them in an array
+export const extractStringWords = (filename: string): string[] => {
+  const match = filename.match(/^(.*?)\s\(\d{4}\)/)
+  if (match && match[1]) {
+    return match[1].match(/\b\w+\b/g) || []
+  }
+  return []
+}
+
+// Takes in Starr app library items and compares them to torrents in qBittorrent.
+// For every library item that has a matching torrent, add and populate torrent fields.
+// Return all library items that have a matching torrent with new torrent data.
+export const findLibraryTorrents = (
+  library: (Movie | Series)[],
+  torrents: Torrent[],
+): {
+  updatedLibrary: (Movie | Series)[] // Array of all library items including updated items
+  unmatchedTorrents: Torrent[] // Array of torrents that could not be matched to a library item
+} => {
+  const libraryMatches: (Movie | Series)[] = []
+
+  // Loop through starr app libraries
+  for (const item of library) {
+    const mov = item as Movie
+
+    // If a movie file exists. I.E if a file it attached to the library item.
+    if (mov.movieFile) {
+      // Create an array of strings to find a torrent object with
+      const matchStrings = extractStringWords(mov.movieFile.relativePath)
+      // Add resolution to the array
+      matchStrings.push(mov.movieFile.quality.quality.resolution.toString())
+      // Add release group to the array
+      matchStrings.push(mov.movieFile.releaseGroup.toLowerCase())
+      // For each library item, find a matching torrent using the matchStrings
+      const torrentMatch = torrents.find((torrent) => {
+        // Format the torrent name into a string that can easily be matched with
+        const formattedTorrentName = torrent.name.toLowerCase().replace(/'/g, "")
+        // Check if every string in matchStrings can be found in any torrent name
+        const stringsMatch = matchStrings.every((str) =>
+          formattedTorrentName.includes(str.toLowerCase()),
+        )
+        // If a seconday year can be found for a file, use it
+        const secondaryYear = mov.secondaryYear ? mov.secondaryYear.toString() : "No Secondary Year"
+
+        // Check if either year or secondaryYear matches the year in the torrent name
+        const yearsMatch =
+          torrent.name.includes(mov.year.toString()) || torrent.name.includes(secondaryYear)
+
+        // If stringsMatch and yearsMatch is truthy then return this torrent
+        return stringsMatch && yearsMatch
+      })
+
+      // If there is a match, push it to the matches array
+      if (torrentMatch) {
+        libraryMatches.push({
+          ...mov,
+          torrent: true,
+          torrentFile: torrentMatch,
+        })
+      }
+    }
+  }
+
+  const unmatchedTorrents: Torrent[] = []
+
+  // If torrent not matched to a library item, add it to the unmatchedTorrents array.
+  // Likely this is due to a Starr app "upgrade" leading to two or more downloads of the same film or episode.
+  for (const torrent of torrents) {
+    const unmatchedTorrent = !libraryMatches.some((item) => {
+      const mov = item as Movie
+      return mov.torrentFile?.name === torrent.name
+    })
+
+    if (unmatchedTorrent) {
+      unmatchedTorrents.push(torrent)
+    }
+  }
+
+  // Create an array of all given library items including updated items
+  const updatedLibrary = library.map((item) => libraryMatches.find((i) => i.id === item.id) || item)
+
+  return {
+    updatedLibrary,
+    unmatchedTorrents,
   }
 }
