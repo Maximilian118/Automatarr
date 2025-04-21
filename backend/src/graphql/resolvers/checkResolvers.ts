@@ -44,7 +44,7 @@ const checkResolvers = {
       )
 
       status = res.status
-      logger.info(`Radarr | OK!`)
+      logger.success(`Radarr | OK!`)
     } catch (err) {
       logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -76,7 +76,7 @@ const checkResolvers = {
       )
 
       status = res.status
-      logger.info(`Sonarr | OK!`)
+      logger.success(`Sonarr | OK!`)
     } catch (err) {
       logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -108,7 +108,7 @@ const checkResolvers = {
       )
 
       status = res.status
-      logger.info(`Lidarr | OK!`)
+      logger.success(`Lidarr | OK!`)
     } catch (err) {
       logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -135,7 +135,7 @@ const checkResolvers = {
     }
 
     if (!(await qBitCookieExpired())) {
-      logger.info("qBittorrent | Cookie OK!")
+      logger.success("qBittorrent | Cookie OK!")
       return 200
     }
 
@@ -158,7 +158,7 @@ const checkResolvers = {
         return 500
       }
 
-      logger.info("qBittorrent | Login OK!")
+      logger.success("qBittorrent | Login OK!")
       return res.status
     } catch (err) {
       logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
@@ -177,7 +177,7 @@ const checkResolvers = {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
 
       status = res.status
-      logger.info(`Radarr | OK!`)
+      logger.success(`Radarr | OK!`)
     } catch (err) {
       logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -195,7 +195,7 @@ const checkResolvers = {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
 
       status = res.status
-      logger.info(`Sonarr | OK!`)
+      logger.success(`Sonarr | OK!`)
     } catch (err) {
       logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -213,7 +213,7 @@ const checkResolvers = {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
 
       status = res.status
-      logger.info(`Lidarr | OK!`)
+      logger.success(`Lidarr | OK!`)
     } catch (err) {
       logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
     }
@@ -253,7 +253,7 @@ const checkResolvers = {
         return 500
       }
 
-      logger.info("qBittorrent | Login OK!")
+      logger.success("qBittorrent | Login OK!")
       return res.status
     } catch (err) {
       logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)

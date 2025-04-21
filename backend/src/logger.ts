@@ -4,75 +4,97 @@ import path from "path"
 import fs from "fs"
 import DailyRotateFile from "winston-daily-rotate-file"
 
-// Define the log directory path
+// Create log directory if it doesn't exist
 const logDirectory = path.join(__dirname, "..", "..", "automatarr_logs")
-
-// Create the log directory if it doesn't exist
 if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory)
 }
 
-// Custom timestamp format using moment.js
+// Custom timestamp format
 const timestampFormat = () => moment().format("DD-MM-YYYY HH:mm:ss")
 
-// Create the Winston logger instance
-const logger = winston.createLogger({
-  level: "info", // Default log level
-  format: format.combine(
-    format.timestamp({ format: timestampFormat }),
-    format.printf(({ timestamp, level, message }) => {
-      return `[${timestamp}] [${level.toUpperCase()}] ${message}`
-    }),
-  ),
-  transports: [
-    // Simplified Console transport without colorization
-    new transports.Console({
-      format: format.combine(
-        format.timestamp({ format: timestampFormat }),
-        format.printf(({ timestamp, level, message }) => {
-          return `[${timestamp}] [${level.toUpperCase()}] ${message}`
-        }),
-      ),
-    }),
+// Custom levels and colors
+const customLevels = {
+  levels: {
+    catastrophic: 0,
+    error: 1,
+    warn: 2,
+    success: 3,
+    loop: 4,
+    info: 5,
+    debug: 6,
+  },
+  colors: {
+    catastrophic: "magenta",
+    error: "red",
+    warn: "yellow",
+    success: "green",
+    loop: "cyan",
+    info: "blue",
+    debug: "gray",
+  },
+}
 
-    // Daily rotated file for application logs (info, debug, etc.)
+// Emoji mapping
+const emojiMap: Record<string, string> = {
+  catastrophic: "💀",
+  error: "❌",
+  warn: "⚠️",
+  success: "✅",
+  loop: "🔄",
+  info: "ℹ️",
+  debug: "🐞",
+}
+
+// Custom formatter with emojis
+const customFormat = format.printf(({ timestamp, level, message }) => {
+  const emoji = emojiMap[level] || ""
+  const upperLevel = level.toUpperCase()
+  return `[${timestamp}] [${emoji} ${upperLevel}] ${message}`
+})
+
+// Create the logger
+const logger = winston.createLogger({
+  levels: customLevels.levels,
+  level: "debug",
+  format: format.combine(format.timestamp({ format: timestampFormat }), customFormat),
+  transports: [
+    new transports.Console(),
+
     new DailyRotateFile({
       filename: path.join(logDirectory, "application-%DATE%.log"),
-      level: "info",
+      level: "debug",
       datePattern: "DD-MM-YYYY",
       maxFiles: "5d",
-      format: format.combine(
-        format.printf(({ timestamp, level, message }) => {
-          return `[${timestamp}] [${level.toUpperCase()}] ${message}`
-        }),
-      ),
     }),
 
-    // Daily rotated file for error and warning logs
     new DailyRotateFile({
       filename: path.join(logDirectory, "error-%DATE%.log"),
-      level: "warn", // and 'error'
+      level: "warn",
       datePattern: "DD-MM-YYYY",
       maxFiles: "14d",
-      format: format.combine(
-        format.printf(({ timestamp, level, message }) => {
-          return `[${timestamp}] [${level.toUpperCase()}] ${message}`
-        }),
-      ),
     }),
 
-    // Daily rotated file for combined logs (everything)
     new DailyRotateFile({
       filename: path.join(logDirectory, "combined-%DATE%.log"),
+      level: "debug",
       datePattern: "DD-MM-YYYY",
       maxFiles: "5d",
-      format: format.combine(
-        format.printf(({ timestamp, level, message }) => {
-          return `[${timestamp}] [${level.toUpperCase()}] ${message}`
-        }),
-      ),
     }),
   ],
 })
 
-export default logger
+// Enable color output in console
+winston.addColors(customLevels.colors)
+
+// --- Extend logger type to include custom methods ---
+interface CustomLogger extends winston.Logger {
+  success: (message: string) => void
+  catastrophic: (message: string) => void
+  loop: (message: string) => void
+}
+
+// --- Cast the logger to the extended type ---
+const typedLogger = logger as CustomLogger
+
+export default typedLogger

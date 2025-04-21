@@ -91,7 +91,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
 
       // Check if the directory exists
       if (!fs.existsSync(fullPath)) {
-        logger.info(`deleteFailedDownloads: Path does not exist: ${fullPath}`)
+        logger.error(`deleteFailedDownloads: Path does not exist: ${fullPath}`)
         result.push({ path: basePath, deletions, searched, exists, permissions })
         continue
       } else {
@@ -103,7 +103,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
         permissionCache[basePath] ?? checkPermissions(basePath, ["read", "delete"])
       permissionCache[basePath] = hasPermissions
       if (!hasPermissions) {
-        logger.info(`deleteFailedDownloads: Insufficient permissions for path: ${fullPath}`)
+        logger.error(`deleteFailedDownloads: Insufficient permissions for path: ${fullPath}`)
         result.push({ path: basePath, deletions, searched, exists, permissions })
         continue
       } else {

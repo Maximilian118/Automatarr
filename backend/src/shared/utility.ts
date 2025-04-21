@@ -248,6 +248,10 @@ export const allAPIsDeactivated = (settings: settingsType): boolean => {
 // Start looping through all of the core loops
 // prettier-ignore
 export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
+  // Retrieve the latest API data and add to database
+  await dynamicLoop("get_data", async () => {
+    await Resolvers.getData()
+  }, true, 50)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await Resolvers.search_wanted_missing(settings)

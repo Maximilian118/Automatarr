@@ -13,6 +13,7 @@ import {
 import moment from "moment"
 import { getCommandLists } from "../../shared/miscRequests"
 import { getqBittorrentData } from "../../shared/qBittorrentRequests"
+import { saveWithRetry } from "../../shared/database"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -21,7 +22,7 @@ const dataResolvers = {
 
     // Return data object if it already exists
     if (data) {
-      logger.info("Found existing data object in database.")
+      logger.success("Found existing data object in database.")
       return data
     }
 
@@ -35,7 +36,7 @@ const dataResolvers = {
 
     // Push data object to the database
     await newData.save()
-    logger.info("New data object created.")
+    logger.success("New data object created.")
 
     return newData
   },
@@ -45,7 +46,7 @@ const dataResolvers = {
     const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsDocType
 
     if (!settings) {
-      logger.error("checkRadarr: No Settings object were found.")
+      logger.error("checkRadarr: No Settings object was found.")
       return
     }
 
@@ -72,7 +73,7 @@ const dataResolvers = {
     data.qBittorrent = await getqBittorrentData(settings._doc, data)
 
     data.updated_at = moment().format()
-    return await data.save()
+    return await saveWithRetry(data, "getData")
   },
 }
 

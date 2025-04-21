@@ -41,9 +41,9 @@ const databasePath = path.join(__dirname, "..", "..", "automatarr_database")
 // Ensure the directory exists
 if (!fs.existsSync(databasePath)) {
   fs.mkdirSync(databasePath)
-  logger.info(`Database not found. Creating directory at: ${databasePath}`)
+  logger.success(`Database not found. Creating directory at: ${databasePath}`)
 } else {
-  logger.info(`Database found at: ${databasePath}`)
+  logger.success(`Database found at: ${databasePath}`)
 }
 
 const startServer = async () => {
@@ -65,7 +65,7 @@ const startServer = async () => {
 
   // Gracefully shut down MongoMemoryServer
   const shutdown = async () => {
-    logger.info("Shutting down MongoMemoryServer...")
+    logger.catastrophic("Shutting down MongoMemoryServer...")
     if (mongoServer) {
       await mongoServer.stop()
     }
@@ -77,7 +77,7 @@ const startServer = async () => {
   process.on("SIGTERM", shutdown)
   process.on("SIGUSR2", async () => {
     // Nodemon uses SIGUSR2 signal to restart
-    logger.info("Restarting server (triggered by Nodemon)...")
+    logger.warn("Restarting server (triggered by Nodemon)...")
     await shutdown() // Gracefully shutdown MongoMemoryServer
     process.kill(process.pid, "SIGUSR2") // Restart Nodemon
   })
@@ -91,11 +91,11 @@ const startServer = async () => {
 
     // Start the server once MongoDB is connected
     app.listen(Number(backend_PORT), backend_IP, () => {
-      logger.info(`Server started at ${backend_IP}:${backend_PORT}`)
-      logger.info(`MongoDB started at ${mongoUri}`)
+      logger.success(`Server started at ${backend_IP}:${backend_PORT}`)
+      logger.success(`MongoDB started at ${mongoUri}`)
     })
   } catch (err) {
-    logger.info(`Error starting MongoDB or server: ${err}`)
+    logger.error(`Error starting MongoDB or server: ${err}`)
   }
 
   // Initialise settings in db if first boot

@@ -11,13 +11,14 @@ export const dynamicLoop = async (
   loop_name: keyof settingsType,
   content: (settings: settingsType) => Promise<void>,
   skipFirst?: boolean, // Optionally skip the first execution if we've just called the content function outside of dynamicLoop
+  loopTimer?: number, // Optionally provide a custom loop timer in minutes
 ) => {
   const settings = await Resolvers.getSettings()
-  const loopMins = Number(settings[loop_name])
-  const isActive = settings[String(loop_name).replace(/_loop$/, "")]
+  const loopMins = loopTimer ? loopTimer : Number(settings[loop_name]) // Grab the timer from the loop set by user in UI
+  const isActive = settings[String(loop_name).replace(/_loop$/, "")] // check if user has enabled this loop in the UI
 
   // If the loop is inactive, stop further execution
-  if (!isActive) {
+  if (!isActive && !loopTimer) {
     logger.info(`${loop_name} is inactive. ${activeLoops.has(loop_name) ? "Stopping Loop." : ""}`)
     activeLoops.delete(loop_name) // Remove the loop from activeLoops
     return
@@ -52,7 +53,7 @@ export const dynamicLoop = async (
     // Schedule the next execution dynamically
     setTimeout(() => {
       activeLoops.delete(loop_name) // Clear the flag before restarting
-      dynamicLoop(loop_name, content)
+      dynamicLoop(loop_name, content, false, loopTimer)
     }, minsToMillisecs(loopMins)) // Execute loop again with latest loopMins
   } catch (err) {
     // If error, retry after interval
@@ -60,7 +61,7 @@ export const dynamicLoop = async (
 
     setTimeout(() => {
       activeLoops.delete(loop_name) // Clear the flag before restarting
-      dynamicLoop(loop_name, content)
+      dynamicLoop(loop_name, content, false, loopTimer)
     }, minsToMillisecs(loopMins)) // Execute loop again with latest loopMins
   }
 }

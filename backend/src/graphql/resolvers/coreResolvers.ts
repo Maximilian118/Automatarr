@@ -33,6 +33,7 @@ import {
   getqBittorrentTorrents,
   torrentSeedCheck,
 } from "../../shared/qBittorrentRequests"
+import { saveWithRetry } from "../../shared/database"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -128,7 +129,7 @@ const coreResolvers = {
         if (anyIDConflict) {
           if (!oneMessage) {
             // prettier-ignore
-            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,)
+            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`)
           } else {
             // Import the queue item
             await importCommand(blockedFile, API)
@@ -141,7 +142,7 @@ const coreResolvers = {
     }
 
     // Save the latest download queue data to the db
-    await data.save()
+    await saveWithRetry(data, "import_blocked_handler")
   },
   remove_failed: async (): Promise<void> => {
     // Retrieve the data object from the db
@@ -349,7 +350,7 @@ const coreResolvers = {
         // We are adding updatedLibrary to the db but we don't mind this
         if (itemsForDeletion.length > 0 && filteredLibrary.length < library.length) {
           data.updated_at = moment().format()
-          await data.save()
+          await saveWithRetry(data, "remove_missing")
         }
       }
 
