@@ -124,16 +124,23 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
       ),
     )
 
-    return {
-      ...dataBoilerplate(API, data.libraries),
-      data: res.data,
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving library.`)
+
+      return {
+        ...dataBoilerplate(API, data.libraries),
+        data: res.data,
+      }
+    } else {
+      logger.error(`getLibrary: Could not retrieve ${API.name} library.. how peculiar..`)
     }
   } catch (err) {
-    logger.info(
+    logger.error(
       `getLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
     )
-    return
   }
+
+  return
 }
 
 // As Sonarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
@@ -154,15 +161,22 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
           ),
         )
 
-        if (!Array.isArray(res.data)) {
-          logger.error(
-            `getEpisodes: Could not retrieve episodes for series ${seriesID}. Response is not an array.`,
-          )
-          return
-        }
+        if (requestSuccess(res.status)) {
+          if (!Array.isArray(res.data)) {
+            logger.error(
+              `getEpisodes: Could not retrieve episodes for series ${seriesID}. Response is not an array.`,
+            )
 
-        // Add the episodes to the episodes array
-        episodes.push(...res.data)
+            return
+          }
+
+          // Add the episodes to the episodes array
+          episodes.push(...res.data)
+        } else {
+          logger.error(
+            `getEpisodes: Could not retrieve episodes for series ID ${seriesID}.. how peculiar..`,
+          )
+        }
       } catch (err) {
         logger.error(
           `getEpisodes: ${API.name} episode search error for ID ${seriesID}: ${errCodeAndMsg(err)}`,
@@ -170,6 +184,10 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
       }
     }),
   )
+
+  if (episodes.length > 0) {
+    logger.success(`${API.name} | Retrieving episodes.`)
+  }
 
   return episodes
 }
@@ -191,10 +209,9 @@ export const getAllLibraries = async (
         logger.info(
           `${API.name} | Skipping library retrieval. Only Once per Hour. ${timePassed} minutes left.`,
         )
+
         return library
       }
-
-      logger.info(`${API.name} | Retrieving library.`)
 
       return {
         ...(await getLibrary(API, data)),
