@@ -80,7 +80,14 @@ export const getqBittorrentTorrents = async (
       },
     )
 
-    torrents = res.data
+    if (requestSuccess(res.status)) {
+      logger.success(`qBittorrent | Retrieving torrents`)
+      torrents = res.data
+    } else {
+      logger.error(
+        `getqBittorrentTorrents: Unknown error. Status: ${res.status} - ${res.statusText}`,
+      )
+    }
   } catch (err) {
     logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
   }
@@ -154,6 +161,9 @@ export const getqBittorrentData = async (
 ): Promise<qBittorrent> => {
   // If qBittorent is not active, do not make any requests.
   if (!settings.qBittorrent_active) {
+    logger.warn(
+      `qBittorrent: Inactive! This application is quite limited without qBittorrent. Sorry about that chum.`,
+    )
     return data.qBittorrent
   }
 
@@ -190,13 +200,14 @@ export const deleteqBittorrent = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.info(`Torrent deleted: ${torrent.name}`)
+      logger.info(`Torrent deleted: ${torrent.name} 🔥`)
       return true
     } else {
-      logger.error(`deleteqBittorrentTorrent: Unknown error. Status: ${res.status}`)
+      logger.error(`deleteqBittorrent: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
+    console.log(torrent)
+    logger.error(`deleteqBittorrent: Error: ${errCodeAndMsg(err)}`)
   }
 
   return false
@@ -219,6 +230,38 @@ export const torrentSeedCheck = (torrent: Torrent): boolean => {
     logger.info(`Torrent seed ratio is ${ratio.toFixed(2)} out of required ${ratio_limit}: ${name}`)
   } else if (!exceededTime) {
     logger.info(`Torrent seed time is ${seeding_time_mins} minutes out of required ${seeding_time_limit}: ${name}`) // prettier-ignore
+  }
+
+  return false
+}
+
+// Check if a torrent has downloaded and is seeding
+export const torrentDownloadedCheck = (torrent: Torrent): boolean => {
+  const { state, name } = torrent
+
+  // All status strings that signify the torrent is downloaded
+  if (state === "stalledUP" || state === "uploading" || state === "pausedUP") {
+    return true
+  }
+
+  if (state === "downloading") {
+    logger.warn(`Torrent is downloading: ${name}`)
+  }
+
+  if (state === "stalledDL") {
+    logger.warn(`Torrent has stalled: ${name}`)
+  }
+
+  if (state === "unknown") {
+    logger.warn(`Torrent has an unknown status: ${name}`)
+  }
+
+  if (state === "error") {
+    logger.warn(`Torrent has an error: ${name}`)
+  }
+
+  if (state === "missingFiles") {
+    logger.warn(`Torrent has missing files: ${name}`)
   }
 
   return false

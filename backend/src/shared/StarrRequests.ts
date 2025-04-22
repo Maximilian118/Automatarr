@@ -33,14 +33,21 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
       ),
     )
 
-    return {
-      ...dataBoilerplate(API, data.downloadQueues),
-      data: res.data.records as DownloadStatus[],
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Queue.`)
+
+      return {
+        ...dataBoilerplate(API, data.downloadQueues),
+        data: res.data.records as DownloadStatus[],
+      }
+    } else {
+      logger.error(`getQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
     logger.error(`getQueue: ${API.name} Error: ${errCodeAndMsg(err)}`)
-    return
   }
+
+  return
 }
 
 // Loop through all of the activeAPIs and return all of the latest downloadQueues
@@ -63,14 +70,22 @@ export const getRootFolder = async (
     const res = await axios.get(
       cleanUrl(`${API.data.URL}/api/${API.data.API_version}/rootfolder?apikey=${API.data.KEY}`),
     )
-    return {
-      ...dataBoilerplate(API, data.rootFolders),
-      data: res.data[0],
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Root Folder.`)
+
+      return {
+        ...dataBoilerplate(API, data.rootFolders),
+        data: res.data[0],
+      }
+    } else {
+      logger.error(`getRootFolder: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
     logger.error(`getRootFolder: ${API.name} Error: ${errCodeAndMsg(err)}`)
-    return
   }
+
+  return
 }
 
 // Get all of the current active commands in the system > tasks tab for a specific Starr API
@@ -83,14 +98,21 @@ export const getCommands = async (
       cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
     )
 
-    return {
-      ...dataBoilerplate(API, data.commands),
-      data: res.data as commandData[],
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Commands.`)
+
+      return {
+        ...dataBoilerplate(API, data.commands),
+        data: res.data as commandData[],
+      }
+    } else {
+      logger.error(`getCommands: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getData: Could not retrieve commands from ${API.name}: ${err}.`)
-    return
+    logger.error(`getCommands: Could not retrieve commands from ${API.name}: ${err}.`)
   }
+
+  return
 }
 
 // Loop through all of the activeAPIs and return all of the latest active commands
@@ -260,14 +282,21 @@ export const getMissingwanted = async (
       ),
     )
 
-    return {
-      ...dataBoilerplate(API, data.missingWanteds),
-      data: res.data.records,
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Missing Wanted content.`)
+
+      return {
+        ...dataBoilerplate(API, data.missingWanteds),
+        data: res.data.records,
+      }
+    } else {
+      logger.error(`getMissingWanted: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
     logger.info(`getMissingWanted: ${API.name} missing wanted search error: ${errCodeAndMsg(err)}`)
-    return
   }
+
+  return
 }
 
 // Retrieve missing wanted files from all active APIs
@@ -329,7 +358,7 @@ export const deleteFromLibrary = async (
   return false
 }
 
-// Start a search for all wanted missing content for passed API
+// Send the search command for all wanted missing content for passed Starr API
 export const searchMissing = async (API: APIData): Promise<boolean> => {
   // Ensure we have a list of commands for this API
   if (!API.data.commandList) {
@@ -462,14 +491,21 @@ export const getImportLists = async (
       cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist?apikey=${API.data.KEY}`),
     )
 
-    return {
-      ...dataBoilerplate(API, data.importLists),
-      data: res.data as ImportListData[],
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Import Lists.`)
+
+      return {
+        ...dataBoilerplate(API, data.importLists),
+        data: res.data as ImportListData[],
+      }
+    } else {
+      logger.error(`getImportLists: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
     logger.info(`getImportLists: ${errCodeAndMsg(err)}`)
-    return
   }
+
+  return
 }
 
 // Loop through all of the activeAPIs and return all of the latest import lists

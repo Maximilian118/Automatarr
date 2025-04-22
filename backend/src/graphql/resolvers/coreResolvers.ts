@@ -31,6 +31,7 @@ import { counter, counterTracking } from "../../shared/counter"
 import {
   deleteqBittorrent,
   getqBittorrentTorrents,
+  torrentDownloadedCheck,
   torrentSeedCheck,
 } from "../../shared/qBittorrentRequests"
 import { saveWithRetry } from "../../shared/database"
@@ -262,12 +263,12 @@ const coreResolvers = {
           continue
         }
 
-        // Get library items with updated torrent data and get torrents that do not match any library item
+        // Get library items with updated torrent data and get torrents that do not match any library items
         const { updatedLibrary, unmatchedTorrents } = findLibraryTorrents(library, torrents)
 
         // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
         for (const torrent of unmatchedTorrents) {
-          if (torrentSeedCheck(torrent)) {
+          if (torrentDownloadedCheck(torrent) && torrentSeedCheck(torrent)) {
             deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
           }
         }

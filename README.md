@@ -48,3 +48,12 @@ If you're accessing the frontend from a remote machine, I.E not localhost, you w
 If successful and the application is running, a directory named `automatarr` will be created alongside the `docker-compose.yml` file. The `automatarr` directory contains a `database` directory where `MongoDB` stores its local database, as well as a `logs` directory where all backend logs are stored.
 
 `/:/host_fs` exposes your machine's entire filesystem to Automatarr. If you're not comfortable with this, that's absolutely fine — simply omit it. However, this means Automatarr will not have access to, and therefore cannot manipulate, content outside of what is achievable through API requests.
+
+## To do:
+
+- [ ] Add Sonarr support to Remove Missing - Import List level
+- [ ] Allow for deletion of downloading torrents
+- [ ] Separate settings page into an API Connections page and Loops page
+- [ ] Add graphs for basic data visuals to stats page
+- [ ] Add Lidarr support to Remove Missing
+- [ ] Add spinner to top right of settings pages or nav bar for more obvious loading
