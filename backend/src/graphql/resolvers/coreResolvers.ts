@@ -241,6 +241,7 @@ const coreResolvers = {
         continue
       }
 
+      // Movies from Radarr and Series from Sonarr
       const library = API.data.library as (Movie | Series)[]
 
       // Ensure library for this API exists

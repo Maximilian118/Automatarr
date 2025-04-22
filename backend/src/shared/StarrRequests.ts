@@ -18,7 +18,7 @@ import {
 } from "./utility"
 import { commandData, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
 import logger from "../logger"
-import { Episode } from "../types/episodeTypes"
+import { Episode, EpisodeFile } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
@@ -166,42 +166,77 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
 }
 
 // As Sonarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
-export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode[] | undefined> => {
-  const seriesIDArr = data.libraries
+// Optionally get episode Files as well
+export const getAllEpisodes = async (
+  data: dataType,
+  API: APIData,
+  episodeFiles: boolean = true,
+): Promise<Episode[] | undefined> => {
+  if (API.name !== "Sonarr") {
+    logger.error(`getEpisodes: This function can only be ran for the Sonarr API.`)
+    return
+  }
+
+  // Create an array of all Series with latest data
+  const seriesArr = data.libraries
     .filter((app) => API.name === app.name)
-    .flatMap((a) => a.data)
-    .map((c) => c.id)
+    .flatMap((a) => a.data as Series[])
 
   const episodes: Episode[] = []
 
   await Promise.all(
-    seriesIDArr.map(async (seriesID) => {
+    seriesArr.map(async (series) => {
+      const { title, id } = series
+
       try {
         const res = await axios.get(
           cleanUrl(
-            `${API.data.URL}/api/${API.data.API_version}/episode?seriesId=${seriesID}&apikey=${API.data.KEY}`,
+            `${API.data.URL}/api/${API.data.API_version}/episode?seriesId=${id}&apikey=${API.data.KEY}`,
           ),
         )
 
         if (requestSuccess(res.status)) {
           if (!Array.isArray(res.data)) {
             logger.error(
-              `getEpisodes: Could not retrieve episodes for series ${seriesID}. Response is not an array.`,
+              `getEpisodes: Could not retrieve episodes for series ${title}. Response is not an array.`,
             )
 
             return
           }
 
+          // Collect all episodes for this series in an array
+          let seriesEpisodes = res.data as Episode[]
+
+          // If we want to also get episode files
+          if (episodeFiles) {
+            // Request episode files from Sonarr API
+            const seriesEpisodeFiles = await getEpisodeFiles(API, id)
+
+            // Add episodeFiles to Episodes by id match
+            seriesEpisodes = seriesEpisodes.map((se) => {
+              const episodeFile = seriesEpisodeFiles.find((sef) => se.episodeFileId === sef.id)
+
+              if (episodeFile) {
+                return {
+                  ...se,
+                  episodeFile,
+                }
+              } else {
+                return se
+              }
+            })
+          }
+
           // Add the episodes to the episodes array
-          episodes.push(...res.data)
+          episodes.push(...seriesEpisodes)
         } else {
           logger.error(
-            `getEpisodes: Could not retrieve episodes for series ID ${seriesID}.. how peculiar..`,
+            `getEpisodes: Could not retrieve episodes for series ID ${title}.. how peculiar..`,
           )
         }
       } catch (err) {
         logger.error(
-          `getEpisodes: ${API.name} episode search error for ID ${seriesID}: ${errCodeAndMsg(err)}`,
+          `getEpisodes: ${API.name} episode search error for ID ${title}: ${errCodeAndMsg(err)}`,
         )
       }
     }),
@@ -212,6 +247,41 @@ export const getEpisodes = async (data: dataType, API: APIData): Promise<Episode
   }
 
   return episodes
+}
+
+// Get EpisodeFiles for a series
+export const getEpisodeFiles = async (API: APIData, seriesID: number): Promise<EpisodeFile[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${API.data.URL}/api/${API.data.API_version}/episodeFile?seriesId=${seriesID}&apikey=${API.data.KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      if (!Array.isArray(res.data)) {
+        logger.error(
+          `getEpisodeFiles: Could not retrieve episode files for series ${seriesID}. Response is not an array.`,
+        )
+
+        return []
+      }
+
+      return res.data
+    } else {
+      logger.error(
+        `getEpisodeFiles: Could not retrieve episode files for series ID ${seriesID}.. how peculiar..`,
+      )
+    }
+  } catch (err) {
+    logger.error(
+      `getEpisodeFiles: ${API.name} episode file search error for ID ${seriesID}: ${errCodeAndMsg(
+        err,
+      )}`,
+    )
+  }
+
+  return []
 }
 
 // Retrieve library from all active APIs
@@ -237,7 +307,7 @@ export const getAllLibraries = async (
 
       return {
         ...(await getLibrary(API, data)),
-        ...(API.name === "Sonarr" && { subData: await getEpisodes(data, API) }),
+        ...(API.name === "Sonarr" && { subData: await getAllEpisodes(data, API) }),
         created_at: library ? library.created_at : moment().format(),
       }
     }),

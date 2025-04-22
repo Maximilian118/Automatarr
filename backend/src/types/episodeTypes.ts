@@ -66,7 +66,7 @@ type MediaInfo = {
   subtitles: string
 }
 
-type EpisodeFile = {
+export type EpisodeFile = {
   id: number
   seriesId: number
   seasonNumber: number

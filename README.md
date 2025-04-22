@@ -53,6 +53,7 @@ If successful and the application is running, a directory named `automatarr` wil
 
 - [ ] Add Sonarr support to Remove Missing - Import List level
 - [ ] Allow for deletion of downloading torrents
+- [ ] Add stalled or slow torrent download deletion
 - [ ] Separate settings page into an API Connections page and Loops page
 - [ ] Add graphs for basic data visuals to stats page
 - [ ] Add Lidarr support to Remove Missing
