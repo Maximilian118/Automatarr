@@ -1,3 +1,5 @@
+import { Episode } from "./episodeTypes"
+import { Torrent } from "./qBittorrentTypes"
 import { Language } from "./types"
 
 export type SeriesImage = {
@@ -30,6 +32,9 @@ type Season = {
   monitored: boolean
   statistics: SeasonStatistics
   images: SeriesImage[]
+  torrentsPresent?: boolean
+  seasonTorrent?: Torrent
+  episodes?: Episode[]
 }
 
 type AddOptions = {
@@ -100,4 +105,5 @@ export type Series = {
   ratings: SeriesRatings
   statistics: SeriesStatistics
   episodesChanged: boolean
+  torrentsPresent?: boolean
 }

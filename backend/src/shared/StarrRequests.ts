@@ -168,7 +168,7 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
 // As Sonarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
 // Optionally get episode Files as well
 export const getAllEpisodes = async (
-  data: dataType,
+  library: Series[] | undefined,
   API: APIData,
   episodeFiles: boolean = true,
 ): Promise<Episode[] | undefined> => {
@@ -177,15 +177,15 @@ export const getAllEpisodes = async (
     return
   }
 
-  // Create an array of all Series with latest data
-  const seriesArr = data.libraries
-    .filter((app) => API.name === app.name)
-    .flatMap((a) => a.data as Series[])
+  if (!library || library.length === 0) {
+    logger.error(`getEpisodes: No Sonarr library data.`)
+    return
+  }
 
   const episodes: Episode[] = []
 
   await Promise.all(
-    seriesArr.map(async (series) => {
+    library.map(async (series) => {
       const { title, id } = series
 
       try {
@@ -305,9 +305,14 @@ export const getAllLibraries = async (
         return library
       }
 
+      // Retrieve latest library data
+      const updatedLibrary = await getLibrary(API, data)
+
       return {
-        ...(await getLibrary(API, data)),
-        ...(API.name === "Sonarr" && { subData: await getAllEpisodes(data, API) }),
+        ...updatedLibrary,
+        ...(API.name === "Sonarr" && {
+          subData: await getAllEpisodes(updatedLibrary?.data as Series[] | undefined, API),
+        }),
         created_at: library ? library.created_at : moment().format(),
       }
     }),

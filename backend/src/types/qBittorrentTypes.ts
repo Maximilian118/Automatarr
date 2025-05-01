@@ -25,6 +25,7 @@ export type Torrent = {
   max_ratio: number
   max_seeding_time: number
   name: string
+  processedName: string
   num_complete: number
   num_incomplete: number
   num_leechs: number
@@ -50,6 +51,8 @@ export type Torrent = {
   uploaded: number
   uploaded_session: number
   upspeed: number
+  matchStrings?: string[]
+  torrentType?: "Movie" | "Episode" | "Series"
 }
 
 export type TorrentCategory = {

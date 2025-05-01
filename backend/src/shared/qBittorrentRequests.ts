@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios"
 import Data, { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
-import { cleanUrl, errCodeAndMsg, requestSuccess, secsToMins } from "./utility"
+import { cleanUrl, errCodeAndMsg, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
@@ -82,7 +82,14 @@ export const getqBittorrentTorrents = async (
 
     if (requestSuccess(res.status)) {
       logger.success(`qBittorrent | Retrieving torrents`)
-      torrents = res.data
+
+      // Return all torrents and process the name to something that can be more easily matched with
+      torrents = res.data.map((torrent: Torrent) => {
+        return {
+          ...torrent,
+          processedName: torrent.name.toLowerCase().replace(/'/g, ""),
+        }
+      })
     } else {
       logger.error(
         `getqBittorrentTorrents: Unknown error. Status: ${res.status} - ${res.statusText}`,
@@ -208,60 +215,6 @@ export const deleteqBittorrent = async (
   } catch (err) {
     console.log(torrent)
     logger.error(`deleteqBittorrent: Error: ${errCodeAndMsg(err)}`)
-  }
-
-  return false
-}
-
-// Check if a torrent has exceeded its seeding requirements
-export const torrentSeedCheck = (torrent: Torrent): boolean => {
-  const { ratio, ratio_limit, seeding_time, seeding_time_limit, name } = torrent
-  const seeding_time_mins = Number(secsToMins(seeding_time).toFixed(0))
-  const exceededRatio = ratio > ratio_limit
-  const exceededTime = seeding_time_mins > seeding_time_limit
-
-  if (exceededRatio && exceededTime) {
-    return true
-  }
-
-  if (!exceededRatio && !exceededTime) {
-    logger.info(`Torrent has not met any seeding requirements: ${name}`)
-  } else if (!exceededRatio) {
-    logger.info(`Torrent seed ratio is ${ratio.toFixed(2)} out of required ${ratio_limit}: ${name}`)
-  } else if (!exceededTime) {
-    logger.info(`Torrent seed time is ${seeding_time_mins} minutes out of required ${seeding_time_limit}: ${name}`) // prettier-ignore
-  }
-
-  return false
-}
-
-// Check if a torrent has downloaded and is seeding
-export const torrentDownloadedCheck = (torrent: Torrent): boolean => {
-  const { state, name } = torrent
-
-  // All status strings that signify the torrent is downloaded
-  if (state === "stalledUP" || state === "uploading" || state === "pausedUP") {
-    return true
-  }
-
-  if (state === "downloading") {
-    logger.warn(`Torrent is downloading: ${name}`)
-  }
-
-  if (state === "stalledDL") {
-    logger.warn(`Torrent has stalled: ${name}`)
-  }
-
-  if (state === "unknown") {
-    logger.warn(`Torrent has an unknown status: ${name}`)
-  }
-
-  if (state === "error") {
-    logger.warn(`Torrent has an error: ${name}`)
-  }
-
-  if (state === "missingFiles") {
-    logger.warn(`Torrent has missing files: ${name}`)
   }
 
   return false

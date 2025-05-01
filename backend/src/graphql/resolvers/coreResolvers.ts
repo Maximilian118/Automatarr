@@ -17,24 +17,20 @@ import {
   updatePaths,
 } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
-import {
-  currentPaths,
-  findLibraryTorrents,
-  qBittorrentDataExists,
-  updateDownloadQueue,
-} from "../../shared/utility"
+import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
 import { getMdbListItems } from "../../shared/mdbListRequests"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import moment from "moment"
 import { counter, counterTracking } from "../../shared/counter"
+import { deleteqBittorrent, getqBittorrentTorrents } from "../../shared/qBittorrentRequests"
+import { saveWithRetry } from "../../shared/database"
 import {
-  deleteqBittorrent,
-  getqBittorrentTorrents,
+  findLibraryTorrents,
   torrentDownloadedCheck,
   torrentSeedCheck,
-} from "../../shared/qBittorrentRequests"
-import { saveWithRetry } from "../../shared/database"
+} from "../../shared/qBittorrentUtility"
+import { isMovie } from "../../types/typeGuards"
 
 const coreResolvers = {
   search_wanted_missing: async (settings: settingsType): Promise<void> => {
@@ -168,7 +164,7 @@ const coreResolvers = {
     const deletions = stats.reduce((sum, { deletions }) => sum + deletions, 0)
 
     if (stats.length !== 0) {
-      logger.info(
+      logger.success(
         `removeFailed: Removed ${deletions} failed downloads out of ${searched} downloads from ${stats.length} directories.`,
       )
     }
@@ -208,7 +204,7 @@ const coreResolvers = {
     const updated = stats.map((s) => s.updated).reduce((acc, curr) => acc + curr, 0)
     const searched = stats.map((s) => s.searched).reduce((acc, curr) => acc + curr, 0)
 
-    logger.info(
+    logger.success(
       `permissionsChange: Updated ${updated} items of ${searched} searched from ${stats.length} directories.`,
     )
   },
@@ -219,25 +215,34 @@ const coreResolvers = {
     // Retrieve torrents, if no connection to qBit, return empty array
     const torrents = await getqBittorrentTorrents(settings, data.qBittorrent.cookie)
 
+    // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
+    // There's no solid way to sort torrents in qBit so the best way of finding unmatched torrents
+    // is by sorting with all movies and episodes together outside of the loop.
+    const { updatedActiveAPIs, unmatchedTorrents } = findLibraryTorrents(activeAPIs, torrents)
+
+    // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
+    for (const torrent of unmatchedTorrents) {
+      if (torrentDownloadedCheck(torrent, "Redundant") && torrentSeedCheck(torrent, "Redundant")) {
+        deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
+      }
+    }
+
     // Init logging object
     const logging = {
-      library: 0,
-      importListItems: 0,
+      radarrLibrary: 0,
+      sonarrLibrary: 0,
+      radarrILItems: 0,
+      sonarrILItems: 0,
       torrents: torrents.length,
       markedForDeletion: 0,
-      deleted: 0,
+      radarrDeleted: 0,
+      sonarrDeleted: 0,
     }
 
     // Loop through each active API
-    for (const API of activeAPIs) {
+    for (const API of updatedActiveAPIs) {
       // Skip Lidarr... might add later
       if (API.name === "Lidarr") {
-        continue
-      }
-
-      // Skip for sonarr... for now. Next to do.
-      if (API.name === "Sonarr") {
-        logger.warn(`removeMissing: ${API.name} is not supported for this function YET.`)
         continue
       }
 
@@ -250,8 +255,12 @@ const coreResolvers = {
         continue
       }
 
-      // Each Starr app API will have a different library so need to accumulate for total figure
-      logging.library = logging.library + library.length
+      // Each Starr API has a different library
+      if (API.name === "Radarr") {
+        logging.radarrLibrary = library.length
+      } else if (API.name === "Sonarr") {
+        logging.sonarrLibrary = library.length
+      }
 
       // Init an Array of library items identified for deletion
       const itemsForDeletion: (Movie | Series)[] = []
@@ -264,21 +273,15 @@ const coreResolvers = {
           continue
         }
 
-        // Get library items with updated torrent data and get torrents that do not match any library items
-        const { updatedLibrary, unmatchedTorrents } = findLibraryTorrents(library, torrents)
-
-        // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
-        for (const torrent of unmatchedTorrents) {
-          if (torrentDownloadedCheck(torrent) && torrentSeedCheck(torrent)) {
-            deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
-          }
-        }
-
         // An array of items from import lists from various list APIs such as mdbList
         const importListItems = await getMdbListItems(API)
 
         // Log the amount of import list items for each Starr app API
-        logging.importListItems = logging.importListItems + importListItems.length
+        if (API.name === "Radarr") {
+          logging.radarrILItems = importListItems.length
+        } else if (API.name === "Sonarr") {
+          logging.sonarrILItems = importListItems.length
+        }
 
         // Create a Set of all identifiers for quick lookups
         const tmdbSet = new Set(importListItems.map((item) => item.id))
@@ -286,7 +289,7 @@ const coreResolvers = {
         const tvdbSet = new Set(importListItems.map((item) => item.tvdbid).filter(Boolean)) // Exclude null/undefined
 
         // Filter the library for items not in the import list
-        for (const libraryItem of updatedLibrary) {
+        for (const libraryItem of library) {
           const matchesTmdb = tmdbSet.has(libraryItem.tmdbId)
           const matchesImdb = imdbSet.has(libraryItem.imdbId)
           const matchesTvdb = "tvdbId" in libraryItem && tvdbSet.has(libraryItem.tvdbId)
@@ -298,7 +301,7 @@ const coreResolvers = {
         }
 
         // Init an array to filter deleted items from so we can update the db
-        let filteredLibrary = updatedLibrary
+        let filteredLibrary = library
 
         // If some library items have been selected for deletion filter any that should not be deleted
         if (itemsForDeletion.length > 0) {
@@ -307,30 +310,46 @@ const coreResolvers = {
 
           // Loop through all of the updated library items that now has torrent data
           for (const libraryItem of itemsForDeletion) {
-            const mov = libraryItem as Movie
-
-            // If the libraryItem has not been matched to a torrent, it's a usenet download and is ok to delete.
-            if (!mov.torrent) {
+            const deleteFromLibraryHelper = async () => {
               // Delete libraryItem from Starr app library as well as usenet downloader and storage
               if (await deleteFromLibrary(libraryItem, API)) {
                 // On request succes remove deleted library item from filteredLibrary
                 filteredLibrary = filteredLibrary.filter((item) => item.id !== libraryItem.id)
-                logging.deleted++
-              }
-            } else if (mov.torrentFile) {
-              // If the libraryItem is a torrent, check if it's met it's seed criteria. If it has, delete it.
-              if (torrentSeedCheck(mov.torrentFile)) {
-                // Delete libraryItem from Starr app library as well as torrent downloader and storage
-                if (await deleteFromLibrary(libraryItem, API)) {
-                  // On request succes remove deleted library item from filteredLibrary
-                  filteredLibrary = filteredLibrary.filter((item) => item.id !== libraryItem.id)
-                  logging.deleted++
+                // Log the deletions
+                if (API.name === "Radarr") {
+                  logging.radarrDeleted++
+                } else if (API.name === "Sonarr") {
+                  logging.sonarrDeleted++
                 }
               }
-            } else {
-              logger.error(
-                `${API} library item selected for deletion, is known to have a torrent but has no torrentFile?!`,
-              )
+            }
+
+            // Check if the Radarr or Sonarr libraryItem has been matched to any torrent
+            const noTorrents = isMovie(libraryItem)
+              ? !libraryItem.torrent
+              : !libraryItem.torrentsPresent
+
+            // If the libraryItem hasn't been matched to any torrent, it's a usenet download and is ok to delete.
+            if (noTorrents) {
+              await deleteFromLibraryHelper()
+              continue
+            }
+
+            // Create an array of torrents associated with this libraryItem
+            const torrentFiles = isMovie(libraryItem)
+              ? [libraryItem.torrentFile]
+              : libraryItem.seasons.flatMap(
+                  (season) => season.episodes?.map((ep) => ep.torrentFile) || [],
+                )
+
+            // Check if all torrents have met their seed criteria
+            const torrentsReady = torrentFiles.every((t) =>
+              t ? torrentSeedCheck(t, t.torrentType) : true,
+            )
+
+            // If every torrent that belongs to the libraryItem is met its requirements, delete the libraryItem.
+            if (torrentsReady) {
+              await deleteFromLibraryHelper()
             }
           }
 
@@ -376,13 +395,20 @@ const coreResolvers = {
           if (!libraryPaths.has(childPath)) {
             // Delete the directory recursively from the file system
             deleteFromMachine(childPath)
-            logging.deleted++
+
+            if (API.name === "Radarr") {
+              logging.radarrDeleted++
+            } else if (API.name === "Sonarr") {
+              logging.sonarrDeleted++
+            }
           }
         }
       }
 
-      logger.info(
-        `removeMissing: Level: ${settings.remove_missing_level}. ${API.name}: Deleted ${logging.deleted} items of ${library.length}.`,
+      const deleted = API.name === "Radarr" ? logging.radarrDeleted : logging.sonarrDeleted
+
+      logger.success(
+        `Remove Missing ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
       )
     }
   },
@@ -428,9 +454,9 @@ const coreResolvers = {
           const loopsLeft = requiredCount - updatedCount
 
           if (requiredCount === updatedCount) {
-            logger.info(`tidyDirectories: ${child} has been deleted from ${tidyPath.path}.`)
+            logger.success(`tidyDirectories: ${child} has been deleted from ${tidyPath.path}.`)
           } else {
-            logger.info(`${child} is not allowed in ${tidyPath.path} and will be deleted in ${loopsLeft} loop${loopsLeft === 1 ? "" : "s"}.`)
+            logger.warn(`${child} is not allowed in ${tidyPath.path} and will be deleted in ${loopsLeft} loop${loopsLeft === 1 ? "" : "s"}.`)
           }
         } else {
           tidying.allowed++
@@ -441,7 +467,7 @@ const coreResolvers = {
 
     if (tidying.notAllowed === 0) {
       const singular = tidying.paths === 1
-      logger.info(`tidyDirectories: All children are allowed out of ${tidying.children} children in ${tidying.paths} path${singular ? "" : "s"}.`)
+      logger.success(`tidyDirectories: All children are allowed out of ${tidying.children} children in ${tidying.paths} path${singular ? "" : "s"}.`)
     }
   },
 }

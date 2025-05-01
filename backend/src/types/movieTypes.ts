@@ -121,6 +121,7 @@ export type Movie = {
   lastSearchTime: string
   statistics: Statistics
   torrent: boolean
+  torrentType?: "Movie" | "Episode" | "Series"
   torrentFile?: Torrent
   id: number
 }

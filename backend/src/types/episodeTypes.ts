@@ -1,3 +1,4 @@
+import { Torrent } from "./qBittorrentTypes"
 import { Series, SeriesImage } from "./seriesTypes"
 import { Language, Quality } from "./types"
 
@@ -112,4 +113,7 @@ export type Episode = {
   grabDate: Date
   series: Series
   images: SeriesImage[]
+  torrent: boolean
+  torrentType?: "Movie" | "Episode" | "Series"
+  torrentFile?: Torrent
 }
