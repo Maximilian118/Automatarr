@@ -55,7 +55,7 @@ If successful and the application is running, a directory named `automatarr` wil
 - [ ] Add Discord interaction
 - [ ] Allow for deletion of downloading torrents
 - [ ] Add stalled or slow torrent download deletion
-- [ ] Separate settings page into an API Connections page and Loops page
+- [x] Separate settings page into an API Connections page and Loops page
 - [ ] Add graphs for basic data visuals to stats page
 - [ ] Add Lidarr support to Remove Missing
 - [ ] Add spinner to top right of settings pages or nav bar for more obvious loading

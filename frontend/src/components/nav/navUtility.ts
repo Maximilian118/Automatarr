@@ -4,7 +4,11 @@ export const navItems = [
     url: "/",
   },
   {
-    text: "Settings",
-    url: "/settings",
+    text: "Connections",
+    url: "/connections",
+  },
+  {
+    text: "Loops",
+    url: "/loops",
   },
 ]

@@ -16,7 +16,7 @@ import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomple
 import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
 import Footer from "../components/footer/Footer"
 
-const Settings: React.FC = () => {
+const Loops: React.FC = () => {
   const { settings, setSettings } = useContext(AppContext)
   const [ loading, setLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
@@ -125,39 +125,6 @@ const Settings: React.FC = () => {
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
       <InputModel 
-        title="Radarr" 
-        startIcon="https://radarr.video/img/logo.png"
-        status={settings.radarr_active ? "Connected" : "Disconnected"}
-      >
-        {settingsTextField("radarr_URL")}
-        {settingsTextField("radarr_KEY")}
-      </InputModel>
-      <InputModel 
-        title="Sonarr" 
-        startIcon="https://sonarr.tv/img/logo.png"
-        status={settings.sonarr_active ? "Connected" : "Disconnected"}
-      >
-        {settingsTextField("sonarr_URL")}
-        {settingsTextField("sonarr_KEY")}
-      </InputModel>
-      <InputModel 
-        title="Lidarr" 
-        startIcon="https://lidarr.audio/img/logo.png"
-        status={settings.lidarr_active ? "Connected" : "Disconnected"}
-      >
-        {settingsTextField("lidarr_URL")}
-        {settingsTextField("lidarr_KEY")}
-      </InputModel>
-      <InputModel 
-        title="qBittorrent" 
-        startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
-        status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
-      >
-        {settingsTextField("qBittorrent_URL")}
-        {settingsTextField("qBittorrent_username")}
-        {settingsTextField("qBittorrent_password", undefined, undefined, undefined, "password")}
-      </InputModel>
-      <InputModel 
         title="Loops" 
         startIcon={<MuiLoop/>}
       >
@@ -255,4 +222,4 @@ const Settings: React.FC = () => {
   )
 }
 
-export default Settings
+export default Loops
