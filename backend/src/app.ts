@@ -12,6 +12,7 @@ import { bootPermissions } from "./shared/permissions"
 import { allAPIsDeactivated, allLoopsDeactivated, coreLoops } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
+import { dataDocType } from "./models/data"
 
 // Initialise express.
 const app = express()
@@ -98,7 +99,7 @@ const startServer = async () => {
     logger.error(`Error starting MongoDB or server: ${err}`)
   }
 
-  // Initialise settings in db if first boot
+  // Initialise settings in db if first boot. If settings exists, return settings.
   const bootSettings = (await Resolvers.newSettings()) as settingsDocType // Settings for Automatarr
 
   // Ping API's with populated credentials to check if backend is running on correct LAN
@@ -107,16 +108,18 @@ const startServer = async () => {
   // Initialise data in db if first boot
   await Resolvers.newData()
 
-  // Check connection to every API
-  await Resolvers.checkRadarr() // No data passed = Will fetch settings data from db
-  await Resolvers.checkSonarr() // No data passed = Will fetch settings data from db
-  await Resolvers.checkLidarr() // No data passed = Will fetch settings data from db
-  await Resolvers.checkqBittorrent() // No data passed = Will fetch settings data from db
-
   // Check that at least one API is active
   if (!allAPIsDeactivated(bootSettings._doc)) {
+    // Check connection to Starr Apps
+    await Resolvers.checkRadarr(bootSettings)
+    await Resolvers.checkSonarr(bootSettings)
+    await Resolvers.checkLidarr(bootSettings)
+
     // Collect the latest data from all active APIs
-    const data = await Resolvers.getData()
+    const data = (await Resolvers.getData()) as dataDocType
+
+    // Check connection to Starr API
+    await Resolvers.checkqBittorrent(bootSettings, data)
 
     // Check Automatarr has the filesystem permissions it needs
     bootPermissions(data)

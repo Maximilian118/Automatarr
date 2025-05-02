@@ -213,7 +213,7 @@ const coreResolvers = {
     const { data, activeAPIs } = await activeAPIsArr(settings)
 
     // Retrieve torrents, if no connection to qBit, return empty array
-    const torrents = await getqBittorrentTorrents(settings, data.qBittorrent.cookie)
+    const torrents = await getqBittorrentTorrents(settings, data)
 
     // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
     // There's no solid way to sort torrents in qBit so the best way of finding unmatched torrents

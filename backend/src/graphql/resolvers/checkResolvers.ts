@@ -1,9 +1,12 @@
-import Settings from "../../models/settings"
+import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
 import { cleanUrl, errCodeAndMsg } from "../../shared/utility"
 import { checkStarr, checkURL } from "../../shared/validation"
 import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
+import Data, { dataDocType } from "../../models/data"
+import moment from "moment"
+import { saveWithRetry } from "../../shared/database"
 
 interface baseCheck {
   URL: string
@@ -19,10 +22,10 @@ interface checkNewWithCreds extends baseCheck {
 }
 
 const checkResolvers = {
-  checkRadarr: async (): Promise<number> => {
+  checkRadarr: async (passedSettings?: settingsType): Promise<number> => {
     let status = 500
 
-    const settings = await Settings.findOne()
+    const settings = passedSettings ? passedSettings : await Settings.findOne()
 
     if (!settings) {
       logger.error("checkRadarr: No Settings object was found.")
@@ -51,10 +54,10 @@ const checkResolvers = {
 
     return status
   },
-  checkSonarr: async (): Promise<number> => {
+  checkSonarr: async (passedSettings?: settingsType): Promise<number> => {
     let status = 500
 
-    const settings = await Settings.findOne()
+    const settings = passedSettings ? passedSettings : await Settings.findOne()
 
     if (!settings) {
       logger.error("checkSonarr: No Settings object was found.")
@@ -83,10 +86,10 @@ const checkResolvers = {
 
     return status
   },
-  checkLidarr: async (): Promise<number> => {
+  checkLidarr: async (passedSettings?: settingsType): Promise<number> => {
     let status = 500
 
-    const settings = await Settings.findOne()
+    const settings = passedSettings ? passedSettings : await Settings.findOne()
 
     if (!settings) {
       logger.error("checkLidarr: No Settings object was found.")
@@ -115,13 +118,16 @@ const checkResolvers = {
 
     return status
   },
-  checkqBittorrent: async (): Promise<number> => {
+  checkqBittorrent: async (
+    passedSettings?: settingsType,
+    passedData?: dataDocType,
+  ): Promise<number> => {
     let status = 500
 
-    const settings = await Settings.findOne()
+    const settings = passedSettings ? passedSettings : await Settings.findOne()
 
     if (!settings) {
-      logger.error("checkqBittorrent: No Settings object was found.")
+      logger.error("checkqBittorrent | No Settings object was found.")
       return 500
     }
 
@@ -139,6 +145,13 @@ const checkResolvers = {
       return 200
     }
 
+    const data = passedData ? passedData : ((await Data.findOne()) as dataDocType)
+
+    if (!data) {
+      logger.error("checkqBittorrent | Could not find data object in db.")
+      return 500
+    }
+
     try {
       const res = await axios.post(
         cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login`),
@@ -151,13 +164,20 @@ const checkResolvers = {
         },
       )
 
-      const cookie = await getqBitCookieFromHeaders(res)
+      const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
 
       if (!cookie) {
         // getqBitCookieFromHeaders will handle err logs
         return 500
       }
 
+      data.qBittorrent.cookie = cookie
+      data.qBittorrent.cookie_expiry = cookie_expiry
+
+      data.qBittorrent.updated_at = moment().format()
+      data.updated_at = moment().format()
+
+      await saveWithRetry(data, "checkqBittorrent")
       logger.success("qBittorrent | Login OK!")
       return res.status
     } catch (err) {
@@ -234,6 +254,13 @@ const checkResolvers = {
       return 500
     }
 
+    const data = (await Data.findOne()) as dataDocType
+
+    if (!data) {
+      logger.error("checkNewqBittorrent: Could not find data object in db.")
+      return 500
+    }
+
     try {
       const res = await axios.post(
         cleanUrl(`${URL}/api/${settings.qBittorrent_API_version}/auth/login`),
@@ -246,13 +273,19 @@ const checkResolvers = {
         },
       )
 
-      const cookie = await getqBitCookieFromHeaders(res)
+      const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
 
       if (!cookie) {
         // getqBitCookieFromHeaders will handle err logs
         return 500
       }
+      data.qBittorrent.cookie = cookie
+      data.qBittorrent.cookie_expiry = cookie_expiry
 
+      data.qBittorrent.updated_at = moment().format()
+      data.updated_at = moment().format()
+
+      await saveWithRetry(data, "checkqBittorrent")
       logger.success("qBittorrent | Login OK!")
       return res.status
     } catch (err) {

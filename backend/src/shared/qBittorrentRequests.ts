@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios"
 import Data, { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
-import { cleanUrl, errCodeAndMsg, requestSuccess } from "./utility"
+import { checkTimePassed, cleanUrl, errCodeAndMsg, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
@@ -9,50 +9,59 @@ import moment from "moment"
 // Retreive qBittorrent cookie from check request headers
 export const getqBitCookieFromHeaders = async (
   res: AxiosResponse<any, any>,
-): Promise<string | undefined> => {
+  data: dataType,
+): Promise<{
+  cookie: string
+  cookie_expiry: string
+}> => {
+  const response = {
+    cookie: "",
+    cookie_expiry: "",
+  }
+
   const cookiesInHeader = res.headers["set-cookie"]
 
   if (!cookiesInHeader || cookiesInHeader.length === 0) {
     logger.error(`qBittorrent | Could not find cookie in response headers.`)
-    return
+    return response
   }
 
   const regexedCookie = cookiesInHeader[0].match(/SID=[^;]+/)
 
   if (!regexedCookie) {
     logger.error(`qBittorrent | Could not find cookie in set-cookie string.`)
-    return
+    return response
   }
 
-  // Retreive the data object from the db
-  const data = await Data.findOne()
+  response.cookie = regexedCookie[0]
 
-  if (!data) {
-    logger.error("qBittorrent | Could not find data object in db.")
-    return
+  if (!data.qBittorrent.preferences) {
+    logger.error(`qBittorrent | No preferences have been passed.`)
+    return response
   }
 
-  data.qBittorrent.cookie = regexedCookie[0]
-  data.qBittorrent.cookie_expiry = moment()
-    .add(data.qBittorrent.preferences?.web_ui_session_timeout || 3600, "seconds")
+  response.cookie_expiry = moment()
+    .add(data.qBittorrent.preferences.web_ui_session_timeout || 3600, "seconds")
     .format()
 
-  await data.save()
-
-  return regexedCookie[0]
+  return response
 }
 
 // Check if cookie has expired
-export const qBitCookieExpired = async (): Promise<boolean> => {
+export const qBitCookieExpired = async (passedData?: dataType): Promise<boolean> => {
   // Retrieve the data object from the db
-  const data = await Data.findOne()
+  const data = passedData ? passedData : await Data.findOne()
 
   if (!data) {
     logger.error("qBittorrent | Could not find data object in db.")
     return false
   }
 
-  // Compare the current time with the cookie expiry
+  if (!data.qBittorrent.cookie) {
+    logger.error("qBittorrent | No Cookie!")
+    return true
+  }
+
   const cookieExpiry = data.qBittorrent?.cookie_expiry
 
   if (!cookieExpiry) {
@@ -60,14 +69,71 @@ export const qBitCookieExpired = async (): Promise<boolean> => {
     return true // Assume expired if no expiry is set
   }
 
+  // Return true = error/expired. False = valid.
   return moment().isAfter(moment(cookieExpiry))
+}
+
+// Renew qBittorrent cookie
+export const renewqBitCookie = async (
+  settings: settingsType,
+  data: dataType,
+): Promise<{
+  cookie: string
+  cookie_expiry: string
+}> => {
+  const response = {
+    cookie: "",
+    cookie_expiry: "",
+  }
+
+  try {
+    const res = await axios.post(
+      cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login`),
+      new URLSearchParams({
+        username: settings.qBittorrent_username,
+        password: settings.qBittorrent_password,
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      },
+    )
+
+    const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
+
+    if (!cookie) {
+      logger.error("renewqBitCookie: Failed to retrieve Cookie.")
+      return response
+    }
+
+    logger.success("qBittorrent | Cookie Renewed!")
+
+    return {
+      cookie,
+      cookie_expiry,
+    }
+  } catch (err) {
+    logger.error(`qBittorrent | Cookie Renewal Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return response
 }
 
 // Get all current torrents
 export const getqBittorrentTorrents = async (
   settings: settingsType,
-  cookie: string,
+  data: dataType,
 ): Promise<Torrent[]> => {
+  // Only get Torrents if 10 mins has passed
+  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at)) {
+    const timer = 10 - moment().diff(moment(data.qBittorrent.updated_at), "minutes")
+
+    logger.info(
+      `getqBittorrentTorrents | Skipping Torrents retrieval. Only once per 10 minutes. ${timer} minutes left.`,
+    )
+
+    return data.qBittorrent.torrents
+  }
+
   let torrents: Torrent[] = []
 
   try {
@@ -75,7 +141,7 @@ export const getqBittorrentTorrents = async (
       cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/info`),
       {
         headers: {
-          cookie: cookie,
+          cookie: data.qBittorrent.cookie,
         },
       },
     )
@@ -169,19 +235,38 @@ export const getqBittorrentData = async (
   // If qBittorent is not active, do not make any requests.
   if (!settings.qBittorrent_active) {
     logger.warn(
-      `qBittorrent: Inactive! This application is quite limited without qBittorrent. Sorry about that chum.`,
+      `qBittorrent | Inactive! This application is quite limited without qBittorrent. Sorry about that chum.`,
     )
     return data.qBittorrent
   }
 
-  if (!data.qBittorrent.cookie) {
-    logger.error(`getqBittorrentData: No Cookie!`)
+  // Only get qBittorrent data if 10 mins has passed
+  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at)) {
+    const timer = 10 - moment().diff(moment(data.qBittorrent.updated_at), "minutes")
+
+    logger.info(
+      `qBittorrent | Skipping data retrieval. Only once per 10 minutes. ${timer} minutes left.`,
+    )
+
     return data.qBittorrent
+  }
+
+  // Check if we have a cookie. If cookie expired, renew.
+  if (await qBitCookieExpired(data)) {
+    const { cookie, cookie_expiry } = await renewqBitCookie(settings, data)
+
+    if (cookie) {
+      data.qBittorrent.cookie = cookie
+      data.qBittorrent.cookie_expiry = cookie_expiry
+    } else {
+      logger.error("getqBittorrentData: Failed to renew Cookie!")
+      return data.qBittorrent
+    }
   }
 
   return {
     ...data.qBittorrent,
-    torrents: await getqBittorrentTorrents(settings, data.qBittorrent.cookie),
+    torrents: await getqBittorrentTorrents(settings, data),
     categories: await getqBittorrentCategories(settings, data.qBittorrent.cookie),
     preferences: await getqBittorrentPreferences(settings, data.qBittorrent.cookie),
     updated_at: moment().format(),

@@ -1,4 +1,4 @@
-import Data, { dataType } from "../../models/data"
+import Data, { dataDocType, dataType } from "../../models/data"
 import Settings, { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
@@ -40,7 +40,7 @@ const dataResolvers = {
 
     return newData
   },
-  getData: async (newSettings?: settingsDocType): Promise<dataType | undefined> => {
+  getData: async (newSettings?: settingsDocType): Promise<dataDocType | undefined> => {
     // Get latest settings
     // prettier-ignore
     const settings = newSettings ? newSettings : (await Settings.findOne()) as unknown as settingsDocType
