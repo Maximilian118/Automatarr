@@ -51,7 +51,8 @@ If successful and the application is running, a directory named `automatarr` wil
 
 ## To do:
 
-- [ ] Add Sonarr support to Remove Missing - Import List level
+- [x] Add Sonarr support to Remove Missing - Import List level
+- [ ] Add Discord interaction
 - [ ] Allow for deletion of downloading torrents
 - [ ] Add stalled or slow torrent download deletion
 - [ ] Separate settings page into an API Connections page and Loops page

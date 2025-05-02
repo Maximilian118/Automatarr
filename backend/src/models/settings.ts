@@ -87,10 +87,10 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   lidarr_KEY: { type: String, default: "" }, // API KEY for Lidarr
   lidarr_API_version: { type: String, default: "v1" }, // Lidarr API Version
   lidarr_active: { type: Boolean, default: false }, // Has Lidarr connection been tested and therefore should be included in requests?
-  import_blocked: { type: Boolean, default: true }, // Enable or disable automation of handling Starr app files with importBlocked in API queues
-  wanted_missing: { type: Boolean, default: true }, // Enable or disable automation of searching for missing and monitored library items
-  remove_failed: { type: Boolean, default: true }, // Enable or disable automation of removing failed downloads
-  remove_missing: { type: Boolean, default: true }, // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
+  import_blocked: { type: Boolean, default: false }, // Enable or disable automation of handling Starr app files with importBlocked in API queues
+  wanted_missing: { type: Boolean, default: false }, // Enable or disable automation of searching for missing and monitored library items
+  remove_failed: { type: Boolean, default: false }, // Enable or disable automation of removing failed downloads
+  remove_missing: { type: Boolean, default: false }, // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: { type: Boolean, default: false }, // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
   tidy_directories: { type: Boolean, default: false }, // Enable or disable automation of removing unwanted files in specified directories
   import_blocked_loop: { type: Number, default: 10 }, // Loop timer for importBlocked. Unit = minutes
