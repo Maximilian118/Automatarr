@@ -47,7 +47,7 @@ export const torrentDownloadedCheck = (torrent: Torrent, type?: string): boolean
   }
 
   if (state === "downloading") {
-    logger.warn(`${prefix}orrent is downloading: ${name}`)
+    logger.info(`Torrent is downloading: ${name}`)
   }
 
   if (state === "stalledDL") {
@@ -214,9 +214,8 @@ export const findLibraryTorrents = (
 
   // Loop through starr app libraries
   for (const item of moviesAndEpisodes) {
-    const hasFile = isMovie(item) ? item.movieFile : item.episodeFile
     // If a movie or episode file exists. I.E if a file is attached to the library item.
-    if (hasFile) {
+    if (item.hasFile) {
       const relativePath = isMovie(item)
         ? item.movieFile.relativePath
         : item.episodeFile.relativePath

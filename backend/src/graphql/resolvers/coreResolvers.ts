@@ -220,20 +220,25 @@ const coreResolvers = {
     // is by sorting with all movies and episodes together outside of the loop.
     const { updatedActiveAPIs, unmatchedTorrents } = findLibraryTorrents(activeAPIs, torrents)
 
+    let unmatchedDeleted = 0
+
     // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
     for (const torrent of unmatchedTorrents) {
       if (torrentDownloadedCheck(torrent, "Redundant") && torrentSeedCheck(torrent, "Redundant")) {
         deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
+        unmatchedDeleted++
       }
     }
 
     // Init logging object
     const logging = {
-      radarrLibrary: 0,
-      sonarrLibrary: 0,
       radarrILItems: 0,
       sonarrILItems: 0,
+      radarrLibrary: 0,
+      sonarrLibrary: 0,
       torrents: torrents.length,
+      unmatchedTorrents: unmatchedTorrents.length,
+      unmatchedDeleted,
       markedForDeletion: 0,
       radarrDeleted: 0,
       sonarrDeleted: 0,
