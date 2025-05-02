@@ -17,7 +17,12 @@ import {
   updatePaths,
 } from "../../shared/fileSystem"
 import { checkPermissions } from "../../shared/permissions"
-import { currentPaths, qBittorrentDataExists, updateDownloadQueue } from "../../shared/utility"
+import {
+  currentPaths,
+  processingTimeMessage,
+  qBittorrentDataExists,
+  updateDownloadQueue,
+} from "../../shared/utility"
 import { getMdbListItems } from "../../shared/mdbListRequests"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
@@ -214,6 +219,9 @@ const coreResolvers = {
 
     // Retrieve torrents, if no connection to qBit, return empty array
     const torrents = await getqBittorrentTorrents(settings, data)
+
+    // Depending on the amount of library items, logs can hang here so give an indication of how long
+    processingTimeMessage(data)
 
     // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
     // There's no solid way to sort torrents in qBit so the best way of finding unmatched torrents

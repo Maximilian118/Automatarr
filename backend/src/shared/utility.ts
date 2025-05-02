@@ -1,7 +1,7 @@
 import moment from "moment"
 import { DownloadStatus, graphqlErr } from "../types/types"
 import { APIData } from "./activeAPIsArr"
-import { baseData, dataType, downloadQueue } from "../models/data"
+import { baseData, dataDocType, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
 import { settingsDocType, settingsType } from "../models/settings"
 import { dynamicLoop } from "./dynamicLoop"
@@ -318,5 +318,24 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {
     await Resolvers.permissions_change(settings._doc)
+  }
+}
+
+// Fun little function to prep people for the processing time
+export const processingTimeMessage = (data: dataDocType) => {
+  let libraryLength = 0
+
+  for (const library of data.libraries) {
+    libraryLength = libraryLength + library.data.length
+  }
+  // prettier-ignore
+  if (libraryLength > 200 && libraryLength < 500) {
+    logger.info(`Processing ${libraryLength} Library items. Give me a sec...`)
+  } else if (libraryLength > 500 && libraryLength < 1000) {
+    logger.info(`Processing ${libraryLength} Library items. Strap in!`)
+  } else if (libraryLength > 1000 && libraryLength < 10000) {
+    logger.info(`Sweet buttered biscuits on a unicycle! Processing ${libraryLength} Library items!`)
+  } else if (libraryLength > 10000) {
+    logger.info(`I haven't seen a mess like this since spaghetti met ceiling fan! Processing ${libraryLength} Library items!`)
   }
 }
