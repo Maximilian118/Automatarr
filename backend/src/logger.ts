@@ -53,6 +53,12 @@ const customFormat = format.printf(({ timestamp, level, message }) => {
   return `[${timestamp}] [${emoji} ${upperLevel}] ${message}`
 })
 
+// Filter to allow only specific log levels
+const debugFilter = format((info) => {
+  const allowedLevels = ["catastrophic", "error", "warn", "debug"]
+  return allowedLevels.includes(info.level) ? info : false
+})
+
 // Create the logger
 const logger = winston.createLogger({
   levels: customLevels.levels,
@@ -81,6 +87,18 @@ const logger = winston.createLogger({
       datePattern: "DD-MM-YYYY",
       maxFiles: "5d",
     }),
+
+    new DailyRotateFile({
+      filename: path.join(logDirectory, "debug-filtered-%DATE%.log"),
+      level: "debug", // Upper bound; filter limits actual levels written
+      datePattern: "DD-MM-YYYY",
+      maxFiles: "7d",
+      format: format.combine(
+        debugFilter(),
+        format.timestamp({ format: timestampFormat }),
+        customFormat,
+      ),
+    }),
   ],
 })
 
@@ -96,5 +114,10 @@ interface CustomLogger extends winston.Logger {
 
 // --- Cast the logger to the extended type ---
 const typedLogger = logger as CustomLogger
+
+// --- Add custom level methods ---
+typedLogger.success = (message: string) => typedLogger.log("success", message)
+typedLogger.catastrophic = (message: string) => typedLogger.log("catastrophic", message)
+typedLogger.loop = (message: string) => typedLogger.log("loop", message)
 
 export default typedLogger
