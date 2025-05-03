@@ -6,6 +6,8 @@ import { dataType } from "./types/dataType"
 export interface AppContextType {
   settings: settingsType
   setSettings: Dispatch<SetStateAction<settingsType>>
+  loading: boolean
+  setLoading: Dispatch<SetStateAction<boolean>>
   data: dataType
   setData: Dispatch<SetStateAction<dataType>>
 }
@@ -13,6 +15,8 @@ export interface AppContextType {
 const AppContext = createContext<AppContextType>({
   settings: initSettings,
   setSettings: () => initSettings,
+  loading: false,
+  setLoading: () => false,
   data: initData,
   setData: () => initData,
 })

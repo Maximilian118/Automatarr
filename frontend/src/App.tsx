@@ -9,11 +9,12 @@ import { dataType } from './types/dataType'
 
 const App: React.FC = () => {
   const [ settings, setSettings] = useState<settingsType>(initSettings)
+  const [ loading, setLoading ] = useState<boolean>(false)
   const [ data, setData ] = useState<dataType>(initData)
 
   return (  
-    <AppContext.Provider value={{ settings, setSettings, data, setData }}>
-      <Nav/>
+    <AppContext.Provider value={{ settings, setSettings, loading, setLoading, data, setData }}>
+      <Nav loading={loading}/>
       <Router/>
     </AppContext.Provider>
   )

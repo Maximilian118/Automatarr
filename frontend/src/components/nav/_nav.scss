@@ -1,16 +1,32 @@
 @use '../../scss/variables';
-@use '../../scss//mixins';
+@use '../../scss/mixins';
 
 nav {
   width: 100%;
   background: variables.$off-black;
-  @include mixins.flexbox-start;
+  @include mixins.flexbox-space-between;
   height: 48px;
   border-bottom: 2px solid black;
+  padding-right: 15px;
+  box-sizing: border-box;
 
-  img {
-    height: 65%;
-    margin: 0 10px 0 25px;
-    cursor: pointer;
+  .nav-left {
+    height: 100%;
+    @include mixins.flexbox-start;
+
+    img {
+      height: 65%;
+      margin: 0 10px 0 25px;
+      cursor: pointer;
+    }
+  }
+}
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 425px) {
+  nav {
+    .nav-spinner {
+      display: none;
+    }
   }
 }

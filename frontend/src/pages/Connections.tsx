@@ -11,22 +11,29 @@ import MUITextField from "../components/utility/MUITextField/MUITextField"
 import Footer from "../components/footer/Footer"
 
 const Connections: React.FC = () => {
-  const { settings, setSettings } = useContext(AppContext)
-  const [ loading, setLoading ] = useState<boolean>(false)
+  const { settings, setSettings, loading, setLoading } = useContext(AppContext)
+  const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, setLoading)
+      getSettings(setSettings, setLocalLoading)
     }
   }, [settings, setSettings])
 
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    await updateSettings(setLoading, settings, setSettings, formErr)
+    await updateSettings(setLocalLoading, settings, setSettings, formErr)
   }
+
+  // On localLoading change, change global loading as well
+  useEffect(() => {
+    if (localLoading !== loading) {
+      setLoading(!loading)
+    }
+  }, [localLoading, loading, setLoading])
 
   const settingsTextField = (
     name: keyof settingsType, 
@@ -89,7 +96,7 @@ const Connections: React.FC = () => {
         type="submit"
         variant="contained"
         sx={{ margin: "20px 0" }}
-        endIcon={loading ? 
+        endIcon={localLoading ? 
           <CircularProgress size={20} color="inherit"/> : 
           <Send color="inherit"/>
         }
