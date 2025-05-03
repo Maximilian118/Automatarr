@@ -123,8 +123,10 @@ export const getqBittorrentTorrents = async (
   settings: settingsType,
   data: dataType,
 ): Promise<Torrent[]> => {
-  // Only get Torrents if 10 mins has passed
-  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at)) {
+  // Only get qBittorrent data if 10 mins has passed since last update
+  const firstRun = data.qBittorrent.torrents.length === 0
+
+  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at) && !firstRun) {
     const timer = 10 - moment().diff(moment(data.qBittorrent.updated_at), "minutes")
 
     logger.info(
@@ -235,13 +237,15 @@ export const getqBittorrentData = async (
   // If qBittorent is not active, do not make any requests.
   if (!settings.qBittorrent_active) {
     logger.warn(
-      `qBittorrent | Inactive! This application is quite limited without qBittorrent. Sorry about that chum.`,
+      `qBittorrent | Inactive! This application is quite limited without qBittorrent. Sorry about that.`,
     )
     return data.qBittorrent
   }
 
-  // Only get qBittorrent data if 10 mins has passed
-  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at)) {
+  // Only get qBittorrent data if 10 mins has passed since last update
+  const firstRun = data.qBittorrent.torrents.length === 0
+
+  if (!checkTimePassed(10, "minutes", data.qBittorrent.updated_at) && !firstRun) {
     const timer = 10 - moment().diff(moment(data.qBittorrent.updated_at), "minutes")
 
     logger.info(
