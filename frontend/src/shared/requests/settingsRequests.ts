@@ -87,6 +87,10 @@ export const updateSettings = async (
           $qBittorrent_password: String
           $qBittorrent_active: Boolean
           $qBittorrent_API_version: String
+          $discord_bot_active: Boolean
+          $discord_bot_token: String
+          $discord_bot_server_id: String
+          $discord_bot_channel_id: String
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -123,6 +127,10 @@ export const updateSettings = async (
             qBittorrent_password: $qBittorrent_password
             qBittorrent_active: $qBittorrent_active
             qBittorrent_API_version: $qBittorrent_API_version
+            discord_bot_active: $discord_bot_active
+            discord_bot_token: $discord_bot_token
+            discord_bot_server_id: $discord_bot_server_id
+            discord_bot_channel_id: $discord_bot_channel_id
           }) {
             ${populateSettings}
           }

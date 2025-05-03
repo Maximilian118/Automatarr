@@ -64,6 +64,10 @@ const settingsResolvers = {
       qBittorrent_password,
       qBittorrent_active,
       qBittorrent_API_version,
+      discord_bot_active,
+      discord_bot_token,
+      discord_bot_server_id,
+      discord_bot_channel_id,
     } = args.settingsInput
 
     // Find settings object by ID
@@ -109,6 +113,10 @@ const settingsResolvers = {
     settings.qBittorrent_password = qBittorrent_password
     settings.qBittorrent_active = qBittorrent_active
     settings.qBittorrent_API_version = qBittorrent_API_version
+    settings.discord_bot_active = discord_bot_active
+    settings.discord_bot_token = discord_bot_token
+    settings.discord_bot_server_id = discord_bot_server_id
+    settings.discord_bot_channel_id = discord_bot_channel_id
 
     // Save the updated object
     await settings.save()

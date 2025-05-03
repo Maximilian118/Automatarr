@@ -37,6 +37,10 @@ export const populateSettings = `
   qBittorrent_password
   qBittorrent_active
   qBittorrent_API_version
+  discord_bot_active
+  discord_bot_token
+  discord_bot_server_id
+  discord_bot_channel_id
   created_at
   updated_at
 `

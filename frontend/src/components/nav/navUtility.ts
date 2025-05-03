@@ -8,6 +8,10 @@ export const navItems = [
     url: "/connections",
   },
   {
+    text: "Bots",
+    url: "/bots",
+  },
+  {
     text: "Loops",
     url: "/loops",
   },

@@ -39,6 +39,10 @@ const settingsSchema = `
     qBittorrent_password: String!
     qBittorrent_active: Boolean!
     qBittorrent_API_version: String!
+    discord_bot_active: Boolean!
+    discord_bot_token: String!
+    discord_bot_server_id: String!
+    discord_bot_channel_id: String!
     created_at: String!
     updated_at: String!
   }
@@ -83,6 +87,10 @@ const settingsSchema = `
     qBittorrent_password: String
     qBittorrent_active: Boolean
     qBittorrent_API_version: String
+    discord_bot_active: Boolean
+    discord_bot_token: String
+    discord_bot_server_id: String
+    discord_bot_channel_id: String
   }
 `
 export default settingsSchema

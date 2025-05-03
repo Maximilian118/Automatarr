@@ -37,6 +37,10 @@ export const initSettings: settingsType = {
   qBittorrent_password: "",
   qBittorrent_active: false,
   qBittorrent_API_version: "v2",
+  discord_bot_active: false,
+  discord_bot_token: "",
+  discord_bot_server_id: "",
+  discord_bot_channel_id: "",
   created_at: "",
   updated_at: "",
 }
