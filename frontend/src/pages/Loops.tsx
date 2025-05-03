@@ -164,10 +164,12 @@ const Loops: React.FC = () => {
               }
             })}
             size="small"
-            disabled={!settings.remove_missing}
+            disabled={!settings.remove_missing || !settings.qBittorrent_active}
             onBlur={(e) => updateInput(e, setSettings, setFormErr)}
             error={!!formErr.remove_missing_level}
-          />
+          />, 
+          !settings.qBittorrent_active,
+          "qBittorrent Required"
         )}
         {loop(
           "tidy_directories",

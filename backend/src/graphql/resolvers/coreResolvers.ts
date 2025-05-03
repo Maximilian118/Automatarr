@@ -214,6 +214,11 @@ const coreResolvers = {
     )
   },
   remove_missing: async (settings: settingsType): Promise<void> => {
+    if (!settings.qBittorrent_active) {
+      logger.error("Remove Missing: qBittorrent is required for this loop.")
+      return
+    }
+
     // Only get data for API's that have been checked and are active
     const { data, activeAPIs } = await activeAPIsArr(settings)
 
