@@ -276,8 +276,8 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
     await Resolvers.import_blocked_handler(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
-  await dynamicLoop("remove_failed_loop", async () => {
-    await Resolvers.remove_failed()
+  await dynamicLoop("remove_failed_loop", async (settings) => {
+    await Resolvers.remove_failed(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_missing_loop", async (settings) => {
@@ -305,7 +305,7 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_failed) {
-    await Resolvers.remove_failed()
+    await Resolvers.remove_failed(settings._doc)
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {

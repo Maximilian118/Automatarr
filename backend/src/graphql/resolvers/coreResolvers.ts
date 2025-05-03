@@ -146,7 +146,12 @@ const coreResolvers = {
     // Save the latest download queue data to the db
     await saveWithRetry(data, "import_blocked_handler")
   },
-  remove_failed: async (): Promise<void> => {
+  remove_failed: async (settings: settingsType): Promise<void> => {
+    if (!settings.qBittorrent_active) {
+      logger.error("Remove Failed: qBittorrent is required for this loop.")
+      return
+    }
+
     // Retrieve the data object from the db
     const data = await Data.findOne()
 
