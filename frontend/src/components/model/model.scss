@@ -1,7 +1,7 @@
-@use '../../../scss/variables';
-@use '../../../scss/mixins';
+@use '../../scss/variables';
+@use '../../scss/mixins';
 
-.input-model {
+.model {
   width: 420px;
   background: variables.$off-black;
   @include mixins.flexbox-space-between-column;
@@ -9,12 +9,12 @@
   box-sizing: border-box;
   border-radius: 4px;
 
-  .input-model-top {
+  .model-top {
     width: 100%;
     @include mixins.flexbox-space-between;
     margin-bottom: 30px !important;
 
-    .input-model-top-left {
+    .model-top-left {
       @include mixins.flexbox-start;
 
       img {
@@ -42,7 +42,7 @@
 
 /* Styles for mobile devices */
 @media only screen and (max-width: 700px) {
-  .input-model {
+  .model {
     width: 100% !important;
     max-width: none;
     border-radius: 0px;

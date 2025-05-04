@@ -1,5 +1,6 @@
 import React, { ReactNode } from "react"
-import './input-model.scss'
+import '../model.scss'
+import { statusColours } from "../modelUtility"
 
 interface InputModelType {
   children: ReactNode
@@ -8,20 +9,11 @@ interface InputModelType {
   status?: "Connected" | "Disconnected"
 }
 
-const statusColours = (status: string): string => {
-  switch (status) {
-    case "Connected": return "#66bb6a"
-    case "Disconnected": return "#F44336"
-    default: return "#F44336"
-  }
-}
-
-// Use `InputModelType` directly for your component.
 const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status }) => {
   return (
-    <div className="input-model">
-      <div className="input-model-top">
-        <div className="input-model-top-left">
+    <div className="model">
+      <div className="model-top">
+        <div className="model-top-left">
           {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
           {title && <h2>{title}</h2>}
         </div>

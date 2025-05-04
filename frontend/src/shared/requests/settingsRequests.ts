@@ -88,6 +88,7 @@ export const updateSettings = async (
           $qBittorrent_active: Boolean
           $qBittorrent_API_version: String
           $discord_bot_active: Boolean
+          $discord_bot_ready: Boolean
           $discord_bot_token: String
           $discord_bot_server_id: String
           $discord_bot_channel_id: String
@@ -128,6 +129,7 @@ export const updateSettings = async (
             qBittorrent_active: $qBittorrent_active
             qBittorrent_API_version: $qBittorrent_API_version
             discord_bot_active: $discord_bot_active
+            discord_bot_ready: $discord_bot_ready
             discord_bot_token: $discord_bot_token
             discord_bot_server_id: $discord_bot_server_id
             discord_bot_channel_id: $discord_bot_channel_id

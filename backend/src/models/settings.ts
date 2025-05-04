@@ -59,6 +59,7 @@ export interface settingsType {
   qBittorrent_active: boolean
   qBittorrent_API_version: string
   discord_bot_active: boolean
+  discord_bot_ready: boolean
   discord_bot_token: string
   discord_bot_server_id: string
   discord_bot_channel_id: string
@@ -113,6 +114,7 @@ const settingsSchema = new mongoose.Schema<settingsType>({
   qBittorrent_active: { type: Boolean, default: false }, // Has qBittorrent connection been tested and therefore should be included in requests?
   qBittorrent_API_version: { type: String, default: "v2" }, // qBittorrent API Version
   discord_bot_active: { type: Boolean, default: false }, // Enable or disable Discord Bot
+  discord_bot_ready: { type: Boolean, default: false }, // If the Bot is logged in and ready to go
   discord_bot_token: { type: String, default: "" }, // API Token for Discord Bot
   discord_bot_server_id: { type: String, default: "" }, // Optional. Can be used to restrict commands.
   discord_bot_channel_id: { type: String, default: "" }, // Where Discord Bot listens/responds.

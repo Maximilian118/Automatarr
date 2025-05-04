@@ -1,3 +1,4 @@
+import { botsControl } from "../../bots/botsControl"
 import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
 import { allLoopsDeactivated, coreFunctionsOnce, coreLoops } from "../../shared/utility"
@@ -65,19 +66,23 @@ const settingsResolvers = {
       qBittorrent_active,
       qBittorrent_API_version,
       discord_bot_active,
+      discord_bot_ready,
       discord_bot_token,
       discord_bot_server_id,
       discord_bot_channel_id,
     } = args.settingsInput
 
     // Find settings object by ID
-    const settings = (await Settings.findById(_id)) as settingsDocType
+    let settings = (await Settings.findById(_id)) as settingsDocType
 
     // Throw error if no object was found
     if (!settings) {
       logger.error("updateSettings: No settings by that ID were found.")
       throw new Error("No settings by that ID were found.")
     }
+
+    // Store settings object before any changes (deep clone)
+    const oldSettings = JSON.parse(JSON.stringify(settings))
 
     // Update all the things
     settings.radarr_URL = radarr_URL
@@ -114,9 +119,13 @@ const settingsResolvers = {
     settings.qBittorrent_active = qBittorrent_active
     settings.qBittorrent_API_version = qBittorrent_API_version
     settings.discord_bot_active = discord_bot_active
+    settings.discord_bot_ready = discord_bot_ready
     settings.discord_bot_token = discord_bot_token
     settings.discord_bot_server_id = discord_bot_server_id
     settings.discord_bot_channel_id = discord_bot_channel_id
+
+    // Update settings as needed with Bot data
+    settings = await botsControl(settings, oldSettings)
 
     // Save the updated object
     await settings.save()

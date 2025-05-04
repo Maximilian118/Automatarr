@@ -3,12 +3,11 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
-import { updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
-import InputModel from "../components/model/inputModel/InputModel"
-import MUITextField from "../components/utility/MUITextField/MUITextField"
 import Footer from "../components/footer/Footer"
+import BotModel from "../components/model/botModel/BotModel"
+import { textField } from "../shared/formUtility"
 
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -35,39 +34,23 @@ const Bots: React.FC = () => {
     }
   }, [localLoading, loading, setLoading])
 
-  const settingsTextField = (
-    name: keyof settingsType, 
-    label?: string, 
-    size?: "small" | "medium", 
-    maxLength?: number,
-    type?: string, 
-    disabled?: boolean
-  ) => (
-    <MUITextField 
-      label={label}
-      name={name}
-      value={settings[name] as string}
-      formErr={formErr}
-      color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
-      size={size}
-      maxLength={maxLength}
-      onBlur={(e) => updateInput(e, setSettings, setFormErr)}
-      type={type}
-      disabled={disabled}
-    />
-  )
+  const textFieldHelper = (name: keyof settingsType, label?: string) => 
+    textField(name, settings, setSettings, formErr, setFormErr, label)
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputModel 
+      <BotModel 
         title="Discord Bot" 
         startIcon="https://avatars.githubusercontent.com/u/1965106?s=200&v=4"
-        status={settings.discord_bot_active ? "Connected" : "Disconnected"}
+        status={settings.discord_bot_ready ? "Connected" : "Disconnected"}
+        settings={settings}
+        setSettings={setSettings}
+        activeSwitchTarget="discord_bot_active"
       >
-        {settingsTextField("discord_bot_token", "Token")}
-        {settingsTextField("discord_bot_server_id", "Server ID")}
-        {settingsTextField("discord_bot_channel_id", "Channel ID")}
-      </InputModel>
+        {textFieldHelper("discord_bot_token", "Token")}
+        {textFieldHelper("discord_bot_server_id", "Server ID")}
+        {textFieldHelper("discord_bot_channel_id", "Channel ID")}
+      </BotModel>
       <Button 
         type="submit"
         variant="contained"

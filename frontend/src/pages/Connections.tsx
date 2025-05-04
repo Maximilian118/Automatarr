@@ -1,14 +1,13 @@
 import { Button, CircularProgress } from "@mui/material"
-import React, { FormEvent, useContext, useEffect, useState } from "react"
+import React, { FormEvent, HTMLInputTypeAttribute, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
-import { updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
-import MUITextField from "../components/utility/MUITextField/MUITextField"
 import Footer from "../components/footer/Footer"
+import { textField } from "../shared/formUtility"
 
 const Connections: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -35,27 +34,11 @@ const Connections: React.FC = () => {
     }
   }, [localLoading, loading, setLoading])
 
-  const settingsTextField = (
+  const textFieldHelper = (
     name: keyof settingsType, 
     label?: string, 
-    size?: "small" | "medium", 
-    maxLength?: number,
-    type?: string, 
-    disabled?: boolean
-  ) => (
-    <MUITextField 
-      label={label}
-      name={name}
-      value={settings[name] as string}
-      formErr={formErr}
-      color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
-      size={size}
-      maxLength={maxLength}
-      onBlur={(e) => updateInput(e, setSettings, setFormErr)}
-      type={type}
-      disabled={disabled}
-    />
-  )
+    type?: HTMLInputTypeAttribute
+  ) => textField(name, settings, setSettings, formErr, setFormErr, label, type)
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
@@ -64,33 +47,33 @@ const Connections: React.FC = () => {
         startIcon="https://radarr.video/img/logo.png"
         status={settings.radarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("radarr_URL")}
-        {settingsTextField("radarr_KEY")}
+        {textFieldHelper("radarr_URL")}
+        {textFieldHelper("radarr_KEY")}
       </InputModel>
       <InputModel 
         title="Sonarr" 
         startIcon="https://sonarr.tv/img/logo.png"
         status={settings.sonarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("sonarr_URL")}
-        {settingsTextField("sonarr_KEY")}
+        {textFieldHelper("sonarr_URL")}
+        {textFieldHelper("sonarr_KEY")}
       </InputModel>
       <InputModel 
         title="Lidarr" 
         startIcon="https://lidarr.audio/img/logo.png"
         status={settings.lidarr_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("lidarr_URL")}
-        {settingsTextField("lidarr_KEY")}
+        {textFieldHelper("lidarr_URL")}
+        {textFieldHelper("lidarr_KEY")}
       </InputModel>
       <InputModel 
         title="qBittorrent" 
         startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
         status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
       >
-        {settingsTextField("qBittorrent_URL")}
-        {settingsTextField("qBittorrent_username")}
-        {settingsTextField("qBittorrent_password", undefined, undefined, undefined, "password")}
+        {textFieldHelper("qBittorrent_URL")}
+        {textFieldHelper("qBittorrent_username")}
+        {textFieldHelper("qBittorrent_password", undefined, "password")}
       </InputModel>
       <Button 
         type="submit"

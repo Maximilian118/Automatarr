@@ -9,12 +9,12 @@ import { getSettings, updateSettings } from "../shared/requests/settingsRequests
 import InputModel from "../components/model/inputModel/InputModel"
 import Loop from "../components/loop/Loop"
 import LoopTime from "../components/loop/looptime/Looptime"
-import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { getGroups, getUsers } from "../shared/requests/fileSystemRequests"
 import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
 import Footer from "../components/footer/Footer"
+import { textField } from "../shared/formUtility"
 
 const Loops: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -75,28 +75,6 @@ const Loops: React.FC = () => {
     e.preventDefault()
     await updateSettings(setLocalLoading, settings, setSettings, formErr)
   }
-
-  const settingsTextField = (
-    name: keyof settingsType, 
-    label?: string, 
-    size?: "small" | "medium", 
-    maxLength?: number,
-    type?: string, 
-    disabled?: boolean
-  ) => (
-    <MUITextField 
-      label={label}
-      name={name}
-      value={settings[name] as string}
-      formErr={formErr}
-      color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
-      size={size}
-      maxLength={maxLength}
-      onBlur={(e) => updateInput(e, setSettings, setFormErr)}
-      type={type}
-      disabled={disabled}
-    />
-  )
 
   const loop = (
     name: keyof settingsType, 
@@ -213,7 +191,18 @@ const Loops: React.FC = () => {
               }}
               error={!!formErr.permissions_change_chown}
             />
-            {settingsTextField("permissions_change_chmod", "Permissions", "small", 3, undefined, !settings.permissions_change)}
+            {textField(
+              "permissions_change_chmod", 
+              settings, 
+              setSettings, 
+              formErr, 
+              setFormErr, 
+              "Permissions", 
+              undefined,
+              "small", 
+              3,
+              !settings.permissions_change
+            )}
           </>
         )}
       </InputModel>

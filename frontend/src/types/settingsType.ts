@@ -40,6 +40,7 @@ export interface settingsType {
   qBittorrent_active: boolean
   qBittorrent_API_version: string
   discord_bot_active: boolean
+  discord_bot_ready: boolean
   discord_bot_token: string
   discord_bot_server_id: string
   discord_bot_channel_id: string

@@ -13,6 +13,7 @@ import { allAPIsDeactivated, allLoopsDeactivated, coreLoops } from "./shared/uti
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
 import { dataDocType } from "./models/data"
+import { botsControl } from "./bots/botsControl"
 
 // Initialise express.
 const app = express()
@@ -114,6 +115,9 @@ const startServer = async () => {
     await Resolvers.checkRadarr(bootSettings)
     await Resolvers.checkSonarr(bootSettings)
     await Resolvers.checkLidarr(bootSettings)
+
+    // Start Bots
+    await botsControl(bootSettings)
 
     // Collect the latest data from all active APIs
     const data = (await Resolvers.getData()) as dataDocType
