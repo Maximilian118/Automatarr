@@ -28,6 +28,28 @@ export const checkAPIs = async (
   }
 }
 
+// Pass a string literal and output respects new lines
+export const multilineText = (string: string, className?: string) => {
+  const lines = string.trim().split('\n')
+
+  const paragraphs = lines.map((line, index) => {
+    const trimmed = line.trim()
+
+    if (!trimmed) {
+      // Render vertical space between paragraphs
+      return <div key={index} style={{ height: '1em' }} />
+    }
+
+    return (
+      <p key={index}>
+        {trimmed}
+      </p>
+    )
+  })
+
+  return <div className={className}>{paragraphs}</div>
+}
+
 // Check if a form error object has any populated strings. I.E if there are some errors return true.
 export const formHasErr = (obj: settingsErrorType) => Object.values(obj).some((value) => value.trim() !== "")
 

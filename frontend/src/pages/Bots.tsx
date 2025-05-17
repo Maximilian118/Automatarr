@@ -42,8 +42,17 @@ const Bots: React.FC = () => {
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
       <BotModel 
-        title="Discord Bot" 
+        title="Discord Bot"
         startIcon="https://avatars.githubusercontent.com/u/1965106?s=200&v=4"
+        description={`
+          Allow Discord users to add and remove content from the server.
+
+          For every user that is accepted by the admin, a pool is created for that user.
+
+          By default a user pool has a maximum of 10 Movies and 2 Series with no expiration.
+
+          All content in user pools cannot be removed with loops.
+        `}
         status={settings.discord_bot.ready ? "Connected" : "Disconnected"}
         active={settings.discord_bot.active}
         onToggle={(value: boolean) =>

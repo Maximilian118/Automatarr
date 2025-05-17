@@ -1,10 +1,12 @@
 import React, { ReactNode } from "react"
 import { statusColours } from "../modelUtility"
 import { Switch } from "@mui/material"
+import { multilineText } from "../../../shared/utility"
 
 interface BotModelType {
   children: ReactNode
   title: string
+  description?: string
   startIcon?: ReactNode
   status?: "Connected" | "Disconnected"
   active: boolean
@@ -13,7 +15,8 @@ interface BotModelType {
 
 export const BotModel: React.FC<BotModelType> = ({ 
   children, 
-  title, 
+  title,
+  description,
   startIcon, 
   status,
   active,
@@ -36,6 +39,7 @@ export const BotModel: React.FC<BotModelType> = ({
           inputProps={{ 'aria-label': 'controlled' }}
         />
       </div>
+      {description && multilineText(description, "model-description")}
       {status && <p style={{ color: statusColours(status) }}>{status}</p>}
       {children}
     </div>
