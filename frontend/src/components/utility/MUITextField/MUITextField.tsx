@@ -52,7 +52,7 @@ const MUITextField: React.FC<MUITextFieldType> = ({
     <TextField 
       label={inputLabel(name, formErr, label)}
       name={name as unknown as string}
-      value={localValue}
+      value={localValue ? localValue : ""}
       onChange={onChangeHandler}
       onBlur={onBlur}
       color={color}
