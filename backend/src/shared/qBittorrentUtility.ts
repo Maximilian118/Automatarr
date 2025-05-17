@@ -230,9 +230,9 @@ export const findLibraryTorrents = (
       // Create an array of strings to find a torrent object with
       const matchStrings = extractStringWords(relativePath).map((str) => str.toLowerCase())
       // Add resolution to the array
-      matchStrings.push(resolution.toString().toLowerCase())
+      resolution && matchStrings.push(resolution.toString().toLowerCase())
       // Add release group to the array
-      matchStrings.push(releaseGroup.toLowerCase())
+      releaseGroup && matchStrings.push(releaseGroup.toLowerCase())
       // For each library item, find a matching torrent using the matchStrings
       const torrentMatches = torrents.filter((torrent) => {
         // Check if every string in matchStrings can be found in any torrent name

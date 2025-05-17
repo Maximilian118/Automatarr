@@ -37,11 +37,30 @@ export const populateSettings = `
   qBittorrent_password
   qBittorrent_active
   qBittorrent_API_version
-  discord_bot_active
-  discord_bot_ready
-  discord_bot_token
-  discord_bot_server_id
-  discord_bot_channel_id
+  general_bot {
+    max_movies
+    movie_pool_expiry
+    max_series
+    series_pool_expiry
+    users {
+      name
+      ids
+      super_user
+      max_movies_overwrite
+      max_series_overwrite
+    }
+  }
+  discord_bot {
+    active
+    ready
+    token
+    server_list
+    server_name
+    server_id
+    channel_list
+    channel_name
+    channel_id
+  }
   created_at
   updated_at
 `

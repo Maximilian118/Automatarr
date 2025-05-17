@@ -1,6 +1,7 @@
 import { Client, Events, GatewayIntentBits } from "discord.js"
-import { settingsDocType } from "../models/settings"
-import logger from "../logger"
+import { settingsDocType } from "../../models/settings"
+import logger from "../../logger"
+import { getAllChannels, getAllGuilds, getAllMembersForGuild } from "./discordBotUtility"
 
 let client: Client | null = null
 
@@ -29,7 +30,12 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     return settings
   }
 
-  client = new Client({ intents: [GatewayIntentBits.Guilds] })
+  client = new Client({
+    intents: [
+      GatewayIntentBits.Guilds, // Required to fetch Servers
+      GatewayIntentBits.GuildMembers, // Required to fetch Members
+    ],
+  })
 
   try {
     const readyPromise = new Promise<void>((resolve) => {
@@ -41,6 +47,15 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
 
     await client.login(settings.discord_bot_token)
     await readyPromise
+
+    const guilds = await getAllGuilds(client)
+    console.log(guilds.map((gui) => gui.name))
+
+    const members = await getAllMembersForGuild(client, guilds[0].id)
+    console.log(members.map((me) => me.user))
+
+    const channels = await getAllChannels(client)
+    console.log(channels.map((cha) => cha.name))
 
     settings.discord_bot_ready = true
     return settings

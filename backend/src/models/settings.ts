@@ -22,49 +22,75 @@ type tidyPaths = {
   allowedDirs: string[]
 }
 
+type UserType = {
+  name: string // The name of the user
+  ids: number[] // An array of ID's this user is known by. (In case of multiple bots)
+  super_user: boolean // True = Can overwrite general restrictions
+  max_movies_overwrite: number // Maximum movies this specific user is allowed to have downloaded at the same time
+  max_series_overwrite: number // Maximum series this specific user is allowed to have downloaded at the same time
+}
+
+// General information for all Bots
+type GeneralBotType = {
+  max_movies: number // Maximum movies a user is allowed to have downloaded at the same time
+  movie_pool_expiry: number | null // The amount of time a user can have any movie downloaded for. Null = Perpetual
+  max_series: number // Maximum series a user is allowed to have downloaded at the same time
+  series_pool_expiry: number | null // The amount of time a user can have any series downloaded for. Null = Perpetual
+  users: UserType[] // An array of registered users
+}
+
+type DiscordBotType = {
+  active: boolean // Enable or disable Discord Bot
+  ready: boolean // If the Bot is logged in and ready to go
+  token: string // API Token for Discord Bot
+  server_list: string[] // A list of server names to be fed to the front end
+  server_name: string // The name of the selected server
+  server_id: number | null // The ID of the selected server
+  channel_list: string[] // A list of channels for the selected server to be fed to the frontend
+  channel_name: string // The name of the selected channel
+  channel_id: number | null // The ID of the selected channel
+}
+
 // Main settingsType
 export interface settingsType {
   _id: ObjectId
-  radarr_URL: string
-  radarr_KEY: string
-  radarr_API_version: string
-  radarr_active: boolean
-  sonarr_URL: string
-  sonarr_KEY: string
-  sonarr_API_version: string
-  sonarr_active: boolean
-  lidarr_URL: string
-  lidarr_KEY: string
-  lidarr_API_version: string
-  lidarr_active: boolean
-  import_blocked: boolean
-  wanted_missing: boolean
-  remove_failed: boolean
-  remove_missing: boolean
-  permissions_change: boolean
-  tidy_directories: boolean
-  import_blocked_loop: number
-  wanted_missing_loop: number
-  remove_failed_loop: number
-  remove_missing_loop: number
-  remove_missing_level: "Library" | "Import List"
-  permissions_change_loop: number
-  permissions_change_chown: string
-  permissions_change_chmod: string
-  tidy_directories_loop: number
-  tidy_directories_paths: tidyPaths[]
-  qBittorrent_URL: string
-  qBittorrent_username: string
-  qBittorrent_password: string
-  qBittorrent_active: boolean
-  qBittorrent_API_version: string
-  discord_bot_active: boolean
-  discord_bot_ready: boolean
-  discord_bot_token: string
-  discord_bot_server_id: string
-  discord_bot_channel_id: string
-  created_at: string
-  updated_at: string
+  radarr_URL: string // URL including port to reach Radarr API. Example: localhost:7878/api/v3
+  radarr_KEY: string // API KEY for Radarr
+  radarr_API_version: string // Radarr API Version
+  radarr_active: boolean // Has Radarr connection been tested and therefore should be included in requests?
+  sonarr_URL: string // URL including port to reach Sonarr API. Example: localhost:8989/api/v3
+  sonarr_KEY: string // API KEY for Sonarr
+  sonarr_API_version: string // Sonarr API Version
+  sonarr_active: boolean // Has Sonarr connection been tested and therefore should be included in requests?
+  lidarr_URL: string // URL including port to reach Lidarr API. Example: localhost:8686/api/v1
+  lidarr_KEY: string // API KEY for Lidarr
+  lidarr_API_version: string // Lidarr API Version
+  lidarr_active: boolean // Has Lidarr connection been tested and therefore should be included in requests?
+  import_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
+  wanted_missing: boolean // Enable or disable automation of searching for missing and monitored library items
+  remove_failed: boolean // Enable or disable automation of removing failed downloads
+  remove_missing: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
+  permissions_change: boolean // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
+  tidy_directories: boolean // Enable or disable automation of removing unwanted files in specified directories
+  import_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
+  wanted_missing_loop: number // Loop timer for wanted missing search. Unit = minutes
+  remove_failed_loop: number // Loop timer for remove_failed. Unit = minutes
+  remove_missing_loop: number // Loop timer for remove_missing. Unit = minutes
+  remove_missing_level: "Library" | "Import List" // The level that which remove missing removes files from the file system. Library = Any file that isn't in Library. Import List = Any file that isn't in Import Lists.
+  permissions_change_loop: number // Loop timer for permissions_change. Unit = minutes
+  permissions_change_chown: string // Intended ownership of all content inside Starr app root folders
+  permissions_change_chmod: string // Intended permissions of all content inside Starr app root folders
+  tidy_directories_loop: number // Loop timer for tidy_directories. Unit = minutes
+  tidy_directories_paths: tidyPaths[] // An Array of paths to loop through removing all children that are not allowed. Allowed children are specified in the allowedDirs array.
+  qBittorrent_URL: string // URL including port to reach qBittorrent API
+  qBittorrent_username: string // Username for qBittorrent if it requires credentials
+  qBittorrent_password: string // Password for qBittorrent if it requires credentials
+  qBittorrent_active: boolean // Has qBittorrent connection been tested and therefore should be included in requests?
+  qBittorrent_API_version: string // qBittorrent API Version
+  general_bot: GeneralBotType // General information for all Bots
+  discord_bot: DiscordBotType // Discord Bot settings/data
+  created_at: string // When Settings was created.
+  updated_at: string // When Settings was updated.
   [key: string]: any
 }
 
@@ -74,52 +100,77 @@ export interface settingsDocType extends settingsType, Document {
   _doc: settingsType
 }
 
-export const tidyDirPathsSchema = new mongoose.Schema<tidyPaths>({
+const tidyDirPathsSchema = new mongoose.Schema<tidyPaths>({
   path: { type: String, required: true },
   allowedDirs: { type: [String], required: true },
 })
 
+const userSchema = new mongoose.Schema<UserType>({
+  name: { type: String, required: true },
+  ids: { type: [Number], required: true },
+  super_user: { type: Boolean, default: false },
+  max_movies_overwrite: { type: Number, default: 10 },
+  max_series_overwrite: { type: Number, default: 2 },
+})
+
+const generalBotSchema = new mongoose.Schema<GeneralBotType>({
+  max_movies: { type: Number, default: 10 },
+  movie_pool_expiry: { type: Number, default: null },
+  max_series: { type: Number, default: 2 },
+  series_pool_expiry: { type: Number, default: null },
+  users: { type: [userSchema], default: [] },
+})
+
+const discordBotSchema = new mongoose.Schema<DiscordBotType>({
+  active: { type: Boolean, default: false },
+  ready: { type: Boolean, default: false },
+  token: { type: String, default: "" },
+  server_list: { type: [String], default: [] },
+  server_name: { type: String, default: "" },
+  server_id: { type: Number, default: null },
+  channel_list: { type: [String], default: [] },
+  channel_name: { type: String, default: "" },
+  channel_id: { type: Number, default: null },
+})
+
 const settingsSchema = new mongoose.Schema<settingsType>({
-  radarr_URL: { type: String, default: "" }, // URL including port to reach Radarr API. Example: localhost:7878/api/v3
-  radarr_KEY: { type: String, default: "" }, // API KEY for Radarr
-  radarr_API_version: { type: String, default: "v3" }, // Radarr API Version
-  radarr_active: { type: Boolean, default: false }, // Has Radarr connection been tested and therefore should be included in requests?
-  sonarr_URL: { type: String, default: "" }, // URL including port to reach Sonarr API. Example: localhost:8989/api/v3
-  sonarr_KEY: { type: String, default: "" }, // API KEY for Sonarr
-  sonarr_API_version: { type: String, default: "v3" }, // Sonarr API Version
-  sonarr_active: { type: Boolean, default: false }, // Has Sonarr connection been tested and therefore should be included in requests?
-  lidarr_URL: { type: String, default: "" }, // URL including port to reach Lidarr API. Example: localhost:8686/api/v1
-  lidarr_KEY: { type: String, default: "" }, // API KEY for Lidarr
-  lidarr_API_version: { type: String, default: "v1" }, // Lidarr API Version
-  lidarr_active: { type: Boolean, default: false }, // Has Lidarr connection been tested and therefore should be included in requests?
-  import_blocked: { type: Boolean, default: false }, // Enable or disable automation of handling Starr app files with importBlocked in API queues
-  wanted_missing: { type: Boolean, default: false }, // Enable or disable automation of searching for missing and monitored library items
-  remove_failed: { type: Boolean, default: false }, // Enable or disable automation of removing failed downloads
-  remove_missing: { type: Boolean, default: false }, // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
-  permissions_change: { type: Boolean, default: false }, // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
-  tidy_directories: { type: Boolean, default: false }, // Enable or disable automation of removing unwanted files in specified directories
-  import_blocked_loop: { type: Number, default: 10 }, // Loop timer for importBlocked. Unit = minutes
-  wanted_missing_loop: { type: Number, default: 240 }, // Loop timer for wanted missing search. Unit = minutes
-  remove_failed_loop: { type: Number, default: 60 }, // Loop timer for remove_failed. Unit = minutes
-  remove_missing_loop: { type: Number, default: 60 }, // Loop timer for remove_missing. Unit = minutes
-  remove_missing_level: { type: String, default: "Library" }, // The level that which remove missing removes files from the file system. Library = Any file that isn't in Library. Import List = Any file that isn't in Import Lists.
-  permissions_change_loop: { type: Number, default: 10 }, // Loop timer for permissions_change. Unit = minutes
-  permissions_change_chown: { type: String, default: "" }, // Intended ownership of all content inside Starr app root folders
-  permissions_change_chmod: { type: String, default: "" }, // Intended permissions of all content inside Starr app root folders
-  tidy_directories_loop: { type: Number, default: 60 }, // Loop timer for tidy_directories. Unit = minutes
-  tidy_directories_paths: { type: [tidyDirPathsSchema], default: [] }, // An Array of paths to loop through removing all children that are not allowed. Allowed children are specified in the allowedDirs array.
-  qBittorrent_URL: { type: String, default: "" }, // URL including port to reach qBittorrent API
-  qBittorrent_username: { type: String, default: "" }, // Username for qBittorrent if it requires credentials
-  qBittorrent_password: { type: String, default: "" }, // Password for qBittorrent if it requires credentials
-  qBittorrent_active: { type: Boolean, default: false }, // Has qBittorrent connection been tested and therefore should be included in requests?
-  qBittorrent_API_version: { type: String, default: "v2" }, // qBittorrent API Version
-  discord_bot_active: { type: Boolean, default: false }, // Enable or disable Discord Bot
-  discord_bot_ready: { type: Boolean, default: false }, // If the Bot is logged in and ready to go
-  discord_bot_token: { type: String, default: "" }, // API Token for Discord Bot
-  discord_bot_server_id: { type: String, default: "" }, // Optional. Can be used to restrict commands.
-  discord_bot_channel_id: { type: String, default: "" }, // Where Discord Bot listens/responds.
-  created_at: { type: String, default: moment().format() }, // When Settings was created.
-  updated_at: { type: String, default: moment().format() }, // When Settings was updated.
+  radarr_URL: { type: String, default: "" },
+  radarr_KEY: { type: String, default: "" },
+  radarr_API_version: { type: String, default: "v3" },
+  radarr_active: { type: Boolean, default: false },
+  sonarr_URL: { type: String, default: "" },
+  sonarr_KEY: { type: String, default: "" },
+  sonarr_API_version: { type: String, default: "v3" },
+  sonarr_active: { type: Boolean, default: false },
+  lidarr_URL: { type: String, default: "" },
+  lidarr_KEY: { type: String, default: "" },
+  lidarr_API_version: { type: String, default: "v1" },
+  lidarr_active: { type: Boolean, default: false },
+  import_blocked: { type: Boolean, default: false },
+  wanted_missing: { type: Boolean, default: false },
+  remove_failed: { type: Boolean, default: false },
+  remove_missing: { type: Boolean, default: false },
+  permissions_change: { type: Boolean, default: false },
+  tidy_directories: { type: Boolean, default: false },
+  import_blocked_loop: { type: Number, default: 10 },
+  wanted_missing_loop: { type: Number, default: 240 },
+  remove_failed_loop: { type: Number, default: 60 },
+  remove_missing_loop: { type: Number, default: 60 },
+  remove_missing_level: { type: String, default: "Library" },
+  permissions_change_loop: { type: Number, default: 10 },
+  permissions_change_chown: { type: String, default: "" },
+  permissions_change_chmod: { type: String, default: "" },
+  tidy_directories_loop: { type: Number, default: 60 },
+  tidy_directories_paths: { type: [tidyDirPathsSchema], default: [] },
+  qBittorrent_URL: { type: String, default: "" },
+  qBittorrent_username: { type: String, default: "" },
+  qBittorrent_password: { type: String, default: "" },
+  qBittorrent_active: { type: Boolean, default: false },
+  qBittorrent_API_version: { type: String, default: "v2" },
+  general_bot: { type: generalBotSchema, default: () => ({}) },
+  discord_bot: { type: discordBotSchema, default: () => ({}) },
+  created_at: { type: String, default: moment().format() },
+  updated_at: { type: String, default: moment().format() },
 })
 
 const Settings = mongoose.model<settingsType>("Settings", settingsSchema)

@@ -6,7 +6,7 @@ import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
-import BotModel from "../components/model/botModel/BotModel"
+import { BotModel } from "../components/model/botModel/BotModel"
 import { textField } from "../shared/formUtility"
 
 const Bots: React.FC = () => {
@@ -34,22 +34,31 @@ const Bots: React.FC = () => {
     }
   }, [localLoading, loading, setLoading])
 
-  const textFieldHelper = (name: keyof settingsType, label?: string) => 
-    textField(name, settings, setSettings, formErr, setFormErr, label)
+  const textFieldHelper = (name: string, label?: string, disabled?: boolean, value?: string) => 
+    textField(name as keyof settingsType, settings, setSettings, formErr, setFormErr, label, undefined, undefined, undefined, disabled, value)
+  
+  const discord = settings.discord_bot
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
       <BotModel 
         title="Discord Bot" 
         startIcon="https://avatars.githubusercontent.com/u/1965106?s=200&v=4"
-        status={settings.discord_bot_ready ? "Connected" : "Disconnected"}
-        settings={settings}
-        setSettings={setSettings}
-        activeSwitchTarget="discord_bot_active"
+        status={settings.discord_bot.ready ? "Connected" : "Disconnected"}
+        active={settings.discord_bot.active}
+        onToggle={(value: boolean) =>
+          setSettings(prev => ({
+            ...prev,
+            discord_bot: {
+              ...prev.discord_bot,
+              active: value
+            }
+          }))
+        }
       >
-        {textFieldHelper("discord_bot_token", "Token")}
-        {textFieldHelper("discord_bot_server_id", "Server ID")}
-        {textFieldHelper("discord_bot_channel_id", "Channel ID")}
+        {textFieldHelper("discord_bot_token", "Token", !discord.active, discord.token)}
+        {textFieldHelper("discord_bot_server_name", "Server Name", !discord.active, discord.server_name)}
+        {textFieldHelper("discord_bot_channel_id", "Channel Name", !discord.active, discord.channel_name)}
       </BotModel>
       <Button 
         type="submit"

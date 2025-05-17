@@ -13,12 +13,13 @@ export const textField = (
   type?: HTMLInputTypeAttribute,
   size?: "small" | "medium", 
   maxLength?: number,
-  disabled?: boolean
+  disabled?: boolean,
+  value?: string,
 ) => (
   <MUITextField 
     label={label}
     name={name}
-    value={settings[name] as string}
+    value={value ? value : settings[name] as string}
     formErr={formErr}
     color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
     size={size}

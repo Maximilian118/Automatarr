@@ -1,6 +1,26 @@
 import { dataType } from "../types/dataType"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 
+const initGeneralBot = {
+  max_movies: 10, // Maximum movies a user is allowed to have downloaded at the same time
+  movie_pool_expiry: null, // The amount of time a user can have any movie downloaded for. Null = Perpetual
+  max_series: 2, // Maximum series a user is allowed to have downloaded at the same time
+  series_pool_expiry: null, // The amount of time a user can have any series downloaded for. Null = Perpetual
+  users: [], // An array of registered users
+}
+
+const initDiscordBot = {
+  active: false, // Enable or disable Discord Bot
+  ready: false, // If the Bot is logged in and ready to go
+  token: "", // API Token for Discord Bot
+  server_list: [], // A list of server names to be fed to the front end
+  server_name: "", // The name of the selected server
+  server_id: null, // The ID of the selected server
+  channel_list: [], // A list of channels for the selected server to be fed to the frontend
+  channel_name: "", // The name of the selected channel
+  channel_id: null, // The ID of the selected channel
+}
+
 // Initialise the settings object with defaults
 export const initSettings: settingsType = {
   _id: "",
@@ -37,11 +57,8 @@ export const initSettings: settingsType = {
   qBittorrent_password: "",
   qBittorrent_active: false,
   qBittorrent_API_version: "v2",
-  discord_bot_active: false,
-  discord_bot_ready: false,
-  discord_bot_token: "",
-  discord_bot_server_id: "",
-  discord_bot_channel_id: "",
+  general_bot: initGeneralBot,
+  discord_bot: initDiscordBot,
   created_at: "",
   updated_at: "",
 }

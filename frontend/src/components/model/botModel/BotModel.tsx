@@ -1,34 +1,26 @@
-import React, { Dispatch, ReactNode, SetStateAction } from "react"
+import React, { ReactNode } from "react"
 import { statusColours } from "../modelUtility"
 import { Switch } from "@mui/material"
-import { settingsType } from "../../../types/settingsType"
 
 interface BotModelType {
   children: ReactNode
   title: string
-  settings: settingsType
-  setSettings: Dispatch<SetStateAction<settingsType>>
-  activeSwitchTarget: keyof settingsType
   startIcon?: ReactNode
   status?: "Connected" | "Disconnected"
+  active: boolean
+  onToggle: (value: boolean) => void
 }
 
-const BotModel: React.FC<BotModelType> = ({ 
+export const BotModel: React.FC<BotModelType> = ({ 
   children, 
   title, 
-  settings, 
-  setSettings, 
-  activeSwitchTarget,
   startIcon, 
-  status 
-  }) => {
+  status,
+  active,
+  onToggle,
+}) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSettings(prevSettings => {
-      return {
-        ...prevSettings,
-        [activeSwitchTarget]: event.target.checked,
-      }
-    })
+    onToggle(event.target.checked)
   }
 
   return (
@@ -39,7 +31,7 @@ const BotModel: React.FC<BotModelType> = ({
           {title && <h2>{title}</h2>}
         </div>
         <Switch
-          checked={settings[activeSwitchTarget] as boolean}
+          checked={active}
           onChange={handleSwitchChange}
           inputProps={{ 'aria-label': 'controlled' }}
         />
@@ -49,5 +41,3 @@ const BotModel: React.FC<BotModelType> = ({
     </div>
   )
 }
-
-export default BotModel

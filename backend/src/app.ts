@@ -55,15 +55,22 @@ const startServer = async () => {
   const backend_PORT = process.env.VITE_BACKEND_PORT || "8091"
 
   // Set up MongoMemoryServer to store data in the local 'database' folder
-  const mongoServer = await MongoMemoryServer.create({
-    instance: {
-      dbPath: databasePath,
-      dbName: "automatarr",
-      storageEngine: "wiredTiger", // Use the persistent storage engine
-      ip: db_IP,
-      port: Number(db_PORT),
-    },
-  })
+  let mongoServer
+
+  try {
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbPath: databasePath,
+        dbName: "automatarr",
+        storageEngine: "wiredTiger", // Persistent storage engine
+        ip: db_IP,
+        port: Number(db_PORT),
+      },
+    })
+  } catch (err) {
+    logger.error(`MongoMemoryServer failed to start: ${err}`)
+    process.exit(1)
+  }
 
   // Gracefully shut down MongoMemoryServer
   const shutdown = async () => {

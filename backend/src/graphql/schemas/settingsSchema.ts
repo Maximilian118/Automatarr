@@ -4,6 +4,34 @@ const settingsSchema = `
     allowedDirs: [String!]
   }
 
+  type User {
+    name: String!
+    ids: Int!
+    super_user: Boolean!
+    max_movies_overwrite: Int!
+    max_series_overwrite: Int!
+  }
+
+  type GeneralBot {
+    max_movies: Int!
+    movie_pool_expiry: Int
+    max_series: Int!
+    series_pool_expiry: Int
+    users: [User!]!
+  }
+
+  type DiscordBot {
+    active: Boolean!
+    ready: Boolean!
+    token: String!
+    server_list: [String!]!
+    server_name: String!
+    server_id: Int
+    channel_list: [String!]!
+    channel_name: String!
+    channel_id: Int
+  }
+
   type Settings {
     _id: ID!
     radarr_URL: String!
@@ -39,11 +67,8 @@ const settingsSchema = `
     qBittorrent_password: String!
     qBittorrent_active: Boolean!
     qBittorrent_API_version: String!
-    discord_bot_active: Boolean!
-    discord_bot_ready: Boolean!
-    discord_bot_token: String!
-    discord_bot_server_id: String!
-    discord_bot_channel_id: String!
+    general_bot: GeneralBot!
+    discord_bot: DiscordBot!
     created_at: String!
     updated_at: String!
   }
@@ -51,6 +76,34 @@ const settingsSchema = `
   input tidyPaths {
     path: String!
     allowedDirs: [String!]
+  }
+
+  input user {
+    name: String
+    ids: Int
+    super_user: Boolean
+    max_movies_overwrite: Int
+    max_series_overwrite: Int
+  }
+
+  input generalBot {
+    max_movies: Int
+    movie_pool_expiry: Int
+    max_series: Int
+    series_pool_expiry: Int
+    users: [user!]!
+  }
+
+  input discordBot {
+    active: Boolean
+    ready: Boolean
+    token: String
+    server_list: [String!]
+    server_name: String
+    server_id: Int
+    channel_list: [String!]
+    channel_name: String
+    channel_id: Int
   }
 
   input settingsInput {
@@ -88,11 +141,8 @@ const settingsSchema = `
     qBittorrent_password: String
     qBittorrent_active: Boolean
     qBittorrent_API_version: String
-    discord_bot_active: Boolean
-    discord_bot_ready: Boolean
-    discord_bot_token: String
-    discord_bot_server_id: String
-    discord_bot_channel_id: String
+    general_bot: generalBot
+    discord_bot: discordBot
   }
 `
 export default settingsSchema

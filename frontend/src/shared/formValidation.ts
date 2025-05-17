@@ -6,7 +6,7 @@ export const inputLabel = (
   formErr: settingsErrorType,
   customLabel?: string,
 ): string => {
-  const errorMessage = formErr[type]
+  const errorMessage = formErr[type] ? formErr[type] : ""
   const label = type.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())
 
   return `${customLabel ? customLabel : label}${errorMessage && `: ${errorMessage}`}`

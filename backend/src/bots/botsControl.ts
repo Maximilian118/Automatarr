@@ -1,5 +1,5 @@
 import { settingsDocType } from "../models/settings"
-import { discordBot } from "./discordBot"
+import { discordBot } from "./discordBot/discordBot"
 import logger from "../logger"
 
 // Check if any keys in settings that include "bot" have changed
