@@ -6,7 +6,7 @@ import { getAllChannels, getAllGuilds, getAllMembersForGuild } from "./discordBo
 let client: Client | null = null
 
 export const discordBot = async (settings: settingsDocType): Promise<settingsDocType> => {
-  if (!settings.discord_bot_active) {
+  if (!settings.discord_bot.active) {
     if (client) {
       logger.warn(`Discord Bot | Logging out${client.user ? ` from ${client.user.tag}` : "."}`)
       await client.destroy()
@@ -15,18 +15,18 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
       logger.info("Discord Bot | Inactive.")
     }
 
-    settings.discord_bot_ready = false
+    settings.discord_bot.ready = false
     return settings
   }
 
-  if (!settings.discord_bot_token) {
+  if (!settings.discord_bot.token) {
     logger.error("Discord Bot | No Token!")
     return settings
   }
 
   if (client) {
     logger.info("Discord Bot | Already initialized.")
-    settings.discord_bot_ready = true
+    settings.discord_bot.ready = true
     return settings
   }
 
@@ -45,7 +45,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
       })
     })
 
-    await client.login(settings.discord_bot_token)
+    await client.login(settings.discord_bot.token)
     await readyPromise
 
     const guilds = await getAllGuilds(client)
@@ -57,11 +57,11 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     const channels = await getAllChannels(client)
     console.log(channels.map((cha) => cha.name))
 
-    settings.discord_bot_ready = true
+    settings.discord_bot.ready = true
     return settings
   } catch (err) {
     logger.error("Discord Bot | Login failed!", err)
-    settings.discord_bot_ready = false
+    settings.discord_bot.ready = false
     client = null
     return settings
   }

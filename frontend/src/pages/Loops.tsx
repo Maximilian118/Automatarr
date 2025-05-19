@@ -14,7 +14,7 @@ import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
 import Footer from "../components/footer/Footer"
-import { textField } from "../shared/formUtility"
+import MUITextField from "../components/utility/MUITextField/MUITextField"
 
 const Loops: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -191,18 +191,16 @@ const Loops: React.FC = () => {
               }}
               error={!!formErr.permissions_change_chown}
             />
-            {textField(
-              "permissions_change_chmod", 
-              settings, 
-              setSettings, 
-              formErr, 
-              setFormErr, 
-              "Permissions", 
-              undefined,
-              "small", 
-              3,
-              !settings.permissions_change
-            )}
+            <MUITextField
+              name="permissions_change_chmod"
+              label="Pemissions"
+              value={settings.permissions_change_chmod}
+              onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+              formErr={formErr}
+              size="small"
+              maxLength={3}
+              disabled={!settings.permissions_change}
+            />
           </>
         )}
       </InputModel>

@@ -1,6 +1,6 @@
 import axios from "axios"
 import { Dispatch, SetStateAction } from "react"
-import { settingsErrorType, settingsType } from "../../types/settingsType"
+import { settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 
@@ -38,7 +38,7 @@ export const updateSettings = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   settings: settingsType,
   setSettings: Dispatch<SetStateAction<settingsType>>,
-  formErr: settingsErrorType,
+  formErr: Record<string, string | undefined>,
 ): Promise<void> => {
   setLoading(true)
 

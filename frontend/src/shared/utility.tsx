@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react"
-import { settingsErrorType, settingsType } from "../types/settingsType"
+import { settingsType } from "../types/settingsType"
 import {
   checkLidarr,
   checkqBittorrent,
@@ -51,7 +51,8 @@ export const multilineText = (string: string, className?: string) => {
 }
 
 // Check if a form error object has any populated strings. I.E if there are some errors return true.
-export const formHasErr = (obj: settingsErrorType) => Object.values(obj).some((value) => value.trim() !== "")
+export const formHasErr = <T extends Record<string, string | undefined>>(obj: T): boolean => 
+  Object.values(obj).some((value) => (value ?? "").trim() !== "")
 
 // Return chown string
 export const createChownString = (

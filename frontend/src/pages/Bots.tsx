@@ -2,17 +2,17 @@ import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send } from "@mui/icons-material"
-import { initSettingsErrors } from "../shared/init"
-import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
 import { BotModel } from "../components/model/botModel/BotModel"
-import { textField } from "../shared/formUtility"
+import MUITextField from "../components/utility/MUITextField/MUITextField"
+import { initBotErr } from "../shared/init"
+import { botsErrType } from "../types/botType"
 
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
-  const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
+  const [ formErr, setFormErr ] = useState<botsErrType>(initBotErr)
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -33,11 +33,6 @@ const Bots: React.FC = () => {
       setLoading(!loading)
     }
   }, [localLoading, loading, setLoading])
-
-  const textFieldHelper = (name: string, label?: string, disabled?: boolean, value?: string) => 
-    textField(name as keyof settingsType, settings, setSettings, formErr, setFormErr, label, undefined, undefined, undefined, disabled, value)
-  
-  const discord = settings.discord_bot
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
@@ -65,9 +60,33 @@ const Bots: React.FC = () => {
           }))
         }
       >
-        {textFieldHelper("discord_bot_token", "Token", !discord.active, discord.token)}
-        {textFieldHelper("discord_bot_server_name", "Server Name", !discord.active, discord.server_name)}
-        {textFieldHelper("discord_bot_channel_id", "Channel Name", !discord.active, discord.channel_name)}
+        <MUITextField
+          name="discord_bot_token"
+          label="Token"
+          formErr={formErr}
+          value={settings.discord_bot.token}
+          onBlur={e => {
+            setFormErr(prevErrs => {
+              return {
+                ...prevErrs,
+                discord_bot_token: ""
+              }
+            })
+
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                discord_bot: {
+                  ...prevSettings.discord_bot,
+                  token: e.target.value
+                }
+              }
+            })
+          }}
+          error={!!formErr.discord_bot_token}
+          color={settings.discord_bot.ready ? "success" : "primary"}
+          disabled={!settings.discord_bot.active}
+        />
       </BotModel>
       <Button 
         type="submit"

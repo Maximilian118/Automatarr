@@ -1,15 +1,17 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 
-export const inputLabel = (
-  type: keyof settingsErrorType,
-  formErr: settingsErrorType,
-  customLabel?: string,
+export const inputLabel = <T extends Record<string, string | undefined>>(
+  type: keyof T, // The field in formErr we're looking at
+  formErr: T, // Entire err object
+  customLabel?: string, // Rename the field
 ): string => {
-  const errorMessage = formErr[type] ? formErr[type] : ""
-  const label = type.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase())
+  const errorMessage = formErr[type] ?? ""
+  const label = String(type)
+    .replace(/_/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
 
-  return `${customLabel ? customLabel : label}${errorMessage && `: ${errorMessage}`}`
+  return `${customLabel ? customLabel : label}${errorMessage ? `: ${errorMessage}` : ""}`
 }
 
 // Set the value of the passed key depending on if it has an error or not

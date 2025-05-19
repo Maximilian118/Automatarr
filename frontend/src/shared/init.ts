@@ -1,3 +1,4 @@
+import { botsErrType } from "../types/botType"
 import { dataType } from "../types/dataType"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 
@@ -81,4 +82,11 @@ export const initData: dataType = {
   _id: "",
   created_at: "",
   updated_at: "",
+}
+
+// Initialise botErr object with defaults
+export const initBotErr: botsErrType = {
+  discord_bot_token: "",
+  discord_bot_server_name: "",
+  discord_bot_channel_name: "",
 }
