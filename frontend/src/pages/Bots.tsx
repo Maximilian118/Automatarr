@@ -8,6 +8,7 @@ import { BotModel } from "../components/model/botModel/BotModel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initBotErr } from "../shared/init"
 import { botsErrType } from "../types/botType"
+import { updateInput } from "../shared/formValidation"
 
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -61,28 +62,11 @@ const Bots: React.FC = () => {
         }
       >
         <MUITextField
-          name="discord_bot_token"
+          name="discord_bot.token"
           label="Token"
           formErr={formErr}
           value={settings.discord_bot.token}
-          onBlur={e => {
-            setFormErr(prevErrs => {
-              return {
-                ...prevErrs,
-                discord_bot_token: ""
-              }
-            })
-
-            setSettings(prevSettings => {
-              return {
-                ...prevSettings,
-                discord_bot: {
-                  ...prevSettings.discord_bot,
-                  token: e.target.value
-                }
-              }
-            })
-          }}
+          onBlur={(e) => updateInput(e, setSettings, setFormErr)}
           error={!!formErr.discord_bot_token}
           color={settings.discord_bot.ready ? "success" : "primary"}
           disabled={!settings.discord_bot.active}
