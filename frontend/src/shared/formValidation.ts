@@ -16,7 +16,7 @@ export const inputLabel = <T extends Record<string, string | undefined>>(
   return `${customLabel ? customLabel : label}${errorMessage ? `: ${errorMessage}` : ""}`
 }
 
-function setNestedValue<T>(obj: T, path: string[], value: string): T {
+const setNestedValue = <T>(obj: T, path: string[], value: string): T => {
   if (path.length === 0) return obj
 
   const [key, ...rest] = path

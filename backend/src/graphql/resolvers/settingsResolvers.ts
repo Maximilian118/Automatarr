@@ -1,3 +1,4 @@
+import moment from "moment"
 import { botsControl } from "../../bots/botsControl"
 import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
@@ -30,47 +31,8 @@ const settingsResolvers = {
     return createdSettings
   },
   updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
-    const {
-      _id,
-      radarr_URL,
-      radarr_KEY,
-      radarr_API_version,
-      radarr_active,
-      sonarr_URL,
-      sonarr_KEY,
-      sonarr_API_version,
-      sonarr_active,
-      lidarr_URL,
-      lidarr_KEY,
-      lidarr_API_version,
-      lidarr_active,
-      import_blocked,
-      wanted_missing,
-      remove_failed,
-      remove_missing,
-      permissions_change,
-      tidy_directories,
-      import_blocked_loop,
-      wanted_missing_loop,
-      remove_failed_loop,
-      remove_missing_loop,
-      remove_missing_level,
-      permissions_change_loop,
-      permissions_change_chown,
-      permissions_change_chmod,
-      tidy_directories_loop,
-      tidy_directories_paths,
-      qBittorrent_URL,
-      qBittorrent_username,
-      qBittorrent_password,
-      qBittorrent_active,
-      qBittorrent_API_version,
-      general_bot,
-      discord_bot,
-    } = args.settingsInput
-
     // Find settings object by ID
-    let settings = (await Settings.findById(_id)) as settingsDocType
+    let settings = (await Settings.findById(args.settingsInput._id)) as settingsDocType
 
     // Throw error if no object was found
     if (!settings) {
@@ -78,45 +40,46 @@ const settingsResolvers = {
       throw new Error("No settings by that ID were found.")
     }
 
-    // Store settings object before any changes (deep clone)
-    const oldSettings = JSON.parse(JSON.stringify(settings))
+    // Deep clone full Mongoose document before mutation
+    const oldSettings = settings.toObject() as settingsType
 
     // Update all the things
-    settings.radarr_URL = radarr_URL
-    settings.radarr_KEY = radarr_KEY
-    settings.radarr_API_version = radarr_API_version
-    settings.radarr_active = radarr_active
-    settings.sonarr_URL = sonarr_URL
-    settings.sonarr_KEY = sonarr_KEY
-    settings.sonarr_API_version = sonarr_API_version
-    settings.sonarr_active = sonarr_active
-    settings.lidarr_URL = lidarr_URL
-    settings.lidarr_KEY = lidarr_KEY
-    settings.lidarr_API_version = lidarr_API_version
-    settings.lidarr_active = lidarr_active
-    settings.import_blocked = import_blocked
-    settings.wanted_missing = wanted_missing
-    settings.remove_failed = remove_failed
-    settings.remove_missing = remove_missing
-    settings.permissions_change = permissions_change
-    settings.tidy_directories = tidy_directories
-    settings.import_blocked_loop = import_blocked_loop
-    settings.wanted_missing_loop = wanted_missing_loop
-    settings.remove_failed_loop = remove_failed_loop
-    settings.remove_missing_loop = remove_missing_loop
-    settings.remove_missing_level = remove_missing_level
-    settings.permissions_change_loop = permissions_change_loop
-    settings.permissions_change_chown = permissions_change_chown
-    settings.permissions_change_chmod = permissions_change_chmod
-    settings.tidy_directories_loop = tidy_directories_loop
-    settings.tidy_directories_paths = tidy_directories_paths
-    settings.qBittorrent_URL = qBittorrent_URL
-    settings.qBittorrent_username = qBittorrent_username
-    settings.qBittorrent_password = qBittorrent_password
-    settings.qBittorrent_active = qBittorrent_active
-    settings.qBittorrent_API_version = qBittorrent_API_version
-    settings.general_bot = general_bot
-    settings.discord_bot = discord_bot
+    settings.radarr_URL = args.settingsInput.radarr_URL
+    settings.radarr_KEY = args.settingsInput.radarr_KEY
+    settings.radarr_API_version = args.settingsInput.radarr_API_version
+    settings.radarr_active = args.settingsInput.radarr_active
+    settings.sonarr_URL = args.settingsInput.sonarr_URL
+    settings.sonarr_KEY = args.settingsInput.sonarr_KEY
+    settings.sonarr_API_version = args.settingsInput.sonarr_API_version
+    settings.sonarr_active = args.settingsInput.sonarr_active
+    settings.lidarr_URL = args.settingsInput.lidarr_URL
+    settings.lidarr_KEY = args.settingsInput.lidarr_KEY
+    settings.lidarr_API_version = args.settingsInput.lidarr_API_version
+    settings.lidarr_active = args.settingsInput.lidarr_active
+    settings.import_blocked = args.settingsInput.import_blocked
+    settings.wanted_missing = args.settingsInput.wanted_missing
+    settings.remove_failed = args.settingsInput.remove_failed
+    settings.remove_missing = args.settingsInput.remove_missing
+    settings.permissions_change = args.settingsInput.permissions_change
+    settings.tidy_directories = args.settingsInput.tidy_directories
+    settings.import_blocked_loop = args.settingsInput.import_blocked_loop
+    settings.wanted_missing_loop = args.settingsInput.wanted_missing_loop
+    settings.remove_failed_loop = args.settingsInput.remove_failed_loop
+    settings.remove_missing_loop = args.settingsInput.remove_missing_loop
+    settings.remove_missing_level = args.settingsInput.remove_missing_level
+    settings.permissions_change_loop = args.settingsInput.permissions_change_loop
+    settings.permissions_change_chown = args.settingsInput.permissions_change_chown
+    settings.permissions_change_chmod = args.settingsInput.permissions_change_chmod
+    settings.tidy_directories_loop = args.settingsInput.tidy_directories_loop
+    settings.tidy_directories_paths = args.settingsInput.tidy_directories_paths
+    settings.qBittorrent_URL = args.settingsInput.qBittorrent_URL
+    settings.qBittorrent_username = args.settingsInput.qBittorrent_username
+    settings.qBittorrent_password = args.settingsInput.qBittorrent_password
+    settings.qBittorrent_active = args.settingsInput.qBittorrent_active
+    settings.qBittorrent_API_version = args.settingsInput.qBittorrent_API_version
+    Object.assign(settings.general_bot, args.settingsInput.general_bot)
+    Object.assign(settings.discord_bot, args.settingsInput.discord_bot)
+    settings.updated_at = moment().format()
 
     // Update settings as needed with Bot data
     settings = await botsControl(settings, oldSettings)

@@ -9,6 +9,7 @@ import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initBotErr } from "../shared/init"
 import { botsErrType } from "../types/botType"
 import { updateInput } from "../shared/formValidation"
+import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -70,6 +71,34 @@ const Bots: React.FC = () => {
           error={!!formErr.discord_bot_token}
           color={settings.discord_bot.ready ? "success" : "primary"}
           disabled={!settings.discord_bot.active}
+        />
+        <MUIAutocomplete
+          label="Server Name"
+          options={settings.discord_bot.server_list}
+          value={settings.discord_bot.server_name}
+          setValue={(val) => setSettings(prevSettings => {
+            return {
+              ...prevSettings,
+              discord_bot: {
+                ...prevSettings.discord_bot,
+                server_name: val ?? "",
+              }
+            }
+          })}
+        />
+        <MUIAutocomplete
+          label="Channel Name"
+          options={settings.discord_bot.channel_list}
+          value={settings.discord_bot.channel_name}
+          setValue={(val) => setSettings(prevSettings => {
+            return {
+              ...prevSettings,
+              discord_bot: {
+                ...prevSettings.discord_bot,
+                channel_name: val ?? "",
+              }
+            }
+          })}
         />
       </BotModel>
       <Button 

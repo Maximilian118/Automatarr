@@ -1,4 +1,4 @@
-import React, { Dispatch, FocusEvent, Fragment, SetStateAction } from 'react'
+import React, { FocusEvent, Fragment } from 'react'
 import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete'
 import { CircularProgress, SxProps } from '@mui/material'
@@ -8,8 +8,8 @@ type MUIAutocompleteType = {
   label: string
   options: string[]
   value: string | null
-  setValue: Dispatch<SetStateAction<string | null>>
-  onBlur?: (value: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => void,
+  setValue: (val: string | null) => void
+  onBlur?: (value: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => void
   sx?: SxProps
   size?: "small" | "medium"
   disabled?: boolean

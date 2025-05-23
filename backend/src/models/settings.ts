@@ -39,7 +39,7 @@ type GeneralBotType = {
   users: UserType[] // An array of registered users
 }
 
-type DiscordBotType = {
+export type DiscordBotType = {
   active: boolean // Enable or disable Discord Bot
   ready: boolean // If the Bot is logged in and ready to go
   token: string // API Token for Discord Bot
@@ -133,45 +133,50 @@ const discordBotSchema = new mongoose.Schema<DiscordBotType>({
   channel_id: { type: Number, default: null },
 })
 
-const settingsSchema = new mongoose.Schema<settingsType>({
-  radarr_URL: { type: String, default: "" },
-  radarr_KEY: { type: String, default: "" },
-  radarr_API_version: { type: String, default: "v3" },
-  radarr_active: { type: Boolean, default: false },
-  sonarr_URL: { type: String, default: "" },
-  sonarr_KEY: { type: String, default: "" },
-  sonarr_API_version: { type: String, default: "v3" },
-  sonarr_active: { type: Boolean, default: false },
-  lidarr_URL: { type: String, default: "" },
-  lidarr_KEY: { type: String, default: "" },
-  lidarr_API_version: { type: String, default: "v1" },
-  lidarr_active: { type: Boolean, default: false },
-  import_blocked: { type: Boolean, default: false },
-  wanted_missing: { type: Boolean, default: false },
-  remove_failed: { type: Boolean, default: false },
-  remove_missing: { type: Boolean, default: false },
-  permissions_change: { type: Boolean, default: false },
-  tidy_directories: { type: Boolean, default: false },
-  import_blocked_loop: { type: Number, default: 10 },
-  wanted_missing_loop: { type: Number, default: 240 },
-  remove_failed_loop: { type: Number, default: 60 },
-  remove_missing_loop: { type: Number, default: 60 },
-  remove_missing_level: { type: String, default: "Library" },
-  permissions_change_loop: { type: Number, default: 10 },
-  permissions_change_chown: { type: String, default: "" },
-  permissions_change_chmod: { type: String, default: "" },
-  tidy_directories_loop: { type: Number, default: 60 },
-  tidy_directories_paths: { type: [tidyDirPathsSchema], default: [] },
-  qBittorrent_URL: { type: String, default: "" },
-  qBittorrent_username: { type: String, default: "" },
-  qBittorrent_password: { type: String, default: "" },
-  qBittorrent_active: { type: Boolean, default: false },
-  qBittorrent_API_version: { type: String, default: "v2" },
-  general_bot: { type: generalBotSchema, default: () => ({}) },
-  discord_bot: { type: discordBotSchema, default: () => ({}) },
-  created_at: { type: String, default: moment().format() },
-  updated_at: { type: String, default: moment().format() },
-})
+const settingsSchema = new mongoose.Schema<settingsType>(
+  {
+    radarr_URL: { type: String, default: "" },
+    radarr_KEY: { type: String, default: "" },
+    radarr_API_version: { type: String, default: "v3" },
+    radarr_active: { type: Boolean, default: false },
+    sonarr_URL: { type: String, default: "" },
+    sonarr_KEY: { type: String, default: "" },
+    sonarr_API_version: { type: String, default: "v3" },
+    sonarr_active: { type: Boolean, default: false },
+    lidarr_URL: { type: String, default: "" },
+    lidarr_KEY: { type: String, default: "" },
+    lidarr_API_version: { type: String, default: "v1" },
+    lidarr_active: { type: Boolean, default: false },
+    import_blocked: { type: Boolean, default: false },
+    wanted_missing: { type: Boolean, default: false },
+    remove_failed: { type: Boolean, default: false },
+    remove_missing: { type: Boolean, default: false },
+    permissions_change: { type: Boolean, default: false },
+    tidy_directories: { type: Boolean, default: false },
+    import_blocked_loop: { type: Number, default: 10 },
+    wanted_missing_loop: { type: Number, default: 240 },
+    remove_failed_loop: { type: Number, default: 60 },
+    remove_missing_loop: { type: Number, default: 60 },
+    remove_missing_level: { type: String, default: "Library" },
+    permissions_change_loop: { type: Number, default: 10 },
+    permissions_change_chown: { type: String, default: "" },
+    permissions_change_chmod: { type: String, default: "" },
+    tidy_directories_loop: { type: Number, default: 60 },
+    tidy_directories_paths: { type: [tidyDirPathsSchema], default: [] },
+    qBittorrent_URL: { type: String, default: "" },
+    qBittorrent_username: { type: String, default: "" },
+    qBittorrent_password: { type: String, default: "" },
+    qBittorrent_active: { type: Boolean, default: false },
+    qBittorrent_API_version: { type: String, default: "v2" },
+    general_bot: { type: generalBotSchema, default: () => ({}) },
+    discord_bot: { type: discordBotSchema, default: () => ({}) },
+    created_at: { type: String, default: moment().format() },
+    updated_at: { type: String, default: moment().format() },
+  },
+  {
+    optimisticConcurrency: true, // Fixes an issue with __v not updating in db on save().
+  },
+)
 
 const Settings = mongoose.model<settingsType>("Settings", settingsSchema)
 

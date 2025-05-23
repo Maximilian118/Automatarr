@@ -1,7 +1,7 @@
 import { Client, Events, GatewayIntentBits } from "discord.js"
 import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
-import { getAllChannels, getAllGuilds, getAllMembersForGuild } from "./discordBotUtility"
+import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
 
 let client: Client | null = null
 
@@ -21,13 +21,15 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
 
   if (!settings.discord_bot.token) {
     logger.error("Discord Bot | No Token!")
+    settings.discord_bot = initDiscordBot(settings.discord_bot)
     return settings
   }
 
   if (client) {
     logger.info("Discord Bot | Already initialized.")
     settings.discord_bot.ready = true
-    return settings
+
+    return getServerandChannels(client, settings)
   }
 
   client = new Client({
@@ -48,17 +50,8 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     await client.login(settings.discord_bot.token)
     await readyPromise
 
-    const guilds = await getAllGuilds(client)
-    console.log(guilds.map((gui) => gui.name))
-
-    const members = await getAllMembersForGuild(client, guilds[0].id)
-    console.log(members.map((me) => me.user))
-
-    const channels = await getAllChannels(client)
-    console.log(channels.map((cha) => cha.name))
-
     settings.discord_bot.ready = true
-    return settings
+    return getServerandChannels(client, settings)
   } catch (err) {
     logger.error("Discord Bot | Login failed!", err)
     settings.discord_bot.ready = false
