@@ -25,6 +25,13 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     return settings
   }
 
+  // If no server is selected, init channel list
+  if (!settings.discord_bot.server_name && settings.discord_bot.channel_list.length > 0) {
+    logger.warn("Discord Bot | No Server selected. Channels removed.")
+    settings.discord_bot.channel_list = []
+    return settings
+  }
+
   if (client) {
     logger.info("Discord Bot | Already initialized.")
     settings.discord_bot.ready = true
