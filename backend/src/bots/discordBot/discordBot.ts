@@ -5,6 +5,8 @@ import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
 
 let client: Client | null = null
 
+export const getDiscordClient = () => client
+
 export const discordBot = async (settings: settingsDocType): Promise<settingsDocType> => {
   if (!settings.discord_bot.active) {
     if (client) {

@@ -2,7 +2,7 @@ import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send } from "@mui/icons-material"
-import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getDiscordChannels, getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
 import { BotModel } from "../components/model/botModel/BotModel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
@@ -14,6 +14,7 @@ import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomple
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
+  const [ channelLoading, setChannelLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<botsErrType>(initBotErr)
 
   // Get latest settings from db on page load if settings has not been populated
@@ -76,21 +77,26 @@ const Bots: React.FC = () => {
           options={settings.discord_bot.server_list}
           value={settings.discord_bot.server_name}
           disabled={!settings.discord_bot.token}
-          setValue={(val) => setSettings(prevSettings => {
-            return {
-              ...prevSettings,
-              discord_bot: {
-                ...prevSettings.discord_bot,
-                server_name: val ?? "",
+          setValue={(val) => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                discord_bot: {
+                  ...prevSettings.discord_bot,
+                  server_name: val ?? "",
+                }
               }
-            }
-          })}
+            })
+
+            getDiscordChannels(setSettings, setChannelLoading, val)
+          }}
         />
         <MUIAutocomplete
           label="Movie Channel"
           options={settings.discord_bot.channel_list}
           value={settings.discord_bot.movie_channel_name}
-          disabled={!settings.discord_bot.server_name}
+          disabled={!settings.discord_bot.server_name || settings.discord_bot.channel_list.length === 0 || channelLoading}
+          loading={channelLoading}
           setValue={(val) => setSettings(prevSettings => {
             return {
               ...prevSettings,
@@ -105,7 +111,8 @@ const Bots: React.FC = () => {
           label="Series Channel"
           options={settings.discord_bot.channel_list}
           value={settings.discord_bot.series_channel_name}
-          disabled={!settings.discord_bot.server_name}
+          disabled={!settings.discord_bot.server_name || settings.discord_bot.channel_list.length === 0 || channelLoading}
+          loading={channelLoading}
           setValue={(val) => setSettings(prevSettings => {
             return {
               ...prevSettings,

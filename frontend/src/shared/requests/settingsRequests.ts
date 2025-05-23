@@ -146,3 +146,62 @@ export const updateSettings = async (
     setLoading(false)
   }
 }
+
+export const getDiscordChannels = async (
+  setSettings: Dispatch<SetStateAction<settingsType>>,
+  setLoading: Dispatch<SetStateAction<boolean>>,
+  server_name: string | null,
+): Promise<void> => {
+  if (!server_name) {
+    setSettings((prevSettings) => {
+      return {
+        ...prevSettings,
+        discord_bot: {
+          ...prevSettings.discord_bot,
+          channel_list: [],
+          movie_channel_name: "",
+          series_channel_name: "",
+          music_channel_name: "",
+          books_channel_name: "",
+        },
+      }
+    })
+
+    return
+  }
+
+  setLoading(true)
+
+  try {
+    const res = await axios.post("", {
+      variables: {
+        server_name,
+      },
+      query: `
+        query GetDiscordChannels($server_name: String!) {
+          getDiscordChannels(server_name: $server_name)
+        }
+      `,
+    })
+
+    if (res.data.errors) {
+      console.error(`getDiscordChannels Error: ${res.data.errors[0].message}`)
+    } else {
+      setSettings((prevSettings) => {
+        return {
+          ...prevSettings,
+          discord_bot: {
+            ...prevSettings.discord_bot,
+            channel_list: res.data.data.getDiscordChannels,
+          },
+        }
+      })
+
+      console.log(`getDiscordChannels: Discord channels retrieved for ${server_name}.`)
+    }
+  } catch (err) {
+    console.error(`getDiscordChannels Error: ${err}`)
+  } finally {
+    setLoading(false)
+  }
+}

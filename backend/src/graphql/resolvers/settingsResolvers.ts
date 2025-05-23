@@ -4,6 +4,8 @@ import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
 import { allLoopsDeactivated, coreFunctionsOnce, coreLoops } from "../../shared/utility"
 import Resolvers from "./resolvers"
+import { getAllChannels } from "../../bots/discordBot/discordBotUtility"
+import { getDiscordClient } from "../../bots/discordBot/discordBot"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -112,6 +114,24 @@ const settingsResolvers = {
 
     // Return the settings object
     return settings._doc
+  },
+  getDiscordChannels: async ({ server_name }: { server_name: string }): Promise<string[]> => {
+    if (!server_name) {
+      logger.error("getDiscordChannels: No server name passed!")
+      return []
+    }
+
+    const client = getDiscordClient()
+
+    if (!client) {
+      logger.error("getDiscordChannels: Discord Bot not logged in.")
+      return []
+    }
+
+    const channels = await getAllChannels(client, server_name)
+    const channelNames = channels.map((channel) => channel.name)
+
+    return channelNames
   },
 }
 

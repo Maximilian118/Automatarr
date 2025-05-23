@@ -10,6 +10,7 @@ const Schema = buildSchema(`
     getSettings: Settings
     getData: Data
     getChildPaths(path: String): [String!]!
+    getDiscordChannels(server_name: String!): [String!]!
     checkRadarr: Int!
     checkSonarr: Int!
     checkLidarr: Int!
