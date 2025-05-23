@@ -9,10 +9,11 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
     token: "",
     server_list: [],
     server_name: "",
-    server_id: null,
     channel_list: [],
-    channel_name: "",
-    channel_id: null,
+    movie_channel_name: "",
+    series_channel_name: "",
+    music_channel_name: "",
+    books_channel_name: "",
   }
 }
 
@@ -117,7 +118,7 @@ export const getServerandChannels = async (
 
   settings.discord_bot.channel_list = channels.map((channel) => channel.name)
 
-  if (!settings.discord_bot.channel_name) {
+  if (!settings.discord_bot.movie_channel_name && !settings.discord_bot.series_channel_name) {
     logger.warn("Discord Bot | Please select a Channel!")
   }
 

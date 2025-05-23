@@ -26,10 +26,11 @@ const settingsSchema = `
     token: String!
     server_list: [String!]!
     server_name: String!
-    server_id: Int
     channel_list: [String!]!
-    channel_name: String!
-    channel_id: Int
+    movie_channel_name: String!
+    series_channel_name: String!
+    music_channel_name: String!
+    books_channel_name: String!
   }
 
   type Settings {
@@ -98,12 +99,13 @@ const settingsSchema = `
     active: Boolean
     ready: Boolean
     token: String
-    server_list: [String!]
+    server_list: [String!]!
     server_name: String
-    server_id: Int
-    channel_list: [String!]
-    channel_name: String
-    channel_id: Int
+    channel_list: [String!]!
+    movie_channel_name: String
+    series_channel_name: String
+    music_channel_name: String
+    books_channel_name: String
   }
 
   input settingsInput {

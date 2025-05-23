@@ -16,10 +16,11 @@ const initDiscordBot = {
   token: "", // API Token for Discord Bot
   server_list: [], // A list of server names to be fed to the front end
   server_name: "", // The name of the selected server
-  server_id: null, // The ID of the selected server
   channel_list: [], // A list of channels for the selected server to be fed to the frontend
-  channel_name: "", // The name of the selected channel
-  channel_id: null, // The ID of the selected channel
+  movie_channel_name: "", // The channel that pertains to movie/Radarr commands
+  series_channel_name: "", // The channel that pertains to series/Sonarr commands
+  music_channel_name: "", // The channel that pertains to music/Lidarr commands
+  books_channel_name: "", // The channel that pertains to books/Readarr commands
 }
 
 // Initialise the settings object with defaults

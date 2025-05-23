@@ -56,10 +56,11 @@ export const populateSettings = `
     token
     server_list
     server_name
-    server_id
     channel_list
-    channel_name
-    channel_id
+    movie_channel_name
+    series_channel_name
+    music_channel_name
+    books_channel_name
   }
   created_at
   updated_at

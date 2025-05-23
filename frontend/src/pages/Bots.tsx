@@ -70,12 +70,12 @@ const Bots: React.FC = () => {
           onBlur={(e) => updateInput(e, setSettings, setFormErr)}
           error={!!formErr.discord_bot_token}
           color={settings.discord_bot.ready ? "success" : "primary"}
-          disabled={!settings.discord_bot.active}
         />
         <MUIAutocomplete
-          label="Server Name"
+          label="Server"
           options={settings.discord_bot.server_list}
           value={settings.discord_bot.server_name}
+          disabled={!settings.discord_bot.token}
           setValue={(val) => setSettings(prevSettings => {
             return {
               ...prevSettings,
@@ -87,15 +87,31 @@ const Bots: React.FC = () => {
           })}
         />
         <MUIAutocomplete
-          label="Channel Name"
+          label="Movie Channel"
           options={settings.discord_bot.channel_list}
-          value={settings.discord_bot.channel_name}
+          value={settings.discord_bot.movie_channel_name}
+          disabled={!settings.discord_bot.server_name}
           setValue={(val) => setSettings(prevSettings => {
             return {
               ...prevSettings,
               discord_bot: {
                 ...prevSettings.discord_bot,
-                channel_name: val ?? "",
+                movie_channel_name: val ?? "",
+              }
+            }
+          })}
+        />
+        <MUIAutocomplete
+          label="Series Channel"
+          options={settings.discord_bot.channel_list}
+          value={settings.discord_bot.series_channel_name}
+          disabled={!settings.discord_bot.server_name}
+          setValue={(val) => setSettings(prevSettings => {
+            return {
+              ...prevSettings,
+              discord_bot: {
+                ...prevSettings.discord_bot,
+                series_channel_name: val ?? "",
               }
             }
           })}

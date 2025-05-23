@@ -26,10 +26,11 @@ type DiscordBotType = {
   token: string // API Token for Discord Bot
   server_list: string[] // A list of server names to be fed to the front end
   server_name: string // The name of the selected server
-  server_id: number | null // The ID of the selected server
   channel_list: string[] // A list of channels for the selected server to be fed to the frontend
-  channel_name: string // The name of the selected channel
-  channel_id: number | null // The ID of the selected channel
+  movie_channel_name: string // The channel that pertains to movie/Radarr commands
+  series_channel_name: string // The channel that pertains to series/Sonarr commands
+  music_channel_name: string // The channel that pertains to music/Lidarr commands
+  books_channel_name: string // The channel that pertains to books/Readarr commands
 }
 
 // Main settingsType
