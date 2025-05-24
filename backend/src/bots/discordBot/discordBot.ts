@@ -2,6 +2,7 @@ import { Client, Events, GatewayIntentBits } from "discord.js"
 import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
+import { messageListeners } from "./disocrdBotListeners"
 
 let client: Client | null = null
 // Export function so discord client can be used in other documents
@@ -48,6 +49,8 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     intents: [
       GatewayIntentBits.Guilds, // Required to fetch Servers
       GatewayIntentBits.GuildMembers, // Required to fetch Members
+      GatewayIntentBits.GuildMessages, // Required to receive messages sent in guild text channels
+      GatewayIntentBits.MessageContent, // Required to read message content
     ],
   })
 
@@ -62,6 +65,8 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
 
     await client.login(settings.discord_bot.token)
     await readyPromise
+
+    messageListeners(client)
 
     settings.discord_bot.ready = true
     return getServerandChannels(client, settings)
