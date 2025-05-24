@@ -32,9 +32,9 @@ type UserType = {
 
 // General information for all Bots
 type GeneralBotType = {
-  max_movies: number // Maximum movies a user is allowed to have downloaded at the same time
+  max_movies: number | null // Maximum movies a user is allowed to have downloaded at the same time. Null = Infinite
   movie_pool_expiry: number | null // The amount of time a user can have any movie downloaded for. Null = Perpetual
-  max_series: number // Maximum series a user is allowed to have downloaded at the same time
+  max_series: number | null // Maximum series a user is allowed to have downloaded at the same time. Null = Infinite
   series_pool_expiry: number | null // The amount of time a user can have any series downloaded for. Null = Perpetual
   users: UserType[] // An array of registered users
 }

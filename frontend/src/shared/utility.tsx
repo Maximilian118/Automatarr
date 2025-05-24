@@ -90,3 +90,9 @@ export const shortPath = (path: string, depth: number = 2, ellipsis: boolean = t
   const lastDirs = parts.slice(-depth).join('/') // Get the last `depth` directories
   return `${ellipsis ? ".../" : ""}${lastDirs}` // Show "..." for the parent directories, then the last `depth` directories
 }
+
+// Helper functions to use with Autocomplete when dealing with numbers
+export const numberSelection = (): string[] => [...Array(99)].map((_, i) => (i + 1).toString()).concat("Infinite")
+export const stringSelectionToNumber = (value: string): number | null => value === "Infinite" ? null : parseInt(value, 10)
+export const toStringWithCap = (num: number | null, max: number, maxString: string): string =>
+  num === null ? maxString : num > max ? maxString : num.toString()

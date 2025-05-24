@@ -13,9 +13,9 @@ const settingsSchema = `
   }
 
   type GeneralBot {
-    max_movies: Int!
+    max_movies: Int
     movie_pool_expiry: Int
-    max_series: Int!
+    max_series: Int
     series_pool_expiry: Int
     users: [User!]!
   }
