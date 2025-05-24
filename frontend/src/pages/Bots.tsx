@@ -50,6 +50,8 @@ const Bots: React.FC = () => {
           Each pool has limits and expiration times for different content types.
 
           The admin can also assign Super Users, who are exempt from these restrictions.
+
+          Content in user pools cannot be removed via loops.
         `}
       >
         <MUIAutocomplete
@@ -122,12 +124,6 @@ const Bots: React.FC = () => {
         startIcon="https://avatars.githubusercontent.com/u/1965106?s=200&v=4"
         description={`
           Allow Discord users to add and remove content from the server.
-
-          For every user that is accepted by the admin, a pool is created for that user.
-
-          By default a user pool has a maximum of 10 Movies and 2 Series with no expiration.
-
-          All content in user pools cannot be removed with loops.
         `}
         status={settings.discord_bot.ready ? "Connected" : "Disconnected"}
         active={settings.discord_bot.active}
