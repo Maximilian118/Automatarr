@@ -42,6 +42,8 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     logger.info("Discord Bot | Already initialized.")
     settings.discord_bot.ready = true
 
+    messageListeners(client, settings.toObject())
+
     return getServerandChannels(client, settings)
   }
 
@@ -66,7 +68,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     await client.login(settings.discord_bot.token)
     await readyPromise
 
-    messageListeners(client)
+    messageListeners(client, settings.toObject())
 
     settings.discord_bot.ready = true
     return getServerandChannels(client, settings)
