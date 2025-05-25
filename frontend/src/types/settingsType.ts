@@ -6,9 +6,12 @@ export type tidyPaths = {
 type UserType = {
   name: string // The name of the user
   ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
+  admin: boolean // True = This user is an admin and can add / remove users
   super_user: boolean // True = Can overwrite general restrictions
-  max_movies_overwrite: number // Maximum movies this specific user is allowed to have downloaded at the same time
-  max_series_overwrite: number // Maximum series this specific user is allowed to have downloaded at the same time
+  max_movies_overwrite: number | null // Maximum movies this specific user is allowed to have downloaded at the same time
+  max_series_overwrite: number | null // Maximum series this specific user is allowed to have downloaded at the same time
+  created_at: string // When user was created.
+  updated_at: string // When user was updated.
 }
 
 // General information for all Bots

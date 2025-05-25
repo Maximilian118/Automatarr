@@ -1,4 +1,4 @@
-import { Client, Guild, GuildBasedChannel, GuildMember } from "discord.js"
+import { Client, Guild, GuildBasedChannel, GuildMember, Message } from "discord.js"
 import { DiscordBotType, settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 
@@ -84,6 +84,7 @@ export const getAllMembersForGuild = async (
   }
 }
 
+// Return servers. If a server is selected, return all channels of that server.
 export const getServerandChannels = async (
   client: Client,
   settings: settingsDocType,
@@ -123,4 +124,54 @@ export const getServerandChannels = async (
   }
 
   return settings
+}
+
+// Validate the array data for the caseInit message
+export const validateInitCommand = async (msgArr: string[], message: Message): Promise<string> => {
+  const validCommands = ["!initialize", "!initialise", "!init"]
+
+  if (msgArr.length !== 3) {
+    return "The !init command must contain exactly three parts: `!init <discord_username> <display_name>`."
+  }
+
+  const [command, discordUsername, displayName] = msgArr
+
+  if (!validCommands.includes(command)) {
+    return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
+  }
+
+  // Validate Discord username by checking actual members in the guild
+  const matchedUser = message.guild?.members.cache.find(
+    (member) =>
+      member.user.username.toLowerCase() === discordUsername.toLowerCase() ||
+      member.user.tag.toLowerCase() === discordUsername.toLowerCase(),
+  )
+
+  if (!matchedUser) {
+    return `The user \`${discordUsername}\` does not exist in this server.`
+  }
+
+  const displayNameRegex = /^[a-zA-Z]{1,20}$/
+  if (!displayNameRegex.test(displayName)) {
+    return `\`${displayName}\` is invalid. The display name must contain only letters and be no more than 20 characters long.`
+  }
+
+  return ""
+}
+
+// A basic function that returns the passed string and logs it in the backend
+export const discordReply = (
+  msg: string,
+  level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success",
+  customLog?: string,
+): string => {
+  const logMessage = `Discord Bot | ${customLog || msg}`
+
+  if (typeof logger[level] === "function") {
+    logger[level](logMessage)
+  } else {
+    logger.info(logMessage) // fallback in case of unexpected level
+  }
+
+  return msg
 }

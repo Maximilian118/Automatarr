@@ -1,32 +1,35 @@
 import logger from "../logger"
 import { dataDocType } from "../models/data"
+import { settingsDocType } from "../models/settings"
 
-// If saving to the database fails for whatever reason, try again a number of times.
-// If every attempt fails, gracefully stop trying.
 export const saveWithRetry = async (
-  data: dataDocType,
-  loopName: string,
+  dbObject: dataDocType | settingsDocType,
+  identifier: string,
   maxRetries: number = 3,
   delay: number = 3000,
-): Promise<dataDocType | undefined> => {
+): Promise<typeof dbObject | undefined> => {
   let attempts = 0
-  let success = false
 
-  while (attempts < maxRetries && !success) {
+  while (attempts < maxRetries) {
     try {
-      const res = await data.save()
-      success = true // If save succeeds, exit loop
+      const res = await dbObject.save()
       return res
-    } catch (err) {
+    } catch (err: any) {
       attempts++
 
+      logger.error(
+        `${identifier}: Save attempt ${attempts} failed.\n` +
+          `Error: ${err.name} - ${err.message}\n` +
+          (err.stack ? `Stack Trace:\n${err.stack}` : ""),
+      )
+
       if (attempts >= maxRetries) {
-        logger.error(`${loopName}: Max database save retries reached, operation failed.`)
-        return // Gracefully stop without throwing an error
+        logger.error(`${identifier}: Max database save retries reached. Final failure.`)
+        return
       }
 
-      logger.warn(`${loopName}: Retrying database save operation... Attempt ${attempts}`)
-      await new Promise((resolve) => setTimeout(resolve, delay)) // Wait before retrying
+      logger.warn(`${identifier}: Retrying database save operation... Attempt ${attempts}`)
+      await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
 }

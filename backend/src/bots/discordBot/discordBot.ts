@@ -2,7 +2,7 @@ import { Client, Events, GatewayIntentBits } from "discord.js"
 import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
-import { messageListeners } from "./disocrdBotListeners"
+import { messageListeners } from "./discordBotListeners"
 
 let client: Client | null = null
 // Export function so discord client can be used in other documents
@@ -42,8 +42,6 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     logger.info("Discord Bot | Already initialized.")
     settings.discord_bot.ready = true
 
-    messageListeners(client, settings.toObject())
-
     return getServerandChannels(client, settings)
   }
 
@@ -68,7 +66,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     await client.login(settings.discord_bot.token)
     await readyPromise
 
-    messageListeners(client, settings.toObject())
+    await messageListeners(client)
 
     settings.discord_bot.ready = true
     return getServerandChannels(client, settings)

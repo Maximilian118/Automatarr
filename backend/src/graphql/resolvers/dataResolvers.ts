@@ -73,7 +73,7 @@ const dataResolvers = {
     data.qBittorrent = await getqBittorrentData(settings._doc, data)
 
     data.updated_at = moment().format()
-    return await saveWithRetry(data, "getData")
+    return (await saveWithRetry(data, "getData")) as dataDocType
   },
 }
 

@@ -6,10 +6,13 @@ const settingsSchema = `
 
   type User {
     name: String!
-    ids: Int!
+    ids: [String!]!
+    admin: Boolean!
     super_user: Boolean!
-    max_movies_overwrite: Int!
-    max_series_overwrite: Int!
+    max_movies_overwrite: Int
+    max_series_overwrite: Int
+    created_at: String!
+    updated_at: String!
   }
 
   type GeneralBot {
@@ -81,10 +84,13 @@ const settingsSchema = `
 
   input user {
     name: String
-    ids: Int
+    ids: [String!]!
+    admin: Boolean
     super_user: Boolean
     max_movies_overwrite: Int
     max_series_overwrite: Int
+    created_at: String
+    updated_at: String
   }
 
   input generalBot {

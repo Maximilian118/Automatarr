@@ -22,12 +22,15 @@ type tidyPaths = {
   allowedDirs: string[]
 }
 
-type UserType = {
+export type UserType = {
   name: string // The name of the user
   ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
+  admin: boolean // True = This user is an admin and can add / remove users
   super_user: boolean // True = Can overwrite general restrictions
-  max_movies_overwrite: number // Maximum movies this specific user is allowed to have downloaded at the same time
-  max_series_overwrite: number // Maximum series this specific user is allowed to have downloaded at the same time
+  max_movies_overwrite: number | null // Maximum movies this specific user is allowed to have downloaded at the same time
+  max_series_overwrite: number | null // Maximum series this specific user is allowed to have downloaded at the same time
+  created_at: string // When user was created.
+  updated_at: string // When user was updated.
 }
 
 // General information for all Bots
@@ -108,10 +111,13 @@ const tidyDirPathsSchema = new mongoose.Schema<tidyPaths>({
 
 const userSchema = new mongoose.Schema<UserType>({
   name: { type: String, required: true },
-  ids: { type: [Number], required: true },
+  ids: { type: [String], required: true },
+  admin: { type: Boolean, default: false },
   super_user: { type: Boolean, default: false },
   max_movies_overwrite: { type: Number, default: 10 },
   max_series_overwrite: { type: Number, default: 2 },
+  created_at: { type: String, default: moment().format() },
+  updated_at: { type: String, default: moment().format() },
 })
 
 const generalBotSchema = new mongoose.Schema<GeneralBotType>({
