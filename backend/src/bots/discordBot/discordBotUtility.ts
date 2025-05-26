@@ -1,5 +1,5 @@
 import { Client, Guild, GuildBasedChannel, GuildMember, Message } from "discord.js"
-import { DiscordBotType, settingsDocType } from "../../models/settings"
+import { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
 import logger from "../../logger"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
@@ -126,34 +126,70 @@ export const getServerandChannels = async (
   return settings
 }
 
+// Check if the passed Discord mentionMatch/username exists in the server
+export const matchedDiscordUser = async (
+  message: Message,
+  identifier: string,
+): Promise<string | undefined> => {
+  const guild = message.guild
+  if (!guild) return undefined
+
+  const mentionMatch = identifier.match(/^<@!?(\d+)>$/)
+
+  if (mentionMatch) {
+    const member = guild.members.cache.get(mentionMatch[1])
+    return member?.user.username
+  }
+
+  const id = identifier.toLowerCase()
+
+  const member = guild.members.cache.find(
+    (m) => m.user.username.toLowerCase() === id || m.user.tag.toLowerCase() === id,
+  )
+
+  return member?.user.username
+}
+
+// Check if the passed Discord username exists as a user in Automatarr already
+export const matchedUser = (settings: settingsDocType, identifier: string): UserType | undefined =>
+  settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
+
 // Validate the array data for the caseInit message
-export const validateInitCommand = async (msgArr: string[], message: Message): Promise<string> => {
+export const validateInitCommand = (msgArr: string[]): string => {
   const validCommands = ["!initialize", "!initialise", "!init"]
 
   if (msgArr.length !== 3) {
     return "The !init command must contain exactly three parts: `!init <discord_username> <display_name>`."
   }
 
-  const [command, discordUsername, displayName] = msgArr
+  const [command, _, displayName] = msgArr
 
   if (!validCommands.includes(command)) {
     return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
   }
 
-  // Validate Discord username by checking actual members in the guild
-  const matchedUser = message.guild?.members.cache.find(
-    (member) =>
-      member.user.username.toLowerCase() === discordUsername.toLowerCase() ||
-      member.user.tag.toLowerCase() === discordUsername.toLowerCase(),
-  )
-
-  if (!matchedUser) {
-    return `The user \`${discordUsername}\` does not exist in this server.`
-  }
-
   const displayNameRegex = /^[a-zA-Z]{1,20}$/
   if (!displayNameRegex.test(displayName)) {
-    return `\`${displayName}\` is invalid. The display name must contain only letters and be no more than 20 characters long.`
+    return `\`${displayName}\` is invalid. A display name must contain only letters and be no more than 20 characters long.`
+  }
+
+  return ""
+}
+
+// Validate the array data for the caseAdmin message
+export const validateAdminCommand = (msgArr: string[]): string => {
+  if (msgArr.length !== 3) {
+    return "The !admin command must contain exactly three parts: `!admin <add/remove> <discord_username>`."
+  }
+
+  const [command, action] = msgArr
+
+  if (command !== "!admin") {
+    return `Invalid command \`${command}\`.`
+  }
+
+  if (!["add", "remove"].includes(action?.toLowerCase())) {
+    return `Invalid action \`${action}\`. Please use \`add\` or \`remove\`.`
   }
 
   return ""

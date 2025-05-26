@@ -1,5 +1,11 @@
 import { Client, Message } from "discord.js"
-import { discordReply, validateInitCommand } from "./discordBotUtility"
+import {
+  discordReply,
+  matchedDiscordUser,
+  matchedUser,
+  validateAdminCommand,
+  validateInitCommand,
+} from "./discordBotUtility"
 import { initUser } from "../botUtility"
 import Settings, { settingsDocType } from "../../models/settings"
 import { saveWithRetry } from "../../shared/database"
@@ -89,20 +95,69 @@ const adminCheck = async (message: Message, passedSettings?: settingsDocType): P
   return ""
 }
 
-// Add or remove an admin from a user
+// Add or remove an admin from a user. *** Already checking if sender is admin in switch ***
 const caseAdmin = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull
 
-  if (message.content.toLowerCase().includes("add")) {
-    console.log(settings)
+  // Validate the request string: `!admin <add/remove> <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateAdminCommand(msgArr)
+  if (validationError) return validationError
+
+  // Extract params while checking if <discord_username> exists on the server
+  const action = msgArr[1]
+  const username = await matchedDiscordUser(message, msgArr[2])
+  if (!username) return `The user \`${msgArr[2]}\` does not exist in this server.`
+
+  // Check the user exists in database
+  const user = matchedUser(settings, username)
+
+  if (!user) {
+    return discordReply(`A Discord user by ${username} does not exist in the database.`, "error")
   }
 
-  if (message.content.toLowerCase().includes("remove")) {
-    console.log(settings)
+  // Truthy = "add", Falsy = "remove"
+  const actionBoolean = action.toLowerCase().includes("add")
+
+  // Check if user is already what we're trying to change it to
+  if (user.admin === actionBoolean) {
+    return `${user.name} is already ${actionBoolean ? "" : "not "}an admin silly!`
   }
 
-  return "Hmm.. something went wrong."
+  // Ensure that the first user in the database cannot have admin privileges revoked from them
+  const firstUser = settings.general_bot.users[0]
+
+  if (!firstUser) {
+    // There aren't any users yet
+    return "You need to create a user in the database with `!init <discord_username> <display_name>` first."
+  } else if (message.author.username === username) {
+    // The owner has targeted themseves
+    return "As the server owner, you cannot remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
+  } else if (firstUser.ids.includes(username)) {
+    // The server owner has been targeted
+    return `${firstUser.name} the supreme does not have time for your shenanigans.`
+  }
+
+  // Find the user by username and update
+  settings.general_bot.users = settings.general_bot.users.map((user) => {
+    if (user.ids.some((id) => id === username)) {
+      return {
+        ...user,
+        admin: actionBoolean,
+      }
+    } else {
+      return user
+    }
+  })
+
+  // Save the changes to database
+  if (!(await saveWithRetry(settings, "caseAdmin"))) return noDBSave
+
+  return discordReply(
+    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} an admin.`,
+    "success",
+  )
 }
 
 // Initialise a user
@@ -110,17 +165,17 @@ const caseInit = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull
 
-  const msgArr = message.content.toLowerCase().slice().trim().split(/\s+/)
-  const validationError = await validateInitCommand(msgArr, message)
+  // Validate the request string: `!init <discord_username> <display_name>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateInitCommand(msgArr)
+  if (validationError) return validationError
 
-  if (validationError) {
-    return validationError
-  }
-
+  // Extract params while checking if <discord_username> exists on the server
   const name = capsFirstLetter(msgArr[2])
-  const username = msgArr[1]
+  const username = await matchedDiscordUser(message, msgArr[1])
+  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
 
-  // If no users exist, create the first user with admin
+  // If no users exist in the database, create the first user with admin privileges
   if (settings.general_bot.users.length === 0) {
     const user = initUser(name, username, false, true)
     settings.general_bot.users.push(user)
@@ -135,15 +190,10 @@ const caseInit = async (message: Message): Promise<string> => {
 
   // If users exist, check for admin privileges before continuing
   const adminError = await adminCheck(message, settings)
+  if (adminError) return adminError
 
-  if (adminError) {
-    return adminError
-  }
-
-  // Check for duplicates
-  const existingUsernames = settings.general_bot.users.flatMap((u) => u.ids)
-
-  if (existingUsernames.some((id) => id === username)) {
+  // Check for duplicate discord usernames
+  if (matchedUser(settings, username)) {
     return discordReply(`A user with the Discord username "${username}" already exists.`, "error")
   }
 
