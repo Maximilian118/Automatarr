@@ -1,15 +1,14 @@
 import { Client, Message } from "discord.js"
-import {
-  discordReply,
-  matchedDiscordUser,
-  matchedUser,
-  validateAdminCommand,
-  validateInitCommand,
-} from "./discordBotUtility"
+import { discordReply, matchedDiscordUser, matchedUser } from "./discordBotUtility"
 import { initUser } from "../botUtility"
 import Settings, { settingsDocType } from "../../models/settings"
 import { saveWithRetry } from "../../shared/database"
 import { capsFirstLetter } from "../../shared/utility"
+import {
+  validateAdminCommand,
+  validateInitCommand,
+  validateOwnerCommand,
+} from "./discordRequestValidation"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -35,6 +34,9 @@ export const messageListeners = async (client: Client) => {
       case "hello":
         await message.channel.send(`Hello, ${message.author.username}!`)
         break
+      case "owner":
+        await message.channel.send((await adminCheck(message)) || (await caseOwner(message)))
+        break
       case "admin":
         await message.channel.send((await adminCheck(message)) || (await caseAdmin(message)))
         break
@@ -44,7 +46,7 @@ export const messageListeners = async (client: Client) => {
         await message.channel.send(await caseInit(message))
         break
       default:
-        await message.channel.send(`Unknown command: \`${command}\``)
+        await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
     }
   }
 
@@ -95,6 +97,61 @@ const adminCheck = async (message: Message, passedSettings?: settingsDocType): P
   return ""
 }
 
+// Give ownership to another user in the database. *** Already checking if sender is admin in switch ***
+const caseOwner = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull
+
+  // Validate the request string: `!owner <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateOwnerCommand(msgArr)
+  if (validationError) return validationError
+
+  // Extract username while checking if <discord_username> exists on the server
+  const username = await matchedDiscordUser(message, msgArr[1])
+  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+
+  // Find the user tied to the author
+  const user = matchedUser(settings, message.author.username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Ensure the owner is making the request
+  const firstUser = settings.general_bot.users[0]
+
+  if (!firstUser) {
+    return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
+  }
+
+  if (!firstUser.ids.includes(message.author.username)) {
+    return discordReply(
+      `You are not the server owner ${user.name}. ${firstUser.name} the supreme will not be pleased...`,
+      "warn",
+      `${user.name} / ${message.author.username} tried to promote ${username} to owner...`,
+    )
+  }
+
+  // Find the target user in the list
+  const targetIndex = settings.general_bot.users.findIndex((u) => u.ids.includes(username))
+
+  if (targetIndex === -1) {
+    return `The user \`${username}\` does not exist in the database.`
+  }
+
+  // Move the new owner to index 0
+  const [newOwner] = settings.general_bot.users.splice(targetIndex, 1)
+  newOwner.admin = true // Always ensure new owner is admin
+  settings.general_bot.users.unshift(newOwner)
+
+  // Save changes
+  if (!(await saveWithRetry(settings, "caseOwner"))) return noDBSave
+
+  return discordReply(
+    `I anoint thee ${newOwner.name} owner of the server supreme. Use this power wisely.`,
+    "success",
+    `${newOwner.name} / ${username} has been made the server owner by ${message.author.username}. Hot damn!`,
+  )
+}
+
 // Add or remove an admin from a user. *** Already checking if sender is admin in switch ***
 const caseAdmin = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -130,7 +187,7 @@ const caseAdmin = async (message: Message): Promise<string> => {
 
   if (!firstUser) {
     // There aren't any users yet
-    return "You need to create a user in the database with `!init <discord_username> <display_name>` first."
+    return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
   } else if (message.author.username === username) {
     // The owner has targeted themseves
     return "As the server owner, you cannot remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
@@ -182,7 +239,7 @@ const caseInit = async (message: Message): Promise<string> => {
     if (!(await saveWithRetry(settings, "caseInit First"))) return noDBSave
 
     return discordReply(
-      `Welcome to the Automatarr Discord Bot ${user.name}! Your user has been created with admin privileges. Type !help to see all of my commands!`,
+      `Welcome to the Automatarr Discord Bot ${user.name}! Your user has been created with admin privileges and owner status. Type !help to see all of my commands!`,
       "success",
       `${user.name} has created the first user and has admin privileges!`,
     )

@@ -154,47 +154,6 @@ export const matchedDiscordUser = async (
 export const matchedUser = (settings: settingsDocType, identifier: string): UserType | undefined =>
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
 
-// Validate the array data for the caseInit message
-export const validateInitCommand = (msgArr: string[]): string => {
-  const validCommands = ["!initialize", "!initialise", "!init"]
-
-  if (msgArr.length !== 3) {
-    return "The !init command must contain exactly three parts: `!init <discord_username> <display_name>`."
-  }
-
-  const [command, _, displayName] = msgArr
-
-  if (!validCommands.includes(command)) {
-    return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
-  }
-
-  const displayNameRegex = /^[a-zA-Z]{1,20}$/
-  if (!displayNameRegex.test(displayName)) {
-    return `\`${displayName}\` is invalid. A display name must contain only letters and be no more than 20 characters long.`
-  }
-
-  return ""
-}
-
-// Validate the array data for the caseAdmin message
-export const validateAdminCommand = (msgArr: string[]): string => {
-  if (msgArr.length !== 3) {
-    return "The !admin command must contain exactly three parts: `!admin <add/remove> <discord_username>`."
-  }
-
-  const [command, action] = msgArr
-
-  if (command !== "!admin") {
-    return `Invalid command \`${command}\`.`
-  }
-
-  if (!["add", "remove"].includes(action?.toLowerCase())) {
-    return `Invalid action \`${action}\`. Please use \`add\` or \`remove\`.`
-  }
-
-  return ""
-}
-
 // A basic function that returns the passed string and logs it in the backend
 export const discordReply = (
   msg: string,
