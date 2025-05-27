@@ -9,8 +9,10 @@ import {
   validateDeleteCommand,
   validateInitCommand,
   validateOwnerCommand,
+  validateRemoveCommand,
 } from "./discordRequestValidation"
 import { updateDiscordAdminRole, updateDiscordOwnerRole } from "./discordBotRoles"
+import { kickDiscordUser } from "./discordBotRequests"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -49,6 +51,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "delete": // Delete a user in databse only
         await message.channel.send((await adminCheck(message)) || (await caseDelete(message)))
+        break
+      case "remove": // Remove a user from the database and the discord server
+        await message.channel.send((await adminCheck(message)) || (await caseRemove(message)))
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -121,15 +126,15 @@ const caseOwner = async (message: Message): Promise<string> => {
   if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
 
   // Ensure the owner is making the request
-  const firstUser = settings.general_bot.users[0]
+  const serverOwner = settings.general_bot.users[0]
 
-  if (!firstUser) {
+  if (!serverOwner) {
     return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
   }
 
-  if (!firstUser.ids.includes(message.author.username)) {
+  if (!serverOwner.ids.includes(message.author.username)) {
     return discordReply(
-      `You are not the server owner ${user.name}. ${firstUser.name} the supreme will not be pleased...`,
+      `You are not the server owner ${user.name}. ${serverOwner.name} the supreme will not be pleased...`,
       "warn",
       `${user.name} / ${message.author.username} tried to promote ${username} to owner...`,
     )
@@ -195,8 +200,13 @@ const caseAdmin = async (message: Message): Promise<string> => {
     return "As the server owner, you cannot remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
   }
 
-  // Ensure the server owner cannot be demoted
-  const ownerErr = ownerIsTarget(settings, username)
+  // Ensure the server owner cannot be targeted
+  const ownerErr = ownerIsTarget(
+    settings,
+    message,
+    username,
+    actionBoolean ? "grant admin privileges to" : "remove admin privileges from",
+  )
   if (ownerErr) return ownerErr
 
   // Find the user by username and update
@@ -294,12 +304,55 @@ const caseDelete = async (message: Message): Promise<string> => {
   }
 
   // Ensure the server owner cannot be deleted
-  const ownerErr = ownerIsTarget(settings, username)
+  const ownerErr = ownerIsTarget(settings, message, username, "delete")
   if (ownerErr) return ownerErr
 
   // Find the target user in the database
   const user = matchedUser(settings, username)
   if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Remove the target user from the users array
+  settings.general_bot.users = settings.general_bot.users.filter(
+    (user) => !user.ids.includes(username),
+  )
+
+  // Save the new users array to the database
+  if (!(await saveWithRetry(settings, "caseDelete"))) return noDBSave
+
+  return `${user.name} has been deleted from the database.`
+}
+
+// Remove a user from the database and the discord server
+const caseRemove = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull
+
+  // Validate the request string: `!delete <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateRemoveCommand(msgArr)
+  if (validationError) return validationError
+
+  // Extract username while checking if <discord_username> exists on the server
+  const username = await matchedDiscordUser(message, msgArr[1])
+  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+
+  // The owner has targeted themseves
+  const serverOwner = settings.general_bot.users[0]
+  if (serverOwner.ids.includes(message.author.username)) {
+    return "You cannot remove yourself my liege!"
+  }
+
+  // Ensure the server owner cannot be deleted
+  const ownerErr = ownerIsTarget(settings, message, username, "remove")
+  if (ownerErr) return ownerErr
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Remove the target user from the discord server
+  const kickResult = await kickDiscordUser(message, settings, username)
+  if (kickResult) return kickResult
 
   // Remove the target user from the users array
   settings.general_bot.users = settings.general_bot.users.filter(

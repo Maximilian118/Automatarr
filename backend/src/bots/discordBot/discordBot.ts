@@ -48,7 +48,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
   client = new Client({
     intents: [
       GatewayIntentBits.Guilds, // Required to fetch Servers
-      GatewayIntentBits.GuildMembers, // Required to fetch Members
+      GatewayIntentBits.GuildMembers, // Required to fetch/remove Members
       GatewayIntentBits.GuildMessages, // Required to receive messages sent in guild text channels
       GatewayIntentBits.MessageContent, // Required to read message content
     ],

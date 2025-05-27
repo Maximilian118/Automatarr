@@ -18,7 +18,12 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
 }
 
 // Check if the server owner is the target
-export const ownerIsTarget = (settings: settingsDocType, targetUsername: string): string => {
+export const ownerIsTarget = (
+  settings: settingsDocType,
+  message: Message,
+  targetUsername: string,
+  action?: string,
+): string => {
   const firstUser = settings.general_bot.users[0]
 
   // If !firstUser then no users exist
@@ -28,7 +33,13 @@ export const ownerIsTarget = (settings: settingsDocType, targetUsername: string)
 
   // The server owner has been targeted
   if (firstUser.ids.includes(targetUsername)) {
-    return `${firstUser.name} the supreme does not have time for your shenanigans.`
+    return discordReply(
+      `${firstUser.name} the supreme does not have time for your shenanigans.`,
+      "error",
+      `${message.author.username} just attempted to ${
+        action ? action : "do something silly to"
+      } the server owner...`,
+    )
   }
 
   return ""

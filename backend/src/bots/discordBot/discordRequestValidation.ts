@@ -68,3 +68,18 @@ export const validateDeleteCommand = (msgArr: string[]): string => {
 
   return ""
 }
+
+// Validate the array data for the caseDelete message
+export const validateRemoveCommand = (msgArr: string[]): string => {
+  if (msgArr.length !== 2) {
+    return "The !remove command must contain exactly two parts: `!remove <discord_username>`."
+  }
+
+  const [command] = msgArr
+
+  if (command.toLowerCase() !== "!remove") {
+    return `Invalid command \`${command}\`.`
+  }
+
+  return ""
+}
