@@ -24,18 +24,18 @@ export const ownerIsTarget = (
   targetUsername: string,
   action?: string,
 ): string => {
-  const firstUser = settings.general_bot.users[0]
+  const serverOwner = settings.general_bot.users[0]
 
-  // If !firstUser then no users exist
-  if (!firstUser) {
+  // If !serverOwner then no users exist
+  if (!serverOwner) {
     return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
   }
 
   // The server owner has been targeted
-  if (firstUser.ids.includes(targetUsername)) {
+  if (serverOwner.ids.includes(targetUsername)) {
     return discordReply(
-      `${firstUser.name} the supreme does not have time for your shenanigans.`,
-      "error",
+      `${serverOwner.name} the supreme does not have time for your shenanigans.`,
+      "warn",
       `${message.author.username} just attempted to ${
         action ? action : "do something silly to"
       } the server owner...`,

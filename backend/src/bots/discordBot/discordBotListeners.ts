@@ -10,6 +10,7 @@ import {
   validateInitCommand,
   validateOwnerCommand,
   validateRemoveCommand,
+  validateSuperUser,
 } from "./discordRequestValidation"
 import { updateDiscordAdminRole, updateDiscordOwnerRole } from "./discordBotRoles"
 import { kickDiscordUser } from "./discordBotRequests"
@@ -43,6 +44,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "admin": // Promote or Demote somone from Admin
         await message.channel.send((await adminCheck(message)) || (await caseAdmin(message)))
+        break
+      case "superuser":
+        await message.channel.send((await adminCheck(message)) || (await caseSuperUser(message)))
         break
       case "initialize":
       case "initialise":
@@ -182,22 +186,21 @@ const caseAdmin = async (message: Message): Promise<string> => {
 
   // Check the user exists in database
   const user = matchedUser(settings, username)
-
-  if (!user) {
-    return discordReply(`A Discord user by ${username} does not exist in the database.`, "error")
-  }
+  if (!user)
+    return discordReply(`A Discord user by ${username} does not exist in the database.`, "warn")
 
   // Truthy = "add", Falsy = "remove"
   const actionBoolean = action.toLowerCase().includes("add")
 
+  // The owner has targeted themseves
+  const serverOwner = settings.general_bot.users[0]
+  if (serverOwner && message.author.username === username && serverOwner.ids.includes(username)) {
+    return "As the server owner, you cannot add or remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
+  }
+
   // Check if user is already what we're trying to change it to
   if (user.admin === actionBoolean) {
     return `${user.name} is already ${actionBoolean ? "" : "not "}an admin silly!`
-  }
-
-  // The owner has targeted themseves
-  if (message.author.username === username) {
-    return "As the server owner, you cannot remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
   }
 
   // Ensure the server owner cannot be targeted
@@ -230,6 +233,66 @@ const caseAdmin = async (message: Message): Promise<string> => {
 
   return discordReply(
     `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} an admin. ${
+      actionBoolean ? "Congratulations!" : ""
+    }`,
+    "success",
+  )
+}
+
+// Add or remove an super_user from a user. *** Already checking if sender is admin in switch ***
+const caseSuperUser = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull
+
+  // Validate the request string: `!superuser <add/remove> <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateSuperUser(msgArr)
+  if (validationError) return validationError
+
+  // Extract params while checking if <discord_username> exists on the server
+  const action = msgArr[1]
+  const username = await matchedDiscordUser(message, msgArr[2])
+  if (!username) return `The user \`${msgArr[2]}\` does not exist in this server.`
+
+  // The owner has targeted themseves
+  const serverOwner = settings.general_bot.users[0]
+  if (serverOwner && message.author.username === username && serverOwner.ids.includes(username)) {
+    return "You are the server owner my liege! You have no need for such trifle."
+  }
+
+  // Ensure the server owner cannot be targeted
+  const ownerErr = ownerIsTarget(settings, message, username, "give super-user permissions to")
+  if (ownerErr) return ownerErr
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Truthy = "add", Falsy = "remove"
+  const actionBoolean = action.toLowerCase().includes("add")
+
+  // Check if user is already what we're trying to change it to
+  if (user.super_user === actionBoolean) {
+    return `${user.name} is already ${actionBoolean ? "" : "not "}a super user silly!`
+  }
+
+  // Find the user by username and update
+  settings.general_bot.users = settings.general_bot.users.map((user) => {
+    if (user.ids.some((id) => id === username)) {
+      return {
+        ...user,
+        super_user: actionBoolean,
+      }
+    } else {
+      return user
+    }
+  })
+
+  // Save the changes to database
+  if (!(await saveWithRetry(settings, "caseSuperUser"))) return noDBSave
+
+  return discordReply(
+    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} a super user. ${
       actionBoolean ? "Congratulations!" : ""
     }`,
     "success",
@@ -299,8 +362,9 @@ const caseDelete = async (message: Message): Promise<string> => {
   if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
 
   // The owner has targeted themseves
-  if (message.author.username === username) {
-    return "You cannot delete your own data my liege!"
+  const serverOwner = settings.general_bot.users[0]
+  if (serverOwner.ids.includes(message.author.username)) {
+    return "You cannot delete yourself my liege!"
   }
 
   // Ensure the server owner cannot be deleted
