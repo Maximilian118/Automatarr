@@ -1,11 +1,12 @@
 import { Client, Message } from "discord.js"
-import { discordReply, matchedDiscordUser, matchedUser } from "./discordBotUtility"
+import { discordReply, matchedDiscordUser, matchedUser, ownerIsTarget } from "./discordBotUtility"
 import { initUser } from "../botUtility"
 import Settings, { settingsDocType } from "../../models/settings"
 import { saveWithRetry } from "../../shared/database"
 import { capsFirstLetter } from "../../shared/utility"
 import {
   validateAdminCommand,
+  validateDeleteCommand,
   validateInitCommand,
   validateOwnerCommand,
 } from "./discordRequestValidation"
@@ -28,22 +29,25 @@ export const messageListeners = async (client: Client) => {
     const [command, ..._args] = message.content.slice(prefix.length).trim().split(/\s+/)
 
     switch (command.toLowerCase()) {
-      case "ping":
+      case "ping": // Calculate round trip time
         await message.channel.send(casePing(client, message))
         break
-      case "hello":
+      case "hello": // Say Hello!
         await message.channel.send(`Hello, ${message.author.username}!`)
         break
-      case "owner":
+      case "owner": // Assign the server owner
         await message.channel.send((await adminCheck(message)) || (await caseOwner(message)))
         break
-      case "admin":
+      case "admin": // Promote or Demote somone from Admin
         await message.channel.send((await adminCheck(message)) || (await caseAdmin(message)))
         break
       case "initialize":
       case "initialise":
-      case "init":
+      case "init": // Initialise a new user in the database
         await message.channel.send(await caseInit(message))
+        break
+      case "delete": // Delete a user in databse only
+        await message.channel.send((await adminCheck(message)) || (await caseDelete(message)))
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -182,19 +186,14 @@ const caseAdmin = async (message: Message): Promise<string> => {
     return `${user.name} is already ${actionBoolean ? "" : "not "}an admin silly!`
   }
 
-  // Ensure that the first user in the database cannot have admin privileges revoked from them
-  const firstUser = settings.general_bot.users[0]
-
-  if (!firstUser) {
-    // There aren't any users yet
-    return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
-  } else if (message.author.username === username) {
-    // The owner has targeted themseves
+  // The owner has targeted themseves
+  if (message.author.username === username) {
     return "As the server owner, you cannot remove admin privileges from yourself. To do so, you must first transfer ownership to another user using the !owner command. WARNING!!! Think carefully before proceeding — once you relinquish ownership, you will no longer be protected from actions by other admins."
-  } else if (firstUser.ids.includes(username)) {
-    // The server owner has been targeted
-    return `${firstUser.name} the supreme does not have time for your shenanigans.`
   }
+
+  // Ensure the server owner cannot be demoted
+  const ownerErr = ownerIsTarget(settings, username)
+  if (ownerErr) return ownerErr
 
   // Find the user by username and update
   settings.general_bot.users = settings.general_bot.users.map((user) => {
@@ -263,4 +262,42 @@ const caseInit = async (message: Message): Promise<string> => {
     "success",
     `A new user has been created for ${name}`,
   )
+}
+
+// Delete a user
+const caseDelete = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull
+
+  // Validate the request string: `!delete <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateDeleteCommand(msgArr)
+  if (validationError) return validationError
+
+  // Extract username while checking if <discord_username> exists on the server
+  const username = await matchedDiscordUser(message, msgArr[1])
+  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+
+  // The owner has targeted themseves
+  if (message.author.username === username) {
+    return "You cannot delete your own data my liege!"
+  }
+
+  // Ensure the server owner cannot be deleted
+  const ownerErr = ownerIsTarget(settings, username)
+  if (ownerErr) return ownerErr
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Remove the target user from the users array
+  settings.general_bot.users = settings.general_bot.users.filter(
+    (user) => !user.ids.includes(username),
+  )
+
+  // Save the new users array to the database
+  if (!(await saveWithRetry(settings, "caseDelete"))) return noDBSave
+
+  return `${user.name} has been deleted from the database.`
 }

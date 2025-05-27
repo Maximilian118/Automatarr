@@ -17,6 +17,23 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   }
 }
 
+// Check if the server owner is the target
+export const ownerIsTarget = (settings: settingsDocType, targetUsername: string): string => {
+  const firstUser = settings.general_bot.users[0]
+
+  // If !firstUser then no users exist
+  if (!firstUser) {
+    return "You first need to create a user in the database with `!init <discord_username> <display_name>`."
+  }
+
+  // The server owner has been targeted
+  if (firstUser.ids.includes(targetUsername)) {
+    return `${firstUser.name} the supreme does not have time for your shenanigans.`
+  }
+
+  return ""
+}
+
 // Get all Servers
 export const getAllGuilds = async (client: Client): Promise<Guild[]> => {
   const guilds: Guild[] = []
