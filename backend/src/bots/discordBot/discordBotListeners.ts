@@ -10,7 +10,7 @@ import {
   validateInitCommand,
   validateOwnerCommand,
 } from "./discordRequestValidation"
-import { updateDiscordAdminRole } from "./discordBotAdmin"
+import { updateDiscordAdminRole, updateDiscordOwnerRole } from "./discordBotRoles"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -146,6 +146,9 @@ const caseOwner = async (message: Message): Promise<string> => {
   const [newOwner] = settings.general_bot.users.splice(targetIndex, 1)
   newOwner.admin = true // Always ensure new owner is admin
   settings.general_bot.users.unshift(newOwner)
+
+  const roleUpdateMsg = await updateDiscordOwnerRole(message, username)
+  if (roleUpdateMsg) return roleUpdateMsg
 
   // Save changes
   if (!(await saveWithRetry(settings, "caseOwner"))) return noDBSave
