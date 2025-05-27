@@ -12,7 +12,11 @@ import {
   validateRemoveCommand,
   validateSuperUser,
 } from "./discordRequestValidation"
-import { updateDiscordAdminRole, updateDiscordOwnerRole } from "./discordBotRoles"
+import {
+  updateDiscordAdminRole,
+  updateDiscordOwnerRole,
+  updateDiscordSuperUserRole,
+} from "./discordBotRoles"
 import { kickDiscordUser } from "./discordBotRequests"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
@@ -45,7 +49,7 @@ export const messageListeners = async (client: Client) => {
       case "admin": // Promote or Demote somone from Admin
         await message.channel.send((await adminCheck(message)) || (await caseAdmin(message)))
         break
-      case "superuser":
+      case "superuser": // Promote or Demote somone from a super user
         await message.channel.send((await adminCheck(message)) || (await caseSuperUser(message)))
         break
       case "initialize":
@@ -287,6 +291,10 @@ const caseSuperUser = async (message: Message): Promise<string> => {
       return user
     }
   })
+
+  // If a role called Super User exists, update permissions for the user in discord
+  const roleUpdateMsg = await updateDiscordSuperUserRole(message, username, actionBoolean)
+  if (roleUpdateMsg) return roleUpdateMsg
 
   // Save the changes to database
   if (!(await saveWithRetry(settings, "caseSuperUser"))) return noDBSave

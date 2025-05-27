@@ -94,3 +94,44 @@ export const updateDiscordAdminRole = async (
 
   return ""
 }
+
+const SUPER_USER_ROLE_NAME = "Super User"
+
+export const updateDiscordSuperUserRole = async (
+  message: Message,
+  discordUsername: string,
+  shouldAdd: boolean,
+): Promise<string> => {
+  const guild = message.guild
+  if (!guild) return discordReply("Message not associated with a guild.", "error")
+
+  const member =
+    guild.members.cache.find((m) => m.user.username === discordUsername) ||
+    (await guild.members
+      .fetch()
+      .then((members) => members.find((m) => m.user.username === discordUsername)))
+
+  if (!member) {
+    return `Could not find Discord member for username \`${discordUsername}\` in this server.`
+  }
+
+  const role = guild.roles.cache.find((r) => r.name === SUPER_USER_ROLE_NAME)
+
+  // If "Super User" role doesn't exist, silently skip
+  if (!role) return ""
+
+  try {
+    if (shouldAdd) {
+      await member.roles.add(role)
+    } else {
+      await member.roles.remove(role)
+    }
+  } catch (err) {
+    return discordReply(
+      `Failed to update "Super User" role for ${discordUsername}. Check bot permissions and role hierarchy.`,
+      "error",
+    )
+  }
+
+  return ""
+}
