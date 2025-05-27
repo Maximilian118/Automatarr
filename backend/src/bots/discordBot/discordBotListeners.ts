@@ -10,6 +10,7 @@ import {
   validateInitCommand,
   validateOwnerCommand,
 } from "./discordRequestValidation"
+import { updateDiscordAdminRole } from "./discordBotAdmin"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -207,11 +208,17 @@ const caseAdmin = async (message: Message): Promise<string> => {
     }
   })
 
+  // Update permissions for the user in discord
+  const roleUpdateMsg = await updateDiscordAdminRole(message, username, actionBoolean)
+  if (roleUpdateMsg) return roleUpdateMsg
+
   // Save the changes to database
   if (!(await saveWithRetry(settings, "caseAdmin"))) return noDBSave
 
   return discordReply(
-    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} an admin.`,
+    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} an admin. ${
+      actionBoolean ? "Congratulations!" : ""
+    }`,
     "success",
   )
 }
