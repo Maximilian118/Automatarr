@@ -54,7 +54,7 @@ type Release = {
   monitored: boolean
 }
 
-type Album = {
+export type Album = {
   id: number
   title: string
   disambiguation: string

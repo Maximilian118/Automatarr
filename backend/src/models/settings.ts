@@ -1,6 +1,9 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
+import { Movie } from "../types/movieTypes"
+import { Series } from "../types/seriesTypes"
+import { Album } from "../types/artistTypes"
 
 // A quick note on what files need to be updated when we add or remove from settings.
 // Due to how docker works, we can't easily reference type definitions from outside project folders.
@@ -22,6 +25,13 @@ type tidyPaths = {
   allowedDirs: string[]
 }
 
+export type PoolType = {
+  movies: Movie[] // Array of Movies this user has downloaded
+  series: Series[] // Array of Series this user has downloaded
+  albums: Album[] // Array of Albums this user has downloaded
+  books: unknown[] // Array of Books this user has downloaded
+}
+
 export type UserType = {
   name: string // The name of the user
   ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
@@ -29,6 +39,7 @@ export type UserType = {
   super_user: boolean // True = Can overwrite general restrictions
   max_movies_overwrite: number | null // Maximum movies this specific user is allowed to have downloaded at the same time
   max_series_overwrite: number | null // Maximum series this specific user is allowed to have downloaded at the same time
+  pool: PoolType // Pool of content this user has downloaded
   created_at: string // When user was created.
   updated_at: string // When user was updated.
 }
@@ -109,6 +120,13 @@ const tidyDirPathsSchema = new mongoose.Schema<tidyPaths>({
   allowedDirs: { type: [String], required: true },
 })
 
+const poolSchema = new mongoose.Schema<PoolType>({
+  movies: { type: mongoose.Schema.Types.Mixed, default: [] },
+  series: { type: mongoose.Schema.Types.Mixed, default: [] },
+  albums: { type: mongoose.Schema.Types.Mixed, default: [] },
+  books: { type: mongoose.Schema.Types.Mixed, default: [] },
+})
+
 const userSchema = new mongoose.Schema<UserType>({
   name: { type: String, required: true },
   ids: { type: [String], required: true },
@@ -116,6 +134,7 @@ const userSchema = new mongoose.Schema<UserType>({
   super_user: { type: Boolean, default: false },
   max_movies_overwrite: { type: Number, default: 10 },
   max_series_overwrite: { type: Number, default: 2 },
+  pool: { type: poolSchema, default: () => ({}) },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

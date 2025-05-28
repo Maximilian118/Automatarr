@@ -4,6 +4,11 @@ const settingsSchema = `
     allowedDirs: [String!]
   }
 
+  type Pool {
+    movies: [Movie!]!
+    series: [Series!]!
+  }
+
   type User {
     name: String!
     ids: [String!]!
@@ -11,6 +16,7 @@ const settingsSchema = `
     super_user: Boolean!
     max_movies_overwrite: Int
     max_series_overwrite: Int
+    pool: Pool!
     created_at: String!
     updated_at: String!
   }

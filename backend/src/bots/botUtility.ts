@@ -1,5 +1,12 @@
 import moment from "moment"
-import { UserType } from "../models/settings"
+import { PoolType, UserType } from "../models/settings"
+
+const initPool: PoolType = {
+  movies: [],
+  series: [],
+  albums: [],
+  books: [],
+}
 
 export const initUser = (
   name: string,
@@ -14,6 +21,7 @@ export const initUser = (
     super_user,
     max_movies_overwrite: null,
     max_series_overwrite: null,
+    pool: initPool,
     created_at: moment().format(),
     updated_at: moment().format(),
   }

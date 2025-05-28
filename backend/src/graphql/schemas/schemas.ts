@@ -1,8 +1,18 @@
 import { buildSchema } from "graphql"
 import settingsSchema from "./settingsSchema"
 import dataSchema from "./dataSchema"
+import generalSchema from "./generalSchema"
+import qBittorrentSchema from "./qBittorrentSchema"
+import movieSchema from "./movieSchema"
+import seriesSchema from "./seriesSchema"
+import episodeSchema from "./episodeSchema"
 
 const Schema = buildSchema(`
+  ${generalSchema}
+  ${qBittorrentSchema}
+  ${movieSchema}
+  ${episodeSchema}
+  ${seriesSchema}
   ${settingsSchema}
   ${dataSchema}
 
