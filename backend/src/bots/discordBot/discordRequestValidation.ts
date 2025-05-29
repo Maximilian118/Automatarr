@@ -1,3 +1,8 @@
+import { settingsDocType } from "../../models/settings"
+import { Channel, GuildTextBasedChannel } from "discord.js"
+import { getDiscordClient } from "./discordBot"
+import { discordReply } from "./discordBotUtility"
+
 // Validate the array data for the caseOwner message
 export const validateOwnerCommand = (msgArr: string[]): string => {
   if (msgArr.length !== 2) {
@@ -98,6 +103,64 @@ export const validateRemoveCommand = (msgArr: string[]): string => {
 
   if (command.toLowerCase() !== "!remove") {
     return `Invalid command \`${command}\`.`
+  }
+
+  return ""
+}
+
+const isTextChannel = (channel: Channel): channel is GuildTextBasedChannel => {
+  // Check if it's a guild text channel or news channel (both have name)
+  return channel.isTextBased() && "name" in channel
+}
+
+// Check channel the message was sent in is a valid download channel
+export const channelValid = (channel: Channel, settings: settingsDocType): string => {
+  if (!("name" in channel) || !channel.name) {
+    return "Wups! This command can only be used in a named server channel."
+  }
+
+  const client = getDiscordClient()
+
+  if (!client) {
+    return discordReply(`Umm... no client found. This is bad.`, "error")
+  }
+
+  const dBot = settings.discord_bot
+
+  const channels = [
+    { name: dBot.movie_channel_name, label: "Movies" },
+    { name: dBot.series_channel_name, label: "Series" },
+    { name: dBot.music_channel_name, label: "Music" },
+    { name: dBot.books_channel_name, label: "Books" },
+  ].filter((c) => c.name)
+
+  if (channels.length === 0) {
+    return discordReply(
+      "There are no selected channels for content commands. Please contact the server owner.",
+      "error",
+      "There are no selected channels for content commands.",
+    )
+  }
+
+  if (!channels.some((c) => c.name === channel.name)) {
+    const suggestions = channels.map((c) => {
+      // Find channel with type guard
+      const channelObj = client.channels.cache.find((ch) => isTextChannel(ch) && ch.name === c.name)
+      const mention = channelObj ? `<#${channelObj.id}>` : c.name
+      return `${mention} for ${c.label}`
+    })
+
+    let suggestionStr = ""
+    if (suggestions.length === 1) {
+      suggestionStr = suggestions[0]
+    } else if (suggestions.length === 2) {
+      suggestionStr = suggestions.join(" or ")
+    } else {
+      suggestionStr =
+        suggestions.slice(0, -1).join(", ") + " and " + suggestions[suggestions.length - 1]
+    }
+
+    return `I'm sorry. You can't use the ${channel} channel for this command. Try ${suggestionStr}.`
   }
 
   return ""

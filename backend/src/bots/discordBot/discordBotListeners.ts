@@ -8,6 +8,7 @@ import {
   caseRemove,
   caseSuperUser,
 } from "./discordBotUserListeners"
+import { caseDownloadSwitch } from "./discordBotContentListeners"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -25,7 +26,7 @@ export const messageListeners = async (client: Client) => {
     if (!message.content.startsWith(prefix)) return
 
     const [command, ..._args] = message.content.slice(prefix.length).trim().split(/\s+/)
-
+    // prettier-ignore
     switch (command.toLowerCase()) {
       case "ping": // Calculate round trip time
         await message.channel.send(casePing(client, message))
@@ -52,6 +53,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "remove": // Remove a user from the database and the discord server
         await message.channel.send((await adminCheck(message)) || (await caseRemove(message)))
+        break
+      case "download": // Download content
+        await message.channel.send((await adminCheck(message)) || (await caseDownloadSwitch(message)))
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
