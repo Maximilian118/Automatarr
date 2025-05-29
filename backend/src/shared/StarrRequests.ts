@@ -51,6 +51,28 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
   return
 }
 
+export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.radarr_URL}/api/${settings.radarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.radarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`Radarr | Retrieving Queue.`)
+
+      return res.data.records as DownloadStatus[]
+    } else {
+      logger.error(`getQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`getQueue: Radarr Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return []
+}
+
 // Loop through all of the activeAPIs and return all of the latest downloadQueues
 export const getAllDownloadQueues = async (
   activeAPIs: APIData[],

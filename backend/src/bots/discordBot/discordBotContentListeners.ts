@@ -3,8 +3,12 @@ import Settings, { settingsDocType } from "../../models/settings"
 import { discordReply, matchedUser, noDBPull } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit } from "./discordBotUserLimits"
-import { searchRadarr } from "../../shared/StarrRequests"
-import { randomNotFoundMessage, randomAlreadyAddedMessage } from "./discordBotRandomReply"
+import { getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
+import {
+  randomNotFoundMessage,
+  randomAlreadyAddedMessage,
+  getStatusMessage,
+} from "./discordBotRandomReply"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -33,7 +37,7 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
 const caseDownloadMovie = async (message: Message, settings: settingsDocType): Promise<string> => {
   // Check if Radarr is connected
   if (!settings.radarr_active) {
-    return discordReply("Curses! Radarr is not connected at the moment.", "error")
+    return discordReply("Curses! Radarr is needed for this command.", "error")
   }
 
   // Validate the message
@@ -70,6 +74,11 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (foundMovie.movieFile) {
     return randomAlreadyAddedMessage()
   }
+
+  // Check if the movie is in the download queue
+  const queue = await getRadarrQueue(settings)
+  const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
+  if (movieInQueue) return getStatusMessage(movieInQueue.status, movieInQueue.timeleft)
 
   // Download the movie
 
