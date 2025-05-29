@@ -7,6 +7,7 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
+import { QualityProfile } from "../types/qualityProfileType"
 
 export interface baseData {
   name: string
@@ -39,6 +40,11 @@ export interface rootFolder extends baseData {
   data: rootFolderData
 }
 
+// A name to categorize the root folder for each API
+export interface qualityProfile extends baseData {
+  data: QualityProfile[]
+}
+
 // A name to categorize each library
 export interface library extends baseData {
   data: (Movie | Series | Artist)[]
@@ -62,6 +68,7 @@ export interface dataType {
   downloadQueues: downloadQueue[]
   importLists: importList[]
   rootFolders: rootFolder[]
+  qualityProfiles: qualityProfile[]
   libraries: library[]
   missingWanteds: library[]
   qBittorrent: qBittorrent
@@ -109,6 +116,11 @@ const rootFoldersSchema = new mongoose.Schema<rootFolder>({
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // The root folder directory
 })
 
+const qualityProfilesSchmea = new mongoose.Schema<qualityProfile>({
+  ...baseSchema,
+  data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of quality profiles
+})
+
 const librariesSchema = new mongoose.Schema<library>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // No limitations on the structure
@@ -142,6 +154,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
   importLists: { type: [importListSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
+  qualityProfiles: { type: [qualityProfilesSchmea], default: [] },
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },
   qBittorrent: { type: qBittorrentSchema, default: initqBittorrent },

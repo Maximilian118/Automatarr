@@ -5,6 +5,7 @@ import {
   downloadQueue,
   importList,
   library,
+  qualityProfile,
   rootFolder,
 } from "../models/data"
 import { APIData } from "./activeAPIsArr"
@@ -24,6 +25,7 @@ import { Artist } from "../types/artistTypes"
 import moment from "moment"
 import { errCodeAndMsg } from "./requestError"
 import { settingsDocType } from "../models/settings"
+import { QualityProfile } from "../types/qualityProfileType"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
@@ -51,6 +53,7 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
   return
 }
 
+// Get the Radarr Queue in circumstances where the API object isn't available
 export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
   try {
     const res = await axios.get(
@@ -618,6 +621,46 @@ export const getAllImportLists = async (
   return results.filter((c): c is importList => c !== undefined)
 }
 
+// Get all quality profiles
+export const getQualityProfiles = async (
+  API: APIData,
+  data: dataType,
+): Promise<qualityProfile | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/qualityProfile?apikey=${API.data.KEY}`),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Quality Profiles.`)
+
+      return {
+        ...dataBoilerplate(API, data.importLists),
+        data: res.data as QualityProfile[],
+      }
+    } else {
+      logger.error(`getQualityProfiles: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.info(`getQualityProfiles: ${errCodeAndMsg(err)}`)
+  }
+
+  return
+}
+
+// Loop through all of the activeAPIs and return all of the latest quality profiles
+export const getAllQualityProfiles = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<qualityProfile[]> => {
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getQualityProfiles(API, data)),
+  )
+
+  // Filter out undefined values
+  return results.filter((c): c is qualityProfile => c !== undefined)
+}
+
 // Search for movie in tmdb via radarr api
 export const searchRadarr = async (
   settings: settingsDocType,
@@ -635,10 +678,10 @@ export const searchRadarr = async (
     if (requestSuccess(res.status)) {
       return res.data as Movie[]
     } else {
-      logger.error(`getImportLists: Unknown error. Status: ${res.status} - ${res.statusText}`)
+      logger.error(`searchRadarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`getImportLists: ${errCodeAndMsg(err)}`)
+    logger.info(`searchRadarr: ${errCodeAndMsg(err)}`)
   }
 
   return

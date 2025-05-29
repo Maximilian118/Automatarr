@@ -8,6 +8,7 @@ import {
   getAllImportLists,
   getAllLibraries,
   getAllMissingwanted,
+  getAllQualityProfiles,
   getAllRootFolders,
 } from "../../shared/StarrRequests"
 import moment from "moment"
@@ -67,6 +68,7 @@ const dataResolvers = {
     data.downloadQueues = await getAllDownloadQueues(activeAPIs, data)
     data.importLists = await getAllImportLists(activeAPIs, data)
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
+    data.qualityProfiles = await getAllQualityProfiles(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
     // qBittorrent
