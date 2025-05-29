@@ -1,12 +1,13 @@
 import Settings, { settingsType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
-import { cleanUrl, errCodeAndMsg } from "../../shared/utility"
+import { cleanUrl } from "../../shared/utility"
 import { checkStarr, checkURL } from "../../shared/validation"
 import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
 import Data, { dataDocType } from "../../models/data"
 import moment from "moment"
 import { saveWithRetry } from "../../shared/database"
+import { errCodeAndMsg } from "../../shared/requestError"
 
 interface baseCheck {
   URL: string

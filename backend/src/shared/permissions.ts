@@ -1,9 +1,10 @@
 import fs from "fs"
 import path from "path"
-import { errCodeAndMsg, capsFirstLetter, currentPaths } from "./utility"
+import { capsFirstLetter, currentPaths } from "./utility"
 import { dataType } from "../models/data"
 import logger from "../logger"
 import { isDocker } from "../app"
+import { errCodeAndMsg } from "./requestError"
 
 type permissionTypes = "read" | "write" | "delete" | "move" | "all"
 

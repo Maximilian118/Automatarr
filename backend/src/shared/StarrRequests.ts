@@ -12,7 +12,6 @@ import {
   checkTimePassed,
   cleanUrl,
   dataBoilerplate,
-  errCodeAndMsg,
   getContentName,
   requestSuccess,
 } from "./utility"
@@ -23,6 +22,7 @@ import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import moment from "moment"
+import { errCodeAndMsg } from "./requestError"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {

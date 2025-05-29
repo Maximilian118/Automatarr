@@ -1,5 +1,5 @@
 import moment from "moment"
-import { DownloadStatus, graphqlErr } from "../types/types"
+import { DownloadStatus } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 import { baseData, dataDocType, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
@@ -34,21 +34,6 @@ export const extractStringWords = (filename: string): string[] => {
   }
 
   return []
-}
-
-// Form easy to read request error messages
-export const errCodeAndMsg = (err: unknown): string => {
-  try {
-    const error = err as graphqlErr
-    const res = error?.response
-    const status = res?.status ?? "Unknown Status"
-    const message = res?.data?.message ?? res?.statusText ?? "Unknown Message"
-    const errors = res?.data?.errors ? res.data.errors : []
-
-    return `${status} - ${errors.length !== 0 ? JSON.stringify(errors) : message}`
-  } catch (e) {
-    return "Unknown Error - Failed to extract error details."
-  }
 }
 
 // Clean up a URL string removing any unneeded double forward slashes

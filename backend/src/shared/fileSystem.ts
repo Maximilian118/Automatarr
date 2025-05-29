@@ -1,10 +1,11 @@
 import fs from "fs"
 import path from "path"
-import { errCodeAndMsg, isPosix, isThreeDigitOctal } from "./utility"
+import { isPosix, isThreeDigitOctal } from "./utility"
 import logger from "../logger"
 import { isDocker } from "../app"
 import { checkPermissions } from "./permissions"
 import { execSync } from "child_process"
+import { errCodeAndMsg } from "./requestError"
 
 // Delete a file or directory from the filesystem of the machine
 export const deleteFromMachine = (dirOrFilePath: string): boolean => {

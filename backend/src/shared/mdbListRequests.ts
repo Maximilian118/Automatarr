@@ -2,7 +2,7 @@ import axios from "axios"
 import logger from "../logger"
 import { MdblistItem } from "../types/types"
 import { APIData } from "./activeAPIsArr"
-import { errCodeAndMsg } from "./utility"
+import { errCodeAndMsg } from "./requestError"
 
 // If Import Lists are from mdbList, extract the list items.
 export const getMdbListItems = async (API: APIData): Promise<MdblistItem[]> => {

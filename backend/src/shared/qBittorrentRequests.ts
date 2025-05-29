@@ -1,10 +1,11 @@
 import axios, { AxiosResponse } from "axios"
 import Data, { dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
-import { checkTimePassed, cleanUrl, errCodeAndMsg, requestSuccess } from "./utility"
+import { checkTimePassed, cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
+import { errCodeAndMsg } from "./requestError"
 
 // Retreive qBittorrent cookie from check request headers
 export const getqBitCookieFromHeaders = async (

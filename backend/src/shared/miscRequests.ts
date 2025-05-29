@@ -1,8 +1,9 @@
 import axios from "axios"
-import { dataBoilerplate, errCodeAndMsg } from "./utility"
+import { dataBoilerplate } from "./utility"
 import logger from "../logger"
 import { commandList, dataType } from "../models/data"
 import { APIData } from "./activeAPIsArr"
+import { errCodeAndMsg } from "./requestError"
 
 // Function to scrape commands from a given URL
 export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] | []> => {

@@ -1,5 +1,5 @@
 import { Client, Guild, GuildBasedChannel, GuildMember, Message } from "discord.js"
-import { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
+import Settings, { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
 import logger from "../../logger"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
@@ -15,6 +15,59 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
     music_channel_name: "",
     books_channel_name: "",
   }
+}
+
+// A basic function that returns the passed string and logs it in the backend
+export const discordReply = (
+  msg: string,
+  level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success",
+  customLog?: string,
+): string => {
+  const logMessage = `Discord Bot | ${customLog || msg}`
+
+  if (typeof logger[level] === "function") {
+    logger[level](logMessage)
+  } else {
+    logger.info(logMessage) // fallback in case of unexpected level
+  }
+
+  return msg
+}
+
+export const noDBPull = () =>
+  discordReply("I couldn't connect to the database. Please try again.", "error")
+export const noDBSave = () =>
+  discordReply("I couldn't save to the databse. Please try again.", "error")
+
+// Function to check if the message sender is an admin
+export const adminCheck = async (
+  message: Message,
+  passedSettings?: settingsDocType,
+): Promise<string> => {
+  const settings = passedSettings ? passedSettings : ((await Settings.findOne()) as settingsDocType)
+  if (!settings) return noDBPull()
+
+  const sender = settings.general_bot.users.find((u) =>
+    u.ids.some((id) => id === message.author.username),
+  )
+
+  if (!sender) {
+    return discordReply(
+      "You are not a registered user. Please refer to an admin.",
+      "error",
+      `${message.author.username} is not a user and failed admin check for command: ${message}`,
+    )
+  }
+
+  if (!sender.admin) {
+    return discordReply(
+      `You are not an admin ${sender.name}...`,
+      "error",
+      `${message.author.username} failed admin check for command: ${message}`,
+    )
+  }
+
+  return ""
 }
 
 // Check if the server owner is the target
@@ -181,20 +234,3 @@ export const matchedDiscordUser = async (
 // Check if the passed Discord username exists as a user in Automatarr already
 export const matchedUser = (settings: settingsDocType, identifier: string): UserType | undefined =>
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
-
-// A basic function that returns the passed string and logs it in the backend
-export const discordReply = (
-  msg: string,
-  level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success",
-  customLog?: string,
-): string => {
-  const logMessage = `Discord Bot | ${customLog || msg}`
-
-  if (typeof logger[level] === "function") {
-    logger[level](logMessage)
-  } else {
-    logger.info(logMessage) // fallback in case of unexpected level
-  }
-
-  return msg
-}
