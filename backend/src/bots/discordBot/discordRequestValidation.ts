@@ -108,6 +108,50 @@ export const validateRemoveCommand = (msgArr: string[]): string => {
   return ""
 }
 
+// Validate the array data for the caseInit message
+// prettier-ignore
+export const validateDownload = (msgContent: string): string | {
+  command: string
+  title: string
+  year: string
+  searchString: string
+} => {
+  const msgArr = msgContent.trim().split(/\s+/)
+
+  if (msgArr.length < 3) {
+    return `The !download command must contain a movie title and a 4-digit year. For example: !download Top Gun 1986`
+  }
+
+  const [command, ...rest] = msgArr
+
+  if (command.toLowerCase() !== "!download") {
+    return `Invalid command \`${command}\`.`
+  }
+
+  const yearCandidate = rest[rest.length - 1]
+  const yearMatch = yearCandidate.match(/^\d{4}$/)
+
+  if (!yearMatch) {
+    return "The last part of the command must be a 4-digit year. For example: 1994"
+  }
+
+  const year = yearCandidate
+  const title = rest.slice(0, -1).join(" ")
+
+  // TMDB-safe title validation (basic ASCII + common punctuation)
+  const invalidCharMatch = title.match(/[^a-zA-Z0-9 ':,\-&.]/)
+  if (invalidCharMatch) {
+    return `The movie title contains unsupported characters: \`${invalidCharMatch[0]}\``
+  }
+
+  return {
+    command,
+    title,
+    year,
+    searchString: `${title} ${year}`,
+  }
+}
+
 const isTextChannel = (channel: Channel): channel is GuildTextBasedChannel => {
   // Check if it's a guild text channel or news channel (both have name)
   return channel.isTextBased() && "name" in channel

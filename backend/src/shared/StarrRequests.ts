@@ -23,6 +23,7 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import moment from "moment"
 import { errCodeAndMsg } from "./requestError"
+import { settingsDocType } from "../models/settings"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
@@ -593,4 +594,30 @@ export const getAllImportLists = async (
 
   // Filter out undefined values
   return results.filter((c): c is importList => c !== undefined)
+}
+
+// Search for movie in tmdb via radarr api
+export const searchRadarr = async (
+  settings: settingsDocType,
+  searchString: string,
+): Promise<Movie[] | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.radarr_URL}/api/${
+          settings.radarr_API_version
+        }/movie/lookup?term=${encodeURIComponent(searchString)}&apikey=${settings.radarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as Movie[]
+    } else {
+      logger.error(`getImportLists: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.info(`getImportLists: ${errCodeAndMsg(err)}`)
+  }
+
+  return
 }

@@ -1,7 +1,10 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
-import { noDBPull } from "./discordBotUtility"
-import { channelValid } from "./discordRequestValidation"
+import { discordReply, matchedUser, noDBPull } from "./discordBotUtility"
+import { channelValid, validateDownload } from "./discordRequestValidation"
+import { checkUserMovieLimit } from "./discordBotUserLimits"
+import { searchRadarr } from "../../shared/StarrRequests"
+import { randomNotFoundMessage, randomAlreadyAddedMessage } from "./discordBotRandomReply"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -28,10 +31,53 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
 
 // Download a movie and add it to the users pool
 const caseDownloadMovie = async (message: Message, settings: settingsDocType): Promise<string> => {
-  console.log(message)
-  console.log(settings.id)
-  console.log("MOVIE")
-  return "MOVIE"
+  // Check if Radarr is connected
+  if (!settings.radarr_active) {
+    return discordReply("Curses! Radarr is not connected at the moment.", "error")
+  }
+
+  // Validate the message
+  const parsed = validateDownload(message.content)
+
+  // Return if an error string is returned from validateDownload
+  if (typeof parsed === "string") {
+    return discordReply(parsed, "error")
+  }
+
+  // If message is valid, give me the juicy data
+  const { searchString } = parsed
+
+  // Find the user tied to the author
+  const user = matchedUser(settings, message.author.username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Check user pool limits
+  const { limitError } = checkUserMovieLimit(user, settings)
+  if (limitError) return discordReply(limitError, "info")
+
+  // See what returns from the radarr API
+  const foundMoviesArr = await searchRadarr(settings, searchString)
+
+  // Return if nothing in search results
+  if (!foundMoviesArr || foundMoviesArr.length === 0) {
+    return randomNotFoundMessage()
+  }
+
+  // Grab the first movie in the array
+  const foundMovie = foundMoviesArr[0]
+
+  // Check if the movie is already downloaded
+  if (foundMovie.movieFile) {
+    return randomAlreadyAddedMessage()
+  }
+
+  // Download the movie
+
+  // Add the movie to the users pool
+
+  // Save the new pool data to the database
+
+  return searchString
 }
 
 // Download a series and add it to the users pool
