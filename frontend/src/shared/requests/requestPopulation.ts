@@ -44,6 +44,7 @@ export const populateSettings = `
     max_series
     series_pool_expiry
     series_quality_profile
+    min_free_space
     users {
       name
       ids

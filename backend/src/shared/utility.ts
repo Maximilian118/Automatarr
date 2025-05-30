@@ -324,3 +324,30 @@ export const processingTimeMessage = (data: dataDocType) => {
     logger.info(`I haven't seen a mess like this since spaghetti met ceiling fan! Processing ${libraryLength} Library items!`)
   }
 }
+
+// A function to convert bytes into an readable string
+export const formatBytes = (bytesInput: string | number | bigint, decimals = 2): string => {
+  if (!bytesInput) return ""
+
+  const sizes = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
+  const k = 1024n
+
+  const bytes =
+    typeof bytesInput === "bigint"
+      ? bytesInput
+      : typeof bytesInput === "string"
+      ? BigInt(bytesInput)
+      : BigInt(Math.floor(bytesInput))
+
+  if (bytes === 0n) return "0B"
+
+  let i = 0
+  let temp = bytes
+  while (temp >= k && i < sizes.length - 1) {
+    temp /= k
+    i++
+  }
+
+  const value = Number(bytes) / Math.pow(1024, i)
+  return `${parseFloat(value.toFixed(decimals))}${sizes[i]}`
+}

@@ -35,13 +35,16 @@ export const updateInput = <T extends { [key: string]: string }>(
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   setForm: Dispatch<SetStateAction<settingsType>>,
   setFormErr: Dispatch<SetStateAction<T>>,
+  noStateUpdate?: boolean,
 ): void => {
   const path = e.target.name.split(".")
 
   // Update nested form state
-  setForm((prevForm): settingsType => {
-    return setNestedValue(prevForm, path, e.target.value)
-  })
+  if (!noStateUpdate) {
+    setForm((prevForm): settingsType => {
+      return setNestedValue(prevForm, path, e.target.value)
+    })
+  }
 
   const inputErr = (key: string, err?: string): void => {
     setFormErr(
@@ -105,6 +108,17 @@ export const updateInput = <T extends { [key: string]: string }>(
     }
   }
 
+  const caseBytes = () => {
+    if (
+      /^([\d.]+)\s*(k|m|g|t|p|e|z|y)(b)?$/i.test(e.target.value) ||
+      e.target.value.trim() === ""
+    ) {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Invalid. Examples: '100GB' or '1.5T'")
+    }
+  }
+
   // Depending on the current element do some basic validation checks.
   // prettier-ignore
   switch (true) {
@@ -115,6 +129,7 @@ export const updateInput = <T extends { [key: string]: string }>(
     case e.target.name.includes("group"): casePosix(); break
     case e.target.name.includes("chmod"): caseChmod(); break
     case e.target.name.includes("token"): caseToken(); break
+    case e.target.name.includes("space"): caseBytes(); break
     default: setFormErr(prevFormErr => prevFormErr)
   }
 }

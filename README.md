@@ -11,6 +11,9 @@ Feature overview:
 - Automatically handle items with an importBlocked status in the activity queue
 - Automatically search for wanted missing items
 
+Do not expose this application to the internet as it has no security.
+Run it on a machine that's only accessible on you LAN.
+
 ## Running Automatarr with Docker
 
 To run Automatarr using Docker, follow these steps:
@@ -52,7 +55,7 @@ If successful and the application is running, a directory named `automatarr` wil
 ## To do:
 
 - [x] Add Sonarr support to Remove Missing - Import List level
-- [ ] Add Discord interaction
+- [x] Add Discord Bot
 - [ ] Allow for deletion of downloading torrents
 - [ ] Add stalled or slow torrent download deletion
 - [x] Separate settings page into an API Connections page and Loops page

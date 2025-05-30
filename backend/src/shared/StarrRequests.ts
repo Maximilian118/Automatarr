@@ -686,3 +686,46 @@ export const searchRadarr = async (
 
   return
 }
+
+// Download a movie in radarr
+export const downloadMovie = async (
+  settings: settingsDocType,
+  foundMovie: Movie,
+  qualityProfileId: number,
+  rootFolderPath: string,
+): Promise<Movie | undefined> => {
+  const formattedMovie = {
+    ...foundMovie,
+    qualityProfileId,
+    monitored: true,
+    minimumAvailability: "released",
+    addOptions: {
+      monitor: "movieOnly",
+      searchForMovie: true,
+    },
+    rootFolderPath,
+  }
+
+  try {
+    const res = await axios.post(
+      cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/movie`),
+      formattedMovie,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.radarr_API_key,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as Movie
+    } else {
+      logger.error(`downloadMovie: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.info(`downloadMovie: ${errCodeAndMsg(err)}`)
+  }
+
+  return
+}

@@ -22,6 +22,7 @@ export type GeneralBotType = {
   max_series: number | null // Maximum series a user is allowed to have downloaded at the same time
   series_pool_expiry: number | null // The amount of time a user can have any series downloaded for. Null = Perpetual
   series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
+  min_free_space: string // A number representing the minimum amount of free space that must be left available
   users: UserType[] // An array of registered users
 }
 

@@ -28,6 +28,7 @@ const settingsSchema = `
     max_series: Int
     series_pool_expiry: Int
     series_quality_profile: String
+    min_free_space: String!
     users: [User!]!
   }
 
@@ -108,6 +109,7 @@ const settingsSchema = `
     max_series: Int
     series_pool_expiry: Int
     series_quality_profile: String
+    min_free_space: String
     users: [user!]!
   }
 

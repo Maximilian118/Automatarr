@@ -96,3 +96,50 @@ export const numberSelection = (): string[] => [...Array(99)].map((_, i) => (i +
 export const stringSelectionToNumber = (value: string): number | null => value === "Infinite" ? null : parseInt(value, 10)
 export const toStringWithCap = (num: number | null, max: number, maxString: string): string =>
   num === null ? maxString : num > max ? maxString : num.toString()
+
+// A function to convert bytes into an readable string
+export const formatBytes = (bytesInput: string | number, decimals = 2): string => {
+  if (!bytesInput) {
+    return ""
+  }
+
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  const k = 1024
+
+  // Convert input to BigInt for safety
+  const bytes = typeof bytesInput === 'string' ? BigInt(bytesInput) : BigInt(Math.floor(bytesInput))
+
+  if (bytes === 0n) return '0B'
+
+  // Find appropriate unit index using logarithmic approximation with BigInt
+  let i = 0
+  let temp = bytes
+  while (temp >= BigInt(k) && i < sizes.length - 1) {
+    temp /= BigInt(k)
+    i++
+  }
+
+  // Convert the final value to a number for formatting
+  const value = Number(bytes) / Math.pow(k, i)
+
+  return `${parseFloat(value.toFixed(decimals))}${sizes[i]}`
+}
+
+// A function to convert an readable string into bytes
+export const parseBytes = (input: string): string => {
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+
+  const match = input.trim().toLowerCase().match(/^([\d.]+)\s*(k|m|g|t|p|e|z|y)(b)?$/i)
+  if (!match) return ""
+
+  const numStr = match[1]
+  const prefix = match[2].toUpperCase()
+  const index = sizes.findIndex(size => size.startsWith(prefix))
+  if (index === -1) return ""
+
+  const num = parseFloat(numStr)
+  if (isNaN(num)) return ""
+
+  const bytes = BigInt(Math.floor(num * Math.pow(1024, index)))
+  return bytes.toString()
+}

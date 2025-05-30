@@ -1,6 +1,13 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
-import { discordReply, findQualityProfile, matchedUser, noDBPull } from "./discordBotUtility"
+import {
+  discordReply,
+  findQualityProfile,
+  findRootFolder,
+  freeSpaceCheck,
+  matchedUser,
+  noDBPull,
+} from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit } from "./discordBotUserLimits"
 import { getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
@@ -108,6 +115,17 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (typeof qualityProfile === "string") {
     return discordReply(qualityProfile, "error")
   }
+
+  // Grab rootFolder data
+  const rootFolder = findRootFolder(data, "Radarr")
+
+  if (typeof rootFolder === "string") {
+    return discordReply(rootFolder, "error")
+  }
+
+  // Ensure we have enough free space on the drive to satisfy the selected min free space
+  const freeSpaceErr = freeSpaceCheck(rootFolder.freeSpace, settings.general_bot.min_free_space)
+  if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
 
   // Download the movie
 

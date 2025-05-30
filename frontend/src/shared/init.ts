@@ -14,6 +14,7 @@ const initGeneralBot: GeneralBotType = {
   max_series: 2, // Maximum series a user is allowed to have downloaded at the same time
   series_pool_expiry: null, // The amount of time a user can have any series downloaded for. Null = Perpetual
   series_quality_profile: null, // The name of the quality profile to use for sonarr downloads
+  min_free_space: "21474836480", // Default 20gb // A number representing the minimum amount of free space that must be left available
   users: [], // An array of registered users
 }
 
@@ -97,4 +98,5 @@ export const initBotErr: botsErrType = {
   discord_bot_token: "",
   discord_bot_server_name: "",
   discord_bot_channel_name: "",
+  general_bot_min_free_space: "",
 }

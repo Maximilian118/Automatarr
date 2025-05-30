@@ -11,7 +11,7 @@ import { botsErrType } from "../types/botType"
 import { updateInput } from "../shared/formValidation"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import InputModel from "../components/model/inputModel/InputModel"
-import { numberSelection, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
+import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import { QualityProfile } from "../types/qualityProfileType"
 
 const Bots: React.FC = () => {
@@ -164,6 +164,26 @@ const Bots: React.FC = () => {
               }
             })
           }}
+        />
+        <MUITextField
+          name="general_bot.min_free_space"
+          label="Minimum Free Space"
+          formErr={formErr}
+          value={formatBytes(settings.general_bot.min_free_space)}
+          onBlur={(e) => {
+            updateInput(e, setSettings, setFormErr, true)
+
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                general_bot: {
+                  ...prevSettings.general_bot,
+                  min_free_space: parseBytes(e.target.value)
+                }
+              }
+            })
+          }}
+          error={!!formErr.general_bot_min_free_space}
         />
       </InputModel>
       <BotModel 

@@ -3,6 +3,8 @@ import Settings, { DiscordBotType, settingsDocType, UserType } from "../../model
 import logger from "../../logger"
 import { QualityProfile } from "../../types/qualityProfileType"
 import { dataDocType } from "../../models/data"
+import { rootFolderData } from "../../types/types"
+import { formatBytes } from "../../shared/utility"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
@@ -260,4 +262,56 @@ export const findQualityProfile = (
   }
 
   return matchedQualityProfiles[0]
+}
+
+// Find the root path for a specific API
+export const findRootFolder = (
+  data: dataDocType,
+  APIName: "Radarr" | "Sonarr" | "Lidarr",
+): rootFolderData | string => {
+  const APIRootFolder = data.rootFolders.find((rf) => rf.name === APIName)
+
+  if (!APIRootFolder) {
+    return `It looks like the root folder data isn't initialised for ${APIName}. Curious...`
+  }
+
+  if (!APIRootFolder.data) {
+    return `I couldn't find any root folder data for ${APIName}!`
+  }
+
+  if (!APIRootFolder.data.path) {
+    return `There's no root folder path selected in ${APIName}!?`
+  }
+
+  if (!APIRootFolder.data.freeSpace) {
+    return `I see no root folder freeSpace data for ${APIName}!?`
+  }
+
+  return APIRootFolder.data
+}
+
+// Check the amount of free space is more than the minimum selected
+export const freeSpaceCheck = (freeSpace: number, minFreeSpace: string | number): string => {
+  let minBytes: bigint
+
+  if (typeof minFreeSpace === "string") {
+    if (!/^\d+$/.test(minFreeSpace.trim())) {
+      return "Minimum free space must be a valid number string."
+    }
+    minBytes = BigInt(minFreeSpace.trim())
+  } else if (typeof minFreeSpace === "number") {
+    minBytes = BigInt(Math.floor(minFreeSpace))
+  } else {
+    return "Minimum free space is of an unsupported type."
+  }
+
+  const free = BigInt(Math.floor(freeSpace))
+
+  if (free <= minBytes) {
+    const formattedMin = formatBytes(minBytes, 2)
+    const formattedFree = formatBytes(free, 2)
+    return `Oops! Not enough free space. At least ${formattedMin} is required, but only ${formattedFree} is available.`
+  }
+
+  return ""
 }
