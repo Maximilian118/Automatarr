@@ -2,7 +2,7 @@ import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send, SettingsSuggest } from "@mui/icons-material"
-import { getDiscordChannels, getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getDiscordChannels, getQualityProfiles, getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
 import { BotModel } from "../components/model/botModel/BotModel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
@@ -12,12 +12,16 @@ import { updateInput } from "../shared/formValidation"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import InputModel from "../components/model/inputModel/InputModel"
 import { numberSelection, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
+import { QualityProfile } from "../types/qualityProfileType"
 
 const Bots: React.FC = () => {
   const { settings, setSettings, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ channelLoading, setChannelLoading ] = useState<boolean>(false)
+  const [ qpLoading, setQPLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<botsErrType>(initBotErr)
+  const [ qualityProfiles, setQualityProfiles ] = useState<QualityProfile[]>([])
+  const [ qpReqSent, setQPReqSent ] = useState<boolean>(false)
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -38,6 +42,13 @@ const Bots: React.FC = () => {
       setLoading(!loading)
     }
   }, [localLoading, loading, setLoading])
+
+  useEffect(() => {
+    if (!qpReqSent && qualityProfiles.length === 0) {
+      getQualityProfiles(setQualityProfiles, setQPLoading)
+      setQPReqSent(true)
+    }
+  }, [qualityProfiles, qpReqSent])
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
@@ -87,6 +98,24 @@ const Bots: React.FC = () => {
           }}
         />
         <MUIAutocomplete
+          label="Movie Quality Profile"
+          options={qualityProfiles.find(qp => qp.name === "Radarr")?.data.map(qp => qp.name) || []}
+          value={settings.general_bot.movie_quality_profile}
+          loading={qpLoading}
+          disabled={qpLoading}
+          setValue={(val) => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                general_bot: {
+                  ...prevSettings.general_bot,
+                  movie_quality_profile: val
+                }
+              }
+            })
+          }}
+        />
+        <MUIAutocomplete
           label="Max Series"
           options={numberSelection()}
           value={toStringWithCap(settings.general_bot.max_series, 99, "Infinite")}
@@ -113,6 +142,24 @@ const Bots: React.FC = () => {
                 general_bot: {
                   ...prevSettings.general_bot,
                   series_pool_expiry: val ? stringSelectionToNumber(val) : prevSettings.general_bot.series_pool_expiry
+                }
+              }
+            })
+          }}
+        />
+        <MUIAutocomplete
+          label="Series Quality Profile"
+          options={qualityProfiles.find(qp => qp.name === "Sonarr")?.data.map(qp => qp.name) || []}
+          value={settings.general_bot.series_quality_profile}
+          loading={qpLoading}
+          disabled={qpLoading}
+          setValue={(val) => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                general_bot: {
+                  ...prevSettings.general_bot,
+                  series_quality_profile: val
                 }
               }
             })

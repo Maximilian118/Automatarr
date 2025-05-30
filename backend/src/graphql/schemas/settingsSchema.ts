@@ -24,8 +24,10 @@ const settingsSchema = `
   type GeneralBot {
     max_movies: Int
     movie_pool_expiry: Int
+    movie_quality_profile: String
     max_series: Int
     series_pool_expiry: Int
+    series_quality_profile: String
     users: [User!]!
   }
 
@@ -102,8 +104,10 @@ const settingsSchema = `
   input generalBot {
     max_movies: Int
     movie_pool_expiry: Int
+    movie_quality_profile: String
     max_series: Int
     series_pool_expiry: Int
+    series_quality_profile: String
     users: [user!]!
   }
 

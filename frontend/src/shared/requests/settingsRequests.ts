@@ -3,6 +3,7 @@ import { Dispatch, SetStateAction } from "react"
 import { settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
+import { QualityProfile } from "../../types/qualityProfileType"
 
 export const getSettings = async (
   setSettings: Dispatch<SetStateAction<settingsType>>,
@@ -203,5 +204,39 @@ export const getDiscordChannels = async (
     console.error(`getDiscordChannels Error: ${err}`)
   } finally {
     setLoading(false)
+  }
+}
+
+export const getQualityProfiles = async (
+  setQualityProfiles: Dispatch<SetStateAction<QualityProfile[]>>,
+  setQPLoading: Dispatch<SetStateAction<boolean>>,
+): Promise<void> => {
+  setQPLoading(true)
+
+  try {
+    const res = await axios.post("", {
+      query: `
+        query {
+          getQualityProfiles {
+            name
+            data {
+              name
+              id
+            }
+          }
+        }
+      `,
+    })
+
+    if (res.data.errors) {
+      console.error(`getQualityProfiles Error: ${res.data.errors[0].message}`)
+    } else {
+      setQualityProfiles(res.data.data.getQualityProfiles as QualityProfile[])
+      console.log(`getQualityProfiles: Quality Profiles retrieved.`)
+    }
+  } catch (err) {
+    console.error(`getQualityProfiles Error: ${err}`)
+  } finally {
+    setQPLoading(false)
   }
 }

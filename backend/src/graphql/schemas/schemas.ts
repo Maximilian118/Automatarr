@@ -6,6 +6,7 @@ import qBittorrentSchema from "./qBittorrentSchema"
 import movieSchema from "./movieSchema"
 import seriesSchema from "./seriesSchema"
 import episodeSchema from "./episodeSchema"
+import qualityProfileSchema from "./qualityProfileSchema"
 
 const Schema = buildSchema(`
   ${generalSchema}
@@ -13,6 +14,7 @@ const Schema = buildSchema(`
   ${movieSchema}
   ${episodeSchema}
   ${seriesSchema}
+  ${qualityProfileSchema}
   ${settingsSchema}
   ${dataSchema}
 
@@ -21,6 +23,7 @@ const Schema = buildSchema(`
     getData: Data
     getChildPaths(path: String): [String!]!
     getDiscordChannels(server_name: String!): [String!]!
+    getQualityProfiles: [QualityProfile!]!
     checkRadarr: Int!
     checkSonarr: Int!
     checkLidarr: Int!

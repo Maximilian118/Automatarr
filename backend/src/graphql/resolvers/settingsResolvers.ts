@@ -6,6 +6,9 @@ import { allLoopsDeactivated, coreFunctionsOnce, coreLoops } from "../../shared/
 import Resolvers from "./resolvers"
 import { getAllChannels } from "../../bots/discordBot/discordBotUtility"
 import { getDiscordClient } from "../../bots/discordBot/discordBot"
+import { activeAPIsArr } from "../../shared/activeAPIsArr"
+import { getAllQualityProfiles } from "../../shared/StarrRequests"
+import { qualityProfile } from "../../models/data"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -132,6 +135,38 @@ const settingsResolvers = {
     const channelNames = channels.map((channel) => channel.name)
 
     return channelNames
+  },
+  getQualityProfiles: async (): Promise<qualityProfile[]> => {
+    // Get latest settings
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("getQualityProfiles: No Settings object was found.")
+      return []
+    }
+
+    // Only get data for active APIs
+    const { data, activeAPIs } = await activeAPIsArr(settings._doc)
+
+    // If there are no command lists, return. Don't want to erase what's in the db.
+    if (activeAPIs.length === 0) {
+      logger.error(
+        "getQualityProfiles: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻",
+      )
+      return []
+    }
+
+    const qualityProfiles = await getAllQualityProfiles(activeAPIs, data)
+
+    // Return empty array if there are no quality profiles
+    if (!qualityProfiles || qualityProfiles.length === 0) {
+      logger.error(
+        "getQualityProfiles: No quality profiles exist. Please create some in Starr apps.",
+      )
+      return []
+    }
+
+    return qualityProfiles
   },
 }
 

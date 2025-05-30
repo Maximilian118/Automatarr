@@ -40,8 +40,10 @@ export const populateSettings = `
   general_bot {
     max_movies
     movie_pool_expiry
+    movie_quality_profile
     max_series
     series_pool_expiry
+    series_quality_profile
     users {
       name
       ids

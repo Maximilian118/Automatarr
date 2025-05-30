@@ -1,16 +1,23 @@
 import { botsErrType } from "../types/botType"
 import { dataType } from "../types/dataType"
-import { settingsErrorType, settingsType } from "../types/settingsType"
+import {
+  DiscordBotType,
+  GeneralBotType,
+  settingsErrorType,
+  settingsType,
+} from "../types/settingsType"
 
-const initGeneralBot = {
+const initGeneralBot: GeneralBotType = {
   max_movies: 10, // Maximum movies a user is allowed to have downloaded at the same time
   movie_pool_expiry: null, // The amount of time a user can have any movie downloaded for. Null = Perpetual
+  movie_quality_profile: null, // The name of the quality profile to use for radarr downloads
   max_series: 2, // Maximum series a user is allowed to have downloaded at the same time
   series_pool_expiry: null, // The amount of time a user can have any series downloaded for. Null = Perpetual
+  series_quality_profile: null, // The name of the quality profile to use for sonarr downloads
   users: [], // An array of registered users
 }
 
-const initDiscordBot = {
+const initDiscordBot: DiscordBotType = {
   active: false, // Enable or disable Discord Bot
   ready: false, // If the Bot is logged in and ready to go
   token: "", // API Token for Discord Bot

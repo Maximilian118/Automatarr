@@ -48,8 +48,10 @@ export type UserType = {
 type GeneralBotType = {
   max_movies: number | null // Maximum movies a user is allowed to have downloaded at the same time. Null = Infinite
   movie_pool_expiry: number | null // The amount of time a user can have any movie downloaded for. Null = Perpetual
+  movie_quality_profile: string | null // The name of the quality profile to use for radarr downloads
   max_series: number | null // Maximum series a user is allowed to have downloaded at the same time. Null = Infinite
   series_pool_expiry: number | null // The amount of time a user can have any series downloaded for. Null = Perpetual
+  series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
   users: UserType[] // An array of registered users
 }
 
@@ -142,8 +144,10 @@ const userSchema = new mongoose.Schema<UserType>({
 const generalBotSchema = new mongoose.Schema<GeneralBotType>({
   max_movies: { type: Number, default: 10 },
   movie_pool_expiry: { type: Number, default: null },
+  movie_quality_profile: { type: String, default: null },
   max_series: { type: Number, default: 2 },
   series_pool_expiry: { type: Number, default: null },
+  series_quality_profile: { type: String, default: null },
   users: { type: [userSchema], default: [] },
 })
 
