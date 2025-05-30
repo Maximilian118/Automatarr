@@ -1,6 +1,8 @@
 import { Client, Guild, GuildBasedChannel, GuildMember, Message } from "discord.js"
 import Settings, { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
 import logger from "../../logger"
+import { QualityProfile } from "../../types/qualityProfileType"
+import { dataDocType } from "../../models/data"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
@@ -234,3 +236,28 @@ export const matchedDiscordUser = async (
 // Check if the passed Discord username exists as a user in Automatarr already
 export const matchedUser = (settings: settingsDocType, identifier: string): UserType | undefined =>
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
+
+// Find a quality profile in the database by name
+export const findQualityProfile = (
+  qpName: string,
+  data: dataDocType,
+  APIName: "Radarr" | "Sonarr" | "Lidarr",
+): QualityProfile | string => {
+  const qualityProfiles = data.qualityProfiles.find((qp) => qp.name === APIName)
+
+  if (!qualityProfiles) {
+    return `It looks like the quality profiles data isn't initialised for ${APIName}. Curious...`
+  }
+
+  const matchedQualityProfiles = qualityProfiles.data.filter((qp) => qp.name === qpName)
+
+  if (matchedQualityProfiles.length === 0) {
+    return `I can't find a quality profile named "${qpName}" for ${APIName}. We must inform the server owner at once!`
+  }
+
+  if (matchedQualityProfiles.length > 1) {
+    return `I've found multiple quality profiles with the name "${qpName}". Please ensure quality profile names are unique!`
+  }
+
+  return matchedQualityProfiles[0]
+}

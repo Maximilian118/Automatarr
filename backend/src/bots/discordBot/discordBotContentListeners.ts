@@ -1,6 +1,6 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
-import { discordReply, matchedUser, noDBPull } from "./discordBotUtility"
+import { discordReply, findQualityProfile, matchedUser, noDBPull } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit } from "./discordBotUserLimits"
 import { getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
@@ -9,6 +9,7 @@ import {
   randomAlreadyAddedMessage,
   getStatusMessage,
 } from "./discordBotRandomReply"
+import Data, { dataDocType } from "../../models/data"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -79,6 +80,34 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   const queue = await getRadarrQueue(settings)
   const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
   if (movieInQueue) return getStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+
+  // Ensure a quality profile is selected
+  const selectedQP = settings.general_bot.movie_quality_profile
+
+  if (!selectedQP) {
+    return discordReply(
+      "A quality profile for movies has not been selected. Please inform the server owner!",
+      "error",
+      "!download command used but no quality profiles have been selected. Go to the API > Bots > Movie Quality Profile.",
+    )
+  }
+
+  // Retrieve Data Object
+  const data = (await Data.findOne()) as dataDocType
+
+  if (!data) {
+    return discordReply(
+      "I'm unable to find any data in the databse... This is extremely bad.",
+      "catastrophic",
+    )
+  }
+
+  // Check Selected Quality Profile
+  const qualityProfile = findQualityProfile(selectedQP, data, "Radarr")
+
+  if (typeof qualityProfile === "string") {
+    return discordReply(qualityProfile, "error")
+  }
 
   // Download the movie
 

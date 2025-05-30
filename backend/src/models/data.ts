@@ -10,7 +10,7 @@ import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBitt
 import { QualityProfile } from "../types/qualityProfileType"
 
 export interface baseData {
-  name: string
+  name: "Radarr" | "Sonarr" | "Lidarr" | "qBittorrent"
   created_at: string
   updated_at: string
 }
