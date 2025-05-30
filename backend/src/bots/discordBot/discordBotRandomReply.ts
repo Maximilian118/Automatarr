@@ -1,5 +1,7 @@
 // Just a bit of fun so we don't see the same message everytime
 
+import { Movie } from "../../types/movieTypes"
+
 export const randomNotFoundMessage = () => {
   const messages = [
     "Hmm... I couldn't find that one.",
@@ -126,4 +128,20 @@ export const getStatusMessage = (status: string, time?: string): string => {
     default:
       return "I'm not quite sure what's going on with this one. Might be time to ask the server guru."
   }
+}
+
+export const randomDownloadStartMessage = (movie: Movie) => {
+  const messages = [
+    `Popcorn ready? '${movie.title}' is on its way! 🍿`,
+    `Download started for '${movie.title}' — time to get cozy! 🎬`,
+    `Here comes the magic! '${movie.title}' is rolling in. ✨`,
+    `'${movie.title}' is downloading — movie night is officially ON! 🔥`,
+    `Hold onto your seats, '${movie.title}' is arriving! 🚀`,
+    `You're in for a treat — '${movie.title}' is downloading now! 🍭`,
+    `The reels are turning! '${movie.title}' is coming your way. 🎞️`,
+    `'${movie.title}' is en route! Let the cinematic vibes begin. 🛤️`,
+    `Cheers! '${movie.title}' is being summoned from the movie gods. 🍷🎥`,
+    `'${movie.title}' is downloading — excellent choice, by the way. 😎`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
 }

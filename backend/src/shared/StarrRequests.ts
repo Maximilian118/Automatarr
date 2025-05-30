@@ -713,7 +713,7 @@ export const downloadMovie = async (
       {
         headers: {
           "Content-Type": "application/json",
-          "X-Api-Key": settings.radarr_API_key,
+          "X-Api-Key": settings.radarr_KEY,
         },
       },
     )

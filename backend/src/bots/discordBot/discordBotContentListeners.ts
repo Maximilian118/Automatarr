@@ -7,16 +7,19 @@ import {
   freeSpaceCheck,
   matchedUser,
   noDBPull,
+  noDBSave,
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit } from "./discordBotUserLimits"
-import { getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
+import { downloadMovie, getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
   getStatusMessage,
+  randomDownloadStartMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
+import { saveWithRetry } from "../../shared/database"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -64,7 +67,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
 
   // Check user pool limits
-  const { limitError } = checkUserMovieLimit(user, settings)
+  const { limitError, currentLeft } = checkUserMovieLimit(user, settings)
   if (limitError) return discordReply(limitError, "info")
 
   // See what returns from the radarr API
@@ -128,12 +131,38 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
 
   // Download the movie
+  const movie = await downloadMovie(settings, foundMovie, qualityProfile.id, rootFolder.path)
+
+  if (!movie) {
+    return discordReply(
+      `Hmm.. something went wrong with the request to download ${searchString}. I do apologise!`,
+      "error",
+    )
+  }
 
   // Add the movie to the users pool
+  settings.general_bot.users = settings.general_bot.users.map((u) => {
+    if (u._id === user._id) {
+      return {
+        ...u,
+        pool: {
+          ...u.pool,
+          movies: [...u.pool.movies, movie],
+        },
+      }
+    } else {
+      return u
+    }
+  })
 
   // Save the new pool data to the database
+  if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
-  return searchString
+  return discordReply(
+    randomDownloadStartMessage(movie),
+    "success",
+    `${user.name} | ${message.author.username} started a Radarr download of ${movie.title}. They have ${currentLeft} pool allowance available.`,
+  )
 }
 
 // Download a series and add it to the users pool

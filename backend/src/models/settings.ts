@@ -33,6 +33,7 @@ export type PoolType = {
 }
 
 export type UserType = {
+  _id?: ObjectId
   name: string // The name of the user
   ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
   admin: boolean // True = This user is an admin and can add / remove users
