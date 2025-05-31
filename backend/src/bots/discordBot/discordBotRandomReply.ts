@@ -109,7 +109,7 @@ const randomWarningMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const getStatusMessage = (status: string, time?: string): string => {
+export const getMovieStatusMessage = (status: string, time?: string): string => {
   switch (status.toLowerCase()) {
     case "queued":
       return randomQueuedMessage(time)
@@ -170,6 +170,24 @@ export const randomMissingEpisodesSearchInProgress = () => {
     "The library’s got it, but it's not all there. I’m working on getting the rest!",
     "Looks like the series is here but patchy. Already started a recovery mission!",
     "It’s on the shelf, minus a few chapters. I’m hunting them down for you!",
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomEpisodesDownloadingMessage = (count: number) => {
+  const messages = [
+    `I'm already downloading ${count} episode${
+      count > 1 ? "s" : ""
+    } for that series. They're coming!`,
+    `${count} episode${count > 1 ? "s" : ""} are already on their way — sit tight!`,
+    `Hang tight! I'm already fetching ${count} episode${count > 1 ? "s" : ""}.`,
+    `Already working on it — ${count} episode${count > 1 ? "s" : ""} are in the pipe.`,
+    `No need to worry, ${count} episode${count > 1 ? "s" : ""} are already being downloaded.`,
+    `I'm already on it! ${count} episode${count > 1 ? "s" : ""} are currently downloading.`,
+    `This series is already in the library. ${count} episode${
+      count > 1 ? "s" : ""
+    } are being grabbed now.`,
+    `Already added! ${count} episode${count > 1 ? "s" : ""} are coming your way.`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }

@@ -67,10 +67,33 @@ export const getRadarrQueue = async (settings: settingsDocType): Promise<Downloa
 
       return res.data.records as DownloadStatus[]
     } else {
-      logger.error(`getQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
+      logger.error(`getRadarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getQueue: Radarr Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getRadarrQueue: Radarr Error: ${errCodeAndMsg(err)}`)
+  }
+
+  return []
+}
+
+// Get the Sonarr Queue in circumstances where the API object isn't available
+export const getSonarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`Sonarr | Retrieving Queue.`)
+
+      return res.data.records as DownloadStatus[]
+    } else {
+      logger.error(`getSonarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`getSonarrQueue: Sonarr Error: ${errCodeAndMsg(err)}`)
   }
 
   return []

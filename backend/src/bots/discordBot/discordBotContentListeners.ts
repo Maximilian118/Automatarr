@@ -15,6 +15,7 @@ import {
   downloadMovie,
   getRadarrQueue,
   getSonarrLibrary,
+  getSonarrQueue,
   searchMissing,
   searchRadarr,
   searchSonarr,
@@ -22,10 +23,11 @@ import {
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
-  getStatusMessage,
   randomDownloadStartMessage,
   randomAlreadyAddedWithMissingMessage,
   randomMissingEpisodesSearchInProgress,
+  getMovieStatusMessage,
+  randomEpisodesDownloadingMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -98,7 +100,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Check if the movie is in the download queue
   const queue = await getRadarrQueue(settings)
   const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
-  if (movieInQueue) return getStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+  if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
 
   // Ensure a quality profile is selected
   const selectedQP = settings.general_bot.movie_quality_profile
@@ -248,12 +250,19 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
       return randomAlreadyAddedMessage()
     }
 
-    const commandList = data.commandList.find((cl) => cl.name === "Sonarr")?.data
-
+    // Set up for the search missing rate limiting
     const now = Date.now()
     const lastSearchTime = lastSearchTimestamps.get("Sonarr") || 0
     const tenMinutes = 10 * 60 * 1000
     const errMsgIdent = `${user.name} | ${message.author.username} searched for the series ${searchString}.`
+
+    // Check download Queue and see if any episodes for this series are currently being downloaded
+    const queue = await getSonarrQueue(settings)
+    const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
+
+    if (episodesInQueue.length > 0) {
+      return randomEpisodesDownloadingMessage(episodesInQueue.length)
+    }
 
     if (now - lastSearchTime < tenMinutes) {
       return discordReply(
@@ -263,6 +272,8 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
       )
     }
 
+    // Start a Sonarr wide wanted missing search - because yolo
+    const commandList = data.commandList.find((cl) => cl.name === "Sonarr")?.data
     const searched = await searchMissing(
       commandList,
       "Sonarr",
@@ -289,7 +300,36 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     )
   }
 
-  // Series not already in library
+  // Ensure a quality profile is selected
+  const selectedQP = settings.general_bot.series_quality_profile
+
+  if (!selectedQP) {
+    return discordReply(
+      "A quality profile for series has not been selected. Please inform the server owner!",
+      "error",
+      "!download command used but no quality profiles have been selected. Go to the API > Bots > Series Quality Profile.",
+    )
+  }
+
+  // Check Selected Quality Profile
+  const qualityProfile = findQualityProfile(selectedQP, data, "Sonarr")
+
+  if (typeof qualityProfile === "string") {
+    return discordReply(qualityProfile, "error")
+  }
+
+  // Grab rootFolder data
+  const rootFolder = findRootFolder(data, "Sonarr")
+
+  if (typeof rootFolder === "string") {
+    return discordReply(rootFolder, "error")
+  }
+
+  // Ensure we have enough free space on the drive to satisfy the selected min free space
+  const freeSpaceErr = freeSpaceCheck(rootFolder.freeSpace, settings.general_bot.min_free_space)
+  if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
+
+  // Download the Series
 
   return `New Title: ${foundSeries.title}`
 }
