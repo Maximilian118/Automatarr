@@ -11,26 +11,26 @@ import {
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
-import {
-  downloadMovie,
-  getRadarrQueue,
-  getSonarrLibrary,
-  getSonarrQueue,
-  searchMissing,
-  searchRadarr,
-  searchSonarr,
-} from "../../shared/StarrRequests"
+import { searchMissing } from "../../shared/StarrRequests"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
-  randomDownloadStartMessage,
   randomAlreadyAddedWithMissingMessage,
   randomMissingEpisodesSearchInProgress,
   getMovieStatusMessage,
   randomEpisodesDownloadingMessage,
+  randomMovieDownloadStartMessage,
+  randomSeriesDownloadStartMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
+import { downloadMovie, getRadarrQueue, searchRadarr } from "../../shared/RadarrStarrRequests"
+import {
+  downloadSeries,
+  getSonarrLibrary,
+  getSonarrQueue,
+  searchSonarr,
+} from "../../shared/SonarrStarrRequests"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -170,9 +170,9 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
   return discordReply(
-    randomDownloadStartMessage(movie),
+    randomMovieDownloadStartMessage(movie),
     "success",
-    `${user.name} | ${message.author.username} started a Radarr download of ${movie.title}. They have ${currentLeft} pool allowance available.`,
+    `${user.name} | ${message.author.username} started a Radarr download of ${movie.title}. They have ${currentLeft} pool allowance available for movies.`,
   )
 }
 
@@ -201,7 +201,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
 
   // Check user pool limits
-  const { limitError } = checkUserSeriesLimit(user, settings)
+  const { limitError, currentLeft } = checkUserSeriesLimit(user, settings)
   if (limitError) return discordReply(limitError, "info")
 
   // See what returns from the sonarr API
@@ -330,6 +330,36 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
 
   // Download the Series
+  const series = await downloadSeries(settings, foundSeries, qualityProfile.id, rootFolder.path)
 
-  return `New Title: ${foundSeries.title}`
+  if (!series) {
+    return discordReply(
+      `Hmm.. something went wrong with the request to download ${searchString}. I do apologise!`,
+      "error",
+    )
+  }
+
+  // Add the series to the users pool
+  settings.general_bot.users = settings.general_bot.users.map((u) => {
+    if (u._id === user._id) {
+      return {
+        ...u,
+        pool: {
+          ...u.pool,
+          series: [...u.pool.series, series],
+        },
+      }
+    } else {
+      return u
+    }
+  })
+
+  // Save the new pool data to the database
+  if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
+
+  return discordReply(
+    randomSeriesDownloadStartMessage(series),
+    "success",
+    `${user.name} | ${message.author.username} started a series download of ${series.title}. They have ${currentLeft} pool allowance available for series.`,
+  )
 }

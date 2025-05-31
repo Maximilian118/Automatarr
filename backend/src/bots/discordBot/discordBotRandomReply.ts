@@ -1,6 +1,7 @@
 // Just a bit of fun so we don't see the same message everytime
 
 import { Movie } from "../../types/movieTypes"
+import { Series } from "../../types/seriesTypes"
 
 export const randomNotFoundMessage = () => {
   const messages = [
@@ -130,7 +131,7 @@ export const getMovieStatusMessage = (status: string, time?: string): string => 
   }
 }
 
-export const randomDownloadStartMessage = (movie: Movie) => {
+export const randomMovieDownloadStartMessage = (movie: Movie) => {
   const messages = [
     `Popcorn ready? '${movie.title}' is on its way! 🍿`,
     `Download started for '${movie.title}' — time to get cozy! 🎬`,
@@ -142,6 +143,22 @@ export const randomDownloadStartMessage = (movie: Movie) => {
     `'${movie.title}' is en route! Let the cinematic vibes begin. 🛤️`,
     `Cheers! '${movie.title}' is being summoned from the movie gods. 🍷🎥`,
     `'${movie.title}' is downloading — excellent choice, by the way. 😎`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomSeriesDownloadStartMessage = (series: Series) => {
+  const messages = [
+    `Binge mode: activated! '${series.title}' is on the way. 📺`,
+    `Here we go — '${series.title}' is starting to download! 🍿`,
+    `'${series.title}' is joining the library. Get comfy! 🛋️`,
+    `Episodes inbound! '${series.title}' is downloading now. 🚚`,
+    `Get ready for a wild ride — '${series.title}' is coming in hot! 🔥`,
+    `One episode at a time... '${series.title}' is on the move! 🎬`,
+    `'${series.title}' is headed your way. It's series time! 📦`,
+    `Cue the theme song — '${series.title}' is downloading. 🎵`,
+    `'${series.title}' is loading up. Snacks not included. 🍪`,
+    `📡 Incoming transmission: '${series.title}' has entered the download zone.`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }

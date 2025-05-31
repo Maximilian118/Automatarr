@@ -24,7 +24,6 @@ import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import moment from "moment"
 import { errCodeAndMsg } from "./requestError"
-import { settingsDocType } from "../models/settings"
 import { QualityProfile } from "../types/qualityProfileType"
 
 // Create a downloadQueue object and retrieve the latest queue data
@@ -51,52 +50,6 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
   }
 
   return
-}
-
-// Get the Radarr Queue in circumstances where the API object isn't available
-export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
-  try {
-    const res = await axios.get(
-      cleanUrl(
-        `${settings.radarr_URL}/api/${settings.radarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.radarr_KEY}`,
-      ),
-    )
-
-    if (requestSuccess(res.status)) {
-      logger.success(`Radarr | Retrieving Queue.`)
-
-      return res.data.records as DownloadStatus[]
-    } else {
-      logger.error(`getRadarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
-    }
-  } catch (err) {
-    logger.error(`getRadarrQueue: Radarr Error: ${errCodeAndMsg(err)}`)
-  }
-
-  return []
-}
-
-// Get the Sonarr Queue in circumstances where the API object isn't available
-export const getSonarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
-  try {
-    const res = await axios.get(
-      cleanUrl(
-        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.sonarr_KEY}`,
-      ),
-    )
-
-    if (requestSuccess(res.status)) {
-      logger.success(`Sonarr | Retrieving Queue.`)
-
-      return res.data.records as DownloadStatus[]
-    } else {
-      logger.error(`getSonarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
-    }
-  } catch (err) {
-    logger.error(`getSonarrQueue: Sonarr Error: ${errCodeAndMsg(err)}`)
-  }
-
-  return []
 }
 
 // Loop through all of the activeAPIs and return all of the latest downloadQueues
@@ -209,29 +162,6 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
     logger.error(
       `getLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
     )
-  }
-
-  return
-}
-
-export const getSonarrLibrary = async (
-  settings: settingsDocType,
-): Promise<Series[] | undefined> => {
-  try {
-    const res = await axios.get(
-      cleanUrl(
-        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/series?apikey=${settings.sonarr_KEY}`,
-      ),
-    )
-
-    if (requestSuccess(res.status)) {
-      logger.success(`Sonarr | Retrieving library.`)
-      return res.data as Series[]
-    } else {
-      logger.error(`getSonarrLibrary: Could not retrieve Sonarr library.. how peculiar..`)
-    }
-  } catch (err) {
-    logger.error(`getSonarrLibrary: Sonarr series search error: ${errCodeAndMsg(err)}`)
   }
 
   return
@@ -364,34 +294,44 @@ export const getAllLibraries = async (
 ): Promise<library[]> => {
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
-      // Find the library for this API in db
       const library = data.libraries.find((l) => API.name === l.name)
 
-      // Check if an hour has passed since the last request
+      // Skip if update was done within the last hour
       if (!checkTimePassed(1, "hours", library?.updated_at)) {
         const timer = 60 - moment().diff(moment(library?.updated_at), "minutes")
-
         logger.info(
           `${API.name} | Skipping Library retrieval. Only once per hour. ${timer} minutes left.`,
         )
-
         return library
       }
 
-      // Retrieve latest library data
+      // Try to fetch new library data
       const updatedLibrary = await getLibrary(API, data)
 
-      return {
+      // If it failed, log and fall back to existing
+      if (!updatedLibrary) {
+        logger.error(`${API.name} | Failed to retrieve updated library. Using existing data.`)
+        return library
+      }
+
+      const baseLibrary = {
         ...updatedLibrary,
-        ...(API.name === "Sonarr" && {
-          subData: await getAllEpisodes(updatedLibrary?.data as Series[] | undefined, API),
-        }),
         created_at: library ? library.created_at : moment().format(),
       }
+
+      // Add subData for Sonarr (episodes list)
+      if (API.name === "Sonarr") {
+        return {
+          ...baseLibrary,
+          subData: await getAllEpisodes(updatedLibrary.data as Series[], API),
+        }
+      }
+
+      return baseLibrary
     }),
   )
 
-  // Filter out undefined values
+  // Filter out any completely undefined libraries
   return results.filter((l): l is library => l !== undefined)
 }
 
@@ -706,99 +646,4 @@ export const getAllQualityProfiles = async (
 
   // Filter out undefined values
   return results.filter((c): c is qualityProfile => c !== undefined)
-}
-
-// Search for movie in tmdb via radarr api
-export const searchRadarr = async (
-  settings: settingsDocType,
-  searchString: string,
-): Promise<Movie[] | undefined> => {
-  try {
-    const res = await axios.get(
-      cleanUrl(
-        `${settings.radarr_URL}/api/${
-          settings.radarr_API_version
-        }/movie/lookup?term=${encodeURIComponent(searchString)}&apikey=${settings.radarr_KEY}`,
-      ),
-    )
-
-    if (requestSuccess(res.status)) {
-      return res.data as Movie[]
-    } else {
-      logger.error(`searchRadarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
-    }
-  } catch (err) {
-    logger.info(`searchRadarr: ${errCodeAndMsg(err)}`)
-  }
-
-  return
-}
-
-// Search for series in tmdb via sonarr api
-export const searchSonarr = async (
-  settings: settingsDocType,
-  searchString: string,
-): Promise<Series[] | undefined> => {
-  try {
-    const res = await axios.get(
-      cleanUrl(
-        `${settings.sonarr_URL}/api/${
-          settings.sonarr_API_version
-        }/series/lookup?term=${encodeURIComponent(searchString)}&apikey=${settings.sonarr_KEY}`,
-      ),
-    )
-
-    if (requestSuccess(res.status)) {
-      return res.data as Series[]
-    } else {
-      logger.error(`searchSonarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
-    }
-  } catch (err) {
-    logger.info(`searchSonarr: ${errCodeAndMsg(err)}`)
-  }
-
-  return
-}
-
-// Download a movie in radarr
-export const downloadMovie = async (
-  settings: settingsDocType,
-  foundMovie: Movie,
-  qualityProfileId: number,
-  rootFolderPath: string,
-): Promise<Movie | undefined> => {
-  const formattedMovie = {
-    ...foundMovie,
-    qualityProfileId,
-    monitored: true,
-    minimumAvailability: "released",
-    addOptions: {
-      monitor: "movieOnly",
-      searchForMovie: true,
-    },
-    rootFolderPath,
-  }
-
-  try {
-    const res = await axios.post(
-      cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/movie`),
-      formattedMovie,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "X-Api-Key": settings.radarr_KEY,
-        },
-      },
-    )
-
-    if (requestSuccess(res.status)) {
-      return res.data as Movie
-    } else {
-      logger.error(`downloadMovie: Unknown error. Status: ${res.status} - ${res.statusText}`)
-    }
-  } catch (err) {
-    logger.info(`downloadMovie: ${errCodeAndMsg(err)}`)
-  }
-
-  return
 }
