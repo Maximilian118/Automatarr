@@ -8,6 +8,7 @@ import {
   matchedUser,
   noDBPull,
   noDBSave,
+  notifyMovieDownloaded,
   sendDiscordMessage,
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
@@ -33,6 +34,7 @@ import {
   getSonarrQueue,
   searchSonarr,
 } from "../../shared/SonarrStarrRequests"
+import logger from "../../logger"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -173,6 +175,12 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
+  // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
+  notifyMovieDownloaded(message, settings, user, movie.id, movie.title).catch((err) =>
+    logger.error(`waitForMovieDownload: Something went wrong: ${err}`),
+  )
+
+  // Notify that we've grabbed a movie
   return discordReply(
     randomMovieDownloadStartMessage(movie),
     "success",

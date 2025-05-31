@@ -97,3 +97,32 @@ export const downloadMovie = async (
 
   return
 }
+
+// A request designed to be as quick as possible to check if a movie has been downloaded
+export const movieDownloaded = async (
+  settings: settingsDocType,
+  movieId: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/movie/${movieId}`),
+      {
+        headers: {
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data?.hasFile === true
+    }
+
+    logger.error(
+      `movieDownloaded: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`movieDownloaded: Radarr lookup error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
+}

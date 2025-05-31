@@ -5,6 +5,11 @@ import { QualityProfile } from "../../types/qualityProfileType"
 import { dataDocType } from "../../models/data"
 import { rootFolderData } from "../../types/types"
 import { formatBytes } from "../../shared/utility"
+import { movieDownloaded } from "../../shared/RadarrStarrRequests"
+import {
+  randomMovieReadyMessage,
+  randomMovieStillNotDownloadedMessage,
+} from "./discordBotRandomReply"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
@@ -323,4 +328,32 @@ export const freeSpaceCheck = (freeSpace: number, minFreeSpace: string | number)
   }
 
   return ""
+}
+
+export const notifyMovieDownloaded = async (
+  message: Message,
+  settings: settingsDocType,
+  user: UserType,
+  movieId: number,
+  movieTitle: string,
+  checkIntervalMs: number = 30_000, // 30 seconds
+  timeoutMs: number = 4 * 60 * 60 * 1000, // 4 hours in ms
+): Promise<void> => {
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    const downloaded = await movieDownloaded(settings, movieId)
+
+    if (downloaded) {
+      await sendDiscordMessage(message, randomMovieReadyMessage(user.name, movieTitle))
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
+  }
+
+  await sendDiscordMessage(
+    message,
+    discordReply(randomMovieStillNotDownloadedMessage(movieTitle), "warn"),
+  )
 }

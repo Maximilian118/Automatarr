@@ -3,6 +3,35 @@
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 
+export const randomMovieReadyMessage = (name: string, movieTitle: string) => {
+  const messages = [
+    `Hey ${name}, '${movieTitle}' has finished downloading! Ready to watch. 🍿`,
+    `You're good to go, ${name} — '${movieTitle}' is ready for viewing! 🎬`,
+    `Download complete, ${name}! '${movieTitle}' is queued up and waiting. 📽️`,
+    `${name}, '${movieTitle}' is all set. Press play and enjoy! ▶️`,
+    `Enjoy the show, ${name} — '${movieTitle}' is now available! 🎉`,
+    `${name}, '${movieTitle}' is in the library. Let movie night begin! 🌙`,
+    `'${movieTitle}' just landed, ${name}. Fire it up when you're ready! 🚀`,
+    `Done and dusted! '${movieTitle}' is ready to roll, ${name}. 🛋️`,
+    `Hey ${name}, '${movieTitle}' is downloaded and waiting. Snacks not included. 🍿`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMovieStillNotDownloadedMessage = (movieTitle: string) => {
+  const messages = [
+    `'${movieTitle}' is still not marked as downloaded after waiting four hours. I'd contact the server owner if I were you.`,
+    `No sign of '${movieTitle}' after four hours. Something might be stuck. 🤔`,
+    `'${movieTitle}' hasn't finished downloading... and it's been a while. Might want to check in with the server admin.`,
+    `Four hours later and still no '${movieTitle}'. Something's up. 🚨`,
+    `Hmm, '${movieTitle}' is taking its sweet time. It might need a little human intervention.`,
+    `'${movieTitle}' is still missing in action. Recommend contacting the server overlord.`,
+    `Still waiting on '${movieTitle}' after four hours. Might be worth kicking the server (gently).`,
+    `'${movieTitle}' should be here by now. It's probably stuck in the tubes. 🛠️`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomProcessingMessage = () => {
   const messages = [
     "Hold on a sec...",
