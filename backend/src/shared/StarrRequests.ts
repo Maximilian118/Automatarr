@@ -191,6 +191,29 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
   return
 }
 
+export const getSonarrLibrary = async (
+  settings: settingsDocType,
+): Promise<Series[] | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/series?apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`Sonarr | Retrieving library.`)
+      return res.data as Series[]
+    } else {
+      logger.error(`getSonarrLibrary: Could not retrieve Sonarr library.. how peculiar..`)
+    }
+  } catch (err) {
+    logger.error(`getSonarrLibrary: Sonarr series search error: ${errCodeAndMsg(err)}`)
+  }
+
+  return
+}
+
 // As Sonarr is awkward we have to loop through all of the seriesID's and request all of the episodes for each series
 // Optionally get episode Files as well
 export const getAllEpisodes = async (
@@ -461,36 +484,37 @@ export const deleteFromLibrary = async (
 }
 
 // Send the search command for all wanted missing content for passed Starr API
-export const searchMissing = async (API: APIData): Promise<boolean> => {
+export const searchMissing = async (
+  commandList: string[] | undefined,
+  APIname: "Radarr" | "Sonarr" | "Lidarr",
+  URL: string,
+  API_version: string,
+  KEY: string,
+): Promise<boolean> => {
   // Ensure we have a list of commands for this API
-  if (!API.data.commandList) {
-    logger.error(`wantedMissing: Could not find any commands for ${API.name}.`)
+  if (!commandList) {
+    logger.error(`searchMissing: Could not find any commands for ${APIname}.`)
     return false
   }
 
   // Retrieve the first string that matches startsWith('missing')
-  const missingSearchString = API.data.commandList.find((str) =>
-    str.toLowerCase().startsWith("missing"),
-  )
+  const missingSearchString = commandList.find((str) => str.toLowerCase().startsWith("missing"))
 
   // Ensure missingSearchString is populated
   if (!missingSearchString) {
-    logger.error(`wantedMissing: Could not find a command string ${API.name}.`)
+    logger.error(`searchMissing: Could not find a command string for ${APIname}.`)
     return false
   }
 
   try {
-    await axios.post(
-      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/command?apikey=${API.data.KEY}`),
-      {
-        name: missingSearchString,
-      },
-    )
+    await axios.post(cleanUrl(`${URL}/api/${API_version}/command?apikey=${KEY}`), {
+      name: missingSearchString,
+    })
 
-    logger.info(`wantedMissing: ${API.name} search started.`)
+    logger.info(`searchMissing: ${APIname} search started.`)
     return true
   } catch (err) {
-    logger.error(`wantedMissing: ${API.name} error: ${err}.`)
+    logger.error(`searchMissing: ${APIname} error: ${err}.`)
     return false
   }
 }
@@ -682,6 +706,32 @@ export const searchRadarr = async (
     }
   } catch (err) {
     logger.info(`searchRadarr: ${errCodeAndMsg(err)}`)
+  }
+
+  return
+}
+
+// Search for series in tmdb via sonarr api
+export const searchSonarr = async (
+  settings: settingsDocType,
+  searchString: string,
+): Promise<Series[] | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${
+          settings.sonarr_API_version
+        }/series/lookup?term=${encodeURIComponent(searchString)}&apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as Series[]
+    } else {
+      logger.error(`searchSonarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.info(`searchSonarr: ${errCodeAndMsg(err)}`)
   }
 
   return

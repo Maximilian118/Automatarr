@@ -10,13 +10,22 @@ import {
   noDBSave,
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
-import { checkUserMovieLimit } from "./discordBotUserLimits"
-import { downloadMovie, getRadarrQueue, searchRadarr } from "../../shared/StarrRequests"
+import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
+import {
+  downloadMovie,
+  getRadarrQueue,
+  getSonarrLibrary,
+  searchMissing,
+  searchRadarr,
+  searchSonarr,
+} from "../../shared/StarrRequests"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
   getStatusMessage,
   randomDownloadStartMessage,
+  randomAlreadyAddedWithMissingMessage,
+  randomMissingEpisodesSearchInProgress,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -52,7 +61,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   }
 
   // Validate the message
-  const parsed = validateDownload(message.content)
+  const parsed = validateDownload(message.content, "Radarr")
 
   // Return if an error string is returned from validateDownload
   if (typeof parsed === "string") {
@@ -165,10 +174,122 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   )
 }
 
+const lastSearchTimestamps: Map<string, number> = new Map()
+
 // Download a series and add it to the users pool
 const caseDownloadSeries = async (message: Message, settings: settingsDocType): Promise<string> => {
-  console.log(message)
-  console.log(settings.id)
-  console.log("SERIES")
-  return "SERIES"
+  // Check if Sonarr is connected
+  if (!settings.sonarr_active) {
+    return discordReply("Curses! Sonarr is needed for this command.", "error")
+  }
+
+  // Validate the message
+  const parsed = validateDownload(message.content, "Sonarr")
+
+  // Return if an error string is returned from validateDownload
+  if (typeof parsed === "string") {
+    return discordReply(parsed, "error")
+  }
+
+  // If message is valid, give me the juicy data
+  const { searchString } = parsed
+
+  // Find the user tied to the author
+  const user = matchedUser(settings, message.author.username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  // Check user pool limits
+  const { limitError } = checkUserSeriesLimit(user, settings)
+  if (limitError) return discordReply(limitError, "info")
+
+  // See what returns from the sonarr API
+  const foundSeriesArr = await searchSonarr(settings, searchString)
+
+  // Return if nothing in search results
+  if (!foundSeriesArr || foundSeriesArr.length === 0) {
+    return randomNotFoundMessage()
+  }
+
+  // Grab the first series in the array
+  const foundSeries = foundSeriesArr[0]
+
+  // Retrieve Data Object
+  const data = (await Data.findOne()) as dataDocType
+
+  if (!data) {
+    return discordReply(
+      "I'm unable to find any data in the databse... This is extremely bad.",
+      "catastrophic",
+    )
+  }
+
+  // Get latest series data from Sonarr
+  const currentLibrary = await getSonarrLibrary(settings)
+
+  if (!currentLibrary) {
+    return discordReply(
+      "It looks like there's no series data in the database. This is highly unusual.",
+      "error",
+    )
+  }
+
+  // Try matching by unique IDs in order of reliability
+  const matchedSeries = currentLibrary.find(
+    (l) =>
+      l.tvdbId === foundSeries.tvdbId ||
+      (foundSeries.tvMazeId && l.tvMazeId === foundSeries.tvMazeId) ||
+      (foundSeries.tmdbId && l.tmdbId === foundSeries.tmdbId) ||
+      (foundSeries.imdbId && l.imdbId === foundSeries.imdbId),
+  )
+
+  // Check if the series is already in the Sonarr library
+  if (matchedSeries) {
+    if (matchedSeries.statistics.percentOfEpisodes === 100) {
+      return randomAlreadyAddedMessage()
+    }
+
+    const commandList = data.commandList.find((cl) => cl.name === "Sonarr")?.data
+
+    const now = Date.now()
+    const lastSearchTime = lastSearchTimestamps.get("Sonarr") || 0
+    const tenMinutes = 10 * 60 * 1000
+    const errMsgIdent = `${user.name} | ${message.author.username} searched for the series ${searchString}.`
+
+    if (now - lastSearchTime < tenMinutes) {
+      return discordReply(
+        randomMissingEpisodesSearchInProgress(),
+        "info",
+        `${errMsgIdent} Missing episodes but search skipped due to cooldown.`,
+      )
+    }
+
+    const searched = await searchMissing(
+      commandList,
+      "Sonarr",
+      settings.sonarr_URL,
+      settings.sonarr_API_version,
+      settings.sonarr_KEY,
+    )
+
+    if (!searched) {
+      return discordReply(
+        `That series is already in the library, but some episodes are missing and I can't search for them. Please contact the server owner.`,
+        "error",
+        `${errMsgIdent} Series found with missing episodes, but search failed.`,
+      )
+    }
+
+    // Update timestamp after successful search
+    lastSearchTimestamps.set("Sonarr", now)
+
+    return discordReply(
+      randomAlreadyAddedWithMissingMessage(),
+      "info",
+      `${errMsgIdent} It has some missing episodes. Search started.`,
+    )
+  }
+
+  // Series not already in library
+
+  return `New Title: ${foundSeries.title}`
 }

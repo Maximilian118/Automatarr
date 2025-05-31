@@ -60,7 +60,7 @@ const Bots: React.FC = () => {
 
           Each pool has limits and expiration times for different content types.
 
-          The admin can also assign Super Users, who are exempt from these restrictions.
+          An admin can also assign Super Users, who are exempt from these restrictions.
 
           Content in user pools cannot be removed via loops.
         `}

@@ -55,7 +55,8 @@ const coreResolvers = {
       }
 
       // Send the command request
-      await searchMissing(API)
+      // prettier-ignore
+      await searchMissing(API.data.commandList, API.name, API.data.URL, API.data.API_version, API.data.KEY)
     }
   },
   import_blocked_handler: async (settings: settingsType): Promise<void> => {

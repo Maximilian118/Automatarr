@@ -145,3 +145,31 @@ export const randomDownloadStartMessage = (movie: Movie) => {
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+export const randomAlreadyAddedWithMissingMessage = () => {
+  const messages = [
+    "The series is in the library, but a few episodes wandered off — I'm tracking them down now.",
+    "Found it in the library! Some episodes are missing, but I've kicked off a search.",
+    "That one's already here, but incomplete — fetching the missing pieces!",
+    "The show's in your library, but it's got holes. I'm working on patching it up.",
+    "Library hit confirmed! Some episodes are MIA, initiating recovery mission.",
+    "It's already in the collection, just not all there — starting a search for the missing bits.",
+    "That series made it in, but a few episodes didn't — I'm on the case!",
+    "It's here, but not whole. Missing episodes detected — search engaged!",
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMissingEpisodesSearchInProgress = () => {
+  const messages = [
+    "The series is in the library, but a few episodes are missing. Already on the case!",
+    "Some episodes are MIA, but don't worry—I'm chasing them down as we speak.",
+    "It's in your collection, just a bit incomplete. I've already started fetching the missing bits!",
+    "The show’s here, but not whole. Retrieval in progress!",
+    "Found the series with a few holes. Don’t panic—I’m filling in the gaps!",
+    "The library’s got it, but it's not all there. I’m working on getting the rest!",
+    "Looks like the series is here but patchy. Already started a recovery mission!",
+    "It’s on the shelf, minus a few chapters. I’m hunting them down for you!",
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}

@@ -110,16 +110,17 @@ export const validateRemoveCommand = (msgArr: string[]): string => {
 
 // Validate the array data for the caseInit message
 // prettier-ignore
-export const validateDownload = (msgContent: string): string | {
+export const validateDownload = (msgContent: string, API: "Radarr" | "Sonarr"): string | {
   command: string
   title: string
   year: string
-  searchString: string
+  searchString: string,
 } => {
   const msgArr = msgContent.trim().split(/\s+/)
+  const content = API === "Radarr" ? "movie" : "series"
 
   if (msgArr.length < 3) {
-    return `The !download command must contain a movie title and a 4-digit year. For example: !download Top Gun 1986`
+    return `The !download command must contain a ${content} title and a 4-digit year. For example: !download ${content === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"}`
   }
 
   const [command, ...rest] = msgArr
@@ -141,7 +142,7 @@ export const validateDownload = (msgContent: string): string | {
   // TMDB-safe title validation (basic ASCII + common punctuation)
   const invalidCharMatch = title.match(/[^a-zA-Z0-9 ':,\-&.]/)
   if (invalidCharMatch) {
-    return `The movie title contains unsupported characters: \`${invalidCharMatch[0]}\``
+    return `The ${content} title contains unsupported characters: \`${invalidCharMatch[0]}\``
   }
 
   return {
