@@ -8,6 +8,7 @@ import {
   matchedUser,
   noDBPull,
   noDBSave,
+  sendDiscordMessage,
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
@@ -21,6 +22,7 @@ import {
   randomEpisodesDownloadingMessage,
   randomMovieDownloadStartMessage,
   randomSeriesDownloadStartMessage,
+  randomProcessingMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -57,6 +59,8 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
 
 // Download a movie and add it to the users pool
 const caseDownloadMovie = async (message: Message, settings: settingsDocType): Promise<string> => {
+  await sendDiscordMessage(message, randomProcessingMessage())
+
   // Check if Radarr is connected
   if (!settings.radarr_active) {
     return discordReply("Curses! Radarr is needed for this command.", "error")
@@ -180,6 +184,8 @@ const lastSearchTimestamps: Map<string, number> = new Map()
 
 // Download a series and add it to the users pool
 const caseDownloadSeries = async (message: Message, settings: settingsDocType): Promise<string> => {
+  await sendDiscordMessage(message, randomProcessingMessage())
+
   // Check if Sonarr is connected
   if (!settings.sonarr_active) {
     return discordReply("Curses! Sonarr is needed for this command.", "error")

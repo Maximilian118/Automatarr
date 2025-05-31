@@ -21,6 +21,15 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   }
 }
 
+// A function for type safty with message.channel.send()
+export const sendDiscordMessage = async (message: Message, content: string): Promise<void> => {
+  if ("send" in message.channel && typeof message.channel.send === "function") {
+    await message.channel.send(content)
+  } else {
+    logger.warn(`safeSend: Channel is not text-based. Could not send message: "${content}"`)
+  }
+}
+
 // A basic function that returns the passed string and logs it in the backend
 export const discordReply = (
   msg: string,

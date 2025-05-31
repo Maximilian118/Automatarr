@@ -3,6 +3,22 @@
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 
+export const randomProcessingMessage = () => {
+  const messages = [
+    "Hold on a sec...",
+    "Strap in!",
+    "Just a moment while I work my magic...",
+    "Hang tight, doing some wizardry 🧙‍♂️",
+    "Crunching the numbers...",
+    "One sec, contacting the media gods 📡",
+    "Gimme a moment — lining everything up...",
+    "Booting up the content engine... 🔧",
+    "Working on it — don’t go anywhere!",
+    "Stand by... automation in progress 🤖",
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomNotFoundMessage = () => {
   const messages = [
     "Hmm... I couldn't find that one.",
