@@ -384,7 +384,7 @@ export const caseStats = async (message: Message): Promise<string> => {
 
   // Server owner check
   const serverOwner = settings.general_bot.users[0]
-  const isOnwner = serverOwner.ids.includes(message.author.username)
+  const isOnwner = serverOwner.ids.includes(username)
 
   return (
     `🎯 Stats for <@${guildMember.id}>\n` +
