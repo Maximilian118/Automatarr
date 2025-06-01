@@ -18,6 +18,21 @@ export const randomMovieReadyMessage = (name: string, movieTitle: string) => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+export const randomSeriesReadyMessage = (name: string, seriesTitle: string) => {
+  const messages = [
+    `Hey ${name}, '${seriesTitle}' just finished downloading! Time to binge! 📺`,
+    `Good news, ${name} — '${seriesTitle}' is ready and waiting! 🍿`,
+    `Episodes are in, ${name}! '${seriesTitle}' is ready to stream. 🎬`,
+    `${name}, '${seriesTitle}' is all set. Grab a blanket and dive in! 🛋️`,
+    `All downloaded, ${name} — '${seriesTitle}' is in your library now! ✅`,
+    `Get comfy, ${name}. '${seriesTitle}' is prepped and ready for your next session. 🛏️`,
+    `'${seriesTitle}' is ready to roll, ${name}. Happy watching! 🎉`,
+    `${name}, '${seriesTitle}' has landed. Let the marathon begin! 🏁`,
+    `Binge mode: activated. '${seriesTitle}' is ready for you, ${name}! 🔥`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomMovieStillNotDownloadedMessage = (movieTitle: string) => {
   const messages = [
     `'${movieTitle}' is still not marked as downloaded after waiting four hours. I'd contact the server owner if I were you.`,
@@ -30,6 +45,27 @@ export const randomMovieStillNotDownloadedMessage = (movieTitle: string) => {
     `'${movieTitle}' should be here by now. It's probably stuck in the tubes. 🛠️`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomSeriesStillNotDownloadedMessage = (
+  seriesTitle: string,
+  timeleft?: string,
+): string => {
+  const baseMessages = [
+    `'${seriesTitle}' still hasn't downloaded after four hours. You might want to give the server admin a nudge.`,
+    `No luck with '${seriesTitle}' after four hours. Something might be jammed.`,
+    `'${seriesTitle}' is still stuck in limbo. It's probably time to check on the server.`,
+    `Four hours in and '${seriesTitle}' is still missing. Might be worth investigating.`,
+    `Hmm... '${seriesTitle}' didn't make it through. Server might need some attention.`,
+    `'${seriesTitle}' is fashionably late. Too fashionably. Someone should check the pipeline.`,
+    `'${seriesTitle}' is still MIA after four hours. Might be time to reboot something.`,
+    `Still no '${seriesTitle}' after a full shift. Maybe the server took a nap.`,
+    `'${seriesTitle}' didn't make the cut-off. Give the server overlord a gentle prod.`,
+  ]
+
+  const message = baseMessages[Math.floor(Math.random() * baseMessages.length)]
+
+  return timeleft ? `${message} (Last episode finishes downloading in: ${timeleft})` : message
 }
 
 export const randomProcessingMessage = () => {

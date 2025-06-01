@@ -74,6 +74,7 @@ const casePing = (client: Client, message: Message): string => {
     `🏓 Pong!\n` +
     `Round-trip time: **${rtt} ms**\n` +
     `Heartbeat: **${heartbeat} ms**\n` +
-    `Channel: ${message.channel}`
+    `Channel: ${message.channel}\n` +
+    `User: ${message.author.toString()}`
   )
 }

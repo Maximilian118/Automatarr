@@ -3,13 +3,9 @@ import Settings, { DiscordBotType, settingsDocType, UserType } from "../../model
 import logger from "../../logger"
 import { QualityProfile } from "../../types/qualityProfileType"
 import { dataDocType } from "../../models/data"
-import { rootFolderData } from "../../types/types"
+import { DownloadStatus, rootFolderData } from "../../types/types"
 import { formatBytes } from "../../shared/utility"
-import { movieDownloaded } from "../../shared/RadarrStarrRequests"
-import {
-  randomMovieReadyMessage,
-  randomMovieStillNotDownloadedMessage,
-} from "./discordBotRandomReply"
+import moment from "moment"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
@@ -330,30 +326,16 @@ export const freeSpaceCheck = (freeSpace: number, minFreeSpace: string | number)
   return ""
 }
 
-export const notifyMovieDownloaded = async (
-  message: Message,
-  settings: settingsDocType,
-  user: UserType,
-  movieId: number,
-  movieTitle: string,
-  checkIntervalMs: number = 30_000, // 30 seconds
-  timeoutMs: number = 4 * 60 * 60 * 1000, // 4 hours in ms
-): Promise<void> => {
-  const start = Date.now()
+// Find the queue item with the longest downlaod time
+export const getQueueItemWithLongestTimeLeft = (
+  queue: DownloadStatus[],
+): DownloadStatus | undefined => {
+  if (!queue.length) return
 
-  while (Date.now() - start < timeoutMs) {
-    const downloaded = await movieDownloaded(settings, movieId)
+  return queue.reduce((max, current) => {
+    const maxMs = moment.duration(max.timeleft).asMilliseconds()
+    const currentMs = moment.duration(current.timeleft).asMilliseconds()
 
-    if (downloaded) {
-      await sendDiscordMessage(message, randomMovieReadyMessage(user.name, movieTitle))
-      return
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
-  }
-
-  await sendDiscordMessage(
-    message,
-    discordReply(randomMovieStillNotDownloadedMessage(movieTitle), "warn"),
-  )
+    return currentMs > maxMs ? current : max
+  })
 }

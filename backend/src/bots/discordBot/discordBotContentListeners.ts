@@ -8,7 +8,6 @@ import {
   matchedUser,
   noDBPull,
   noDBSave,
-  notifyMovieDownloaded,
   sendDiscordMessage,
 } from "./discordBotUtility"
 import { channelValid, validateDownload } from "./discordRequestValidation"
@@ -35,6 +34,7 @@ import {
   searchSonarr,
 } from "../../shared/SonarrStarrRequests"
 import logger from "../../logger"
+import { notifyMovieDownloaded, notifySeriesDownloaded } from "./discordBotAsync"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -176,8 +176,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
   // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
-  notifyMovieDownloaded(message, settings, user, movie.id, movie.title).catch((err) =>
-    logger.error(`waitForMovieDownload: Something went wrong: ${err}`),
+  notifyMovieDownloaded(message, settings, movie).catch((err) =>
+    logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
   )
 
   // Notify that we've grabbed a movie
@@ -370,6 +370,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
+
+  // Start an asynchronous loop waiting for the series to finish downloading. Then send a notification.
+  notifySeriesDownloaded(message, settings, series).catch((err) =>
+    logger.error(`notifySeriesDownloaded: Something went wrong: ${err}`),
+  )
 
   return discordReply(
     randomSeriesDownloadStartMessage(series),
