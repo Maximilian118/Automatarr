@@ -2,6 +2,7 @@ import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
 import {
   validateAdminCommand,
+  validateCaseStats,
   validateDeleteCommand,
   validateInitCommand,
   validateOwnerCommand,
@@ -26,6 +27,8 @@ import { saveWithRetry } from "../../shared/database"
 import { capsFirstLetter } from "../../shared/utility"
 import { initUser } from "../botUtility"
 import { kickDiscordUser } from "./discordBotRequests"
+import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
+import moment from "moment"
 
 // Give ownership to another user in the database. *** Already checking if sender is admin in switch ***
 export const caseOwner = async (message: Message): Promise<string> => {
@@ -37,9 +40,10 @@ export const caseOwner = async (message: Message): Promise<string> => {
   const validationError = validateOwnerCommand(msgArr)
   if (validationError) return validationError
 
-  // Extract username while checking if <discord_username> exists on the server
-  const username = await matchedDiscordUser(message, msgArr[1])
-  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  // Extract guildMember while checking if <discord_username> exists on the server
+  const guildMember = await matchedDiscordUser(message, msgArr[1])
+  if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -97,8 +101,9 @@ export const caseAdmin = async (message: Message): Promise<string> => {
 
   // Extract params while checking if <discord_username> exists on the server
   const action = msgArr[1]
-  const username = await matchedDiscordUser(message, msgArr[2])
-  if (!username) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  const guildMember = await matchedDiscordUser(message, msgArr[2])
+  if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // Check the user exists in database
   const user = matchedUser(settings, username)
@@ -167,8 +172,9 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
 
   // Extract params while checking if <discord_username> exists on the server
   const action = msgArr[1]
-  const username = await matchedDiscordUser(message, msgArr[2])
-  if (!username) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  const guildMember = await matchedDiscordUser(message, msgArr[2])
+  if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // The owner has targeted themseves
   const serverOwner = settings.general_bot.users[0]
@@ -231,8 +237,9 @@ export const caseInit = async (message: Message): Promise<string> => {
 
   // Extract params while checking if <discord_username> exists on the server
   const name = capsFirstLetter(msgArr[2])
-  const username = await matchedDiscordUser(message, msgArr[1])
-  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const guildMember = await matchedDiscordUser(message, msgArr[1])
+  if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // If no users exist in the database, create the first user with admin privileges
   if (settings.general_bot.users.length === 0) {
@@ -277,9 +284,10 @@ export const caseDelete = async (message: Message): Promise<string> => {
   const validationError = validateDeleteCommand(msgArr)
   if (validationError) return validationError
 
-  // Extract username while checking if <discord_username> exists on the server
-  const username = await matchedDiscordUser(message, msgArr[1])
-  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  // Extract guildMember while checking if <discord_username> exists on the server
+  const guildMember = await matchedDiscordUser(message, msgArr[1])
+  if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // The owner has targeted themseves
   const serverOwner = settings.general_bot.users[0]
@@ -316,9 +324,10 @@ export const caseRemove = async (message: Message): Promise<string> => {
   const validationError = validateRemoveCommand(msgArr)
   if (validationError) return validationError
 
-  // Extract username while checking if <discord_username> exists on the server
-  const username = await matchedDiscordUser(message, msgArr[1])
-  if (!username) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  // Extract guildMember while checking if <discord_username> exists on the server
+  const guildMember = await matchedDiscordUser(message, msgArr[1])
+  if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const username = guildMember.user.username
 
   // The owner has targeted themseves
   const serverOwner = settings.general_bot.users[0]
@@ -347,4 +356,49 @@ export const caseRemove = async (message: Message): Promise<string> => {
   if (!(await saveWithRetry(settings, "caseDelete"))) return noDBSave()
 
   return `${user.name} has been deleted from the database.`
+}
+
+// Display the stats of the author or another user
+export const caseStats = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull()
+
+  // Validate the request string: `!stats <optional_discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateCaseStats(msgArr)
+  if (validationError) return validationError
+
+  // Extract guildMember while checking if <discord_username> exists on the server
+  const targetUser = msgArr[1] ? msgArr[1] : message.author.username
+  const guildMember = await matchedDiscordUser(message, targetUser)
+  if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
+  const username = guildMember.user.username
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
+
+  // Check user pool limits
+  const { currentMovies, currentMovieMax } = checkUserMovieLimit(user, settings)
+  const { currentSeries, currentSeriesMax } = checkUserSeriesLimit(user, settings)
+
+  // Server owner check
+  const serverOwner = settings.general_bot.users[0]
+  const isOnwner = serverOwner.ids.includes(message.author.username)
+
+  return (
+    `🎯 Stats for <@${guildMember.id}>\n` +
+    `\n` +
+    `General:\n` +
+    `Owner: ${isOnwner}\n` +
+    `Admin: ${user.admin}\n` +
+    `Super User: ${user.super_user}\n` +
+    `Joined Date: ${moment(user.created_at).format("dddd, MMMM Do YYYY [at] h:mm A")}\n` +
+    `\n` +
+    `Pool:\n` +
+    `Movies: ${currentMovies} downloaded out of ${currentMovieMax} maximum.\n` +
+    `Series: ${currentSeries} downloaded out of ${currentSeriesMax} maximum.\n` +
+    `Albums: Unsupported.\n` +
+    `Books: Unsupported.\n`
+  )
 }

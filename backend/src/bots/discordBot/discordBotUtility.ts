@@ -225,7 +225,7 @@ export const getServerandChannels = async (
 export const matchedDiscordUser = async (
   message: Message,
   identifier: string,
-): Promise<string | undefined> => {
+): Promise<GuildMember | undefined> => {
   const guild = message.guild
   if (!guild) return undefined
 
@@ -233,7 +233,7 @@ export const matchedDiscordUser = async (
 
   if (mentionMatch) {
     const member = guild.members.cache.get(mentionMatch[1])
-    return member?.user.username
+    return member
   }
 
   const id = identifier.toLowerCase()
@@ -242,7 +242,7 @@ export const matchedDiscordUser = async (
     (m) => m.user.username.toLowerCase() === id || m.user.tag.toLowerCase() === id,
   )
 
-  return member?.user.username
+  return member
 }
 
 // Check if the passed Discord username exists as a user in Automatarr already

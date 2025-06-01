@@ -6,14 +6,14 @@ export const checkUserMovieLimit = (
   settings: settingsDocType,
 ): {
   limitError: string
-  currentMax: string
+  currentMovieMax: string
   currentMovies: number
   currentLeft: number
 } => {
   const currentMovies = user.pool.movies.length
   const noLimits = {
     limitError: "",
-    currentMax: "∞",
+    currentMovieMax: "∞",
     currentMovies,
     currentLeft: Infinity,
   }
@@ -37,7 +37,7 @@ export const checkUserMovieLimit = (
         currentLeft <= 0
           ? `Sorry ${user.name}. You've reached your movie pool limit of ${max}. Please delete a movie before adding a new one.`
           : "",
-      currentMax: max.toString(),
+      currentMovieMax: max.toString(),
       currentMovies,
       currentLeft,
     }
@@ -56,7 +56,7 @@ export const checkUserMovieLimit = (
       currentLeft <= 0
         ? `Sorry ${user.name}. You've reached your movie pool limit of ${max}. Please delete a movie before adding a new one.`
         : "",
-    currentMax: max.toString(),
+    currentMovieMax: max.toString(),
     currentMovies,
     currentLeft,
   }
@@ -68,14 +68,14 @@ export const checkUserSeriesLimit = (
   settings: settingsDocType,
 ): {
   limitError: string
-  currentMax: string
+  currentSeriesMax: string
   currentSeries: number
   currentLeft: number
 } => {
   const currentSeries = user.pool.series.length
   const noLimits = {
     limitError: "",
-    currentMax: "∞",
+    currentSeriesMax: "∞",
     currentSeries,
     currentLeft: Infinity,
   }
@@ -99,7 +99,7 @@ export const checkUserSeriesLimit = (
         currentLeft <= 0
           ? `Sorry ${user.name}. You've reached your series pool limit of ${max}. Please delete a series before adding a new one.`
           : "",
-      currentMax: max.toString(),
+      currentSeriesMax: max.toString(),
       currentSeries,
       currentLeft,
     }
@@ -118,7 +118,7 @@ export const checkUserSeriesLimit = (
       currentLeft <= 0
         ? `Sorry ${user.name}. You've reached your series pool limit of ${max}. Please delete a series before adding a new one.`
         : "",
-    currentMax: max.toString(),
+    currentSeriesMax: max.toString(),
     currentSeries,
     currentLeft,
   }

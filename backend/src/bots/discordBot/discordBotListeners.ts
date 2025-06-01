@@ -6,6 +6,7 @@ import {
   caseInit,
   caseOwner,
   caseRemove,
+  caseStats,
   caseSuperUser,
 } from "./discordBotUserListeners"
 import { caseDownloadSwitch } from "./discordBotContentListeners"
@@ -45,7 +46,7 @@ export const messageListeners = async (client: Client) => {
         break
       case "initialize":
       case "initialise":
-      case "init": // Initialise a new user in the database
+      case "init": // Initialise a new user in the database *** admin gets checked in the case ***
         await message.channel.send(await caseInit(message))
         break
       case "delete": // Delete a user in databse only
@@ -56,6 +57,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "download": // Download content
         await message.channel.send((await adminCheck(message)) || (await caseDownloadSwitch(message)))
+        break
+      case "stats": // Display the stats of the author or another user
+        await message.channel.send((await caseStats(message)))
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
