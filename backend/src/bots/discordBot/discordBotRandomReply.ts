@@ -289,3 +289,27 @@ export const randomEpisodesDownloadingMessage = (count: number) => {
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+export const randomPositiveComment = (mention: string): string => {
+  const messages = [
+    `${mention}, you're leveling up! 📈`,
+    `Whoa ${mention}, look at that new max! 🚀`,
+    `More to love, ${mention}. Enjoy! 🍿`,
+    `You're moving up in the world, ${mention}! 🙌`,
+    `Limit? What limit? Go wild, ${mention}! 🎉`,
+    `You're unstoppable now, ${mention}! 🏆`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomSadComment = (mention: string): string => {
+  const messages = [
+    `Aw, ${mention}... your wings have been clipped. 🥲`,
+    `Someone's on a limit diet... sorry ${mention}! 🍽️`,
+    `Back to basics, ${mention}. 😔`,
+    `The binge must wait, ${mention}. 📉`,
+    `Cutbacks hit hard, huh ${mention}? 💸`,
+    `Less is more... or is it? 😬 Sorry, ${mention}.`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}

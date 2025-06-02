@@ -5,6 +5,7 @@ import {
   validateCaseStats,
   validateDeleteCommand,
   validateInitCommand,
+  validateMaxCommand,
   validateOwnerCommand,
   validateRemoveCommand,
   validateSuperUser,
@@ -29,6 +30,7 @@ import { initUser } from "../botUtility"
 import { kickDiscordUser } from "./discordBotRequests"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
 import moment from "moment"
+import { randomPositiveComment, randomSadComment } from "./discordBotRandomReply"
 
 // Give ownership to another user in the database. *** Already checking if sender is admin in switch ***
 export const caseOwner = async (message: Message): Promise<string> => {
@@ -108,7 +110,10 @@ export const caseAdmin = async (message: Message): Promise<string> => {
   // Check the user exists in database
   const user = matchedUser(settings, username)
   if (!user)
-    return discordReply(`A Discord user by ${username} does not exist in the database.`, "warn")
+    return discordReply(
+      `A Discord user by <@${guildMember.id}> does not exist in the database.`,
+      "warn",
+    )
 
   // Truthy = "add", Falsy = "remove"
   const actionBoolean = action.toLowerCase().includes("add")
@@ -173,7 +178,7 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
   // Extract params while checking if <discord_username> exists on the server
   const action = msgArr[1]
   const guildMember = await matchedDiscordUser(message, msgArr[2])
-  if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  if (!guildMember) return `The user \`${msgArr[3]}\` does not exist in this server.`
   const username = guildMember.user.username
 
   // The owner has targeted themseves
@@ -188,7 +193,7 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
 
   // Find the target user in the database
   const user = matchedUser(settings, username)
-  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
   // Truthy = "add", Falsy = "remove"
   const actionBoolean = action.toLowerCase().includes("add")
@@ -223,6 +228,69 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
     }`,
     "success",
   )
+}
+
+// Set the max_<content>_overwrite for a user
+export const caseMax = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull()
+
+  // Validate the request string: `!maximum <contentType> <amount|null> <discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateMaxCommand(msgArr)
+  if (validationError) return validationError
+
+  const isMovie = msgArr[1].toLowerCase().includes("movie")
+
+  // Interpret amount
+  const rawAmount = msgArr[2].toLowerCase()
+  const amount = rawAmount === "null" ? null : Number(rawAmount)
+
+  // Validate numeric amount if not null
+  if (amount !== null && (!Number.isInteger(amount) || amount <= 0)) {
+    return "The amount must be a positive whole number (e.g., 5, 10, 42), or `null` to clear the overwrite."
+  }
+
+  // Check if <discord_username> exists on the server
+  const guildMember = await matchedDiscordUser(message, msgArr[3])
+  if (!guildMember) return `The user \`${msgArr[3]}\` does not exist in this server.`
+  const username = guildMember.user.username
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
+
+  // Keep track of previous value
+  const previous = isMovie ? user.max_movies_overwrite : user.max_series_overwrite
+
+  // Update user overwrite value
+  settings.general_bot.users = settings.general_bot.users.map((u) => {
+    if (u._id !== user._id) return u
+
+    return {
+      ...u,
+      max_movies_overwrite: isMovie ? amount : u.max_movies_overwrite,
+      max_series_overwrite: isMovie ? u.max_series_overwrite : amount,
+    }
+  })
+
+  // Save changes
+  if (!(await saveWithRetry(settings, "caseMax"))) return noDBSave()
+
+  // Message output
+  const contentType = isMovie ? "movies" : "series"
+
+  if (amount === null) {
+    return `I've cleared the ${contentType} limit overwrite for <@${guildMember.id}>.`
+  }
+
+  const isMore = previous === null || amount > previous
+  const changeDirection = isMore ? "increased" : "reduced"
+  const comment = isMore
+    ? randomPositiveComment(`<@${guildMember.id}>`)
+    : randomSadComment(`<@${guildMember.id}>`)
+
+  return `I've ${changeDirection} the maximum ${contentType} for <@${guildMember.id}> to ${amount}. ${comment}`
 }
 
 // Initialise a user
@@ -301,7 +369,7 @@ export const caseDelete = async (message: Message): Promise<string> => {
 
   // Find the target user in the database
   const user = matchedUser(settings, username)
-  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
   // Remove the target user from the users array
   settings.general_bot.users = settings.general_bot.users.filter(
@@ -341,7 +409,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
   // Find the target user in the database
   const user = matchedUser(settings, username)
-  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
   // Remove the target user from the discord server
   const kickResult = await kickDiscordUser(message, settings, username)

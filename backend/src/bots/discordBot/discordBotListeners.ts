@@ -4,6 +4,7 @@ import {
   caseAdmin,
   caseDelete,
   caseInit,
+  caseMax,
   caseOwner,
   caseRemove,
   caseStats,
@@ -44,6 +45,10 @@ export const messageListeners = async (client: Client) => {
       case "superuser": // Promote or Demote somone from a super user
         await message.channel.send((await adminCheck(message)) || (await caseSuperUser(message)))
         break
+      case "maximum":
+      case "max": // Set the max_<content>_overwrite for a user
+        await message.channel.send((await adminCheck(message)) || (await caseMax(message)))
+        break
       case "initialize":
       case "initialise":
       case "init": // Initialise a new user in the database *** admin gets checked in the case ***
@@ -58,6 +63,9 @@ export const messageListeners = async (client: Client) => {
       case "download": // Download content
         await message.channel.send((await adminCheck(message)) || (await caseDownloadSwitch(message)))
         break
+      // Add a case here that allows a user the list the items in their pool
+      // Add a case here so a user can remove a specific bit of content from their pool
+      // Add !dud where we mark a movie or series as a bad download and redownload a new one after blocklisting
       case "stats": // Display the stats of the author or another user
         await message.channel.send((await caseStats(message)))
         break
