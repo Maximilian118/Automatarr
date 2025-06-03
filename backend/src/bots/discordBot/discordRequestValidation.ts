@@ -114,30 +114,30 @@ export const validateInitCommand = (msgArr: string[]): string => {
   return ""
 }
 
-// Validate the array data for the caseDelete message
-export const validateDeleteCommand = (msgArr: string[]): string => {
+// Validate the array data for the caseDeleteUser message
+export const validateDeleteUserCommand = (msgArr: string[]): string => {
   if (msgArr.length !== 2) {
-    return "The !delete command must contain exactly two parts: `!delete <discord_username>`."
+    return "The !deleteuser command must contain exactly two parts: `!deleteuser <discord_username>`."
   }
 
   const [command] = msgArr
 
-  if (command.toLowerCase() !== "!delete") {
+  if (command.toLowerCase() !== "!deleteuser") {
     return `Invalid command \`${command}\`.`
   }
 
   return ""
 }
 
-// Validate the array data for the caseDelete message
-export const validateRemoveCommand = (msgArr: string[]): string => {
+// Validate the array data for the caseRemoveUser message
+export const validateRemoveUserCommand = (msgArr: string[]): string => {
   if (msgArr.length !== 2) {
-    return "The !remove command must contain exactly two parts: `!remove <discord_username>`."
+    return "The !removeuser command must contain exactly two parts: `!removeuser <discord_username>`."
   }
 
   const [command] = msgArr
 
-  if (command.toLowerCase() !== "!remove") {
+  if (command.toLowerCase() !== "!removeuser") {
     return `Invalid command \`${command}\`.`
   }
 

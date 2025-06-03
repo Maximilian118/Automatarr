@@ -3,11 +3,11 @@ import Settings, { settingsDocType } from "../../models/settings"
 import {
   validateAdminCommand,
   validateCaseStats,
-  validateDeleteCommand,
+  validateDeleteUserCommand,
   validateInitCommand,
   validateMaxCommand,
   validateOwnerCommand,
-  validateRemoveCommand,
+  validateRemoveUserCommand,
   validateSuperUser,
 } from "./discordRequestValidation"
 import {
@@ -78,7 +78,7 @@ export const caseOwner = async (message: Message): Promise<string> => {
   newOwner.admin = true // Always ensure new owner is admin
   settings.general_bot.users.unshift(newOwner)
 
-  const roleUpdateMsg = await updateDiscordOwnerRole(message, username)
+  const roleUpdateMsg = await updateDiscordOwnerRole(message, guildMember)
   if (roleUpdateMsg) return roleUpdateMsg
 
   // Save changes
@@ -126,7 +126,7 @@ export const caseAdmin = async (message: Message): Promise<string> => {
 
   // Check if user is already what we're trying to change it to
   if (user.admin === actionBoolean) {
-    return `${user.name} is already ${actionBoolean ? "" : "not "}an admin silly!`
+    return `<@${guildMember.id}> is already ${actionBoolean ? "" : "not "}an admin silly!`
   }
 
   // Ensure the server owner cannot be targeted
@@ -151,14 +151,14 @@ export const caseAdmin = async (message: Message): Promise<string> => {
   })
 
   // Update permissions for the user in discord
-  const roleUpdateMsg = await updateDiscordAdminRole(message, username, actionBoolean)
+  const roleUpdateMsg = await updateDiscordAdminRole(message, guildMember, user, actionBoolean)
   if (roleUpdateMsg) return roleUpdateMsg
 
   // Save the changes to database
   if (!(await saveWithRetry(settings, "caseAdmin"))) return noDBSave()
 
   return discordReply(
-    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} an admin. ${
+    `<@${guildMember.id}> has been ${actionBoolean ? "promoted to" : "demoted from"} an admin. ${
       actionBoolean ? "Congratulations!" : ""
     }`,
     "success",
@@ -200,7 +200,7 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
 
   // Check if user is already what we're trying to change it to
   if (user.super_user === actionBoolean) {
-    return `${user.name} is already ${actionBoolean ? "" : "not "}a super user silly!`
+    return `<@${guildMember.id}> is already ${actionBoolean ? "" : "not "}a super user silly!`
   }
 
   // Find the user by username and update
@@ -216,16 +216,16 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
   })
 
   // If a role called Super User exists, update permissions for the user in discord
-  const roleUpdateMsg = await updateDiscordSuperUserRole(message, username, actionBoolean)
+  const roleUpdateMsg = await updateDiscordSuperUserRole(message, guildMember, user, actionBoolean)
   if (roleUpdateMsg) return roleUpdateMsg
 
   // Save the changes to database
   if (!(await saveWithRetry(settings, "caseSuperUser"))) return noDBSave()
 
   return discordReply(
-    `${user.name} has been ${actionBoolean ? "promoted to" : "demoted from"} a super user. ${
-      actionBoolean ? "Congratulations!" : ""
-    }`,
+    `<@${guildMember.id}> has been ${
+      actionBoolean ? "promoted to" : "demoted from"
+    } a super user. ${actionBoolean ? "Congratulations!" : ""}`,
     "success",
   )
 }
@@ -343,13 +343,13 @@ export const caseInit = async (message: Message): Promise<string> => {
 }
 
 // Delete a user
-export const caseDelete = async (message: Message): Promise<string> => {
+export const caseDeleteUser = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
-  // Validate the request string: `!delete <discord_username>`
+  // Validate the request string: `!deleteuser <discord_username>`
   const msgArr = message.content.slice().trim().split(/\s+/)
-  const validationError = validateDeleteCommand(msgArr)
+  const validationError = validateDeleteUserCommand(msgArr)
   if (validationError) return validationError
 
   // Extract guildMember while checking if <discord_username> exists on the server
@@ -359,12 +359,12 @@ export const caseDelete = async (message: Message): Promise<string> => {
 
   // The owner has targeted themseves
   const serverOwner = settings.general_bot.users[0]
-  if (serverOwner.ids.includes(message.author.username)) {
+  if (serverOwner.ids.includes(message.author.username) && serverOwner.ids.includes(username)) {
     return "You cannot delete yourself my liege!"
   }
 
   // Ensure the server owner cannot be deleted
-  const ownerErr = ownerIsTarget(settings, message, username, "delete")
+  const ownerErr = ownerIsTarget(settings, message, username, "deleteuser")
   if (ownerErr) return ownerErr
 
   // Find the target user in the database
@@ -377,19 +377,19 @@ export const caseDelete = async (message: Message): Promise<string> => {
   )
 
   // Save the new users array to the database
-  if (!(await saveWithRetry(settings, "caseDelete"))) return noDBSave()
+  if (!(await saveWithRetry(settings, "caseDeleteUser"))) return noDBSave()
 
   return `${user.name} has been deleted from the database.`
 }
 
 // Remove a user from the database and the discord server
-export const caseRemove = async (message: Message): Promise<string> => {
+export const caseRemoveUser = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
-  // Validate the request string: `!delete <discord_username>`
+  // Validate the request string: `!removeuser <discord_username>`
   const msgArr = message.content.slice().trim().split(/\s+/)
-  const validationError = validateRemoveCommand(msgArr)
+  const validationError = validateRemoveUserCommand(msgArr)
   if (validationError) return validationError
 
   // Extract guildMember while checking if <discord_username> exists on the server
@@ -399,12 +399,12 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
   // The owner has targeted themseves
   const serverOwner = settings.general_bot.users[0]
-  if (serverOwner.ids.includes(message.author.username)) {
+  if (serverOwner.ids.includes(username)) {
     return "You cannot remove yourself my liege!"
   }
 
   // Ensure the server owner cannot be deleted
-  const ownerErr = ownerIsTarget(settings, message, username, "remove")
+  const ownerErr = ownerIsTarget(settings, message, username, "removeuser")
   if (ownerErr) return ownerErr
 
   // Find the target user in the database
@@ -421,7 +421,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
   )
 
   // Save the new users array to the database
-  if (!(await saveWithRetry(settings, "caseDelete"))) return noDBSave()
+  if (!(await saveWithRetry(settings, "caseRemoveUser"))) return noDBSave()
 
   return `${user.name} has been deleted from the database.`
 }

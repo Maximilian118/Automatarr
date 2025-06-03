@@ -2,11 +2,11 @@ import { Client, Message } from "discord.js"
 import { adminCheck } from "./discordBotUtility"
 import {
   caseAdmin,
-  caseDelete,
+  caseDeleteUser,
   caseInit,
   caseMax,
   caseOwner,
-  caseRemove,
+  caseRemoveUser,
   caseStats,
   caseSuperUser,
 } from "./discordBotUserListeners"
@@ -54,18 +54,21 @@ export const messageListeners = async (client: Client) => {
       case "init": // Initialise a new user in the database *** admin gets checked in the case ***
         await message.channel.send(await caseInit(message))
         break
-      case "delete": // Delete a user in databse only
-        await message.channel.send((await adminCheck(message)) || (await caseDelete(message)))
+      case "deleteuser": // Delete a user in databse only
+        await message.channel.send((await adminCheck(message)) || (await caseDeleteUser(message)))
         break
-      case "remove": // Remove a user from the database and the discord server
-        await message.channel.send((await adminCheck(message)) || (await caseRemove(message)))
+      case "removeuser": // Remove a user from the database and the discord server
+        await message.channel.send((await adminCheck(message)) || (await caseRemoveUser(message)))
         break
       case "download": // Download content
         await message.channel.send((await adminCheck(message)) || (await caseDownloadSwitch(message)))
         break
       // Add a case here that allows a user the list the items in their pool
+      // case "list":
       // Add a case here so a user can remove a specific bit of content from their pool
+      // case "remove":
       // Add !dud where we mark a movie or series as a bad download and redownload a new one after blocklisting
+      // case "dud":
       case "stats": // Display the stats of the author or another user
         await message.channel.send((await caseStats(message)))
         break

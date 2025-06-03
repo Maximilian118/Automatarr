@@ -1,23 +1,26 @@
-import { Message } from "discord.js"
-import { discordReply } from "./discordBotUtility"
+import { GuildMember, Message } from "discord.js"
+import { discordReply, sendDiscordMessage } from "./discordBotUtility"
+import { UserType } from "../../models/settings"
 
 const OWNER_ROLE_NAME = "Owner"
 
 export const updateDiscordOwnerRole = async (
   message: Message,
-  discordUsername: string,
+  guildMember: GuildMember,
 ): Promise<string> => {
+  const username = guildMember.user.username
+
   const guild = message.guild
   if (!guild) return discordReply("Message not associated with a guild.", "error")
 
   const member =
-    guild.members.cache.find((m) => m.user.username === discordUsername) ||
+    guild.members.cache.find((m) => m.user.username === username) ||
     (await guild.members
       .fetch()
-      .then((members) => members.find((m) => m.user.username === discordUsername)))
+      .then((members) => members.find((m) => m.user.username === username)))
 
   if (!member) {
-    return `Could not find Discord member for username \`${discordUsername}\` in this server.`
+    return `Could not find Discord member for username <@${guildMember.id}> in this server.`
   }
 
   const role = guild.roles.cache.find((r) => r.name === OWNER_ROLE_NAME)
@@ -43,7 +46,7 @@ export const updateDiscordOwnerRole = async (
   } catch (err) {
     console.error(err)
     return discordReply(
-      `Failed to assign the "${OWNER_ROLE_NAME}" role to ${discordUsername}. Check bot permissions and role hierarchy.`,
+      `Failed to assign the "${OWNER_ROLE_NAME}" role to <@${guildMember.id}>. Check bot permissions and role hierarchy.`,
       "error",
     )
   }
@@ -55,20 +58,23 @@ const ADMIN_ROLE_NAME = "Admin"
 
 export const updateDiscordAdminRole = async (
   message: Message,
-  discordUsername: string,
+  guildMember: GuildMember,
+  user: UserType,
   shouldAdd: boolean,
 ): Promise<string> => {
+  const username = guildMember.user.username
+
   const guild = message.guild
   if (!guild) return discordReply("Message not associated with a guild.", "error")
 
   const member =
-    guild.members.cache.find((m) => m.user.username === discordUsername) ||
+    guild.members.cache.find((m) => m.user.username === username) ||
     (await guild.members
       .fetch()
-      .then((members) => members.find((m) => m.user.username === discordUsername)))
+      .then((members) => members.find((m) => m.user.username === username)))
 
   if (!member) {
-    return `Could not find Discord member for username \`${discordUsername}\` in this server.`
+    return `Could not find Discord member for username <@${guildMember.id}> in this server.`
   }
 
   const role = guild.roles.cache.find((r) => r.name === ADMIN_ROLE_NAME)
@@ -79,6 +85,15 @@ export const updateDiscordAdminRole = async (
     )
   }
 
+  // If the user is not an admin in the database but is in discord, simply send a kind message
+  if (shouldAdd && !user.admin && member.roles.cache.has(role.id)) {
+    await sendDiscordMessage(
+      message,
+      `Strange... ${user.name} is not an admin but is already one in Discord. Let's fix that up.`,
+    )
+    return ""
+  }
+
   try {
     if (shouldAdd) {
       await member.roles.add(role)
@@ -87,7 +102,7 @@ export const updateDiscordAdminRole = async (
     }
   } catch (err) {
     return discordReply(
-      `Failed to update roles for ${discordUsername}. Check bot permissions and role hierarchy.`,
+      `Failed to update roles for <@${guildMember.id}>. Check bot permissions and role hierarchy.`,
       "error",
     )
   }
@@ -99,26 +114,38 @@ const SUPER_USER_ROLE_NAME = "Super User"
 
 export const updateDiscordSuperUserRole = async (
   message: Message,
-  discordUsername: string,
+  guildMember: GuildMember,
+  user: UserType,
   shouldAdd: boolean,
 ): Promise<string> => {
+  const username = guildMember.user.username
+
   const guild = message.guild
   if (!guild) return discordReply("Message not associated with a guild.", "error")
 
   const member =
-    guild.members.cache.find((m) => m.user.username === discordUsername) ||
+    guild.members.cache.find((m) => m.user.username === username) ||
     (await guild.members
       .fetch()
-      .then((members) => members.find((m) => m.user.username === discordUsername)))
+      .then((members) => members.find((m) => m.user.username === username)))
 
   if (!member) {
-    return `Could not find Discord member for username \`${discordUsername}\` in this server.`
+    return `Could not find Discord member for username <@${guildMember.id}> in this server.`
   }
 
   const role = guild.roles.cache.find((r) => r.name === SUPER_USER_ROLE_NAME)
 
   // If "Super User" role doesn't exist, silently skip
   if (!role) return ""
+
+  // If the user is not a super user in the database but is in discord, simply send a kind message
+  if (shouldAdd && !user.super_user && member.roles.cache.has(role.id)) {
+    await sendDiscordMessage(
+      message,
+      `Strange... <@${guildMember.id}> is not a super user but is already one in Discord. Let's fix that up.`,
+    )
+    return ""
+  }
 
   try {
     if (shouldAdd) {
@@ -128,7 +155,7 @@ export const updateDiscordSuperUserRole = async (
     }
   } catch (err) {
     return discordReply(
-      `Failed to update "Super User" role for ${discordUsername}. Check bot permissions and role hierarchy.`,
+      `Failed to update "Super User" role for <@${guildMember.id}>. Check bot permissions and role hierarchy.`,
       "error",
     )
   }

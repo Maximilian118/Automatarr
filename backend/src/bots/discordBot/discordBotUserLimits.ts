@@ -1,6 +1,27 @@
 import { settingsDocType, UserType } from "../../models/settings"
+import { capsFirstLetter } from "../../shared/utility"
 
-// Calculate movie pool limits for a user
+// Helper for both movie and series limits
+const limitResult = (
+  user: UserType,
+  max: number,
+  currentCount: number,
+  type: "movie" | "series",
+) => {
+  const currentLeft = max - currentCount
+  const label = type === "movie" ? "movie" : "series"
+
+  return {
+    limitError:
+      currentLeft <= 0
+        ? `Sorry ${user.name}. You've reached your ${label} pool limit of ${max}. Please delete a ${label} before adding a new one.`
+        : "",
+    [`current${capsFirstLetter(label)}Max`]: max.toString(),
+    [`current${capsFirstLetter(label)}`]: currentCount,
+    currentLeft,
+  } as any // `as any` to satisfy dynamic keys without more complex type gymnastics
+}
+
 export const checkUserMovieLimit = (
   user: UserType,
   settings: settingsDocType,
@@ -18,48 +39,15 @@ export const checkUserMovieLimit = (
     currentLeft: Infinity,
   }
 
-  // Admins have infinite limits
-  if (user.admin) {
-    return noLimits
-  }
+  if (user.admin) return noLimits
+  if (user.max_movies_overwrite != null)
+    return limitResult(user, user.max_movies_overwrite, currentMovies, "movie")
 
-  // Super user logic
-  if (user.super_user) {
-    const max = user.max_movies_overwrite
-    if (max == null) {
-      return noLimits
-    }
+  const generalMax = settings.general_bot.max_movies
+  if (generalMax == null) return noLimits
 
-    const currentLeft = max - currentMovies
-
-    return {
-      limitError:
-        currentLeft <= 0
-          ? `Sorry ${user.name}. You've reached your movie pool limit of ${max}. Please delete a movie before adding a new one.`
-          : "",
-      currentMovieMax: max.toString(),
-      currentMovies,
-      currentLeft,
-    }
-  }
-
-  // Standard user limit
-  const max = settings.general_bot.max_movies
-  if (max == null) {
-    return noLimits
-  }
-
-  const currentLeft = max - currentMovies
-
-  return {
-    limitError:
-      currentLeft <= 0
-        ? `Sorry ${user.name}. You've reached your movie pool limit of ${max}. Please delete a movie before adding a new one.`
-        : "",
-    currentMovieMax: max.toString(),
-    currentMovies,
-    currentLeft,
-  }
+  const effectiveMax = user.super_user ? generalMax * 2 : generalMax
+  return limitResult(user, effectiveMax, currentMovies, "movie")
 }
 
 // Calculate series pool limits for a user
@@ -80,46 +68,14 @@ export const checkUserSeriesLimit = (
     currentLeft: Infinity,
   }
 
-  // Admins have infinite limits
-  if (user.admin) {
-    return noLimits
-  }
+  if (user.admin) return noLimits
 
-  // Super user logic
-  if (user.super_user) {
-    const max = user.max_series_overwrite
-    if (max == null) {
-      return noLimits
-    }
+  if (user.max_series_overwrite != null)
+    return limitResult(user, user.max_series_overwrite, currentSeries, "series")
 
-    const currentLeft = max - currentSeries
+  const generalMax = settings.general_bot.max_series
+  if (generalMax == null) return noLimits
 
-    return {
-      limitError:
-        currentLeft <= 0
-          ? `Sorry ${user.name}. You've reached your series pool limit of ${max}. Please delete a series before adding a new one.`
-          : "",
-      currentSeriesMax: max.toString(),
-      currentSeries,
-      currentLeft,
-    }
-  }
-
-  // Standard user limit
-  const max = settings.general_bot.max_series
-  if (max == null) {
-    return noLimits
-  }
-
-  const currentLeft = max - currentSeries
-
-  return {
-    limitError:
-      currentLeft <= 0
-        ? `Sorry ${user.name}. You've reached your series pool limit of ${max}. Please delete a series before adding a new one.`
-        : "",
-    currentSeriesMax: max.toString(),
-    currentSeries,
-    currentLeft,
-  }
+  const effectiveMax = user.super_user ? generalMax * 2 : generalMax
+  return limitResult(user, effectiveMax, currentSeries, "series")
 }
