@@ -63,7 +63,7 @@ export const validateMaxCommand = (msgArr: string[]): string => {
   const unsupported = ["album", "albums", "book", "books"]
 
   if (msgArr.length !== 4) {
-    return "The !maximum command must contain exactly three parts: `!maximum <contentType> <amount> <discord_username>`."
+    return "The !maximum command must contain exactly four parts: `!maximum <contentType> <amount> <discord_username>`."
   }
 
   const [command, contentType, amount] = msgArr
@@ -87,6 +87,42 @@ export const validateMaxCommand = (msgArr: string[]): string => {
   const normalizedAmount = amount.toLowerCase()
   if (normalizedAmount !== "null" && !/^\d+$/.test(normalizedAmount)) {
     return "The 3rd <amount> argument must be a whole number or the word `null` to clear the limit."
+  }
+
+  return ""
+}
+
+// Validate the array data for the caseMax message
+export const validateListCommand = (msgArr: string[]): string => {
+  const contentTypes = ["pool", "movie", "movies", "series"]
+  const unsupported = ["album", "albums", "book", "books"]
+
+  if (msgArr.length > 3) {
+    return "The !list command must contain no more than three parts: `!list <contentType> <optional_discord_username>`."
+  }
+
+  const [command, contentType] = msgArr
+
+  if (command.toLowerCase() !== "!list") {
+    return `Invalid command \`${command}\`.`
+  }
+
+  if (!contentType) {
+    return "Please specify a content type: `pool / movie / series."
+  }
+
+  const typeLower = contentType.toLowerCase()
+
+  if (unsupported.includes(typeLower)) {
+    return `I do apologise. My maker hasn't programmed me for ${
+      contentType.endsWith("s") ? contentType : contentType + "s"
+    } yet.`
+  }
+
+  if (!contentTypes.includes(typeLower)) {
+    return `Hmm.. I don't understand what you mean by ${contentType}. Try ${contentTypes.join(
+      ", ",
+    )}.`
   }
 
   return ""

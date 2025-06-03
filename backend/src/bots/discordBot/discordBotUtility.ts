@@ -1,4 +1,11 @@
-import { Client, Guild, GuildBasedChannel, GuildMember, Message } from "discord.js"
+import {
+  Client,
+  Guild,
+  GuildBasedChannel,
+  GuildMember,
+  GuildTextBasedChannel,
+  Message,
+} from "discord.js"
 import Settings, { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
 import logger from "../../logger"
 import { QualityProfile } from "../../types/qualityProfileType"
@@ -6,6 +13,7 @@ import { dataDocType } from "../../models/data"
 import { DownloadStatus, rootFolderData } from "../../types/types"
 import { formatBytes } from "../../shared/utility"
 import moment from "moment"
+import { getDiscordClient } from "./discordBot"
 
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
@@ -338,4 +346,42 @@ export const getQueueItemWithLongestTimeLeft = (
 
     return currentMs > maxMs ? current : max
   })
+}
+
+// Find the GuildTextBasedChannel that matches a passed string
+export const findChannelByName = (
+  channelName: string,
+): {
+  textBasedChannel: GuildTextBasedChannel | undefined
+  mention: string
+  error: string
+} => {
+  if (!channelName) {
+    return {
+      textBasedChannel: undefined,
+      mention: channelName,
+      error: "",
+    }
+  }
+
+  const client = getDiscordClient()
+
+  if (!client) {
+    return {
+      textBasedChannel: undefined,
+      mention: channelName,
+      error: discordReply(`Umm... no client found. This is bad.`, "error"),
+    }
+  }
+
+  const channel = client.channels.cache.find(
+    (ch): ch is GuildTextBasedChannel =>
+      ch.isTextBased?.() && "name" in ch && ch.name === channelName,
+  )
+
+  return {
+    textBasedChannel: channel,
+    mention: channel ? `<#${channel.id}>` : channelName,
+    error: "",
+  }
 }

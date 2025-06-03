@@ -2,15 +2,17 @@ import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
 import {
   discordReply,
+  findChannelByName,
   findQualityProfile,
   findRootFolder,
   freeSpaceCheck,
+  matchedDiscordUser,
   matchedUser,
   noDBPull,
   noDBSave,
   sendDiscordMessage,
 } from "./discordBotUtility"
-import { channelValid, validateDownload } from "./discordRequestValidation"
+import { channelValid, validateDownload, validateListCommand } from "./discordRequestValidation"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
 import { searchMissing } from "../../shared/StarrRequests"
 import {
@@ -380,5 +382,72 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     randomSeriesDownloadStartMessage(series),
     "success",
     `${user.name} | ${message.author.username} started a series download of ${series.title}. They have ${currentLeft} pool allowance available for series.`,
+  )
+}
+
+// List items in a users pool
+export const caseList = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull()
+
+  // Validate the request string: `!list <contentType> <optional_discord_username>`
+  const msgArr = message.content.slice().trim().split(/\s+/)
+  const validationError = validateListCommand(msgArr)
+  if (validationError) return validationError
+
+  // Extract guildMember while checking if <discord_username> exists on the server
+  const targetUser = msgArr[2] ? msgArr[2] : message.author.username
+  const guildMember = await matchedDiscordUser(message, targetUser)
+  if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
+  const username = guildMember.user.username
+
+  // Find the target user in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
+
+  const contentType = msgArr[1].toLowerCase() as "pool" | "movie" | "movies" | "series"
+
+  // If channels exist extreact mentions for better discord UX
+  const { mention: movieChannel } = findChannelByName(settings.discord_bot.movie_channel_name)
+  const { mention: seriesChannel } = findChannelByName(settings.discord_bot.series_channel_name)
+
+  // Get the maximums for the user
+  const { currentMovieMax } = checkUserMovieLimit(user, settings)
+  const { currentSeriesMax } = checkUserSeriesLimit(user, settings)
+
+  const moviesList =
+    user.pool.movies.length === 0
+      ? `No Movies yet! ${
+          !msgArr[2]
+            ? `Use the !download command in the ${movieChannel} channel to download your first movie!`
+            : ""
+        }`
+      : user.pool.movies.map((movie, i) => `${i}. ${movie.title} ${movie.year}`).join("\n") +
+        `\n(Maximum: ${currentMovieMax})`
+
+  const movies = `Movies:\n` + moviesList + "\n"
+
+  const seriesList =
+    user.pool.series.length === 0
+      ? `No Series yet! ${
+          !msgArr[2]
+            ? `Use the !download command in the ${seriesChannel} channel to download your first series!`
+            : ""
+        }`
+      : user.pool.series.map((series, i) => `${i}. ${series.title} ${series.year}`).join("\n") +
+        `\n(Maximum: ${currentSeriesMax})`
+
+  const series = `Series:\n` + seriesList + "\n"
+
+  return (
+    `🎞️ Content Pool for <@${guildMember.id}>\n` +
+    `\n` +
+    (contentType === "pool"
+      ? `${movies}\n` + series
+      : contentType.includes("movie")
+      ? movies
+      : contentType === "series"
+      ? series
+      : "")!
   )
 }
