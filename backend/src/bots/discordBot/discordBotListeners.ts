@@ -61,13 +61,14 @@ export const messageListeners = async (client: Client) => {
         await message.channel.send((await adminCheck(message)) || (await caseRemoveUser(message)))
         break
       case "download": // Download content
-        await message.channel.send((await adminCheck(message)) || (await caseDownloadSwitch(message)))
+        await message.channel.send(await caseDownloadSwitch(message))
         break
-      case "list":
+      // case "remove":
+      //   await message.channel.send(await caseRemove(message))
+      //   break
+      case "list": // List pool for a user
         await message.channel.send(await caseList(message))
         break
-      // Add a case here so a user can remove a specific bit of content from their pool
-      // case "remove":
       // Add !dud where we mark a movie or series as a bad download and redownload a new one after blocklisting
       // case "dud":
       case "stats": // Display the stats of the author or another user
