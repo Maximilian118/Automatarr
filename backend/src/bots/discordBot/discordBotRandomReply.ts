@@ -313,3 +313,18 @@ export const randomSadComment = (mention: string): string => {
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+export const randomRemovalSuccessMessage = (poolItemTitle: string, contentType: string): string => {
+  const messages = [
+    `I've removed \`${poolItemTitle}\` from your ${contentType} pool. More space for fun!`,
+    `Gone! \`${poolItemTitle}\` has been booted from your ${contentType} stash.`,
+    `Tossed \`${poolItemTitle}\` out of your ${contentType} collection. Fresh start vibes!`,
+    `\`${poolItemTitle}\` is history. Your ${contentType} pool just got lighter.`,
+    `Snip snip ✂️ — \`${poolItemTitle}\` has been cut from your ${contentType} lineup.`,
+    `Out with the old! \`${poolItemTitle}\` no longer lives in your ${contentType} list.`,
+    `Declutter mode: activated. \`${poolItemTitle}\` is gone from your ${contentType} zone.`,
+    `I've banished \`${poolItemTitle}\` from your ${contentType} pool. May it rest in pieces.`,
+    `\`${poolItemTitle}\`? Never heard of it. It's out of your ${contentType} pool!`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}

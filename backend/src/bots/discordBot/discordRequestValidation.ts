@@ -1,7 +1,7 @@
 import { settingsDocType } from "../../models/settings"
-import { Channel, GuildTextBasedChannel } from "discord.js"
+import { Channel, GuildTextBasedChannel, Message } from "discord.js"
 import { getDiscordClient } from "./discordBot"
-import { discordReply } from "./discordBotUtility"
+import { discordReply, matchedUser } from "./discordBotUtility"
 import { searchRadarr } from "../../shared/RadarrStarrRequests"
 import { searchSonarr } from "../../shared/SonarrStarrRequests"
 
@@ -329,4 +329,105 @@ export const channelValid = (channel: Channel, settings: settingsDocType): strin
   }
 
   return ""
+}
+
+// Validate the array data for the caseRemove message
+export const validateRemoveCommand = async (
+  message: Message,
+  settings: settingsDocType,
+): Promise<
+  | string
+  | {
+      command: string
+      passedIndex: number | null
+      poolItemTitle: string
+      contentType: "movie" | "series"
+    }
+> => {
+  const contentTypes = ["movie", "movies", "series"]
+  const unsupported = ["album", "albums", "book", "books"]
+
+  const msgArr = message.content.trim().split(/\s+/)
+  if (msgArr.length < 3) {
+    return "The !remove command must contain at least three parts: `!remove <contentType> <index/title>`."
+  }
+
+  const [command, contentType, ...rest] = msgArr
+  const typeLower = contentType.toLowerCase()
+  const singular = typeLower.includes("movie") ? "movie" : "series"
+  const plural = singular === "movie" ? "movies" : "series"
+
+  if (command.toLowerCase() !== "!remove") {
+    return `Invalid command \`${command}\`.`
+  }
+
+  if (unsupported.includes(typeLower)) {
+    return `I do apologise. My maker hasn't programmed me for ${
+      contentType.endsWith("s") ? contentType : contentType + "s"
+    } yet.`
+  }
+
+  if (!contentTypes.includes(typeLower)) {
+    return `Hmm.. I don't understand what you mean by ${contentType}. Try ${contentTypes.join(
+      ", ",
+    )}.`
+  }
+
+  const user = matchedUser(settings, message.author.username)
+  if (!user) return `A Discord user by ${message.author.username} does not exist in the database.`
+
+  const contentArr = singular === "movie" ? user.pool.movies : user.pool.series
+  if (contentArr.length === 0) return `You have no ${plural} to remove, ${user.name}!`
+
+  const potentialIndex = Number(rest[0])
+  const isIntegerInput = Number.isInteger(potentialIndex)
+
+  const canRemove =
+    `You can remove a ${singular} by passing the index or the full title + year:\n` +
+    contentArr.map((m, i) => `${i + 1}. ${m.title} ${m.year}`).join("\n")
+
+  if (isIntegerInput) {
+    if (potentialIndex === 0) {
+      return `Index 0 is invalid. Indexing starts at 1. Use \`!remove ${singular} 1\` for the first ${singular}.`
+    }
+
+    if (potentialIndex < 0) {
+      return `Negative indices are not valid. Use an index from 1 to ${contentArr.length}.`
+    }
+
+    const adjustedIndex = potentialIndex - 1
+
+    if (adjustedIndex >= contentArr.length) {
+      return `Index out of range. You only have ${contentArr.length} ${plural}, indexed from 1 to ${contentArr.length}.\n\n${canRemove}`
+    }
+
+    const item = contentArr[adjustedIndex]
+    const poolItemTitle = `${item.title} ${item.year}`
+
+    return {
+      command,
+      passedIndex: adjustedIndex + 1,
+      poolItemTitle,
+      contentType: singular,
+    }
+  }
+
+  // Fallback: treat as title + 4-digit year
+  const lastPart = rest[rest.length - 1]
+  const yearMatch = lastPart.match(/^\d{4}$/)
+
+  if (!yearMatch) {
+    return `Which ${singular} would you like to remove?\n\n${canRemove}`
+  }
+
+  const year = lastPart
+  const title = rest.slice(0, -1).join(" ")
+  const poolItemTitle = `${title.trim()} ${year}`
+
+  return {
+    command,
+    passedIndex: null,
+    poolItemTitle,
+    contentType: singular,
+  }
 }

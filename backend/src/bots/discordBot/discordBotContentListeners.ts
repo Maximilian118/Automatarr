@@ -12,7 +12,12 @@ import {
   noDBSave,
   sendDiscordMessage,
 } from "./discordBotUtility"
-import { channelValid, validateDownload, validateListCommand } from "./discordRequestValidation"
+import {
+  channelValid,
+  validateDownload,
+  validateListCommand,
+  validateRemoveCommand,
+} from "./discordRequestValidation"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
 import { searchMissing } from "../../shared/StarrRequests"
 import {
@@ -25,6 +30,7 @@ import {
   randomMovieDownloadStartMessage,
   randomSeriesDownloadStartMessage,
   randomProcessingMessage,
+  randomRemovalSuccessMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -450,4 +456,55 @@ export const caseList = async (message: Message): Promise<string> => {
       ? series
       : "")!
   )
+}
+
+// Remove an item from the users pool
+export const caseRemove = async (message: Message): Promise<string> => {
+  const settings = (await Settings.findOne()) as settingsDocType
+  if (!settings) return noDBPull()
+
+  // Validate the request string: `!remove <contentType> <index/title>`
+  const parsed = await validateRemoveCommand(message, settings)
+  if (typeof parsed === "string") return parsed
+
+  const { poolItemTitle, contentType } = parsed
+
+  // Get guildMember while checking if <discord_username> exists on the server
+  const guildMember = await matchedDiscordUser(message, message.author.username)
+  if (!guildMember) return `The user \`${message.author.username}\` does not exist in this server.`
+  const username = guildMember.user.username
+
+  // Get user while checking if user exists in the database
+  const user = matchedUser(settings, username)
+  if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
+
+  // Remove from the user's pool
+  settings.general_bot.users = settings.general_bot.users.map((u) => {
+    if (u._id !== user._id) return u
+
+    const pool = u.pool
+    const updatedMovies =
+      contentType === "movie"
+        ? pool.movies.filter((m) => `${m.title} ${m.year}` !== poolItemTitle)
+        : pool.movies
+
+    const updatedSeries =
+      contentType === "series"
+        ? pool.series.filter((s) => `${s.title} ${s.year}` !== poolItemTitle)
+        : pool.series
+
+    return {
+      ...u,
+      pool: {
+        ...pool,
+        movies: updatedMovies,
+        series: updatedSeries,
+      },
+    }
+  })
+
+  // Save the new pool data to the database
+  if (!(await saveWithRetry(settings, "caseRemove"))) return noDBSave()
+
+  return randomRemovalSuccessMessage(poolItemTitle, contentType)
 }

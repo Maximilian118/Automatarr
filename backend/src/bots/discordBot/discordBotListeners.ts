@@ -10,7 +10,7 @@ import {
   caseStats,
   caseSuperUser,
 } from "./discordBotUserListeners"
-import { caseDownloadSwitch, caseList } from "./discordBotContentListeners"
+import { caseDownloadSwitch, caseList, caseRemove } from "./discordBotContentListeners"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -63,14 +63,16 @@ export const messageListeners = async (client: Client) => {
       case "download": // Download content
         await message.channel.send(await caseDownloadSwitch(message))
         break
-      // case "remove":
-      //   await message.channel.send(await caseRemove(message))
-      //   break
+      case "remove": // Remove content from user pool
+        await message.channel.send(await caseRemove(message))
+        break
       case "list": // List pool for a user
         await message.channel.send(await caseList(message))
         break
-      // Add !dud where we mark a movie or series as a bad download and redownload a new one after blocklisting
-      // case "dud":
+      // case "badDownload":
+      // case "dud": // mark a movie or series as a bad download and redownload a new one after blocklisting
+      //   await message.channel.send(await caseDud(message))
+      //   break
       case "stats": // Display the stats of the author or another user
         await message.channel.send((await caseStats(message)))
         break
