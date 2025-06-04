@@ -1,27 +1,29 @@
 import { settingsDocType, UserType } from "../../models/settings"
-import { capsFirstLetter } from "../../shared/utility"
 
-// Helper for both movie and series limits
-const limitResult = (
+// Helper
+const movieLimitResult = (
   user: UserType,
   max: number,
-  currentCount: number,
-  type: "movie" | "series",
-) => {
-  const currentLeft = max - currentCount
-  const label = type === "movie" ? "movie" : "series"
-
+  current: number,
+): {
+  limitError: string
+  currentMovieMax: string
+  currentMovies: number
+  currentLeft: number
+} => {
+  const currentLeft = Math.max(0, max - current)
   return {
     limitError:
       currentLeft <= 0
-        ? `Sorry ${user.name}. You've reached your ${label} pool limit of ${max}. Please delete a ${label} before adding a new one.`
+        ? `Sorry ${user.name}. You've reached your movie pool limit of ${max}. Please delete a movie before adding a new one.`
         : "",
-    [`current${capsFirstLetter(label)}Max`]: max.toString(),
-    [`current${capsFirstLetter(label)}`]: currentCount,
+    currentMovieMax: max.toString(),
+    currentMovies: current,
     currentLeft,
-  } as any // `as any` to satisfy dynamic keys without more complex type gymnastics
+  }
 }
 
+// Calculate movie pool limits for a user
 export const checkUserMovieLimit = (
   user: UserType,
   settings: settingsDocType,
@@ -41,13 +43,36 @@ export const checkUserMovieLimit = (
 
   if (user.admin) return noLimits
   if (user.max_movies_overwrite != null)
-    return limitResult(user, user.max_movies_overwrite, currentMovies, "movie")
+    return movieLimitResult(user, user.max_movies_overwrite, currentMovies)
 
   const generalMax = settings.general_bot.max_movies
   if (generalMax == null) return noLimits
 
   const effectiveMax = user.super_user ? generalMax * 2 : generalMax
-  return limitResult(user, effectiveMax, currentMovies, "movie")
+  return movieLimitResult(user, effectiveMax, currentMovies)
+}
+
+// Helper
+const seriesLimitResult = (
+  user: UserType,
+  max: number,
+  current: number,
+): {
+  limitError: string
+  currentSeriesMax: string
+  currentSeries: number
+  currentLeft: number
+} => {
+  const currentLeft = Math.max(0, max - current)
+  return {
+    limitError:
+      currentLeft <= 0
+        ? `Sorry ${user.name}. You've reached your series pool limit of ${max}. Please delete a series before adding a new one.`
+        : "",
+    currentSeriesMax: max.toString(),
+    currentSeries: current,
+    currentLeft,
+  }
 }
 
 // Calculate series pool limits for a user
@@ -71,11 +96,11 @@ export const checkUserSeriesLimit = (
   if (user.admin) return noLimits
 
   if (user.max_series_overwrite != null)
-    return limitResult(user, user.max_series_overwrite, currentSeries, "series")
+    return seriesLimitResult(user, user.max_series_overwrite, currentSeries)
 
   const generalMax = settings.general_bot.max_series
   if (generalMax == null) return noLimits
 
   const effectiveMax = user.super_user ? generalMax * 2 : generalMax
-  return limitResult(user, effectiveMax, currentSeries, "series")
+  return seriesLimitResult(user, effectiveMax, currentSeries)
 }
