@@ -2,6 +2,8 @@ import { settingsDocType } from "../../models/settings"
 import { Channel, GuildTextBasedChannel } from "discord.js"
 import { getDiscordClient } from "./discordBot"
 import { discordReply } from "./discordBotUtility"
+import { searchRadarr } from "../../shared/RadarrStarrRequests"
+import { searchSonarr } from "../../shared/SonarrStarrRequests"
 
 // Validate the array data for the caseOwner message
 export const validateOwnerCommand = (msgArr: string[]): string => {
@@ -196,18 +198,26 @@ export const validateCaseStats = (msgArr: string[]): string => {
 }
 
 // Validate the array data for the caseInit message
-// prettier-ignore
-export const validateDownload = (msgContent: string, API: "Radarr" | "Sonarr"): string | {
-  command: string
-  title: string
-  year: string
-  searchString: string,
-} => {
+export const validateDownload = async (
+  msgContent: string,
+  settings: settingsDocType,
+  API: "Radarr" | "Sonarr",
+): Promise<
+  | string
+  | {
+      command: string
+      title: string
+      year: string
+      searchString: string
+    }
+> => {
   const msgArr = msgContent.trim().split(/\s+/)
   const content = API === "Radarr" ? "movie" : "series"
 
-  if (msgArr.length < 3) {
-    return `The !download command must contain a ${content} title and a 4-digit year. For example: !download ${content === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"}`
+  if (msgArr.length < 2) {
+    return `The !download command must contain a ${content} title and a 4-digit year. For example: !download ${
+      content === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
+    }`
   }
 
   const [command, ...rest] = msgArr
@@ -220,7 +230,30 @@ export const validateDownload = (msgContent: string, API: "Radarr" | "Sonarr"): 
   const yearMatch = yearCandidate.match(/^\d{4}$/)
 
   if (!yearMatch) {
-    return "The last part of the command must be a 4-digit year. For example: 1994"
+    // See what returns from the API for examples
+    const searchString = rest.join(" ") // all words after !download, including possibly invalid year
+    // TMDB-safe title validation (basic ASCII + common punctuation)
+    const invalidCharMatch = searchString.match(/[^a-zA-Z0-9 ':,\-&.]/)
+
+    if (invalidCharMatch) {
+      return `The ${content} title contains unsupported characters: \`${invalidCharMatch[0]}\``
+    }
+
+    const foundContentArr =
+      API === "Radarr"
+        ? await searchRadarr(settings, searchString)
+        : await searchSonarr(settings, searchString)
+
+    return (
+      `The last part of the command must be a 4 digit year. ⚠️\n` +
+      (foundContentArr && foundContentArr.length
+        ? `Is it any of these you wanted? ⛏️\n\n` +
+          foundContentArr
+            .slice(0, 10)
+            .map((c) => `${c.title} ${c.year}`)
+            .join("\n")
+        : "")
+    )
   }
 
   const year = yearCandidate

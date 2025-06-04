@@ -71,11 +71,11 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   }
 
   // Validate the message
-  const parsed = validateDownload(message.content, "Radarr")
+  const parsed = await validateDownload(message.content, settings, "Radarr")
 
   // Return if an error string is returned from validateDownload
   if (typeof parsed === "string") {
-    return discordReply(parsed, "error")
+    return parsed
   }
 
   // If message is valid, give me the juicy data
@@ -202,11 +202,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   // Validate the message
-  const parsed = validateDownload(message.content, "Sonarr")
+  const parsed = await validateDownload(message.content, settings, "Sonarr")
 
   // Return if an error string is returned from validateDownload
   if (typeof parsed === "string") {
-    return discordReply(parsed, "error")
+    return parsed
   }
 
   // If message is valid, give me the juicy data
