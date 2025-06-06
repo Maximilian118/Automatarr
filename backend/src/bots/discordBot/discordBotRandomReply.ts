@@ -1,5 +1,6 @@
 // Just a bit of fun so we don't see the same message everytime
 
+import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 
@@ -370,43 +371,33 @@ export const randomEpisodeReplacementMessage = (
 
 export const randomEpisodeReadyMessage = (
   user: string,
-  title: string,
-  season: number,
-  episode: number,
+  seriesTitle: string,
+  episode: Episode,
 ): string => {
+  const { seasonNumber, episodeNumber, title } = episode
   const messages = [
-    `🎉 Hey ${user}, \`${title}\` S${season}E${episode} has arrived! Streaming glory awaits! 🍿`,
-    `📥 Mission complete! \`${title}\` S${season}E${episode} is back and better than ever.`,
-    `🚀 The wait is over, ${user}. \`${title}\` S${season}E${episode} just touched down. Enjoy the ride!`,
-    `✨ Behold! \`${title}\` S${season}E${episode} has been delivered. Happy watching!`,
-    `💾 Download complete! \`${title}\` S${season}E${episode} is now safely tucked into your collection.`,
-    `🎬 Lights, camera, action! \`${title}\` S${season}E${episode} is ready for showtime.`,
-    `🧞 Your wish has been granted. \`${title}\` S${season}E${episode} has materialized.`,
-    `📡 Transmission received! \`${title}\` S${season}E${episode} is now on deck.`,
-    `✅ Done and dusted! \`${title}\` S${season}E${episode} is back in your library.`,
-    `📦 Delivered: \`${title}\` S${season}E${episode}. The entertainment gods smile upon you, ${user}.`,
+    `🎉 Hey ${user}, \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} - *${title}* has landed! 🍿`,
+    `📥 Success! \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) is downloaded and ready.`,
+    `🚀 ${user}, the mission was a success — \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) is here!`,
+    `✨ All set! \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) has arrived.`,
+    `🎬 Showtime! \`${seriesTitle}\` S${seasonNumber}E${episodeNumber}: *${title}* is ready to roll.`,
+    `✅ Done! \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} - *${title}* is now in your library.`,
   ]
-
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
 export const randomEpisodeStillNotDownloadedMessage = (
-  title: string,
-  season: number,
-  episode: number,
+  seriesTitle: string,
+  episode: Episode,
 ): string => {
+  const { seasonNumber, episodeNumber, title } = episode
   const messages = [
-    `⏳ Still no luck finding \`${title}\` S${season}E${episode}. I tried, I waited… nothing. 😞`,
-    `📡 After hours of searching, \`${title}\` S${season}E${episode} still hasn’t downloaded. It’s playing hard to get.`,
-    `🚫 No dice. \`${title}\` S${season}E${episode} is still missing after a long search.`,
-    `🕵️ I gave it my all, but \`${title}\` S${season}E${episode} remains elusive.`,
-    `⚠️ The quest for \`${title}\` S${season}E${episode} has timed out. Maybe try sacrificing a USB stick to the media gods?`,
-    `🔍 Searched high and low, but still no sign of \`${title}\` S${season}E${episode}.`,
-    `🪐 After exploring the universe for hours, I couldn’t find \`${title}\` S${season}E${episode}.`,
-    `🥀 \`${title}\` S${season}E${episode} never showed up. Tragic.`,
-    `🧭 I’ve wandered the metadata wilds, but \`${title}\` S${season}E${episode} is still MIA.`,
-    `⏰ Time’s up — \`${title}\` S${season}E${episode} has not been downloaded. Perhaps tomorrow?`,
+    `⏳ No luck. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) is still MIA.`,
+    `📡 Searched everywhere — \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) hasn't arrived.`,
+    `🚫 Timeout reached. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber}: *${title}* never showed.`,
+    `🕵️‍♂️ Looked under every rock, but \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) is still missing.`,
+    `🔍 \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) refused to download. How rude.`,
+    `⏰ Time’s up. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) hasn’t been found.`,
   ]
-
   return messages[Math.floor(Math.random() * messages.length)]
 }

@@ -115,12 +115,7 @@ export const notifyEpisodeDownloaded = async (
     if (foundEpisode.episodeFile) {
       await sendDiscordMessage(
         message,
-        randomEpisodeReadyMessage(
-          message.author.toString(),
-          episode.title,
-          episode.seasonNumber,
-          episode.episodeNumber,
-        ),
+        randomEpisodeReadyMessage(message.author.toString(), series.title, episode),
       )
       return
     }
@@ -130,13 +125,6 @@ export const notifyEpisodeDownloaded = async (
 
   await sendDiscordMessage(
     message,
-    discordReply(
-      randomEpisodeStillNotDownloadedMessage(
-        episode.title,
-        episode.seasonNumber,
-        episode.episodeNumber,
-      ),
-      "warn",
-    ),
+    discordReply(randomEpisodeStillNotDownloadedMessage(series.title, episode), "warn"),
   )
 }
