@@ -33,7 +33,10 @@ export const getSonarrLibrary = async (
 }
 
 // Get the Sonarr Queue in circumstances where the API object isn't available
-export const getSonarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
+export const getSonarrQueue = async (
+  settings: settingsDocType,
+  logSuccess: boolean = true,
+): Promise<DownloadStatus[]> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -42,7 +45,7 @@ export const getSonarrQueue = async (settings: settingsDocType): Promise<Downloa
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`Sonarr | Retrieving Queue.`)
+      logSuccess && logger.success(`Sonarr | Retrieving Queue.`)
 
       return res.data.records as DownloadStatus[]
     } else {

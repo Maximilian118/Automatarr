@@ -11,6 +11,7 @@ import { extractStringWords, secsToMins } from "./utility"
 export const torrentSeedCheck = (torrent: Torrent, type?: string): boolean => {
   const { ratio, ratio_limit, seeding_time, seeding_time_limit, name } = torrent
   const seeding_time_mins = Number(secsToMins(seeding_time).toFixed(0))
+
   const exceededRatio = ratio > ratio_limit
   const exceededTime = seeding_time_mins > seeding_time_limit
 
@@ -18,19 +19,11 @@ export const torrentSeedCheck = (torrent: Torrent, type?: string): boolean => {
     return true
   }
 
-  const prefix = type ? `${type} t` : `T`
+  const prefix = type ? `${type} torrent` : `Torrent`
+  const ratioInfo = `ratio: ${ratio.toFixed(2)}/${ratio_limit}`
+  const timeInfo = `time: ${seeding_time_mins}/${seeding_time_limit} mins`
 
-  if (!exceededRatio && !exceededTime) {
-    logger.info(`${prefix}orrent has not met any seeding requirements: ${name}`)
-  } else if (!exceededRatio) {
-    logger.info(
-      `${prefix}orrent seed ratio is ${ratio.toFixed(2)} out of required ${ratio_limit}: ${name}`,
-    )
-  } else if (!exceededTime) {
-    logger.info(
-      `${prefix}orrent seed time is ${seeding_time_mins} minutes out of required ${seeding_time_limit}: ${name}`,
-    )
-  }
+  logger.info(`${prefix} has not met seeding requirements (${ratioInfo}, ${timeInfo}): ${name}`)
 
   return false
 }

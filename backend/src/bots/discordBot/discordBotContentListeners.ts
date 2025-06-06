@@ -190,12 +190,11 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
         ...u,
         pool: {
           ...u.pool,
-          movies: [...u.pool.movies, movie],
+          movies: [...(u.pool.movies || []), movie],
         },
       }
-    } else {
-      return u
     }
+    return u
   })
 
   // Save the new pool data to the database
@@ -386,12 +385,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
         ...u,
         pool: {
           ...u.pool,
-          series: [...u.pool.series, series],
+          series: [...(u.pool.series || []), series],
         },
       }
-    } else {
-      return u
     }
+    return u
   })
 
   // Save the new pool data to the database

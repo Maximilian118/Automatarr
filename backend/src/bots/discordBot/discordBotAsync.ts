@@ -63,7 +63,7 @@ export const notifySeriesDownloaded = async (
   await new Promise((resolve) => setTimeout(resolve, 5 * 60 * 1000)) // 5 minutes
 
   while (Date.now() - start < timeoutMs) {
-    const queue = (await getSonarrQueue(settings)) ?? []
+    const queue = (await getSonarrQueue(settings, false)) ?? []
     const seriesEpsInQueue = queue.filter((q) => q.seriesId === series.id)
 
     if (seriesEpsInQueue.length === 0) {

@@ -6,7 +6,6 @@ import {
   deleteFromLibrary,
   deleteFromQueue,
   getQueue,
-  importCommand,
   searchMissing,
 } from "../../shared/StarrRequests"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
@@ -128,14 +127,19 @@ const coreResolvers = {
           } // deleteFromQueue will log any failures
           continue
         }
-        // If the problem is an ID conflict and that's the only problem, import.
+        // If the problem is an ID conflict and that's the only problem, delete.
         if (anyIDConflict) {
           if (!oneMessage) {
             // prettier-ignore
             logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`)
-          } else {
-            // Import the queue item
-            await importCommand(blockedFile, API)
+          } else if (await deleteFromQueue(blockedFile, API)) {
+            let deletedfromFS = false
+            // If we have the current file path and we have permission to delete the file, delete it.
+            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath, ["delete"])) {
+              deletedfromFS = deleteFromMachine(currentFileOrDirPath)
+            }
+            // prettier-ignore
+            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict and has been deleted from the queue${deletedfromFS && " and filesystem"}.`)
             // Update the db with the removed queue item
             updateDownloadQueue(API, data, queue, blockedFile)
             continue
@@ -242,8 +246,9 @@ const coreResolvers = {
     let unmatchedDeleted = 0
 
     // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
+    const reason = "Superseded"
     for (const torrent of unmatchedTorrents) {
-      if (torrentDownloadedCheck(torrent, "Redundant") && torrentSeedCheck(torrent, "Redundant")) {
+      if (torrentDownloadedCheck(torrent, reason) && torrentSeedCheck(torrent, reason)) {
         deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
         unmatchedDeleted++
       }
@@ -287,7 +292,7 @@ const coreResolvers = {
       }
 
       // Init an Array of library items identified for deletion
-      const itemsForDeletion: (Movie | Series)[] = []
+      let itemsForDeletion: (Movie | Series)[] = []
 
       // If Import Lists is the selected level
       if (settings.remove_missing_level === "Import List") {
@@ -326,6 +331,40 @@ const coreResolvers = {
 
         // Init an array to filter deleted items from so we can update the db
         let filteredLibrary = library
+
+        // Ensure we don't remove any items that appear in bot user pools
+        let userPool: Movie[] | Series[]
+
+        if (API.name === "Radarr") {
+          userPool = settings.general_bot.users.flatMap((u) => u.pool.movies)
+        } else {
+          userPool = settings.general_bot.users.flatMap((u) => u.pool.series)
+        }
+
+        const userPoolIds = new Set(userPool.map((p) => p.id))
+        const removedItems = itemsForDeletion.filter((item) => userPoolIds.has(item.id))
+
+        // Log removed items with associated user name(s)
+        removedItems.forEach((item) => {
+          const usersWithItem = settings.general_bot.users
+            .filter((user) =>
+              (API.name === "Radarr" ? user.pool.movies : user.pool.series).some(
+                (p) => p.id === item.id,
+              ),
+            )
+            .map((user) => user.name)
+
+          logger.info(
+            `${API.name}: Skipping ${
+              item.title
+            } — it's not in any Import List, but it's still part of ${usersWithItem.join(
+              ", ",
+            )}'s pool. 🔒`,
+          )
+        })
+
+        // Filter user pool items out
+        itemsForDeletion = itemsForDeletion.filter((item) => !userPoolIds.has(item.id))
 
         // If some library items have been selected for deletion filter any that should not be deleted
         if (itemsForDeletion.length > 0) {
