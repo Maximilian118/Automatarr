@@ -72,8 +72,8 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
     return "Wups! This command can only be used in a named server channel."
   }
 
-  const channelError = channelValid(channel, settings)
-  if (channelError) return channelError
+  const channelErr = channelValid(channel, settings)
+  if (typeof channelErr === "string") return channelErr
 
   switch (channel.name.toLowerCase()) {
     case settings.discord_bot.movie_channel_name.toLowerCase():
@@ -541,8 +541,8 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     )
   }
 
-  // Validate the request string: `!blocklist <contentType> <movieTitleYear/seriesTitleS01E01> `
-  const parsed = await validateBlocklistCommand(message, data)
+  // Validate the request string: `!blocklist <movieTitleYear/seriesTitleS01E01> `
+  const parsed = await validateBlocklistCommand(message, settings, data)
   if (typeof parsed === "string") return parsed
 
   const {

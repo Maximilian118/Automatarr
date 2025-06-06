@@ -1,5 +1,5 @@
 import { settingsDocType } from "../../models/settings"
-import { Channel, GuildTextBasedChannel, Message } from "discord.js"
+import { Channel, GuildTextBasedChannel, Message, TextBasedChannel } from "discord.js"
 import { getDiscordClient } from "./discordBot"
 import { discordReply, matchedUser } from "./discordBotUtility"
 import { searchRadarr } from "../../shared/RadarrStarrRequests"
@@ -8,6 +8,7 @@ import { extractSeasonEpisode } from "../../shared/qBittorrentUtility"
 import { dataDocType } from "../../models/data"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
+import { isTextBasedChannel } from "./discordBotTypeGuards"
 
 // Validate the array data for the caseOwner message
 export const validateOwnerCommand = (msgArr: string[]): string => {
@@ -283,7 +284,17 @@ const isTextChannel = (channel: Channel): channel is GuildTextBasedChannel => {
 }
 
 // Check channel the message was sent in is a valid download channel
-export const channelValid = (channel: Channel, settings: settingsDocType): string => {
+// Check if the channel the message was sent in is a valid download channel
+export const channelValid = (
+  channel: Channel,
+  settings: settingsDocType,
+):
+  | string
+  | {
+      channel: TextBasedChannel
+      contentType: "movie" | "series" | "album" | "book"
+      contentTypePlural: "movies" | "series" | "albums" | "books"
+    } => {
   if (!("name" in channel) || !channel.name) {
     return "Wups! This command can only be used in a named server channel."
   }
@@ -291,48 +302,62 @@ export const channelValid = (channel: Channel, settings: settingsDocType): strin
   const client = getDiscordClient()
 
   if (!client) {
-    return discordReply(`Umm... no client found. This is bad.`, "error")
+    return discordReply("Umm... no client found. This is bad.", "error")
+  }
+
+  if (!isTextBasedChannel(channel)) {
+    return discordReply("This command must be used in a text-based channel.", "error")
   }
 
   const dBot = settings.discord_bot
 
   const channels = [
-    { name: dBot.movie_channel_name, label: "Movies" },
-    { name: dBot.series_channel_name, label: "Series" },
-    { name: dBot.music_channel_name, label: "Music" },
-    { name: dBot.books_channel_name, label: "Books" },
-  ].filter((c) => c.name)
+    { name: dBot.movie_channel_name, contentType: "movies" },
+    { name: dBot.series_channel_name, contentType: "series" },
+    { name: dBot.music_channel_name, contentType: "albums" },
+    { name: dBot.books_channel_name, contentType: "books" },
+  ].filter(
+    (c): c is { name: string; contentType: "movies" | "series" | "albums" | "books" } => !!c.name,
+  )
 
   if (channels.length === 0) {
     return discordReply(
       "There are no selected channels for content commands. Please contact the server owner.",
       "error",
-      "There are no selected channels for content commands.",
     )
   }
 
-  if (!channels.some((c) => c.name === channel.name)) {
+  const matched = channels.find((c) => c.name === channel.name)
+
+  if (!matched) {
     const suggestions = channels.map((c) => {
-      // Find channel with type guard
       const channelObj = client.channels.cache.find((ch) => isTextChannel(ch) && ch.name === c.name)
       const mention = channelObj ? `<#${channelObj.id}>` : c.name
-      return `${mention} for ${c.label}`
+      return `${mention} for ${c.contentType}`
     })
 
-    let suggestionStr = ""
-    if (suggestions.length === 1) {
-      suggestionStr = suggestions[0]
-    } else if (suggestions.length === 2) {
-      suggestionStr = suggestions.join(" or ")
-    } else {
-      suggestionStr =
-        suggestions.slice(0, -1).join(", ") + " and " + suggestions[suggestions.length - 1]
-    }
+    const suggestionStr =
+      suggestions.length === 1
+        ? suggestions[0]
+        : suggestions.length === 2
+        ? suggestions.join(" or ")
+        : `${suggestions.slice(0, -1).join(", ")}, and ${suggestions.at(-1)}`
 
-    return `I'm sorry. You can't use the ${channel} channel for this command. Try ${suggestionStr}.`
+    return `I'm sorry. You can't use the ${channel.name} channel for this command. Try ${suggestionStr}.`
   }
 
-  return ""
+  const singularMap = {
+    movies: "movie",
+    series: "series",
+    albums: "album",
+    books: "book",
+  } as const
+
+  return {
+    channel,
+    contentType: singularMap[matched.contentType],
+    contentTypePlural: matched.contentType,
+  }
 }
 
 // Validate the array data for the caseRemove message
@@ -439,6 +464,7 @@ export const validateRemoveCommand = async (
 // Validate the array data for the caseBlocklist message
 export const validateBlocklistCommand = async (
   message: Message,
+  settings: settingsDocType,
   data: dataDocType,
 ): Promise<
   | string
@@ -455,33 +481,25 @@ export const validateBlocklistCommand = async (
     }
 > => {
   const validCommands = ["!blocklist", "!dud"]
-  const contentTypes = ["movie", "movies", "series"]
-  const unsupported = ["album", "albums", "book", "books"]
+
+  // Check if an accepted channel has been used
+  const validChannel = channelValid(message.channel, settings)
+  if (typeof validChannel === "string") return validChannel
+
+  const { contentType } = validChannel
 
   const msgArr = message.content.trim().split(/\s+/)
 
-  if (msgArr.length < 3) {
-    return "The !blocklist command must contain at least three parts: `!blocklist <contentType> <movieTitle + Year / seriesTitle SxxEyy>`, e.g. `!blocklist movie Dune 2021` or `!blocklist series The Bear S02E04`."
+  if (msgArr.length < 2) {
+    return "The !blocklist command must contain at least two parts: `!blocklist <movieTitle + Year / seriesTitle SxxEyy>`, e.g. `!blocklist Dune 2021` or `!blocklist The Bear S02E04`."
   }
 
-  const [command, contentType, ...rest] = msgArr
+  const [command, ...rest] = msgArr
   const typeLower = contentType.toLowerCase()
   const singular = typeLower.includes("movie") ? "movie" : "series"
 
   if (!validCommands.includes(command.toLowerCase())) {
     return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
-  }
-
-  if (unsupported.includes(typeLower)) {
-    return `I do apologise. My maker hasn't programmed me for ${
-      contentType.endsWith("s") ? contentType : contentType + "s"
-    } yet.`
-  }
-
-  if (!contentTypes.includes(typeLower)) {
-    return `Hmm.. I don't understand what you mean by ${contentType}. Try ${contentTypes.join(
-      ", ",
-    )}.`
   }
 
   const rawInput = rest.join(" ").trim()
