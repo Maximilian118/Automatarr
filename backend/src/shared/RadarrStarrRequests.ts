@@ -5,6 +5,7 @@ import logger from "../logger"
 import { errCodeAndMsg } from "./requestError"
 import axios from "axios"
 import { DownloadStatus } from "../types/types"
+import { HistoryItem } from "../types/historyTypes"
 
 // Get the Radarr Queue in circumstances where the API object isn't available
 export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
@@ -122,6 +123,100 @@ export const movieDownloaded = async (
     )
   } catch (err) {
     logger.error(`movieDownloaded: Radarr lookup error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
+}
+
+// delete the movie file of a radarr library item
+export const deleteMovieFile = async (
+  settings: settingsDocType,
+  movieFileID: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.delete(
+      cleanUrl(
+        `${settings.radarr_URL}/api/${settings.radarr_API_version}/movieFile/${movieFileID}`,
+      ),
+      {
+        headers: {
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `deleteMovieFile: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`deleteMovieFile: Radarr delete movieFile error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
+}
+
+// Get history for a specific movie
+export const getMovieHistory = async (
+  settings: settingsDocType,
+  movieID: number,
+): Promise<HistoryItem[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.radarr_URL}/api/${settings.radarr_API_version}/history/movie?movieId=${movieID}`,
+      ),
+      {
+        headers: {
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as HistoryItem[]
+    }
+
+    logger.error(
+      `getMovieHistory: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`getMovieHistory: Radarr history fetch error: ${errCodeAndMsg(err)}`)
+  }
+
+  return []
+}
+
+// Mark a movieFile as failed. This then automagically triggers a search for a replacement.
+export const markMovieAsFailed = async (
+  settings: settingsDocType,
+  historyItemID: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(
+        `${settings.radarr_URL}/api/${settings.radarr_API_version}/history/failed/${historyItemID}`,
+      ),
+      {}, // No payload
+      {
+        headers: {
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `markMovieAsFailed: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`markMovieAsFailed: Radarr history fetch error: ${errCodeAndMsg(err)}`)
   }
 
   return false

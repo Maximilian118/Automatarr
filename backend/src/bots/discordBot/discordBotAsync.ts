@@ -1,5 +1,7 @@
 import { movieDownloaded } from "../../shared/RadarrStarrRequests"
 import {
+  randomEpisodeReadyMessage,
+  randomEpisodeStillNotDownloadedMessage,
   randomMovieReadyMessage,
   randomMovieStillNotDownloadedMessage,
   randomSeriesReadyMessage,
@@ -14,7 +16,8 @@ import {
   sendDiscordMessage,
 } from "./discordBotUtility"
 import { Series } from "../../types/seriesTypes"
-import { getSonarrQueue } from "../../shared/SonarrStarrRequests"
+import { getSeriesEpisodes, getSonarrQueue } from "../../shared/SonarrStarrRequests"
+import { Episode } from "../../types/episodeTypes"
 
 // Asynchronously loop until movie is downloaded. THen notify.
 export const notifyMovieDownloaded = async (
@@ -22,7 +25,7 @@ export const notifyMovieDownloaded = async (
   settings: settingsDocType,
   movie: Movie,
   checkIntervalMs: number = 30_000, // 30 seconds
-  timeoutMs: number = 4 * 60 * 60 * 1000, // 4 hours in ms
+  timeoutMs: number = 4 * 60 * 60 * 1000, // 4 hours
 ): Promise<void> => {
   const start = Date.now()
 
@@ -83,6 +86,56 @@ export const notifySeriesDownloaded = async (
     message,
     discordReply(
       randomSeriesStillNotDownloadedMessage(series.title, longestSeriesEp?.timeleft),
+      "warn",
+    ),
+  )
+}
+
+// Asynchronously loop until episode is downloaded. Then notify.
+export const notifyEpisodeDownloaded = async (
+  message: Message,
+  settings: settingsDocType,
+  series: Series,
+  episode: Episode,
+  checkIntervalMs: number = 30_000, // 30 seconds
+  timeoutMs: number = 4 * 60 * 60 * 1000, // 4 hours
+): Promise<void> => {
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    const episodes = await getSeriesEpisodes(settings, series)
+    const foundEpisode = episodes.find(
+      (e) => e.seasonNumber === episode.seasonNumber && e.episodeNumber === episode.episodeNumber,
+    )
+
+    if (!foundEpisode) {
+      return
+    }
+
+    if (foundEpisode.episodeFile) {
+      await sendDiscordMessage(
+        message,
+        randomEpisodeReadyMessage(
+          message.author.toString(),
+          episode.title,
+          episode.seasonNumber,
+          episode.episodeNumber,
+        ),
+      )
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, checkIntervalMs))
+  }
+
+  await sendDiscordMessage(
+    message,
+    discordReply(
+      randomEpisodeStillNotDownloadedMessage(
+        episode.title,
+        episode.seasonNumber,
+        episode.episodeNumber,
+      ),
       "warn",
     ),
   )

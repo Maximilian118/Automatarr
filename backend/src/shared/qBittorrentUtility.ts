@@ -70,7 +70,7 @@ export const torrentDownloadedCheck = (torrent: Torrent, type?: string): boolean
 }
 
 // Get Season and Episode data from a string
-const extractSeasonEpisode = (input: string): { season: number; episode: number } | null => {
+export const extractSeasonEpisode = (input: string): { season: number; episode: number } | null => {
   const lower = input.toLowerCase()
 
   // Try format: s12e3 or s3e02

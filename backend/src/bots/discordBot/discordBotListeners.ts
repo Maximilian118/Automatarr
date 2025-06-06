@@ -10,7 +10,12 @@ import {
   caseStats,
   caseSuperUser,
 } from "./discordBotUserListeners"
-import { caseDownloadSwitch, caseList, caseRemove } from "./discordBotContentListeners"
+import {
+  caseBlocklist,
+  caseDownloadSwitch,
+  caseList,
+  caseRemove,
+} from "./discordBotContentListeners"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -36,6 +41,9 @@ export const messageListeners = async (client: Client) => {
       case "hello": // Say Hello!
         await message.channel.send(`Hello, ${message.author.username}!`)
         break
+      // case "help": // Display all commands and how to use them
+      //   await message.channel.send(caseHelp())
+      //   break
       case "owner": // Assign the server owner
         await message.channel.send((await adminCheck(message)) || (await caseOwner(message)))
         break
@@ -69,10 +77,10 @@ export const messageListeners = async (client: Client) => {
       case "list": // List pool for a user
         await message.channel.send(await caseList(message))
         break
-      // case "badDownload":
-      // case "dud": // mark a movie or series as a bad download and redownload a new one after blocklisting
-      //   await message.channel.send(await caseDud(message))
-      //   break
+      case "blocklist":
+      case "dud": // Mark a download as unsatisfactory, blocklist it and add start a new download
+        await message.channel.send(await caseBlocklist(message))
+        break
       case "stats": // Display the stats of the author or another user
         await message.channel.send((await caseStats(message)))
         break

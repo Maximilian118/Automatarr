@@ -5,6 +5,8 @@ import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { errCodeAndMsg } from "./requestError"
 import { DownloadStatus } from "../types/types"
+import { Episode, EpisodeFile } from "../types/episodeTypes"
+import { HistoryItem } from "../types/historyTypes"
 
 // Get sonarr library
 export const getSonarrLibrary = async (
@@ -139,4 +141,202 @@ export const downloadSeries = async (
   }
 
   return
+}
+
+// Get history for a specific movie
+export const getSeriesHistory = async (
+  settings: settingsDocType,
+  seriesID: number,
+): Promise<HistoryItem[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/history/series?seriesId=${seriesID}`,
+      ),
+      {
+        headers: {
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as HistoryItem[]
+    }
+
+    logger.error(
+      `getSeriesHistory: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`getSeriesHistory: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+  }
+
+  return []
+}
+
+// Get history for a specific movie
+export const getEpisodeHistory = async (
+  settings: settingsDocType,
+  episodeID: number,
+): Promise<HistoryItem[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/history?pageSize=1000&page=1&sortKey=date&sortDirection=descending&episodeId=${episodeID}`,
+      ),
+      {
+        headers: {
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data.records as HistoryItem[]
+    }
+
+    logger.error(
+      `getEpisodeHistory: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`getEpisodeHistory: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+  }
+
+  return []
+}
+
+// Get all episodes for a series, optionally with episodeFile details
+export const getSeriesEpisodes = async (
+  settings: settingsDocType,
+  series: Series,
+): Promise<Episode[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/episode?seriesId=${series.id}&apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (!requestSuccess(res.status) || !Array.isArray(res.data)) {
+      logger.error(`getSeriesEpisodes: Could not retrieve episodes for series ${series.title}.`)
+      return []
+    }
+
+    let episodes = res.data as Episode[]
+
+    const episodeFiles = await getSeriesEpisodeFiles(settings, series.id)
+
+    episodes = episodes.map((ep) => {
+      const match = episodeFiles.find((file) => file.id === ep.episodeFileId)
+      return match ? { ...ep, episodeFile: match } : ep
+    })
+
+    return episodes
+  } catch (err) {
+    logger.error(
+      `getSeriesEpisodes: Series episode search error for ${series.title}: ${errCodeAndMsg(err)}`,
+    )
+    return []
+  }
+}
+
+// Get EpisodeFiles for a series
+export const getSeriesEpisodeFiles = async (
+  settings: settingsDocType,
+  seriesID: number,
+): Promise<EpisodeFile[]> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/episodeFile?seriesId=${seriesID}&apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      if (!Array.isArray(res.data)) {
+        logger.error(
+          `getSeriesEpisodeFiles: Could not retrieve episode files for series ${seriesID}. Response is not an array.`,
+        )
+
+        return []
+      }
+
+      return res.data as EpisodeFile[]
+    } else {
+      logger.error(
+        `getSeriesEpisodeFiles: Could not retrieve episode files for series ID ${seriesID}.. how peculiar..`,
+      )
+    }
+  } catch (err) {
+    logger.error(
+      `getSeriesEpisodeFiles: Sonarr episode file search error for ID ${seriesID}: ${errCodeAndMsg(
+        err,
+      )}`,
+    )
+  }
+
+  return []
+}
+
+// Delete the episode file of a sonarr library item
+export const deleteEpisodeFile = async (
+  settings: settingsDocType,
+  episodeFileID: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.delete(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/episodeFile/${episodeFileID}`,
+      ),
+      {
+        headers: {
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `deleteEpisodeFile: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`deleteEpisodeFile: Radarr delete movieFile error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
+}
+
+// Mark a episodeFile as failed. This then automagically triggers a search for a replacement.
+export const markEpisodeAsFailed = async (
+  settings: settingsDocType,
+  historyItemID: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/history/failed/${historyItemID}`,
+      ),
+      {}, // No payload
+      {
+        headers: {
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `markEpisodeAsFailed: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`markEpisodeAsFailed: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+  }
+
+  return false
 }

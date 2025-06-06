@@ -78,7 +78,7 @@ export const randomProcessingMessage = () => {
     "One sec, contacting the media gods 📡",
     "Gimme a moment — lining everything up...",
     "Booting up the content engine... 🔧",
-    "Working on it — don’t go anywhere!",
+    "Working on it — don't go anywhere!",
     "Stand by... automation in progress 🤖",
   ]
   return messages[Math.floor(Math.random() * messages.length)]
@@ -263,11 +263,11 @@ export const randomMissingEpisodesSearchInProgress = () => {
     "The series is in the library, but a few episodes are missing. Already on the case!",
     "Some episodes are MIA, but don't worry—I'm chasing them down as we speak.",
     "It's in your collection, just a bit incomplete. I've already started fetching the missing bits!",
-    "The show’s here, but not whole. Retrieval in progress!",
-    "Found the series with a few holes. Don’t panic—I’m filling in the gaps!",
-    "The library’s got it, but it's not all there. I’m working on getting the rest!",
+    "The show's here, but not whole. Retrieval in progress!",
+    "Found the series with a few holes. Don't panic—I'm filling in the gaps!",
+    "The library's got it, but it's not all there. I'm working on getting the rest!",
     "Looks like the series is here but patchy. Already started a recovery mission!",
-    "It’s on the shelf, minus a few chapters. I’m hunting them down for you!",
+    "It's on the shelf, minus a few chapters. I'm hunting them down for you!",
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
@@ -316,15 +316,97 @@ export const randomSadComment = (mention: string): string => {
 
 export const randomRemovalSuccessMessage = (poolItemTitle: string, contentType: string): string => {
   const messages = [
-    `I've removed \`${poolItemTitle}\` from your ${contentType} pool. More space for fun!`,
-    `Gone! \`${poolItemTitle}\` has been booted from your ${contentType} stash.`,
-    `Tossed \`${poolItemTitle}\` out of your ${contentType} collection. Fresh start vibes!`,
-    `\`${poolItemTitle}\` is history. Your ${contentType} pool just got lighter.`,
-    `Snip snip ✂️ — \`${poolItemTitle}\` has been cut from your ${contentType} lineup.`,
-    `Out with the old! \`${poolItemTitle}\` no longer lives in your ${contentType} list.`,
-    `Declutter mode: activated. \`${poolItemTitle}\` is gone from your ${contentType} zone.`,
-    `I've banished \`${poolItemTitle}\` from your ${contentType} pool. May it rest in pieces.`,
-    `\`${poolItemTitle}\`? Never heard of it. It's out of your ${contentType} pool!`,
+    `I've removed ${poolItemTitle} from your ${contentType} pool. More space for fun!`,
+    `Gone! ${poolItemTitle} has been booted from your ${contentType} stash.`,
+    `Tossed ${poolItemTitle} out of your ${contentType} collection. Fresh start vibes!`,
+    `${poolItemTitle} is history. Your ${contentType} pool just got lighter.`,
+    `Snip snip ✂️ — ${poolItemTitle} has been cut from your ${contentType} lineup.`,
+    `Out with the old! ${poolItemTitle} no longer lives in your ${contentType} list.`,
+    `Declutter mode: activated. ${poolItemTitle} is gone from your ${contentType} zone.`,
+    `I've banished ${poolItemTitle} from your ${contentType} pool. May it rest in pieces.`,
+    `${poolItemTitle}? Never heard of it. It's out of your ${contentType} pool!`,
   ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMovieReplacementMessage = (title: string): string => {
+  const messages = [
+    `The movie file for ${title} has been deleted. Onward to a better version! 🚀`,
+    `Bye-bye, old ${title}! A fresh copy is now being summoned. 🔍`,
+    `${title} has been kicked out. Let the great hunt for a new one begin! 🎯`,
+    `The file for ${title} was wiped from existence. Searching for a worthy successor! 🔄`,
+    `That version of ${title} didn't make the cut. A new one is now en route! 🎬`,
+    `Out with the bad, in with the better — ${title} is getting a makeover. 🧹`,
+    `${title} has been deleted from the archives. Starting the quest for redemption! 🧭`,
+    `I've nuked ${title}. Now scanning the galaxies for a cleaner cut. 🛸`,
+    `Mission delete complete: ${title}. Fresh download incoming! 📡`,
+    `${title} got the chop. Let's fetch a shinier copy, shall we? ✨`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomEpisodeReplacementMessage = (
+  title: string,
+  seasonNumber: number,
+  episodeNumber: number,
+): string => {
+  const messages = [
+    `Season ${seasonNumber}, Episode ${episodeNumber} of ${title} has been purged! Dispatching the search droids for a better copy. 🤖📡`,
+    `Evicted: ${title} S${seasonNumber.toString().padStart(2, "0")}E${episodeNumber
+      .toString()
+      .padStart(2, "0")}. Scanning the multiverse for a cleaner version! 🌌`,
+    `That episode of ${title} (S${seasonNumber}E${episodeNumber})? Gone. A shiny replacement is now on the way! ✨`,
+    `Buh-bye, glitchy ${title} S${seasonNumber}E${episodeNumber}. Summoning a fresher copy from the ether! 🪄`,
+    `${title} S${seasonNumber}E${episodeNumber} didn't make the cut. Starting the hunt for a superior one! 🎯`,
+    `S${seasonNumber}E${episodeNumber} of ${title} has been deleted from the sacred archives. A new challenger approaches! 🗃️⚔️`,
+    `Out with the corrupted ${title} S${seasonNumber}E${episodeNumber}, in with the crisp HD glory. 🔄`,
+    `${title} episode S${seasonNumber}E${episodeNumber} has left the building. Let's roll the dice for a better file! 🎲`,
+    `*Zap!* ${title} S${seasonNumber}E${episodeNumber} is history. Radar's up for a fresh version. 📡🛰️`,
+    `${title} S${seasonNumber}E${episodeNumber} got the boot. Commencing the redemption download arc! 📥⚙️`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomEpisodeReadyMessage = (
+  user: string,
+  title: string,
+  season: number,
+  episode: number,
+): string => {
+  const messages = [
+    `🎉 Hey ${user}, \`${title}\` S${season}E${episode} has arrived! Streaming glory awaits! 🍿`,
+    `📥 Mission complete! \`${title}\` S${season}E${episode} is back and better than ever.`,
+    `🚀 The wait is over, ${user}. \`${title}\` S${season}E${episode} just touched down. Enjoy the ride!`,
+    `✨ Behold! \`${title}\` S${season}E${episode} has been delivered. Happy watching!`,
+    `💾 Download complete! \`${title}\` S${season}E${episode} is now safely tucked into your collection.`,
+    `🎬 Lights, camera, action! \`${title}\` S${season}E${episode} is ready for showtime.`,
+    `🧞 Your wish has been granted. \`${title}\` S${season}E${episode} has materialized.`,
+    `📡 Transmission received! \`${title}\` S${season}E${episode} is now on deck.`,
+    `✅ Done and dusted! \`${title}\` S${season}E${episode} is back in your library.`,
+    `📦 Delivered: \`${title}\` S${season}E${episode}. The entertainment gods smile upon you, ${user}.`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomEpisodeStillNotDownloadedMessage = (
+  title: string,
+  season: number,
+  episode: number,
+): string => {
+  const messages = [
+    `⏳ Still no luck finding \`${title}\` S${season}E${episode}. I tried, I waited… nothing. 😞`,
+    `📡 After hours of searching, \`${title}\` S${season}E${episode} still hasn’t downloaded. It’s playing hard to get.`,
+    `🚫 No dice. \`${title}\` S${season}E${episode} is still missing after a long search.`,
+    `🕵️ I gave it my all, but \`${title}\` S${season}E${episode} remains elusive.`,
+    `⚠️ The quest for \`${title}\` S${season}E${episode} has timed out. Maybe try sacrificing a USB stick to the media gods?`,
+    `🔍 Searched high and low, but still no sign of \`${title}\` S${season}E${episode}.`,
+    `🪐 After exploring the universe for hours, I couldn’t find \`${title}\` S${season}E${episode}.`,
+    `🥀 \`${title}\` S${season}E${episode} never showed up. Tragic.`,
+    `🧭 I’ve wandered the metadata wilds, but \`${title}\` S${season}E${episode} is still MIA.`,
+    `⏰ Time’s up — \`${title}\` S${season}E${episode} has not been downloaded. Perhaps tomorrow?`,
+  ]
+
   return messages[Math.floor(Math.random() * messages.length)]
 }
