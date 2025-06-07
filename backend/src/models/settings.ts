@@ -191,7 +191,7 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     wanted_missing_loop: { type: Number, default: 240 },
     remove_failed_loop: { type: Number, default: 60 },
     remove_missing_loop: { type: Number, default: 60 },
-    remove_missing_level: { type: String, default: "Library" },
+    remove_missing_level: { type: String, default: "Import List" },
     permissions_change_loop: { type: Number, default: 10 },
     permissions_change_chown: { type: String, default: "" },
     permissions_change_chmod: { type: String, default: "" },

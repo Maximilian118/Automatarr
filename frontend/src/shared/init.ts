@@ -56,7 +56,7 @@ export const initSettings: settingsType = {
   wanted_missing_loop: 240,
   remove_failed_loop: 60,
   remove_missing_loop: 60,
-  remove_missing_level: "Library",
+  remove_missing_level: "Import List",
   permissions_change_loop: 10,
   permissions_change_chown: "",
   permissions_change_chmod: "",
