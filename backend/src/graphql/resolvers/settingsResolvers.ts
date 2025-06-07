@@ -9,6 +9,7 @@ import { getDiscordClient } from "../../bots/discordBot/discordBot"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { getAllQualityProfiles } from "../../shared/StarrRequests"
 import { qualityProfile } from "../../models/data"
+import { saveWithRetry } from "../../shared/database"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -94,7 +95,7 @@ const settingsResolvers = {
     settings = await botsControl(settings, oldSettings)
 
     // Save the updated object
-    await settings.save()
+    await saveWithRetry(settings, "updateSettings")
 
     // Update the data object in the database
     if (!allLoopsDeactivated(settings._doc)) {

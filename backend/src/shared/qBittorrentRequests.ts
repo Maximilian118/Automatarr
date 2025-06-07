@@ -1,11 +1,12 @@
 import axios, { AxiosResponse } from "axios"
 import Data, { dataType, qBittorrent } from "../models/data"
-import { settingsType } from "../models/settings"
+import Settings, { settingsDocType, settingsType } from "../models/settings"
 import { checkTimePassed, cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
 import { errCodeAndMsg } from "./requestError"
+import { saveWithRetry } from "./database"
 
 // Retreive qBittorrent cookie from check request headers
 export const getqBitCookieFromHeaders = async (
@@ -119,11 +120,39 @@ export const renewqBitCookie = async (
   return response
 }
 
+const updateQbitSettingsCookie = async (
+  newCookie: string,
+  expiry: string,
+): Promise<settingsDocType> => {
+  // Find settings object by ID
+  let settings = (await Settings.findOne()) as settingsDocType
+
+  // Throw error if no object was found
+  if (!settings) {
+    logger.error("updateQbitSettingsCookie: No settings found in database.")
+  }
+
+  settings.qBittorrent.cookie = newCookie
+  settings.qBittorrent.cookie_expiry = expiry
+
+  // save to the db
+  await saveWithRetry(settings, "updateQbitSettingsCookie")
+
+  return settings
+}
+
 // Get all current torrents
 export const getqBittorrentTorrents = async (
   settings: settingsType,
   data: dataType,
-): Promise<Torrent[]> => {
+  ident?: string,
+): Promise<{
+  torrents: Torrent[]
+  cookieRenewed: boolean
+  newCookie?: string
+  newCookieExpiry?: string
+  newSettings?: settingsDocType
+}> => {
   // Only get qBittorrent data if 10 mins has passed since last update
   const firstRun = data.qBittorrent.torrents.length === 0
 
@@ -131,10 +160,38 @@ export const getqBittorrentTorrents = async (
     const timer = 10 - moment().diff(moment(data.qBittorrent.updated_at), "minutes")
 
     logger.info(
-      `getqBittorrentTorrents | Skipping Torrents retrieval. Only once per 10 minutes. ${timer} minutes left.`,
+      `qBittorrent | ${
+        ident && `${ident} | `
+      }Skipping Torrents retrieval. Only once per 10 minutes. ${timer} minutes left.`,
     )
 
-    return data.qBittorrent.torrents
+    return {
+      torrents: data.qBittorrent.torrents,
+      cookieRenewed: false,
+    }
+  }
+
+  let newSettings: settingsDocType | undefined = undefined
+  let cookieRenewed = false
+  let cookie = data.qBittorrent.cookie
+  let newCookieExpiry = ""
+
+  // Check cookie expiry and get a new cookie if needed
+  if (await qBitCookieExpired(data)) {
+    const { cookie: newCookie, cookie_expiry } = await renewqBitCookie(settings, data)
+    cookie = newCookie
+    newCookieExpiry = cookie_expiry
+
+    if (newCookie) {
+      cookieRenewed = true
+      newSettings = await updateQbitSettingsCookie(newCookie, cookie_expiry)
+    } else {
+      logger.warn(
+        `qBittorrent | ${
+          ident && `${ident} | `
+        }Cookie renewal attempted but new cookie was not set.`,
+      )
+    }
   }
 
   let torrents: Torrent[] = []
@@ -144,13 +201,13 @@ export const getqBittorrentTorrents = async (
       cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/info`),
       {
         headers: {
-          cookie: data.qBittorrent.cookie,
+          cookie,
         },
       },
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`qBittorrent | Retrieving torrents`)
+      logger.success(`qBittorrent | ${ident && `${ident} | `}Retrieving torrents`)
 
       // Return all torrents and process the name to something that can be more easily matched with
       torrents = res.data.map((torrent: Torrent) => {
@@ -161,14 +218,22 @@ export const getqBittorrentTorrents = async (
       })
     } else {
       logger.error(
-        `getqBittorrentTorrents: Unknown error. Status: ${res.status} - ${res.statusText}`,
+        `qBittorrent | ${ident && `${ident} | `}Unknown error. Status: ${res.status} - ${
+          res.statusText
+        }`,
       )
     }
   } catch (err) {
-    logger.error(`getqBittorrentTorrents: Error: ${errCodeAndMsg(err)}`)
+    logger.error(`qBittorrent | ${ident && `${ident} | `}Error: ${errCodeAndMsg(err)}`)
   }
 
-  return torrents
+  return {
+    torrents,
+    cookieRenewed,
+    newCookie: cookie,
+    newCookieExpiry,
+    newSettings,
+  }
 }
 
 // Get all current catagories
@@ -269,9 +334,11 @@ export const getqBittorrentData = async (
     }
   }
 
+  const { torrents } = await getqBittorrentTorrents(settings, data)
+
   return {
     ...data.qBittorrent,
-    torrents: await getqBittorrentTorrents(settings, data),
+    torrents,
     categories: await getqBittorrentCategories(settings, data.qBittorrent.cookie),
     preferences: await getqBittorrentPreferences(settings, data.qBittorrent.cookie),
     updated_at: moment().format(),

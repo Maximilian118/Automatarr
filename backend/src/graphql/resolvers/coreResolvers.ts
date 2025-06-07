@@ -231,7 +231,8 @@ const coreResolvers = {
     const { data, activeAPIs } = await activeAPIsArr(settings)
 
     // Retrieve torrents, if no connection to qBit, return empty array
-    const torrents = await getqBittorrentTorrents(settings, data)
+    // IF WE WEVER DECIDE TO UPDATE SETTINGS IN REMOVE_MISSING, GET NEWSETTINGS FROM HERE
+    const { torrents } = await getqBittorrentTorrents(settings, data, "remove_missing")
 
     // Depending on the amount of library items, logs can hang here so give an indication of how long
     processingTimeMessage(data)
