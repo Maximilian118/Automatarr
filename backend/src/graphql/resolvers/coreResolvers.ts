@@ -57,7 +57,7 @@ const coreResolvers = {
       await searchMissing(API.data.commandList, API.name, API.data.URL, API.data.API_version, API.data.KEY)
     }
   },
-  import_blocked_handler: async (settings: settingsType): Promise<void> => {
+  remove_blocked: async (settings: settingsType): Promise<void> => {
     // Only get data for API's that have been checked and are active
     const { data, activeAPIs } = await activeAPIsArr(settings)
 
@@ -147,7 +147,7 @@ const coreResolvers = {
     }
 
     // Save the latest download queue data to the db
-    await saveWithRetry(data, "import_blocked_handler")
+    await saveWithRetry(data, "remove_blocked")
   },
   remove_failed: async (settings: settingsType): Promise<void> => {
     if (!settings.qBittorrent_active) {

@@ -257,8 +257,8 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
     await Resolvers.search_wanted_missing(settings)
   }, skipFirst)
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  await dynamicLoop("import_blocked_loop", async (settings) => {
-    await Resolvers.import_blocked_handler(settings)
+  await dynamicLoop("remove_blocked_loop", async (settings) => {
+    await Resolvers.remove_blocked(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_failed_loop", async (settings) => {
@@ -285,8 +285,8 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
     await Resolvers.search_wanted_missing(settings._doc)
   }
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  if (settings.import_blocked) {
-    await Resolvers.import_blocked_handler(settings._doc)
+  if (settings.remove_blocked) {
+    await Resolvers.remove_blocked(settings._doc)
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_failed) {

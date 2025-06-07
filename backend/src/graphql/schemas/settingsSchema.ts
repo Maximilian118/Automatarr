@@ -46,13 +46,13 @@ const settingsSchema = `
     lidarr_KEY: String!
     lidarr_API_version: String!
     lidarr_active: Boolean!
-    import_blocked: Boolean!
+    remove_blocked: Boolean!
     wanted_missing: Boolean!
     remove_failed: Boolean!
     remove_missing: Boolean!
     permissions_change: Boolean!
     tidy_directories: Boolean!
-    import_blocked_loop: Int!
+    remove_blocked_loop: Int!
     wanted_missing_loop: Int!
     remove_failed_loop: Int!
     remove_missing_loop: Int!
@@ -115,13 +115,13 @@ const settingsSchema = `
     lidarr_KEY: String
     lidarr_API_version: String
     lidarr_active: Boolean
-    import_blocked: Boolean
+    remove_blocked: Boolean
     wanted_missing: Boolean
     remove_failed: Boolean
     remove_missing: Boolean
     permissions_change: Boolean
     tidy_directories: Boolean
-    import_blocked_loop: Int
+    remove_blocked_loop: Int
     wanted_missing_loop: Int
     remove_failed_loop: Int
     remove_missing_loop: Int

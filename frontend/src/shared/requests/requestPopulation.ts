@@ -13,13 +13,13 @@ export const populateSettings = `
   lidarr_KEY
   lidarr_API_version
   lidarr_active
-  import_blocked
+  remove_blocked
   wanted_missing
   remove_failed
   remove_missing
   permissions_change
   tidy_directories
-  import_blocked_loop
+  remove_blocked_loop
   wanted_missing_loop
   remove_failed_loop
   remove_missing_loop

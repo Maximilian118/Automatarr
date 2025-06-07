@@ -114,21 +114,6 @@ const Loops: React.FC = () => {
         startIcon={<MuiLoop/>}
       >
         {loop(
-          "import_blocked",
-          "Import all downloads that have a status of 'importBlocked' or 'importFailed' in Starr App queues. If a download has 'missing' files or is 'unsupported' in any way, delete it.",
-        )}
-        {loop(
-          "wanted_missing",
-          "Start a search for all missing content in the Wanted > Missing tabs.",
-        )}
-        {loop(
-          "remove_failed",
-          "Remove all downloads in qBittorrent download paths that have failed.",
-          undefined,
-          !settings.qBittorrent_active,
-          "qBittorrent Required"
-        )}
-        {loop(
           "remove_missing",
           "Remove any content in the file system that doesn't appear in Starr app libraries. Particularly useful when using dynamic import lists.",
           <MUIAutocomplete
@@ -146,6 +131,21 @@ const Loops: React.FC = () => {
             onBlur={(e) => updateInput(e, setSettings, setFormErr)}
             error={!!formErr.remove_missing_level}
           />, 
+          !settings.qBittorrent_active,
+          "qBittorrent Required"
+        )}
+        {loop(
+          "wanted_missing",
+          "Start a search for all missing content in the Wanted > Missing tabs.",
+        )}
+        {loop(
+          "remove_blocked",
+          "Delete all blocked items in Starr App queues.",
+        )}
+        {loop(
+          "remove_failed",
+          "Remove all downloads in qBittorrent download paths that have failed.",
+          undefined,
           !settings.qBittorrent_active,
           "qBittorrent Required"
         )}

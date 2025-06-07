@@ -67,13 +67,13 @@ export const updateSettings = async (
           $lidarr_KEY: String
           $lidarr_API_version: String
           $lidarr_active: Boolean
-          $import_blocked: Boolean
+          $remove_blocked: Boolean
           $wanted_missing: Boolean
           $remove_failed: Boolean
           $remove_missing: Boolean
           $permissions_change: Boolean
           $tidy_directories: Boolean
-          $import_blocked_loop: Int
+          $remove_blocked_loop: Int
           $wanted_missing_loop: Int
           $remove_failed_loop: Int
           $remove_missing_loop: Int
@@ -105,13 +105,13 @@ export const updateSettings = async (
             lidarr_KEY: $lidarr_KEY
             lidarr_API_version: $lidarr_API_version
             lidarr_active: $lidarr_active
-            import_blocked: $import_blocked
+            remove_blocked: $remove_blocked
             wanted_missing: $wanted_missing
             remove_failed: $remove_failed
             remove_missing: $remove_missing
             permissions_change: $permissions_change
             tidy_directories: $tidy_directories
-            import_blocked_loop: $import_blocked_loop
+            remove_blocked_loop: $remove_blocked_loop
             wanted_missing_loop: $wanted_missing_loop
             remove_failed_loop: $remove_failed_loop
             remove_missing_loop: $remove_missing_loop

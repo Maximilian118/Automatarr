@@ -4,26 +4,46 @@ _Like this app? Thanks for giving it a_ ⭐️
 
 ## Overview
 
-Automatarr reduces manual input tasks for Radarr & Sonarr and Lidarr.
-
-Feature overview:
-
-- Automatically handle items with an importBlocked status in the activity queue
-- Automatically search for wanted missing items
+Automatarr reduces manual input tasks for Radarr & Sonarr and allows for the control of Starr apps through bots.
+All bots abide by a unified pool system which regulates how much content users can download at once.
 
 Do not expose this application to the internet as it has no security.
-Run it on a machine that's only accessible on you LAN.
+Run it in such a way that only devices on your LAN can access it.
 
-## Running Automatarr with Docker
+## Feature overview:
+
+Loops:
+
+- Remove Missing - Remove all library content not in Starr App Import Lists while respecting torrent ratio/time requirements.
+- Wanted Missing - Search for all wanted missing items across all Starr Apps.
+- Remove Blocked - Remove all blocked downloads in the queue.
+- Remove Failed - Remove all failed downloads.
+- Tidy Directories - Remove all unwanted files and directories in the provided paths.
+- Permissions Change - Change ownership and permissions of completed downloads.
+
+Bots:
+
+- User Pools - Each user has a pool of content they've downloaded to the server. Users pools are immune to being removed by loops.
+- User permission hierarchy - Can assign admins and super users.
+- Custom pool size - Each user's limits can be overwritten higher or lower.
+- Download - Each user can download x amount of movies from Radarr or series from Sonarr without even knowing what Starr apps are.
+- Remove - Each user can remove from their own pool.
+- Blocklist - Users can mark a download as unsatisfactory, blocklist it and start a new download.
+
+## Running Automatarr with Docker Compose:
 
 To run Automatarr using Docker, follow these steps:
 
-1. **Create a `docker-compose.yml` File**
+1. **Make sure you have Docker and Docker Compose installed on any Unix based system**
+
+💡 Check with: `docker compose version`.
+If your version is below v2.0.0, use `docker-compose` for commands (with a dash) instead of `docker compose`.
+
+2. **Create a `docker-compose.yml` File**
 
 Create a file named `docker-compose.yml` in your desired directory and add the following content:
 
 ```yaml
-version: "3.3"
 services:
   automatarr:
     image: ghcr.io/maximilian118/automatarr:latest
@@ -43,10 +63,9 @@ services:
       # - VITE_DATABASE_PORT=27020 # Optional
 ```
 
-2. `docker-compose pull`
-3. `docker-compose up -d`
-
-If you're accessing the frontend from a remote machine, I.E not localhost, you will need to tell the frontend where to find the backend server with the `VITE_BACKEND_IP` environment variable. This will be the IP of the machine docker-compose is running on.
+3. `docker compose pull`
+4. `docker compose up -d`
+5. `docker compose logs -f automatarr` - All backend information is here
 
 If successful and the application is running, a directory named `automatarr` will be created alongside the `docker-compose.yml` file. The `automatarr` directory contains a `database` directory where `MongoDB` stores its local database, as well as a `logs` directory where all backend logs are stored.
 
@@ -56,9 +75,13 @@ If successful and the application is running, a directory named `automatarr` wil
 
 - [x] Add Sonarr support to Remove Missing - Import List level
 - [x] Add Discord Bot
+- [ ] Add Whatsapp Bot
 - [ ] Allow for deletion of downloading torrents
 - [ ] Add stalled or slow torrent download deletion
 - [x] Separate settings page into an API Connections page and Loops page
 - [ ] Add graphs for basic data visuals to stats page
-- [ ] Add Lidarr support to Remove Missing
+- [ ] Add Lidarr support
+- [ ] Add Readarr support
 - [x] Add spinner to top right of settings pages or nav bar for more obvious loading
+- [ ] Add security
+- [ ] Add webhooks for better notifications (Security needed)

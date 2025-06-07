@@ -20,6 +20,10 @@
     }
   }
 
+  p {
+    width: 100%;
+  }
+
   .loop-params {
     width: 100%;
     @include mixins.flexbox-start-column;

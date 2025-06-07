@@ -85,13 +85,13 @@ export interface settingsType {
   lidarr_KEY: string // API KEY for Lidarr
   lidarr_API_version: string // Lidarr API Version
   lidarr_active: boolean // Has Lidarr connection been tested and therefore should be included in requests?
-  import_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
+  remove_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
   wanted_missing: boolean // Enable or disable automation of searching for missing and monitored library items
   remove_failed: boolean // Enable or disable automation of removing failed downloads
   remove_missing: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: boolean // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
   tidy_directories: boolean // Enable or disable automation of removing unwanted files in specified directories
-  import_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
+  remove_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
   wanted_missing_loop: number // Loop timer for wanted missing search. Unit = minutes
   remove_failed_loop: number // Loop timer for remove_failed. Unit = minutes
   remove_missing_loop: number // Loop timer for remove_missing. Unit = minutes
@@ -181,13 +181,13 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     lidarr_KEY: { type: String, default: "" },
     lidarr_API_version: { type: String, default: "v1" },
     lidarr_active: { type: Boolean, default: false },
-    import_blocked: { type: Boolean, default: false },
+    remove_blocked: { type: Boolean, default: false },
     wanted_missing: { type: Boolean, default: false },
     remove_failed: { type: Boolean, default: false },
     remove_missing: { type: Boolean, default: false },
     permissions_change: { type: Boolean, default: false },
     tidy_directories: { type: Boolean, default: false },
-    import_blocked_loop: { type: Number, default: 10 },
+    remove_blocked_loop: { type: Number, default: 10 },
     wanted_missing_loop: { type: Number, default: 240 },
     remove_failed_loop: { type: Number, default: 60 },
     remove_missing_loop: { type: Number, default: 60 },

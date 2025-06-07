@@ -54,13 +54,13 @@ export interface settingsType {
   lidarr_KEY: string // API KEY for Lidarr
   lidarr_API_version: string // Lidarr API Version
   lidarr_active: boolean // Has Lidarr connection been tested and therefore should be included in requests?
-  import_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
+  remove_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
   wanted_missing: boolean // Enable or disable automation of searching for missing and monitored library items
   remove_failed: boolean // Enable or disable automation of removing failed downloads
   remove_missing: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: boolean // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
   tidy_directories: boolean // Enable or disable automation of removing unwanted files in specified directories
-  import_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
+  remove_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
   wanted_missing_loop: number // Loop timer for wanted missing search. Unit = minutes
   remove_failed_loop: number // Loop timer for remove_failed. Unit = minutes
   remove_missing_loop: number // Loop timer for remove_missing. Unit = minutes
