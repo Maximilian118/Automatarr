@@ -207,7 +207,7 @@ export const getqBittorrentTorrents = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`qBittorrent | ${ident && `${ident} | `}Retrieving torrents`)
+      logger.success(`qBittorrent | ${ident ? `${ident} | ` : ""}Retrieving torrents`)
 
       // Return all torrents and process the name to something that can be more easily matched with
       torrents = res.data.map((torrent: Torrent) => {
@@ -218,13 +218,13 @@ export const getqBittorrentTorrents = async (
       })
     } else {
       logger.error(
-        `qBittorrent | ${ident && `${ident} | `}Unknown error. Status: ${res.status} - ${
+        `qBittorrent | ${ident ? `${ident} | ` : ""}Unknown error. Status: ${res.status} - ${
           res.statusText
         }`,
       )
     }
   } catch (err) {
-    logger.error(`qBittorrent | ${ident && `${ident} | `}Error: ${errCodeAndMsg(err)}`)
+    logger.error(`qBittorrent | ${ident ? `${ident} | ` : ""}Error: ${errCodeAndMsg(err)}`)
   }
 
   return {
