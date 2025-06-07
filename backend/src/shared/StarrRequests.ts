@@ -404,7 +404,8 @@ export const getAllMissingwanted = async (
 export const deleteFromQueue = async (
   download: DownloadStatus,
   API: APIData,
-): Promise<number | boolean> => {
+  reason?: string,
+): Promise<DownloadStatus | undefined> => {
   try {
     const res = await axios.delete(
       cleanUrl(
@@ -412,10 +413,20 @@ export const deleteFromQueue = async (
       ),
     )
 
-    return res.status
+    if (requestSuccess(res.status)) {
+      logger.success(
+        `${API.name} | ${download.title} has been deleted from the queue.${
+          reason && ` ${reason}`
+        } 🔥`,
+      )
+      return download
+    } else {
+      logger.error(
+        `${API.name} | ${download.title} could not be deleted from the queue. Err Code: ${res.status}`,
+      )
+    }
   } catch (err) {
-    logger.info(`deleteFromQueue: Could not delete ${download.title}: ${errCodeAndMsg(err)}`)
-    return false
+    logger.error(`deleteFromQueue: Could not delete ${download.title}: ${errCodeAndMsg(err)}`)
   }
 }
 
@@ -494,32 +505,13 @@ export const getManualImport = async (
       ),
     )
 
-    if (res.data.length === 0 || Number(res.status) !== 200) {
-      const deletionStatus = await deleteFromQueue(download, API)
-      let deletionMsg = ""
-
-      switch (true) {
-        case /^20\d$/.test(deletionStatus.toString()):
-          deletionMsg = "Deleted from queue."
-          break
-        case deletionStatus === 404:
-          deletionMsg = "Also, Could not find a file to delete."
-          break
-        default:
-          deletionMsg = "Deletion failed as well."
-          break
-      }
-
-      logger.error(
-        `getManualImport: ${API.name}: Could not retrieve data for ${download.title}. ${deletionMsg}`,
-      )
-      return
-    } else {
+    if (requestSuccess(res.status)) {
       return res.data[0]
+    } else {
+      logger.error(`getManualImport: ${API.name}: Could not retrieve data for ${download.title}.`)
     }
   } catch (err) {
     logger.error(`getManualImport: ${errCodeAndMsg(err)}`)
-    return
   }
 }
 

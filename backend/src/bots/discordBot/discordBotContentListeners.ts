@@ -541,7 +541,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     )
   }
 
-  // Validate the request string: `!blocklist <movieTitleYear/seriesTitleS01E01> `
+  // Validate the request string: `!blocklist <movieTitleYear/seriesTitleS01E01>`
   const parsed = await validateBlocklistCommand(message, settings, data)
   if (typeof parsed === "string") return parsed
 

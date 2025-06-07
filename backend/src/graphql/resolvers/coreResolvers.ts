@@ -15,7 +15,6 @@ import {
   getChildPaths,
   updatePaths,
 } from "../../shared/fileSystem"
-import { checkPermissions } from "../../shared/permissions"
 import {
   currentPaths,
   processingTimeMessage,
@@ -77,7 +76,8 @@ const coreResolvers = {
       const importBlockedArr: DownloadStatus[] = queue.data.filter(
         (item) =>
           item.trackedDownloadState === "importBlocked" ||
-          item.trackedDownloadState === "importFailed",
+          item.trackedDownloadState === "importFailed" ||
+          item.trackedDownloadState === "importPending",
       )
 
       // If no blocked files, return.
@@ -94,56 +94,54 @@ const coreResolvers = {
           return false
         }
 
+        const lowerMsg = msg.toLowerCase()
+
         return blockedFile.statusMessages.some(
           (statusMsg) =>
-            statusMsg?.title?.includes(msg) ||
-            statusMsg?.messages?.some((message) => message?.includes(msg)),
+            statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
+            statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
         )
       }
 
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length < 2
-        const currentFileOrDirPath = blockedFile.outputPath
         const radarrIDConflict = msgCheck(blockedFile, "release was matched to movie by ID")
         const sonarrIDConflict = msgCheck(blockedFile, "release was matched to series by ID")
         const anyIDConflict = radarrIDConflict || sonarrIDConflict
         const missing = msgCheck(blockedFile, "missing")
         const unsupported = msgCheck(blockedFile, "unsupported")
+        const notAnUpgrade = msgCheck(blockedFile, "not a custom format upgrade")
+
         // First of all, check if any files are missing or unsupported. If true, we don't want them regardless of anything else.
         if (missing || unsupported) {
-          // Delete the item from the queue. If successful, attempt to delete from filesystem as well.
-          // The request should delete the file from filesystem with removeFromClient=true but we've also added our own solution just in case.
-          if (await deleteFromQueue(blockedFile, API)) {
-            let deletedfromFS = false
-            // If we have the current file path and we have permission to delete the file, delete it.
-            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath, ["delete"])) {
-              deletedfromFS = deleteFromMachine(currentFileOrDirPath)
-            }
-            // prettier-ignore
-            logger.info(`${API.name}: ${blockedFile.title} ${unsupported ? "is unsupported" : "has missing files"} and has been deleted from the queue${deletedfromFS && " and filesystem"}.`)
-            // Update the db with the removed queue item
-            updateDownloadQueue(API, data, queue, blockedFile)
-          } // deleteFromQueue will log any failures
+          // Delete the item from the queue.
+          await deleteFromQueue(
+            blockedFile,
+            API,
+            `${unsupported ? "Unsupported." : "Missing files."}`,
+          )
+          // Update the db with the removed queue item
+          updateDownloadQueue(API, data, queue, blockedFile)
           continue
         }
+
         // If the problem is an ID conflict and that's the only problem, delete.
         if (anyIDConflict) {
           if (!oneMessage) {
             // prettier-ignore
-            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`)
-          } else if (await deleteFromQueue(blockedFile, API)) {
-            let deletedfromFS = false
-            // If we have the current file path and we have permission to delete the file, delete it.
-            if (currentFileOrDirPath && checkPermissions(currentFileOrDirPath, ["delete"])) {
-              deletedfromFS = deleteFromMachine(currentFileOrDirPath)
-            }
-            // prettier-ignore
-            logger.info(`${API.name}: ${blockedFile.title} has an ID conflict and has been deleted from the queue${deletedfromFS && " and filesystem"}.`)
-            // Update the db with the removed queue item
+            logger.warn(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`)
+          } else {
+            await deleteFromQueue(blockedFile, API, "ID conflict.")
             updateDownloadQueue(API, data, queue, blockedFile)
             continue
           }
+        }
+
+        if (notAnUpgrade) {
+          await deleteFromQueue(blockedFile, API, "Not an upgrade.")
+          updateDownloadQueue(API, data, queue, blockedFile)
+          continue
         }
       }
     }
