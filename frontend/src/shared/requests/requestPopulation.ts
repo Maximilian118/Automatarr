@@ -45,16 +45,6 @@ export const populateSettings = `
     series_pool_expiry
     series_quality_profile
     min_free_space
-    users {
-      name
-      ids
-      admin
-      super_user
-      max_movies_overwrite
-      max_series_overwrite
-      created_at
-      updated_at
-    }
   }
   discord_bot {
     active

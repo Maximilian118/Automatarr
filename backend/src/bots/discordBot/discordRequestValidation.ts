@@ -246,19 +246,19 @@ export const validateDownload = async (
 
     const foundContentArr =
       API === "Radarr"
-        ? await searchRadarr(settings, searchString)
-        : await searchSonarr(settings, searchString)
+        ? (await searchRadarr(settings, searchString)) || []
+        : (await searchSonarr(settings, searchString)) || []
 
-    return (
-      `The last part of the command must be a 4 digit year. ⚠️\n` +
-      (foundContentArr && foundContentArr.length
-        ? `Is it any of these you wanted? ⛏️\n\n` +
+    const recommendations =
+      foundContentArr.length === 0
+        ? "I couldn't find any recommendations for that title."
+        : `Is it any of these you wanted? ⛏️\n\n` +
           foundContentArr
             .slice(0, 10)
             .map((c) => `${c.title} ${c.year}`)
             .join("\n")
-        : "")
-    )
+
+    return `The last part of the command must be a 4 digit year. ⚠️\n` + recommendations
   }
 
   const year = yearCandidate

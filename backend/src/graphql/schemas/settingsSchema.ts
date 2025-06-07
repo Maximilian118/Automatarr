@@ -9,18 +9,6 @@ const settingsSchema = `
     series: [Series!]!
   }
 
-  type User {
-    name: String!
-    ids: [String!]!
-    admin: Boolean!
-    super_user: Boolean!
-    max_movies_overwrite: Int
-    max_series_overwrite: Int
-    pool: Pool!
-    created_at: String!
-    updated_at: String!
-  }
-
   type GeneralBot {
     max_movies: Int
     movie_pool_expiry: Int
@@ -29,7 +17,6 @@ const settingsSchema = `
     series_pool_expiry: Int
     series_quality_profile: String
     min_free_space: String!
-    users: [User!]!
   }
 
   type DiscordBot {
@@ -91,17 +78,6 @@ const settingsSchema = `
     allowedDirs: [String!]
   }
 
-  input user {
-    name: String
-    ids: [String!]!
-    admin: Boolean
-    super_user: Boolean
-    max_movies_overwrite: Int
-    max_series_overwrite: Int
-    created_at: String
-    updated_at: String
-  }
-
   input generalBot {
     max_movies: Int
     movie_pool_expiry: Int
@@ -110,7 +86,6 @@ const settingsSchema = `
     series_pool_expiry: Int
     series_quality_profile: String
     min_free_space: String
-    users: [user!]!
   }
 
   input discordBot {

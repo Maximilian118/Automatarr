@@ -82,8 +82,12 @@ const settingsResolvers = {
     settings.qBittorrent_password = args.settingsInput.qBittorrent_password
     settings.qBittorrent_active = args.settingsInput.qBittorrent_active
     settings.qBittorrent_API_version = args.settingsInput.qBittorrent_API_version
-    Object.assign(settings.general_bot, args.settingsInput.general_bot)
     Object.assign(settings.discord_bot, args.settingsInput.discord_bot)
+    // A safty measure to ensure users can't be touched by this request
+    Object.assign(settings.general_bot, {
+      ...args.settingsInput.general_bot,
+      users: settings.general_bot.users,
+    })
     settings.updated_at = moment().format()
 
     // Update settings as needed with Bot data
