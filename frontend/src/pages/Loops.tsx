@@ -115,7 +115,7 @@ const Loops: React.FC = () => {
       >
         {loop(
           "remove_missing",
-          "Remove any content in the file system that doesn't appear in Starr app libraries. Particularly useful when using dynamic import lists.",
+          "Remove any content in Starr app libraries and file system that does not appear in Import Lists.",
           <MUIAutocomplete
             label="Remove Missing Level"
             options={["Library", "Import List"]}
