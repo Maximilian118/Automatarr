@@ -17,6 +17,7 @@ import {
 } from "../../shared/fileSystem"
 import {
   currentPaths,
+  getContentName,
   processingTimeMessage,
   qBittorrentDataExists,
   updateDownloadQueue,
@@ -116,11 +117,10 @@ const coreResolvers = {
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length < 2
-        const radarrIDConflict = msgCheck(blockedFile, "release was matched to movie by ID")
-        const sonarrIDConflict = msgCheck(blockedFile, "release was matched to series by ID")
-        const anyIDConflict = radarrIDConflict || sonarrIDConflict
+        const idConflict = msgCheck(blockedFile, `matched to ${getContentName(API)} by ID`)
         const missing = msgCheck(blockedFile, "missing")
         const unsupported = msgCheck(blockedFile, "unsupported")
+        const titleMissmatch = msgCheck(blockedFile, "title mismatch")
         const notAnUpgrade = msgCheck(blockedFile, "not a custom format upgrade")
 
         // First of all, check if any files are missing or unsupported. If true, we don't want them regardless of anything else.
@@ -144,7 +144,7 @@ const coreResolvers = {
         }
 
         // If the problem is an ID conflict and that's the only problem, delete.
-        if (anyIDConflict) {
+        if (idConflict) {
           if (alreadyDeleted(blockedFile, deletedTitles)) continue
 
           if (!oneMessage) {
@@ -163,9 +163,13 @@ const coreResolvers = {
           }
         }
 
-        if (notAnUpgrade) {
+        if (notAnUpgrade || titleMissmatch) {
           if (alreadyDeleted(blockedFile, deletedTitles)) continue
-          const deleted = await deleteFromQueue(blockedFile, API, "Not an upgrade.")
+          const deleted = await deleteFromQueue(
+            blockedFile,
+            API,
+            titleMissmatch ? "Title mismatch." : "Not an upgrade.",
+          )
 
           if (deleted) {
             deletedTitles.add(deleted.title)

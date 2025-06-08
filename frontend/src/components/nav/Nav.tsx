@@ -4,7 +4,9 @@ import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { navItems } from './navUtility'
-import { CircularProgress } from '@mui/material'
+import { CircularProgress, IconButton} from '@mui/material'
+import MenuIcon from '@mui/icons-material/Menu'
+import IconMenu from './iconMenu/IconMenu'
 
 const a11yProps = (index: number) => {
   return {
@@ -19,6 +21,7 @@ type navTypes = {
 
 const Nav: React.FC<navTypes> = ({ loading }) => {
   const [value, setValue] = useState(0)
+  const [navOpen, setNavOpen] = useState(false)
 
   const handleChange = (e: SyntheticEvent, newValue: number) => {
     e.preventDefault()
@@ -37,6 +40,7 @@ const Nav: React.FC<navTypes> = ({ loading }) => {
   }, [location.pathname, value])
 
   return (
+    <>
     <nav>
       <div className="nav-left">
         <img 
@@ -44,7 +48,18 @@ const Nav: React.FC<navTypes> = ({ loading }) => {
           src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped.webp" 
           onClick={() => navigate("/")}
         />
-        <Tabs value={value} onChange={handleChange}>
+        <IconButton
+          className="menu-icon"
+          size="large"
+          edge="start"
+          aria-label="menu"
+          onClick={() => {
+            setNavOpen(!navOpen)
+          }}
+        >
+          <MenuIcon/>
+        </IconButton>
+        <Tabs value={value} onChange={handleChange} className='nav-tabs'>
           {navItems.map((item, i) => 
             <Tab 
               key={i}
@@ -57,6 +72,13 @@ const Nav: React.FC<navTypes> = ({ loading }) => {
       </div>
       {loading && <CircularProgress size={20} className="nav-spinner"/>}
     </nav>
+    <IconMenu 
+      style={{
+        transform: navOpen ? 'translateY(0)' : 'translateY(-100%)',
+      }}
+      setNavOpen={setNavOpen}
+    />
+    </>
   )
 }
 

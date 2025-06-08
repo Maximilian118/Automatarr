@@ -1,0 +1,16 @@
+@use '../../../scss/variables';
+
+.icon-menu {
+  position: absolute !important;
+  top: 46px;
+  left: 0;
+  width: 100%;
+  z-index: 998;
+  color: white;
+  background: variables.$off-black;
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+  display: none;
+  transform: translateY(-100%); // hidden state
+  transition: transform 0.3s ease-in-out;
+}

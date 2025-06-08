@@ -9,24 +9,51 @@ nav {
   border-bottom: 2px solid black;
   padding-right: 15px;
   box-sizing: border-box;
+  position: relative;
+  z-index: 999;
 
   .nav-left {
     height: 100%;
     @include mixins.flexbox-start;
 
     img {
-      height: 65%;
-      margin: 0 10px 0 25px;
+      height: 75%;
+      margin: 0 10px;
       cursor: pointer;
+    }
+
+    .menu-icon {
+      width: 40px;
+      height: 40px;
+      margin-left: 10px;
+      flex-shrink: 0;
+      display: none;
+
+      svg {
+        width: 26px;
+        height: 26px;
+      }
     }
   }
 }
 
 /* Styles for mobile devices */
-@media only screen and (max-width: 425px) {
+@media only screen and (max-width: 768px) {
   nav {
     .nav-spinner {
       display: none;
     }
+
+    .nav-tabs {
+      display: none;
+    }
+
+    .menu-icon {
+      display: flex !important;
+    }
+  }
+
+  .icon-menu {
+    display: block !important;
   }
 }
