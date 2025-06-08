@@ -15,11 +15,9 @@ type MUITextFieldProps<T extends Record<string, unknown>> = {
   type?: HTMLInputTypeAttribute
   disabled?: boolean
   error?: boolean
+  multiline?: number
 }
 
-// Exists for perfomance purposes.
-// If the form is heavy and the page is lacking performance on keystrokes, onBlur can be used to apply state to the form when user selects something else.
-// onChange is preseved for original UX if the form is light and we can afford to update state per keystroke.
 const MUITextField = <T extends Record<string, unknown>>({
   name,
   formErr,
@@ -33,8 +31,9 @@ const MUITextField = <T extends Record<string, unknown>>({
   type,
   disabled,
   error,
+  multiline,
 }: MUITextFieldProps<T>) => {
-  const [ localValue, setLocalValue ] = useState(value)
+  const [localValue, setLocalValue] = useState(value)
 
   const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalValue(e.target.value)
@@ -44,7 +43,6 @@ const MUITextField = <T extends Record<string, unknown>>({
     }
   }
 
-  // Fixes blank inital values on page refresh
   useEffect(() => {
     setLocalValue(value)
   }, [value])
@@ -53,13 +51,15 @@ const MUITextField = <T extends Record<string, unknown>>({
     <TextField 
       label={inputLabel(name, formErr, label)}
       name={name as unknown as string}
-      value={localValue ? localValue : ""}
+      value={localValue || ""}
       onChange={onChangeHandler}
       onBlur={onBlur}
       color={color}
-      error={error ? error : !!formErr[name]}
+      error={error ?? !!formErr[name]}
       size={size}
-      slotProps={maxLength ? { htmlInput: { maxLength: maxLength } } : {}}
+      multiline={!!multiline}
+      rows={multiline}
+      slotProps={maxLength ? { htmlInput: { maxLength } } : {}}
       disabled={disabled}
       type={type}
     />

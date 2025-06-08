@@ -15,6 +15,7 @@ const initGeneralBot: GeneralBotType = {
   series_pool_expiry: null, // The amount of time a user can have any series downloaded for. Null = Perpetual
   series_quality_profile: null, // The name of the quality profile to use for sonarr downloads
   min_free_space: "21474836480", // Default 20gb // A number representing the minimum amount of free space that must be left available
+  welcome_message: "", // A welcome message for new bot users
   users: [], // An array of registered users
 }
 
@@ -29,6 +30,7 @@ const initDiscordBot: DiscordBotType = {
   series_channel_name: "", // The channel that pertains to series/Sonarr commands
   music_channel_name: "", // The channel that pertains to music/Lidarr commands
   books_channel_name: "", // The channel that pertains to books/Readarr commands
+  welcome_channel_name: "", // The channel used to welcome new users
 }
 
 // Initialise the settings object with defaults
@@ -99,4 +101,5 @@ export const initBotErr: botsErrType = {
   discord_bot_server_name: "",
   discord_bot_channel_name: "",
   general_bot_min_free_space: "",
+  general_bot_welcome_message: "",
 }

@@ -54,6 +54,7 @@ type GeneralBotType = {
   series_pool_expiry: number | null // The amount of time a user can have any series downloaded for. Null = Perpetual
   series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
   min_free_space: string // A number representing the minimum amount of free space that must be left available
+  welcome_message: string // A welcome message for new bot users
   users: UserType[] // An array of registered users
 }
 
@@ -68,6 +69,7 @@ export type DiscordBotType = {
   series_channel_name: string // The channel that pertains to series/Sonarr commands
   music_channel_name: string // The channel that pertains to music/Lidarr commands
   books_channel_name: string // The channel that pertains to books/Readarr commands
+  welcome_channel_name: string // The channel used to welcome new users
 }
 
 // Main settingsType
@@ -151,6 +153,7 @@ const generalBotSchema = new mongoose.Schema<GeneralBotType>({
   series_pool_expiry: { type: Number, default: null },
   series_quality_profile: { type: String, default: null },
   min_free_space: { type: String, default: "21474836480" }, // 20gb
+  welcome_message: { type: String, default: "" },
   users: { type: [userSchema], default: [] },
 })
 
@@ -165,6 +168,7 @@ const discordBotSchema = new mongoose.Schema<DiscordBotType>({
   series_channel_name: { type: String, default: "" },
   music_channel_name: { type: String, default: "" },
   books_channel_name: { type: String, default: "" },
+  welcome_channel_name: { type: String, default: "" },
 })
 
 const settingsSchema = new mongoose.Schema<settingsType>(

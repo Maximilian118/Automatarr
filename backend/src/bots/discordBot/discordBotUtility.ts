@@ -169,6 +169,44 @@ export const getAllChannels = async (
   return allChannels
 }
 
+// Find the GuildTextBasedChannel that matches a passed string
+export const findChannelByName = (
+  channelName: string,
+): {
+  textBasedChannel: GuildTextBasedChannel | undefined
+  mention: string
+  error: string
+} => {
+  if (!channelName) {
+    return {
+      textBasedChannel: undefined,
+      mention: channelName,
+      error: "",
+    }
+  }
+
+  const client = getDiscordClient()
+
+  if (!client) {
+    return {
+      textBasedChannel: undefined,
+      mention: channelName,
+      error: discordReply(`Umm... no client found. This is bad.`, "error"),
+    }
+  }
+
+  const channel = client.channels.cache.find(
+    (ch): ch is GuildTextBasedChannel =>
+      ch.isTextBased?.() && "name" in ch && ch.name === channelName,
+  )
+
+  return {
+    textBasedChannel: channel,
+    mention: channel ? `<#${channel.id}>` : channelName,
+    error: "",
+  }
+}
+
 // Get Members for a specific Server
 export const getAllMembersForGuild = async (
   client: Client,
@@ -346,42 +384,4 @@ export const getQueueItemWithLongestTimeLeft = (
 
     return currentMs > maxMs ? current : max
   })
-}
-
-// Find the GuildTextBasedChannel that matches a passed string
-export const findChannelByName = (
-  channelName: string,
-): {
-  textBasedChannel: GuildTextBasedChannel | undefined
-  mention: string
-  error: string
-} => {
-  if (!channelName) {
-    return {
-      textBasedChannel: undefined,
-      mention: channelName,
-      error: "",
-    }
-  }
-
-  const client = getDiscordClient()
-
-  if (!client) {
-    return {
-      textBasedChannel: undefined,
-      mention: channelName,
-      error: discordReply(`Umm... no client found. This is bad.`, "error"),
-    }
-  }
-
-  const channel = client.channels.cache.find(
-    (ch): ch is GuildTextBasedChannel =>
-      ch.isTextBased?.() && "name" in ch && ch.name === channelName,
-  )
-
-  return {
-    textBasedChannel: channel,
-    mention: channel ? `<#${channel.id}>` : channelName,
-    error: "",
-  }
 }

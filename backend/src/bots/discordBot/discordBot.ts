@@ -3,6 +3,7 @@ import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
 import { messageListeners } from "./discordBotListeners"
+import { guildMemberAddListener } from "./discordBotGuildMemberAdd"
 
 let client: Client | null = null
 // Export function so discord client can be used in other documents
@@ -67,6 +68,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     await readyPromise
 
     await messageListeners(client)
+    guildMemberAddListener(client)
 
     settings.discord_bot.ready = true
     return getServerandChannels(client, settings)

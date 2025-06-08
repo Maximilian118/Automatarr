@@ -45,6 +45,7 @@ export const populateSettings = `
     series_pool_expiry
     series_quality_profile
     min_free_space
+    welcome_message
   }
   discord_bot {
     active
@@ -57,6 +58,7 @@ export const populateSettings = `
     series_channel_name
     music_channel_name
     books_channel_name
+    welcome_channel_name
   }
   created_at
   updated_at

@@ -17,6 +17,7 @@ const settingsSchema = `
     series_pool_expiry: Int
     series_quality_profile: String
     min_free_space: String!
+    welcome_message: String!
   }
 
   type DiscordBot {
@@ -30,6 +31,7 @@ const settingsSchema = `
     series_channel_name: String!
     music_channel_name: String!
     books_channel_name: String!
+    welcome_channel_name: String!
   }
 
   type Settings {
@@ -86,6 +88,7 @@ const settingsSchema = `
     series_pool_expiry: Int
     series_quality_profile: String
     min_free_space: String
+    welcome_message: String
   }
 
   input discordBot {
@@ -99,6 +102,7 @@ const settingsSchema = `
     series_channel_name: String
     music_channel_name: String
     books_channel_name: String
+    welcome_channel_name: String
   }
 
   input settingsInput {

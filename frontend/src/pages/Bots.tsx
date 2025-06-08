@@ -185,6 +185,15 @@ const Bots: React.FC = () => {
           }}
           error={!!formErr.general_bot_min_free_space}
         />
+        <MUITextField
+          name="general_bot.welcome_message"
+          label="Welcome Message"
+          formErr={formErr}
+          value={settings.general_bot.welcome_message}
+          onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+          error={!!formErr.general_bot_welcome_message}
+          multiline={4}
+        />
       </InputModel>
       <BotModel 
         title="Discord Bot"
@@ -260,6 +269,22 @@ const Bots: React.FC = () => {
               discord_bot: {
                 ...prevSettings.discord_bot,
                 series_channel_name: val ?? "",
+              }
+            }
+          })}
+        />
+        <MUIAutocomplete
+          label="Welcome Channel"
+          options={settings.discord_bot.channel_list}
+          value={settings.discord_bot.welcome_channel_name}
+          disabled={!settings.discord_bot.server_name || settings.discord_bot.channel_list.length === 0 || channelLoading}
+          loading={channelLoading}
+          setValue={(val) => setSettings(prevSettings => {
+            return {
+              ...prevSettings,
+              discord_bot: {
+                ...prevSettings.discord_bot,
+                welcome_channel_name: val ?? "",
               }
             }
           })}
