@@ -1,4 +1,4 @@
-import React, { FocusEvent, Fragment } from 'react'
+import React, { ChangeEvent, FocusEvent, Fragment } from 'react'
 import TextField from '@mui/material/TextField'
 import Autocomplete from '@mui/material/Autocomplete'
 import { CircularProgress, SxProps } from '@mui/material'
@@ -10,6 +10,7 @@ type MUIAutocompleteType = {
   value: string | null
   setValue: (val: string | null) => void
   onBlur?: (value: FocusEvent<HTMLInputElement | HTMLTextAreaElement, Element>) => void
+  onChange?: (value: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   sx?: SxProps
   size?: "small" | "medium"
   disabled?: boolean
@@ -29,6 +30,7 @@ const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({
   value, 
   setValue, 
   onBlur, 
+  onChange,
   sx, 
   size, 
   disabled,
@@ -82,6 +84,7 @@ const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({
           label={label} 
           size={size} 
           onBlur={e => onBlur && onBlur(e)}
+          onChange={e => onChange && onChange(e)}
           error={error}
           slotProps={{
             input: {

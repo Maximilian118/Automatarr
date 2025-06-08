@@ -39,8 +39,8 @@ const Connections: React.FC = () => {
     <MUITextField 
       name={name} 
       value={settings[name] as string} 
-      formErr={formErr} 
-      onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+      formErr={formErr}
+      onChange={(e) => updateInput(e, setSettings, setFormErr)}
       color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
       type={type}
     />

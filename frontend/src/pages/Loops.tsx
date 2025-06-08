@@ -128,7 +128,7 @@ const Loops: React.FC = () => {
             })}
             size="small"
             disabled={!settings.remove_missing || !settings.qBittorrent_active}
-            onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+            onChange={(e) => updateInput(e, setSettings, setFormErr)}
             error={!!formErr.remove_missing_level}
           />, 
           !settings.qBittorrent_active,
@@ -172,7 +172,7 @@ const Loops: React.FC = () => {
               setValue={(val) => setUser(val)}
               size="small"
               disabled={!settings.permissions_change}
-              onBlur={(e) => {
+              onChange={(e) => {
                 checkChownValidity(user, group, setFormErr)
                 updateInput(e, setSettings, setFormErr)
               }}
@@ -185,7 +185,7 @@ const Loops: React.FC = () => {
               setValue={val => setGroup(val)}
               size="small"
               disabled={!settings.permissions_change}
-              onBlur={(e) => {
+              onChange={(e) => {
                 checkChownValidity(user, group, setFormErr)
                 updateInput(e, setSettings, setFormErr)
               }}
@@ -195,7 +195,7 @@ const Loops: React.FC = () => {
               name="permissions_change_chmod"
               label="Pemissions"
               value={settings.permissions_change_chmod}
-              onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+              onChange={(e) => updateInput(e, setSettings, setFormErr)}
               formErr={formErr}
               size="small"
               maxLength={3}

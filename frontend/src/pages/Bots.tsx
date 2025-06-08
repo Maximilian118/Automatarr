@@ -33,6 +33,12 @@ const Bots: React.FC = () => {
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    // Blur selected element on Enter to update state before request
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
     await updateSettings(setLocalLoading, settings, setSettings, formErr)
   }
 
@@ -170,7 +176,7 @@ const Bots: React.FC = () => {
           label="Minimum Free Space"
           formErr={formErr}
           value={formatBytes(settings.general_bot.min_free_space)}
-          onBlur={(e) => {
+          onChange={(e) => {
             updateInput(e, setSettings, setFormErr, true)
 
             setSettings(prevSettings => {
@@ -190,7 +196,7 @@ const Bots: React.FC = () => {
           label="Welcome Message"
           formErr={formErr}
           value={settings.general_bot.welcome_message}
-          onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+          onChange={(e) => updateInput(e, setSettings, setFormErr)}
           error={!!formErr.general_bot_welcome_message}
           multiline={4}
         />
@@ -218,7 +224,7 @@ const Bots: React.FC = () => {
           label="Token"
           formErr={formErr}
           value={settings.discord_bot.token}
-          onBlur={(e) => updateInput(e, setSettings, setFormErr)}
+          onChange={(e) => updateInput(e, setSettings, setFormErr)}
           error={!!formErr.discord_bot_token}
           color={settings.discord_bot.ready ? "success" : "primary"}
         />
