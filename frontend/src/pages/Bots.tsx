@@ -33,12 +33,6 @@ const Bots: React.FC = () => {
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-
-    // Blur selected element on Enter to update state before request
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
-
     await updateSettings(setLocalLoading, settings, setSettings, formErr)
   }
 
