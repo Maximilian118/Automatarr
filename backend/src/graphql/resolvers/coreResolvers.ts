@@ -103,6 +103,16 @@ const coreResolvers = {
         )
       }
 
+      // Check if a download has already been deleted
+      const alreadyDeleted = (blockedFile: DownloadStatus, deletedTitles: Set<string>): boolean => {
+        const titleKey = blockedFile.title?.toLowerCase().trim()
+        return !titleKey || deletedTitles.has(titleKey)
+      }
+
+      // Create a reference for all files that have been deleted to avoid attempting to delete the same file twice.
+      // Useful for Sonarr, where multiple episodes may match the same season download.
+      const deletedTitles = new Set<string>()
+
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
         const oneMessage = blockedFile.statusMessages.length < 2
@@ -115,32 +125,53 @@ const coreResolvers = {
 
         // First of all, check if any files are missing or unsupported. If true, we don't want them regardless of anything else.
         if (missing || unsupported) {
+          // If the download has already been deleted, silently continue
+          if (alreadyDeleted(blockedFile, deletedTitles)) continue
           // Delete the item from the queue.
-          await deleteFromQueue(
+          const deleted = await deleteFromQueue(
             blockedFile,
             API,
             `${unsupported ? "Unsupported." : "Missing files."}`,
           )
-          // Update the db with the removed queue item
-          updateDownloadQueue(API, data, queue, blockedFile)
+
+          if (deleted) {
+            deletedTitles.add(deleted.title)
+            // Update the db with the removed queue item
+            updateDownloadQueue(API, data, queue, blockedFile)
+          }
+
           continue
         }
 
         // If the problem is an ID conflict and that's the only problem, delete.
         if (anyIDConflict) {
+          if (alreadyDeleted(blockedFile, deletedTitles)) continue
+
           if (!oneMessage) {
-            // prettier-ignore
-            logger.warn(`${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`)
+            logger.warn(
+              `${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,
+            )
           } else {
-            await deleteFromQueue(blockedFile, API, "ID conflict.")
-            updateDownloadQueue(API, data, queue, blockedFile)
+            const deleted = await deleteFromQueue(blockedFile, API, "ID conflict.")
+
+            if (deleted) {
+              deletedTitles.add(deleted.title)
+              updateDownloadQueue(API, data, queue, blockedFile)
+            }
+
             continue
           }
         }
 
         if (notAnUpgrade) {
-          await deleteFromQueue(blockedFile, API, "Not an upgrade.")
-          updateDownloadQueue(API, data, queue, blockedFile)
+          if (alreadyDeleted(blockedFile, deletedTitles)) continue
+          const deleted = await deleteFromQueue(blockedFile, API, "Not an upgrade.")
+
+          if (deleted) {
+            deletedTitles.add(deleted.title)
+            updateDownloadQueue(API, data, queue, blockedFile)
+          }
+
           continue
         }
       }
