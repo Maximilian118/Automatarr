@@ -16,6 +16,7 @@ import {
   updatePaths,
 } from "../../shared/fileSystem"
 import {
+  capsFirstLetter,
   currentPaths,
   getContentName,
   processingTimeMessage,
@@ -89,95 +90,93 @@ const coreResolvers = {
       }
 
       // Check for a certain reason/message for importBlocked/importFailed
-      const msgCheck = (blockedFile: DownloadStatus, msg: string): boolean => {
+      const msgCheck = (blockedFile: DownloadStatus, msgArr: string[]): string => {
         if (!blockedFile.status) {
           logger.error("msgCheck: No status object could be found.")
-          return false
+          return ""
         }
 
-        const lowerMsg = msg.toLowerCase()
+        for (const msg of msgArr) {
+          const lowerMsg = msg.toLowerCase()
 
-        return blockedFile.statusMessages.some(
-          (statusMsg) =>
-            statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
-            statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
-        )
+          const hasMatch = blockedFile.statusMessages.some(
+            (statusMsg) =>
+              statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
+              statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
+          )
+
+          if (hasMatch) return `${capsFirstLetter(msg)}.`
+        }
+
+        return ""
       }
 
-      // Check if a download has already been deleted
-      const alreadyDeleted = (blockedFile: DownloadStatus, deletedTitles: Set<string>): boolean => {
-        const titleKey = blockedFile.title?.toLowerCase().trim()
-        return !titleKey || deletedTitles.has(titleKey)
+      // Create a deduplication key using downloadId, fallback to title or ID
+      const getDedupKey = (blockedFile: DownloadStatus): string => {
+        return (
+          blockedFile.downloadId?.toLowerCase().trim() ??
+          blockedFile.title?.toLowerCase().trim() ??
+          `missing-${blockedFile.id}`
+        )
       }
 
       // Create a reference for all files that have been deleted to avoid attempting to delete the same file twice.
       // Useful for Sonarr, where multiple episodes may match the same season download.
-      const deletedTitles = new Set<string>()
+      const deletedKeys = new Set<string>()
 
       // Loop through all of the files that have importBlocked and handle them depending on message
       for (const blockedFile of importBlockedArr) {
-        const oneMessage = blockedFile.statusMessages.length < 2
-        const idConflict = msgCheck(blockedFile, `matched to ${getContentName(API)} by ID`)
-        const missing = msgCheck(blockedFile, "missing")
-        const unsupported = msgCheck(blockedFile, "unsupported")
-        const titleMissmatch = msgCheck(blockedFile, "title mismatch")
-        const notAnUpgrade = msgCheck(blockedFile, "not a custom format upgrade")
+        const dedupKey = getDedupKey(blockedFile)
+        if (deletedKeys.has(dedupKey)) continue
 
-        // First of all, check if any files are missing or unsupported. If true, we don't want them regardless of anything else.
-        if (missing || unsupported) {
-          // If the download has already been deleted, silently continue
-          if (alreadyDeleted(blockedFile, deletedTitles)) continue
-          // Delete the item from the queue.
-          const deleted = await deleteFromQueue(
-            blockedFile,
-            API,
-            `${unsupported ? "Unsupported." : "Missing files."}`,
-          )
+        const oneMessage = blockedFile.statusMessages.length < 2
+        const deleteCase = msgCheck(blockedFile, [
+          "missing",
+          "unsupported",
+          "not a custom format upgrade",
+          "title mismatch",
+        ])
+        const idConflict = msgCheck(blockedFile, [`matched to ${getContentName(API)} by ID`])
+
+        // Attempt to delete and record the deduplication key
+        const tryDelete = async (reason: string) => {
+          const deleted = await deleteFromQueue(blockedFile, API, reason)
 
           if (deleted) {
-            deletedTitles.add(deleted.title)
+            deletedKeys.add(dedupKey)
             // Update the db with the removed queue item
             updateDownloadQueue(API, data, queue, blockedFile)
           }
-
-          continue
         }
 
         // If the problem is an ID conflict and that's the only problem, delete.
         if (idConflict) {
-          if (alreadyDeleted(blockedFile, deletedTitles)) continue
-
           if (!oneMessage) {
             logger.warn(
-              `${API.name}: ${blockedFile.title} has an ID conflict but also has other errors. Defering to ther cases...`,
+              `${API.name}: ${blockedFile.title}. ID conflict but has other errors. Deferring to other cases...`,
             )
           } else {
-            const deleted = await deleteFromQueue(blockedFile, API, "ID conflict.")
-
-            if (deleted) {
-              deletedTitles.add(deleted.title)
-              updateDownloadQueue(API, data, queue, blockedFile)
-            }
-
-            continue
-          }
-        }
-
-        if (notAnUpgrade || titleMissmatch) {
-          if (alreadyDeleted(blockedFile, deletedTitles)) continue
-          const deleted = await deleteFromQueue(
-            blockedFile,
-            API,
-            titleMissmatch ? "Title mismatch." : "Not an upgrade.",
-          )
-
-          if (deleted) {
-            deletedTitles.add(deleted.title)
-            updateDownloadQueue(API, data, queue, blockedFile)
+            await tryDelete("ID Conflict.")
           }
 
           continue
         }
+
+        // If the msg is a case where we just want to delete the download, delete it.
+        if (deleteCase) {
+          await tryDelete(deleteCase)
+          continue
+        }
+
+        // Catch-all: log anything that made it through without matching any expected reason
+        const statusMsgs = blockedFile.statusMessages
+          .flatMap((s) => [s.title, ...(s.messages ?? [])])
+          .filter(Boolean)
+          .join("; ")
+
+        logger.warn(
+          `${API.name}: ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
+        )
       }
     }
 
