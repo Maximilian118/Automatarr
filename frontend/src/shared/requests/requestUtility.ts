@@ -72,3 +72,10 @@ export const headers = (
     refreshToken: `Bearer ${refreshToken}`,
   }
 }
+
+// Change all values in an formErr object to ""
+export const clearErrors = <T extends Record<string, string | undefined>>(errObj: T): T =>
+  Object.keys(errObj).reduce((acc, key) => {
+    acc[key as keyof T] = "" as T[keyof T]
+    return acc
+  }, {} as T)

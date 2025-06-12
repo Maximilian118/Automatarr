@@ -95,6 +95,17 @@ const userResolvers = {
         throw new Error(`Too many failed login attempts. Try again in ${mins} minutes.`)
       }
 
+      // Check username
+      if (!name) {
+        logger.error(`Auth | ${name} tried to login but didn't pass a user name.`)
+        throw new Error("No user name provided.")
+      }
+
+      if (user.name !== name) {
+        logger.error(`Auth | Incorrect user name.`)
+        throw new Error("Incorrect user name.")
+      }
+
       // Check password
       if (!password) {
         logger.error(`Auth | ${name} tried to login but didn't pass a password.`)

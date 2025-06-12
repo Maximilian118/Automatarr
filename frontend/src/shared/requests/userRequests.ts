@@ -4,7 +4,7 @@ import { UserErrorType, UserType } from "../../types/userType"
 import { Dispatch, SetStateAction } from "react"
 import { loginSuccess } from "../localStorage"
 import { NavigateFunction } from "react-router-dom"
-import { authCheck, getAxiosErrorMessage, headers } from "./requestUtility"
+import { authCheck, clearErrors, getAxiosErrorMessage, headers } from "./requestUtility"
 
 export const createUser = async (
   user: UserType,
@@ -83,12 +83,13 @@ export const login = async (
       navigate("/")
     }
   } catch (err) {
-    setFormErr((prevErrs) => {
-      return {
-        ...prevErrs,
-        password: getAxiosErrorMessage(err),
-      }
-    })
+    const msg = getAxiosErrorMessage(err)
+    const field: keyof UserType = msg.toLowerCase().includes("pass") ? "password" : "name"
+
+    setFormErr((prevErrs) => ({
+      ...clearErrors(prevErrs),
+      [field]: msg,
+    }))
 
     console.error(`login Error: ${err}`)
   } finally {
@@ -157,7 +158,7 @@ export const updateUser = async (
     }
 
     setFormErr((prevErrs) => ({
-      ...prevErrs,
+      ...clearErrors(prevErrs),
       [field]: msg,
     }))
 
