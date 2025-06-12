@@ -18,7 +18,7 @@ nav {
 
     img {
       height: 75%;
-      margin: 0 10px;
+      margin: 0 0 0 15px;
       cursor: pointer;
     }
 
@@ -40,6 +40,12 @@ nav {
 /* Styles for mobile devices */
 @media only screen and (max-width: 768px) {
   nav {
+    .nav-left {
+      img {
+        margin: 0 0 0 10px;
+      }
+    }
+
     .nav-spinner {
       display: none;
     }

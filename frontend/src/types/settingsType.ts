@@ -3,17 +3,6 @@ export type tidyPaths = {
   allowedDirs: string[]
 }
 
-type UserType = {
-  name: string // The name of the user
-  ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
-  admin: boolean // True = This user is an admin and can add / remove users
-  super_user: boolean // True = Can overwrite general restrictions
-  max_movies_overwrite: number | null // Maximum movies this specific user is allowed to have downloaded at the same time
-  max_series_overwrite: number | null // Maximum series this specific user is allowed to have downloaded at the same time
-  created_at: string // When user was created.
-  updated_at: string // When user was updated.
-}
-
 // General information for all Bots
 export type GeneralBotType = {
   max_movies: number | null // Maximum movies a user is allowed to have downloaded at the same time
@@ -24,7 +13,6 @@ export type GeneralBotType = {
   series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
   min_free_space: string // A number representing the minimum amount of free space that must be left available
   welcome_message: string // A welcome message for new bot users
-  users: UserType[] // An array of registered users
 }
 
 export type DiscordBotType = {
@@ -79,6 +67,9 @@ export interface settingsType {
   qBittorrent_API_version: string // qBittorrent API Version
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
+  lockout: boolean // Enable or disable the lockout mechanism
+  lockout_attempts: number | null // Amount of tries before lockout
+  lockout_mins: number | null // How long the lockout is for
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
 }

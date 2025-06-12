@@ -135,6 +135,7 @@ const coreResolvers = {
           "unsupported",
           "not a custom format upgrade",
           "title mismatch",
+          "sample",
         ])
         const idConflict = msgCheck(blockedFile, [`matched to ${getContentName(API)} by ID`])
 
@@ -269,7 +270,7 @@ const coreResolvers = {
     const { torrents } = await getqBittorrentTorrents(settings, data, "remove_missing")
 
     // Depending on the amount of library items, logs can hang here so give an indication of how long
-    processingTimeMessage(data)
+    processingTimeMessage(data, activeAPIs)
 
     // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
     // There's no solid way to sort torrents in qBit so the best way of finding unmatched torrents

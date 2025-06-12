@@ -1,6 +1,5 @@
-import Resolvers from "../graphql/resolvers/resolvers"
 import logger from "../logger"
-import { settingsType } from "../models/settings"
+import Settings, { settingsDocType, settingsType } from "../models/settings"
 import { minsToMillisecs } from "./utility"
 
 // A global Set to track active loops
@@ -13,9 +12,22 @@ export const dynamicLoop = async (
   skipFirst?: boolean, // Optionally skip the first execution if we've just called the content function outside of dynamicLoop
   loopTimer?: number, // Optionally provide a custom loop timer in minutes
 ) => {
-  const settings = await Resolvers.getSettings()
-  const loopMins = loopTimer ? loopTimer : Number(settings[loop_name]) // Grab the timer from the loop set by user in UI
-  const isActive = settings[String(loop_name).replace(/_loop$/, "")] // check if user has enabled this loop in the UI
+  const settings = (await Settings.findOne()) as settingsDocType | null
+
+  // Throw error if no settings were found
+  if (!settings) {
+    logger.error(`dynamicLoop | ${loop_name} | No Settings were found.`)
+    return
+  }
+
+  // Throw error if no _doc exists in settings
+  if (!settings._doc) {
+    logger.error(`dynamicLoop | ${loop_name} | Settings were found but no _doc.`)
+    return
+  }
+
+  const loopMins = loopTimer ? loopTimer : Number(settings._doc[loop_name]) // Grab the timer from the loop set by user in UI
+  const isActive = settings._doc[String(loop_name).replace(/_loop$/, "")] // check if user has enabled this loop in the UI
 
   // If the loop is inactive, stop further execution
   if (!isActive && !loopTimer) {
@@ -43,7 +55,7 @@ export const dynamicLoop = async (
     // If we're not skipping execution
     if (!skipFirst) {
       // Execute whatever is in the content function
-      await content(settings)
+      await content(settings._doc)
     }
 
     // Log wait time for next interval

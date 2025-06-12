@@ -9,11 +9,12 @@ interface InputModelType {
   startIcon?: ReactNode
   status?: "Connected" | "Disconnected"
   description?: string
+  bottom?: JSX.Element
 }
 
-const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status, description }) => {
+const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status, description, bottom }) => {
   return (
-    <div className="model">
+    <div className="model" style={bottom && { paddingBottom: 20 }}>
       <div className="model-top">
         <div className="model-top-left">
           {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
@@ -23,6 +24,11 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
       </div>
       {description && multilineText(description, "model-description")}
       {children}
+      {bottom && (
+        <div className="model-bottom">
+          {bottom}
+        </div>
+      )}
     </div>
   )
 }

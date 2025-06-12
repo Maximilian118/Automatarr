@@ -13,9 +13,10 @@ import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomple
 import InputModel from "../components/model/inputModel/InputModel"
 import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import { QualityProfile } from "../types/qualityProfileType"
+import { useNavigate } from "react-router-dom"
 
 const Bots: React.FC = () => {
-  const { settings, setSettings, loading, setLoading } = useContext(AppContext)
+  const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ channelLoading, setChannelLoading ] = useState<boolean>(false)
   const [ qpLoading, setQPLoading ] = useState<boolean>(false)
@@ -23,17 +24,19 @@ const Bots: React.FC = () => {
   const [ qualityProfiles, setQualityProfiles ] = useState<QualityProfile[]>([])
   const [ qpReqSent, setQPReqSent ] = useState<boolean>(false)
 
+  const navigate = useNavigate()
+
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, setLocalLoading)
+      getSettings(setSettings, user, setUser, setLocalLoading, navigate)
     }
-  }, [settings, setSettings])
+  }, [user, setUser, settings, setSettings, navigate])
 
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    await updateSettings(setLocalLoading, settings, setSettings, formErr)
+    await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
   }
 
   // On localLoading change, change global loading as well
@@ -45,10 +48,10 @@ const Bots: React.FC = () => {
 
   useEffect(() => {
     if (!qpReqSent && qualityProfiles.length === 0) {
-      getQualityProfiles(setQualityProfiles, setQPLoading)
+      getQualityProfiles(setQualityProfiles, setQPLoading, user, setUser, navigate)
       setQPReqSent(true)
     }
-  }, [qualityProfiles, qpReqSent])
+  }, [qualityProfiles, qpReqSent, user, setUser, navigate])
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
@@ -67,7 +70,7 @@ const Bots: React.FC = () => {
       >
         <MUIAutocomplete
           label="Max Movies"
-          options={numberSelection()}
+          options={numberSelection("Infinite")}
           value={toStringWithCap(settings.general_bot.max_movies, 99, "Infinite")}
           setValue={(val) => {
             setSettings(prevSettings => {
@@ -83,7 +86,7 @@ const Bots: React.FC = () => {
         />
         <MUIAutocomplete
           label="Movie Expiration Time (days)"
-          options={numberSelection()}
+          options={numberSelection("Infinite")}
           value={toStringWithCap(settings.general_bot.movie_pool_expiry, 99, "Infinite")}
           setValue={(val) => {
             setSettings(prevSettings => {
@@ -117,7 +120,7 @@ const Bots: React.FC = () => {
         />
         <MUIAutocomplete
           label="Max Series"
-          options={numberSelection()}
+          options={numberSelection("Infinite")}
           value={toStringWithCap(settings.general_bot.max_series, 99, "Infinite")}
           setValue={(val) => {
             setSettings(prevSettings => {
@@ -133,7 +136,7 @@ const Bots: React.FC = () => {
         />
         <MUIAutocomplete
           label="Series Expiration Time (days)"
-          options={numberSelection()}
+          options={numberSelection("Infinite")}
           value={toStringWithCap(settings.general_bot.series_pool_expiry, 99, "Infinite")}
           setValue={(val) => {
             setSettings(prevSettings => {
@@ -238,7 +241,7 @@ const Bots: React.FC = () => {
               }
             })
 
-            getDiscordChannels(setSettings, setChannelLoading, val)
+            getDiscordChannels(setSettings, user, setUser, navigate, setChannelLoading, val)
           }}
         />
         <MUIAutocomplete

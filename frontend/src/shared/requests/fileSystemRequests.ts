@@ -1,68 +1,93 @@
 import axios from "axios"
 import { Dispatch, SetStateAction } from "react"
+import { authCheck, headers } from "./requestUtility"
+import { UserType } from "../../types/userType"
+import { NavigateFunction } from "react-router-dom"
 
 // Return an array of users from the OS the backend is running on
-export const getUsers = async (
-  setUsers?: Dispatch<SetStateAction<string[]>>,
+export const getUnixUsers = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  setUnixUsers?: Dispatch<SetStateAction<string[]>>,
 ): Promise<string[]> => {
   try {
-    const res = await axios.post("", {
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        query: `
         query {
-          checkUsers
+          checkUnixUsers {
+            data
+            tokens
+          }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
-      console.error(`getUsers Error: ${res.data.errors[0].message}`)
-      return []
+      authCheck(res.data.errors, setUser, navigate)
+      console.error(`checkUnixUsers Error: ${res.data.errors[0].message}`)
     } else {
-      console.log(`getUsers: Users retrieved.`)
-      const users = res.data.data.checkUsers
+      console.log(`checkUnixUsers: Users retrieved.`)
+      const users = res.data.data.checkUnixUsers.data
 
-      if (setUsers) {
-        setUsers(users)
+      if (setUnixUsers) {
+        setUnixUsers(users || ["Something went wrong."])
       }
 
       return users
     }
   } catch (err) {
-    console.error(`getUsers Error: ${err}`)
-    return []
+    console.error(`checkUnixUsers Error: ${err}`)
   }
+
+  return []
 }
 
 // Return an array of groups from the OS the backend is running on
-export const getGroups = async (
-  setGroups?: Dispatch<SetStateAction<string[]>>,
+export const getUnixGroups = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  setUnixGroups?: Dispatch<SetStateAction<string[]>>,
 ): Promise<string[]> => {
   try {
-    const res = await axios.post("", {
-      query: `
-        query {
-          checkGroups
-        }
+    const res = await axios.post(
+      "",
+      {
+        query: `
+          query {
+            checkUnixGroups {
+              data
+              tokens
+            }
+          }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
-      console.error(`getGroups Error: ${res.data.errors[0].message}`)
-      return []
+      authCheck(res.data.errors, setUser, navigate)
+      console.error(`getUnixGroups Error: ${res.data.errors[0].message}`)
     } else {
-      console.log(`getGroups: Groups retrieved.`)
-      const groups = res.data.data.checkGroups
+      console.log(`getUnixGroups: Groups retrieved.`)
+      const groups = res.data.data.checkUnixGroups.data
 
-      if (setGroups) {
-        setGroups(groups)
+      if (setUnixGroups) {
+        setUnixGroups(groups || ["Something went wrong."])
       }
 
       return groups
     }
   } catch (err) {
-    console.error(`getGroups Error: ${err}`)
-    return []
+    console.error(`getUnixGroups Error: ${err}`)
   }
+
+  return []
 }
 
 // Return an array of path strings
@@ -70,27 +95,38 @@ export const getChildPaths = async (
   path: string | null,
   setChildren: Dispatch<SetStateAction<string[]>>,
   setLoading: Dispatch<SetStateAction<boolean>>,
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
 ): Promise<string[]> => {
   setLoading(true)
 
   try {
-    const res = await axios.post("", {
-      variables: {
-        path,
-      },
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          path,
+        },
+        query: `
         query GetChildPaths( $path: String ) {
-          getChildPaths( path: $path )
+          getChildPaths( path: $path ) {
+            data
+            tokens
+          }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
       console.error(`getChildPaths Error: ${res.data.errors[0].message}`)
       return []
     } else {
       console.log(`getChildPaths: Path children for retrieved for ${path ? path : "/"}`)
-      const children = res.data.data.getChildPaths
+      const children = res.data.data.getChildPaths.data
       setChildren(children)
       return children
     }

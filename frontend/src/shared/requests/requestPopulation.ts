@@ -60,6 +60,26 @@ export const populateSettings = `
     books_channel_name
     welcome_channel_name
   }
+  lockout
+  lockout_attempts
+  lockout_mins
   created_at
   updated_at
+  tokens
+`
+
+// Population fields for a user request
+export const populateUser = `
+  _id
+  name
+  password
+  refresh_count
+  admin
+  email
+  icon
+  profile_picture
+  logged_in_at
+  created_at
+  updated_at
+  tokens
 `

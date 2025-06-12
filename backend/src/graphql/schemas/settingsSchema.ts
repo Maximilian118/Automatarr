@@ -71,8 +71,12 @@ const settingsSchema = `
     qBittorrent_API_version: String!
     general_bot: GeneralBot!
     discord_bot: DiscordBot!
+    lockout: Boolean!
+    lockout_attempts: Int!
+    lockout_mins: Int!
     created_at: String!
     updated_at: String!
+    tokens: [String!]!
   }
 
   input tidyPaths {
@@ -142,6 +146,9 @@ const settingsSchema = `
     qBittorrent_API_version: String
     general_bot: generalBot
     discord_bot: discordBot
+    lockout: Boolean
+    lockout_attempts: Int
+    lockout_mins: Int
   }
 `
 export default settingsSchema

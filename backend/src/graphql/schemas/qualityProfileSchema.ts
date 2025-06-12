@@ -1,4 +1,9 @@
 const qualityProfileSchema = `
+  type QPReturn {
+    data: [QualityProfile!]!
+    tokens: [String!]!
+  }
+
   type QualityProfile {
     name: String!
     data: [QualityProfileData!]!

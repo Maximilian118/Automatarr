@@ -31,6 +31,27 @@
     }
   }
 
+  .model-bottom {
+    width: 100%;
+    min-height: 40px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-end;
+
+    p {
+      color: variables.$mui-off-white;
+
+      &:hover {
+        cursor: pointer;
+        color: white
+      }
+    }
+  }
+
+  .model-bottom:has(p:first-child + p) {
+    justify-content: space-between;
+  }
+
   >:not(:last-child) {
     margin-bottom: 20px;
   }

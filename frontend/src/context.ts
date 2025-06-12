@@ -1,9 +1,12 @@
 import { createContext, Dispatch, SetStateAction } from "react"
-import { initData, initSettings } from "./shared/init"
+import { initData, initSettings, initUser } from "./shared/init"
 import { settingsType } from "./types/settingsType"
 import { dataType } from "./types/dataType"
+import { UserType } from "./types/userType"
 
 export interface AppContextType {
+  user: UserType
+  setUser: Dispatch<SetStateAction<UserType>>
   settings: settingsType
   setSettings: Dispatch<SetStateAction<settingsType>>
   loading: boolean
@@ -13,6 +16,8 @@ export interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType>({
+  user: initUser,
+  setUser: () => initUser,
   settings: initSettings,
   setSettings: () => initSettings,
   loading: false,

@@ -1,5 +1,5 @@
 import moment from "moment"
-import { PoolType, UserType } from "../models/settings"
+import { PoolType, BotUserType } from "../models/settings"
 
 const initPool: PoolType = {
   movies: [],
@@ -13,7 +13,7 @@ export const initUser = (
   username: string,
   super_user: boolean = false,
   admin: boolean = false,
-): UserType => {
+): BotUserType => {
   return {
     name,
     ids: [username],

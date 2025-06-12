@@ -1,4 +1,4 @@
-@use "variables";
+@use "./variables";
 @use "mixins";
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
@@ -47,6 +47,15 @@ body {
       }
     }
 
+    .login-form {
+      justify-content: center;
+      
+      img {
+        width: 300px;
+        animation: spin 20s linear infinite;
+      }
+    }
+
     footer {
       flex-shrink: 0;
     }
@@ -60,6 +69,19 @@ body {
       form {
         padding: 20px 0;
       }
+
+      .login-form {
+        justify-content: flex-start;
+      }
     }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }

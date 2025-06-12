@@ -10,6 +10,7 @@ import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { getAllQualityProfiles } from "../../shared/StarrRequests"
 import { qualityProfile } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
+import { AuthRequest } from "../../middleware/auth"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -36,7 +37,14 @@ const settingsResolvers = {
 
     return createdSettings
   },
-  updateSettings: async (args: { settingsInput: settingsType }): Promise<settingsType> => {
+  updateSettings: async (
+    args: { settingsInput: settingsType },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
     // Find settings object by ID
     let settings = (await Settings.findById(args.settingsInput._id)) as settingsDocType
 
@@ -89,6 +97,9 @@ const settingsResolvers = {
       ...args.settingsInput.general_bot,
       users: settings.general_bot.users,
     })
+    settings.lockout = args.settingsInput.lockout
+    settings.lockout_attempts = args.settingsInput.lockout_attempts
+    settings.lockout_mins = args.settingsInput.lockout_mins
     settings.updated_at = moment().format()
 
     // Update settings as needed with Bot data
@@ -109,9 +120,16 @@ const settingsResolvers = {
     coreLoops(true)
 
     // Return the updated object
-    return settings._doc
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
   },
-  getSettings: async (): Promise<settingsType> => {
+  getSettings: async (_: any, req: AuthRequest): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
     // Find what should be the only settings object in the db
     const settings = (await Settings.findOne()) as settingsDocType
 
@@ -121,33 +139,65 @@ const settingsResolvers = {
     }
 
     // Return the settings object
-    return settings._doc
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
   },
-  getDiscordChannels: async ({ server_name }: { server_name: string }): Promise<string[]> => {
+  getDiscordChannels: async (
+    { server_name }: { server_name: string },
+    req: AuthRequest,
+  ): Promise<{ data: string[]; tokens: string[] }> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
     if (!server_name) {
       logger.error("getDiscordChannels: No server name passed!")
-      return []
+      return {
+        data: [],
+        tokens: req.tokens,
+      }
     }
 
     const client = getDiscordClient()
 
     if (!client) {
       logger.error("getDiscordChannels: Discord Bot not logged in.")
-      return []
+      return {
+        data: [],
+        tokens: req.tokens,
+      }
     }
 
     const channels = await getAllChannels(client, server_name)
     const channelNames = channels.map((channel) => channel.name)
 
-    return channelNames
+    return {
+      data: channelNames,
+      tokens: req.tokens,
+    }
   },
-  getQualityProfiles: async (): Promise<qualityProfile[]> => {
+  getQualityProfiles: async (
+    _: any,
+    req: AuthRequest,
+  ): Promise<{
+    data: qualityProfile[]
+    tokens: string[]
+  }> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
     // Get latest settings
     const settings = (await Settings.findOne()) as settingsDocType
 
     if (!settings) {
       logger.error("getQualityProfiles: No Settings object was found.")
-      return []
+      return {
+        data: [],
+        tokens: req.tokens,
+      }
     }
 
     // Only get data for active APIs
@@ -158,7 +208,10 @@ const settingsResolvers = {
       logger.error(
         "getQualityProfiles: No active API's. What are you even doing here? (╯°□°)╯︵ ┻━┻",
       )
-      return []
+      return {
+        data: [],
+        tokens: req.tokens,
+      }
     }
 
     const qualityProfiles = await getAllQualityProfiles(activeAPIs, data)
@@ -168,10 +221,16 @@ const settingsResolvers = {
       logger.error(
         "getQualityProfiles: No quality profiles exist. Please create some in Starr apps.",
       )
-      return []
+      return {
+        data: [],
+        tokens: req.tokens,
+      }
     }
 
-    return qualityProfiles
+    return {
+      data: qualityProfiles,
+      tokens: req.tokens,
+    }
   },
 }
 

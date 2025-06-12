@@ -6,17 +6,26 @@ import {
   checkRadarr,
   checkSonarr,
 } from "./requests/checkAPIRequests"
+import { UserType } from "../types/userType"
+import { NavigateFunction } from "react-router-dom"
+
+// Simple request response success indication
+export const requestSuccess = (status: number): boolean => status >= 200 && status < 300
 
 // Check the status of each API
 export const checkAPIs = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
   settings: settingsType,
-  newCredentials?: true,
+  newSettings?: true,
 ): Promise<settingsType> => {
+  const newData = newSettings ? settings : undefined
   const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active] = await Promise.all([
-    checkRadarr(newCredentials && settings),
-    checkSonarr(newCredentials && settings),
-    checkLidarr(newCredentials && settings),
-    checkqBittorrent(newCredentials && settings),
+    checkRadarr(user, setUser, navigate, newData),
+    checkSonarr(user, setUser, navigate, newData),
+    checkLidarr(user, setUser, navigate, newData),
+    checkqBittorrent(user, setUser, navigate, newData),
   ])
 
   return {
@@ -92,7 +101,11 @@ export const shortPath = (path: string, depth: number = 2, ellipsis: boolean = t
 }
 
 // Helper functions to use with Autocomplete when dealing with numbers
-export const numberSelection = (): string[] => [...Array(99)].map((_, i) => (i + 1).toString()).concat("Infinite")
+export const numberSelection = (endString?: string): string[] => {
+  const base = [...Array(99)].map((_, i) => (i + 1).toString())
+  return endString ? base.concat(endString) : base
+}
+
 export const stringSelectionToNumber = (value: string): number | null => value === "Infinite" ? null : parseInt(value, 10)
 export const toStringWithCap = (num: number | null, max: number, maxString: string): string =>
   num === null ? maxString : num > max ? maxString : num.toString()

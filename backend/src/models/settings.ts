@@ -32,7 +32,7 @@ export type PoolType = {
   books: unknown[] // Array of Books this user has downloaded
 }
 
-export type UserType = {
+export type BotUserType = {
   _id?: ObjectId
   name: string // The name of the user
   ids: string[] // An array of ID's this user is known by. (In case of multiple bots)
@@ -55,7 +55,7 @@ type GeneralBotType = {
   series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
   min_free_space: string // A number representing the minimum amount of free space that must be left available
   welcome_message: string // A welcome message for new bot users
-  users: UserType[] // An array of registered users
+  users: BotUserType[] // An array of registered users
 }
 
 export type DiscordBotType = {
@@ -110,8 +110,12 @@ export interface settingsType {
   qBittorrent_API_version: string // qBittorrent API Version
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
+  lockout: boolean // Enable or disable the lockout mechanism
+  lockout_attempts: number // Amount of tries before lockout
+  lockout_mins: number // How long the lockout is for
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
+  tokens: string[] // Tokens to be sent in resolver return for session data.
   [key: string]: any
 }
 
@@ -133,7 +137,7 @@ const poolSchema = new mongoose.Schema<PoolType>({
   books: { type: mongoose.Schema.Types.Mixed, default: [] },
 })
 
-const userSchema = new mongoose.Schema<UserType>({
+const userSchema = new mongoose.Schema<BotUserType>({
   name: { type: String, required: true },
   ids: { type: [String], required: true },
   admin: { type: Boolean, default: false },
@@ -208,6 +212,9 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     qBittorrent_API_version: { type: String, default: "v2" },
     general_bot: { type: generalBotSchema, default: () => ({}) },
     discord_bot: { type: discordBotSchema, default: () => ({}) },
+    lockout: { type: Boolean, default: true },
+    lockout_attempts: { type: Number, default: 5 },
+    lockout_mins: { type: Number, default: 60 },
     created_at: { type: String, default: moment().format() },
     updated_at: { type: String, default: moment().format() },
   },

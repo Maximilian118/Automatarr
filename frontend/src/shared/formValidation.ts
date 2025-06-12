@@ -1,5 +1,5 @@
 import { ChangeEvent, Dispatch, SetStateAction } from "react"
-import { settingsErrorType, settingsType } from "../types/settingsType"
+import { settingsErrorType } from "../types/settingsType"
 
 export const inputLabel = <T extends Record<string, string | undefined>>(
   type: keyof T, // The field in formErr we're looking at
@@ -31,41 +31,43 @@ const setNestedValue = <T>(obj: T, path: string[], value: string): T => {
 }
 
 // Update form with any errors it might have
-export const updateInput = <T extends { [key: string]: string }>(
+export const updateInput = <FormType, ErrorType extends { [key: string]: string }>(
   e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  setForm: Dispatch<SetStateAction<settingsType>>,
-  setFormErr: Dispatch<SetStateAction<T>>,
+  setForm: Dispatch<SetStateAction<FormType>>,
+  setFormErr: Dispatch<SetStateAction<ErrorType>>,
   noStateUpdate?: boolean,
 ): void => {
   const path = e.target.name.split(".")
 
-  // Update nested form state
   if (!noStateUpdate) {
-    setForm((prevForm): settingsType => {
+    setForm((prevForm): FormType => {
       return setNestedValue(prevForm, path, e.target.value)
     })
   }
 
   const inputErr = (key: string, err?: string): void => {
     setFormErr(
-      (prevFormErr): T => ({
+      (prevFormErr): ErrorType => ({
         ...prevFormErr,
         [key.replace(/\./g, "_")]: err ?? "",
       }),
     )
   }
 
-  // Match a general URL string
-  // prettier-ignore
+  // Validators
   const caseURL = () => {
-    if (/^((https?|ftp):\/\/)?((localhost|(\d{1,3}\.){3}\d{1,3})|(([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}))(:(\d+))?(\/[^\s]*)?$/.test(e.target.value) || e.target.value.trim() === "") {
+    if (
+      /^((https?|ftp):\/\/)?((localhost|(\d{1,3}\.){3}\d{1,3})|(([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}))(:(\d+))?(\/[^\s]*)?$/.test(
+        e.target.value,
+      ) ||
+      e.target.value.trim() === ""
+    ) {
       inputErr(e.target.name, "")
     } else {
       inputErr(e.target.name, "Invalid URL.")
     }
   }
 
-  // Match a 32 length hex string
   const caseKEY = () => {
     if (/^[a-fA-F0-9]{32}$/.test(e.target.value) || e.target.value.trim() === "") {
       inputErr(e.target.name, "")
@@ -74,7 +76,6 @@ export const updateInput = <T extends { [key: string]: string }>(
     }
   }
 
-  // Has to match any of the remove_missing_level options
   const caseRMLOptions = () => {
     if (e.target.value === "Library" || e.target.value === "Import List") {
       inputErr(e.target.name, "")
@@ -83,7 +84,6 @@ export const updateInput = <T extends { [key: string]: string }>(
     }
   }
 
-  // Match valid chmod request. E.G 775
   const caseChmod = () => {
     if (/^[0-7]{3}$/.test(e.target.value) || e.target.value.trim() === "") {
       inputErr(e.target.name, "")
@@ -119,18 +119,60 @@ export const updateInput = <T extends { [key: string]: string }>(
     }
   }
 
-  // Depending on the current element do some basic validation checks.
-  // prettier-ignore
+  const casePassword = () => {
+    const password = e.target.value.trim()
+
+    if (/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password) || password === "") {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Must include a letter, number, special. 8+ length.")
+    }
+  }
+
+  const caseMins = () => {
+    const mins = e.target.value.trim()
+
+    if (/^\d+$/.test(mins) || mins === "") {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Must be only numbers.")
+    }
+  }
+
+  // Dispatch to the right validation case
   switch (true) {
-    case e.target.name.includes("URL"): caseURL(); break
-    case e.target.name.includes("KEY"): caseKEY(); break
-    case e.target.name.includes("level"): caseRMLOptions(); break
-    case e.target.name.includes("user"): casePosix(); break
-    case e.target.name.includes("group"): casePosix(); break
-    case e.target.name.includes("chmod"): caseChmod(); break
-    case e.target.name.includes("token"): caseToken(); break
-    case e.target.name.includes("space"): caseBytes(); break
-    default: setFormErr(prevFormErr => prevFormErr)
+    case e.target.name.includes("URL"):
+      caseURL()
+      break
+    case e.target.name.includes("KEY"):
+      caseKEY()
+      break
+    case e.target.name.includes("level"):
+      caseRMLOptions()
+      break
+    case e.target.name.includes("user"):
+      casePosix()
+      break
+    case e.target.name.includes("group"):
+      casePosix()
+      break
+    case e.target.name.includes("chmod"):
+      caseChmod()
+      break
+    case e.target.name.includes("token"):
+      caseToken()
+      break
+    case e.target.name.includes("space"):
+      caseBytes()
+      break
+    case e.target.name.includes("password"):
+      casePassword()
+      break
+    case e.target.name.includes("mins"):
+      caseMins()
+      break
+    default:
+      setFormErr((prev) => prev)
   }
 }
 

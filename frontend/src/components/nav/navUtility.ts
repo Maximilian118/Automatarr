@@ -15,4 +15,8 @@ export const navItems = [
     text: "Loops",
     url: "/loops",
   },
+  {
+    text: "Settings",
+    url: "/settings",
+  },
 ]

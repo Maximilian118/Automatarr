@@ -14,6 +14,7 @@ import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
 import { dataDocType } from "./models/data"
 import { botsControl } from "./bots/botsControl"
+import { auth } from "./middleware/auth"
 
 // Initialise express.
 const app = express()
@@ -23,6 +24,9 @@ app.use(express.json({ limit: "1mb" }))
 
 // Handle CORS Errors.
 app.use(corsHandler)
+
+// Make token authentication middleware available in all reducers by passing req.
+app.use(auth as any)
 
 // Set up GraphQL
 app.use(
@@ -119,9 +123,9 @@ const startServer = async () => {
   // Check that at least one API is active
   if (!allAPIsDeactivated(bootSettings._doc)) {
     // Check connection to Starr Apps
-    await Resolvers.checkRadarr(bootSettings)
-    await Resolvers.checkSonarr(bootSettings)
-    await Resolvers.checkLidarr(bootSettings)
+    await Resolvers.checkRadarr({ URL: bootSettings.radarr_URL, KEY: bootSettings.radarr_KEY })
+    await Resolvers.checkSonarr({ URL: bootSettings.sonarr_URL, KEY: bootSettings.sonarr_KEY })
+    await Resolvers.checkLidarr({ URL: bootSettings.lidarr_URL, KEY: bootSettings.lidarr_KEY })
 
     // Start Bots
     await botsControl(bootSettings)
@@ -130,7 +134,11 @@ const startServer = async () => {
     const data = (await Resolvers.getData()) as dataDocType
 
     // Check connection to Starr API
-    await Resolvers.checkqBittorrent(bootSettings, data)
+    await Resolvers.checkqBittorrent({
+      URL: bootSettings.qBittorrent_URL,
+      USER: bootSettings.qBittorrent_username,
+      PASS: bootSettings.qBittorrent_password,
+    })
 
     // Check Automatarr has the filesystem permissions it needs
     bootPermissions(data)

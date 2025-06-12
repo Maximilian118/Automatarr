@@ -74,6 +74,7 @@ export interface dataType {
   qBittorrent: qBittorrent
   created_at: string
   updated_at: string
+  tokens: string[] // Tokens to be sent in resolver return for session data.
   [key: string]: any
 }
 

@@ -4,28 +4,43 @@ import { settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 import { QualityProfile } from "../../types/qualityProfileType"
+import { authCheck, headers } from "./requestUtility"
+import { UserType } from "../../types/userType"
+import { NavigateFunction } from "react-router-dom"
 
 export const getSettings = async (
   setSettings: Dispatch<SetStateAction<settingsType>>,
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
   setLoading: Dispatch<SetStateAction<boolean>>,
+  navigate: NavigateFunction,
+  checkConnections?: boolean,
 ): Promise<void> => {
   setLoading(true)
 
   try {
-    const res = await axios.post("", {
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        query: `
         query {
           getSettings {
             ${populateSettings}
           }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
       console.error(`getSettings Error: ${res.data.errors[0].message}`)
     } else {
-      setSettings(await checkAPIs(res.data.data.getSettings, true)) // Check all API's with the latest credentials
+      const settings = res.data.data.getSettings // Check all API's with the latest credentials
+      setSettings(
+        checkConnections ? await checkAPIs(user, setUser, navigate, settings, true) : settings,
+      )
       console.log(`getSettings: Settings retrieved.`)
     }
   } catch (err) {
@@ -39,6 +54,9 @@ export const updateSettings = async (
   setLoading: Dispatch<SetStateAction<boolean>>,
   settings: settingsType,
   setSettings: Dispatch<SetStateAction<settingsType>>,
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
   formErr: Record<string, string | undefined>,
 ): Promise<void> => {
   setLoading(true)
@@ -50,9 +68,11 @@ export const updateSettings = async (
   }
 
   try {
-    const res = await axios.post("", {
-      variables: await checkAPIs(settings, true), // Check all API's with the latest credentials
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        variables: await checkAPIs(user, setUser, navigate, settings, true), // Check all API's with the latest credentials
+        query: `
         mutation UpdateSettings( 
           $_id: ID!
           $radarr_URL: String
@@ -90,6 +110,9 @@ export const updateSettings = async (
           $qBittorrent_API_version: String
           $general_bot: generalBot
           $discord_bot: discordBot
+          $lockout: Boolean
+          $lockout_attempts: Int
+          $lockout_mins: Int
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -128,14 +151,20 @@ export const updateSettings = async (
             qBittorrent_API_version: $qBittorrent_API_version
             general_bot: $general_bot
             discord_bot: $discord_bot
+            lockout: $lockout
+            lockout_attempts: $lockout_attempts
+            lockout_mins: $lockout_mins
           }) {
             ${populateSettings}
           }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
       console.error(`updateSettings Error: ${res.data.errors[0].message}`)
     } else {
       setSettings(res.data.data.updateSettings)
@@ -150,6 +179,9 @@ export const updateSettings = async (
 
 export const getDiscordChannels = async (
   setSettings: Dispatch<SetStateAction<settingsType>>,
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
   setLoading: Dispatch<SetStateAction<boolean>>,
   server_name: string | null,
 ): Promise<void> => {
@@ -174,18 +206,26 @@ export const getDiscordChannels = async (
   setLoading(true)
 
   try {
-    const res = await axios.post("", {
-      variables: {
-        server_name,
-      },
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          server_name,
+        },
+        query: `
         query GetDiscordChannels($server_name: String!) {
-          getDiscordChannels(server_name: $server_name)
+          getDiscordChannels(server_name: $server_name) {
+            data
+            tokens
+          }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
       console.error(`getDiscordChannels Error: ${res.data.errors[0].message}`)
     } else {
       setSettings((prevSettings) => {
@@ -193,7 +233,7 @@ export const getDiscordChannels = async (
           ...prevSettings,
           discord_bot: {
             ...prevSettings.discord_bot,
-            channel_list: res.data.data.getDiscordChannels,
+            channel_list: res.data.data.getDiscordChannels.data,
           },
         }
       })
@@ -210,28 +250,39 @@ export const getDiscordChannels = async (
 export const getQualityProfiles = async (
   setQualityProfiles: Dispatch<SetStateAction<QualityProfile[]>>,
   setQPLoading: Dispatch<SetStateAction<boolean>>,
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
 ): Promise<void> => {
   setQPLoading(true)
 
   try {
-    const res = await axios.post("", {
-      query: `
+    const res = await axios.post(
+      "",
+      {
+        query: `
         query {
           getQualityProfiles {
-            name
             data {
               name
-              id
+              data {
+                name
+                id
+              }
             }
+            tokens
           }
         }
       `,
-    })
+      },
+      { headers: headers(user.token) },
+    )
 
     if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
       console.error(`getQualityProfiles Error: ${res.data.errors[0].message}`)
     } else {
-      setQualityProfiles(res.data.data.getQualityProfiles as QualityProfile[])
+      setQualityProfiles(res.data.data.getQualityProfiles.data as QualityProfile[])
       console.log(`getQualityProfiles: Quality Profiles retrieved.`)
     }
   } catch (err) {

@@ -5,9 +5,10 @@ import { inputLabel } from "../../../shared/formValidation"
 type MUITextFieldProps<T extends Record<string, unknown>> = {
   name: keyof T
   formErr: Record<keyof T, string | undefined>
-  value: string
+  value: string | number
   label?: string
   size?: "small" | "medium"
+  minLength?: number
   maxLength?: number
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
@@ -16,6 +17,7 @@ type MUITextFieldProps<T extends Record<string, unknown>> = {
   disabled?: boolean
   error?: boolean
   multiline?: number
+  onlyNumbers?: boolean
 }
 
 const MUITextField = <T extends Record<string, unknown>>({
@@ -24,6 +26,7 @@ const MUITextField = <T extends Record<string, unknown>>({
   value,
   label,
   size,
+  minLength,
   maxLength,
   onBlur,
   onChange,
@@ -32,26 +35,54 @@ const MUITextField = <T extends Record<string, unknown>>({
   disabled,
   error,
   multiline,
+  onlyNumbers,
 }: MUITextFieldProps<T>) => {
-  const [localValue, setLocalValue] = useState(value)
-
-  const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalValue(e.target.value)
-
-    if (onChange) {
-      onChange(e)
-    }
-  }
+  const displayValue = value === Infinity ? "" : String(value)
+  const [localValue, setLocalValue] = useState(displayValue)
 
   useEffect(() => {
-    setLocalValue(value)
+    setLocalValue(value === Infinity ? "" : String(value))
   }, [value])
 
+  const onChangeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+
+    if (onlyNumbers) {
+      // Allow empty field = Infinity
+      if (raw === "") {
+        setLocalValue("")
+        onChange?.({
+          ...e,
+          target: { ...e.target, value: "Infinity" },
+        })
+        return
+      }
+
+      const parsed = Number(raw)
+
+      if (!isNaN(parsed) && isFinite(parsed)) {
+        setLocalValue(raw)
+        onChange?.({
+          ...e,
+          target: { ...e.target, value: String(parsed) },
+        })
+        return
+      }
+
+      // Invalid input: don't propagate or update local value
+      return
+    }
+
+    // Normal string input
+    setLocalValue(raw)
+    onChange?.(e)
+  }
+
   return (
-    <TextField 
+    <TextField
       label={inputLabel(name, formErr, label)}
       name={name as unknown as string}
-      value={localValue || ""}
+      value={localValue}
       onChange={onChangeHandler}
       onBlur={onBlur}
       color={color}
@@ -59,9 +90,16 @@ const MUITextField = <T extends Record<string, unknown>>({
       size={size}
       multiline={!!multiline}
       rows={multiline}
-      slotProps={maxLength ? { htmlInput: { maxLength } } : {}}
+      type={type || (onlyNumbers ? "text" : undefined)}
+      slotProps={{
+        htmlInput: {
+          minLength,
+          maxLength,
+          inputMode: onlyNumbers ? "numeric" : undefined,
+          pattern: onlyNumbers ? "\\d*" : undefined,
+        },
+      }}
       disabled={disabled}
-      type={type}
     />
   )
 }

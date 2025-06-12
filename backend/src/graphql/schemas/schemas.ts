@@ -7,8 +7,13 @@ import movieSchema from "./movieSchema"
 import seriesSchema from "./seriesSchema"
 import episodeSchema from "./episodeSchema"
 import qualityProfileSchema from "./qualityProfileSchema"
+import checkSchema from "./checkSchema"
+import miscSchema from "./miscSchema"
+import userSchema from "./userSchema"
 
 const Schema = buildSchema(`
+  ${miscSchema}
+  ${checkSchema}
   ${generalSchema}
   ${qBittorrentSchema}
   ${movieSchema}
@@ -17,27 +22,25 @@ const Schema = buildSchema(`
   ${qualityProfileSchema}
   ${settingsSchema}
   ${dataSchema}
+  ${userSchema}
 
   type RootQuery {
+    login(name: String!, password: String!): User!
+    forgot(recovery_key: String!): User!
     getSettings: Settings
-    getData: Data
-    getChildPaths(path: String): [String!]!
-    getDiscordChannels(server_name: String!): [String!]!
-    getQualityProfiles: [QualityProfile!]!
-    checkRadarr: Int!
-    checkSonarr: Int!
-    checkLidarr: Int!
-    checkqBittorrent: Int!
-    checkNewRadarr(URL: String!, KEY: String!): Int!
-    checkNewSonarr(URL: String!, KEY: String!): Int!
-    checkNewLidarr(URL: String!, KEY: String!): Int!
-    checkNewqBittorrent(URL: String!, USER: String!, PASS: String!): Int!
-    checkUsers: [String!]
-    checkGroups: [String!]
+    getChildPaths(path: String): StringArr!
+    getDiscordChannels(server_name: String!): StringArr!
+    getQualityProfiles: QPReturn!
+    checkRadarr(URL: String, KEY: String): CheckStatus!
+    checkSonarr(URL: String, KEY: String): CheckStatus!
+    checkLidarr(URL: String, KEY: String): CheckStatus!
+    checkqBittorrent(URL: String, USER: String, PASS: String): CheckStatus!
+    checkUnixUsers: StringArr!
+    checkUnixGroups: StringArr!
   }
 
   type RootMutation {
-    newSettings: Settings
+    createUser(name: String!, password: String!): User!
     updateSettings(settingsInput: settingsInput): Settings
   }
 

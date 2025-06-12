@@ -8,12 +8,17 @@ import { Add, ArrowLeft, CheckBox, Clear } from "@mui/icons-material"
 import EditPath from "./EditPath/EditPath"
 import { shortPath } from "../../../shared/utility"
 import { CircularProgress, IconButton } from "@mui/material"
+import { UserType } from "../../../types/userType"
+import { NavigateFunction } from "react-router-dom"
 
 interface TidyPathPickerType {
   label: string
   paths: tidyPaths[]
   setSettings: Dispatch<SetStateAction<settingsType>>
   setFormErr: Dispatch<SetStateAction<settingsErrorType>>
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
   disabled?: boolean
   error?: boolean
 }
@@ -23,6 +28,9 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
   paths,
   setSettings,
   setFormErr, 
+  user,
+  setUser,
+  navigate,
   disabled,
   error, 
 }) => {
@@ -34,9 +42,9 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
   // With every new path, retrieve the paths children
   useEffect(() => {
     if (!disabled && !editPath) {
-      getChildPaths(value, setChildren, setLoading)
+      getChildPaths(value, setChildren, setLoading, user, setUser, navigate)
     }
-  }, [value, disabled, paths, editPath])
+  }, [value, disabled, paths, editPath, user, setUser, navigate])
 
   // Check if any tidyPaths have empty allowedDir arrays
   useEffect(() => {

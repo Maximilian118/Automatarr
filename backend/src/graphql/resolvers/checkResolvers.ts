@@ -1,274 +1,198 @@
-import Settings, { settingsType } from "../../models/settings"
+import Settings, { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
 import { cleanUrl } from "../../shared/utility"
-import { checkStarr, checkURL } from "../../shared/validation"
 import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
 import Data, { dataDocType } from "../../models/data"
 import moment from "moment"
 import { saveWithRetry } from "../../shared/database"
 import { errCodeAndMsg } from "../../shared/requestError"
-
-interface baseCheck {
-  URL: string
-}
-
-interface checkNew extends baseCheck {
-  KEY: string
-}
-
-interface checkNewWithCreds extends baseCheck {
-  USER: string
-  PASS: string
-}
+import { AuthRequest } from "../../middleware/auth"
 
 const checkResolvers = {
-  checkRadarr: async (passedSettings?: settingsType): Promise<number> => {
+  checkRadarr: async (
+    args?: { URL?: string; KEY?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const tokens = req?.tokens || []
     let status = 500
+    let { URL, KEY } = args || {}
 
-    const settings = passedSettings ? passedSettings : await Settings.findOne()
+    // If not passed explicitly, fetch from DB
+    if (!URL || !KEY) {
+      const settings = (await Settings.findOne()) as settingsDocType
 
-    if (!settings) {
-      logger.error("checkRadarr: No Settings object was found.")
-      return 500
-    }
-
-    if (!settings.sonarr_active) {
-      logger.info("Radarr | Inactive")
-      return 500
-    }
-
-    if (checkStarr("Radarr", settings.radarr_URL, settings.radarr_KEY)) {
-      return 500
-    }
-
-    try {
-      const res = await axios.get(
-        cleanUrl(`${settings.radarr_URL}/api?apikey=${settings.radarr_KEY}`),
-      )
-
-      status = res.status
-      logger.success(`Radarr | OK!`)
-    } catch (err) {
-      logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
-    }
-
-    return status
-  },
-  checkSonarr: async (passedSettings?: settingsType): Promise<number> => {
-    let status = 500
-
-    const settings = passedSettings ? passedSettings : await Settings.findOne()
-
-    if (!settings) {
-      logger.error("checkSonarr: No Settings object was found.")
-      return 500
-    }
-
-    if (!settings.sonarr_active) {
-      logger.info("Sonarr | Inactive")
-      return 500
-    }
-
-    if (checkStarr("Sonarr", settings.sonarr_URL, settings.sonarr_KEY)) {
-      return 500
-    }
-
-    try {
-      const res = await axios.get(
-        cleanUrl(`${settings.sonarr_URL}/api?apikey=${settings.sonarr_KEY}`),
-      )
-
-      status = res.status
-      logger.success(`Sonarr | OK!`)
-    } catch (err) {
-      logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
-    }
-
-    return status
-  },
-  checkLidarr: async (passedSettings?: settingsType): Promise<number> => {
-    let status = 500
-
-    const settings = passedSettings ? passedSettings : await Settings.findOne()
-
-    if (!settings) {
-      logger.error("checkLidarr: No Settings object was found.")
-      return 500
-    }
-
-    if (!settings.lidarr_active) {
-      logger.info("Lidarr | Inactive")
-      return 500
-    }
-
-    if (checkStarr("Lidarr", settings.lidarr_URL, settings.lidarr_KEY)) {
-      return 500
-    }
-
-    try {
-      const res = await axios.get(
-        cleanUrl(`${settings.lidarr_URL}/api?apikey=${settings.lidarr_KEY}`),
-      )
-
-      status = res.status
-      logger.success(`Lidarr | OK!`)
-    } catch (err) {
-      logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
-    }
-
-    return status
-  },
-  checkqBittorrent: async (
-    passedSettings?: settingsType,
-    passedData?: dataDocType,
-  ): Promise<number> => {
-    let status = 500
-
-    const settings = passedSettings ? passedSettings : await Settings.findOne()
-
-    if (!settings) {
-      logger.error("checkqBittorrent | No Settings object was found.")
-      return 500
-    }
-
-    if (!settings.qBittorrent_active) {
-      logger.info("qBittorrent | Inactive")
-      return 500
-    }
-
-    if (checkURL("qBittorrent", settings.qBittorrent_URL)) {
-      return 500
-    }
-
-    if (!(await qBitCookieExpired())) {
-      logger.success("qBittorrent | Cookie OK!")
-      return 200
-    }
-
-    const data = passedData ? passedData : ((await Data.findOne()) as dataDocType)
-
-    if (!data) {
-      logger.error("checkqBittorrent | Could not find data object in db.")
-      return 500
-    }
-
-    try {
-      const res = await axios.post(
-        cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/auth/login`),
-        new URLSearchParams({
-          username: settings.qBittorrent_username,
-          password: settings.qBittorrent_password,
-        }),
-        {
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        },
-      )
-
-      const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
-
-      if (!cookie) {
-        // getqBitCookieFromHeaders will handle err logs
-        return 500
+      if (!settings) {
+        logger.error("Radarr | No Settings found! Oh dear..")
+        return { data: status, tokens }
       }
 
-      data.qBittorrent.cookie = cookie
-      data.qBittorrent.cookie_expiry = cookie_expiry
+      if (!settings.radarr_active) {
+        logger.info("Radarr | Inactive.")
+        return { data: status, tokens }
+      }
 
-      data.qBittorrent.updated_at = moment().format()
-      data.updated_at = moment().format()
+      if (!settings.radarr_URL || !settings.radarr_KEY) {
+        logger.warn("Radarr | Missing credentials.")
+        return { data: status, tokens }
+      }
 
-      await saveWithRetry(data, "checkqBittorrent")
-      logger.success("qBittorrent | Login OK!")
-      return res.status
-    } catch (err) {
-      logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
-    }
-
-    return status
-  },
-  checkNewRadarr: async ({ URL, KEY }: checkNew): Promise<number> => {
-    let status = 500
-
-    if (checkStarr("Radarr", URL, KEY)) {
-      return 500
+      URL = settings.radarr_URL
+      KEY = settings.radarr_KEY
     }
 
     try {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
-
       status = res.status
       logger.success(`Radarr | OK!`)
     } catch (err) {
-      logger.error(`checkRadarr: Error: ${errCodeAndMsg(err)}`)
+      logger.error(`checkRadarr: Error - ${errCodeAndMsg(err)}`)
     }
 
-    return status
+    return { data: status, tokens }
   },
-  checkNewSonarr: async ({ URL, KEY }: checkNew): Promise<number> => {
-    let status = 500
+  checkSonarr: async (
+    args?: { URL?: string; KEY?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
 
-    if (checkStarr("Sonarr", URL, KEY)) {
-      return 500
+    const tokens = req?.tokens || []
+    let status = 500
+    let { URL, KEY } = args || {}
+
+    if (!URL || !KEY) {
+      const settings = (await Settings.findOne()) as settingsDocType
+
+      if (!settings) {
+        logger.error("Sonarr | No Settings found! Oh dear..")
+        return { data: status, tokens }
+      }
+
+      if (!settings.sonarr_active) {
+        logger.info("Sonarr | Inactive.")
+        return { data: status, tokens }
+      }
+
+      if (!settings.sonarr_URL || !settings.sonarr_KEY) {
+        logger.warn("Sonarr | Missing credentials.")
+        return { data: status, tokens }
+      }
+
+      URL = settings.sonarr_URL
+      KEY = settings.sonarr_KEY
     }
 
     try {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
-
       status = res.status
       logger.success(`Sonarr | OK!`)
     } catch (err) {
-      logger.error(`checkSonarr: Error: ${errCodeAndMsg(err)}`)
+      logger.error(`checkSonarr: Error - ${errCodeAndMsg(err)}`)
     }
 
-    return status
+    return { data: status, tokens }
   },
-  checkNewLidarr: async ({ URL, KEY }: checkNew): Promise<number> => {
-    let status = 500
+  checkLidarr: async (
+    args?: { URL?: string; KEY?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
 
-    if (checkStarr("Lidarr", URL, KEY)) {
-      return 500
+    const tokens = req?.tokens || []
+    let status = 500
+    let { URL, KEY } = args || {}
+
+    if (!URL || !KEY) {
+      const settings = (await Settings.findOne()) as settingsDocType
+
+      if (!settings) {
+        logger.error("Lidarr | No Settings found! Oh dear..")
+        return { data: status, tokens }
+      }
+
+      if (!settings.lidarr_active) {
+        logger.info("Lidarr | Inactive.")
+        return { data: status, tokens }
+      }
+
+      if (!settings.lidarr_URL || !settings.lidarr_KEY) {
+        logger.warn("Lidarr | Missing credentials.")
+        return { data: status, tokens }
+      }
+
+      URL = settings.lidarr_URL
+      KEY = settings.lidarr_KEY
     }
 
     try {
       const res = await axios.get(cleanUrl(`${URL}/api?apikey=${KEY}`))
-
       status = res.status
       logger.success(`Lidarr | OK!`)
     } catch (err) {
-      logger.error(`checkLidarr: Error: ${errCodeAndMsg(err)}`)
+      logger.error(`checkLidarr: Error - ${errCodeAndMsg(err)}`)
     }
 
-    return status
+    return { data: status, tokens }
   },
-  checkNewqBittorrent: async ({ URL, USER, PASS }: checkNewWithCreds): Promise<number> => {
+  checkqBittorrent: async (
+    args?: { URL?: string; USER?: string; PASS?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const tokens = req?.tokens || []
     let status = 500
 
-    if (checkURL("qBittorrent", URL)) {
-      return 500
-    }
-
-    const settings = await Settings.findOne()
+    const settings = (await Settings.findOne()) as settingsDocType
 
     if (!settings) {
-      logger.error("checkNewqBittorrent: No Settings object was found.")
-      return 500
+      logger.error("checkqBittorrent: No Settings object was found.")
+      return { data: status, tokens }
     }
 
     const data = (await Data.findOne()) as dataDocType
 
     if (!data) {
-      logger.error("checkNewqBittorrent: Could not find data object in db.")
-      return 500
+      logger.error("checkqBittorrent: No Data object was found.")
+      return { data: status, tokens }
+    }
+
+    const usingManualCreds = args?.URL && args?.USER && args?.PASS
+
+    let URL = args?.URL || settings.qBittorrent_URL
+    let USER = args?.USER || settings.qBittorrent_username
+    let PASS = args?.PASS || settings.qBittorrent_password
+
+    if (!URL || !USER || !PASS) {
+      logger.warn("checkqBittorrent: Missing credentials.")
+      return { data: status, tokens }
+    }
+
+    if (!usingManualCreds && !settings.qBittorrent_active) {
+      logger.info("qBittorrent | Inactive")
+      return { data: status, tokens }
+    }
+
+    if (!usingManualCreds && !(await qBitCookieExpired())) {
+      logger.success("qBittorrent | Cookie OK!")
+      return { data: 200, tokens }
     }
 
     try {
       const res = await axios.post(
         cleanUrl(`${URL}/api/${settings.qBittorrent_API_version}/auth/login`),
-        new URLSearchParams({
-          username: USER,
-          password: PASS,
-        }),
+        new URLSearchParams({ username: USER, password: PASS }),
         {
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
         },
@@ -277,23 +201,21 @@ const checkResolvers = {
       const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
 
       if (!cookie) {
-        // getqBitCookieFromHeaders will handle err logs
-        return 500
+        return { data: status, tokens } // getqBitCookieFromHeaders already logs
       }
+
       data.qBittorrent.cookie = cookie
       data.qBittorrent.cookie_expiry = cookie_expiry
-
       data.qBittorrent.updated_at = moment().format()
       data.updated_at = moment().format()
 
       await saveWithRetry(data, "checkqBittorrent")
-      logger.success("qBittorrent | Login OK!")
-      return res.status
+      logger.success(`qBittorrent | Login OK!`)
+      return { data: res.status, tokens }
     } catch (err) {
       logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
+      return { data: status, tokens }
     }
-
-    return status
   },
 }
 

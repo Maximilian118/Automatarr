@@ -1,8 +1,8 @@
-import { settingsDocType, UserType } from "../../models/settings"
+import { settingsDocType, BotUserType } from "../../models/settings"
 
 // Helper
 const movieLimitResult = (
-  user: UserType,
+  user: BotUserType,
   max: number,
   current: number,
 ): {
@@ -25,7 +25,7 @@ const movieLimitResult = (
 
 // Calculate movie pool limits for a user
 export const checkUserMovieLimit = (
-  user: UserType,
+  user: BotUserType,
   settings: settingsDocType,
 ): {
   limitError: string
@@ -54,7 +54,7 @@ export const checkUserMovieLimit = (
 
 // Helper
 const seriesLimitResult = (
-  user: UserType,
+  user: BotUserType,
   max: number,
   current: number,
 ): {
@@ -77,7 +77,7 @@ const seriesLimitResult = (
 
 // Calculate series pool limits for a user
 export const checkUserSeriesLimit = (
-  user: UserType,
+  user: BotUserType,
   settings: settingsDocType,
 ): {
   limitError: string

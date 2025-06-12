@@ -9,24 +9,27 @@ import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { updateInput } from "../shared/formValidation"
+import { useNavigate } from "react-router-dom"
 
 const Connections: React.FC = () => {
-  const { settings, setSettings, loading, setLoading } = useContext(AppContext)
+  const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
 
+  const navigate = useNavigate()
+  
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, setLocalLoading)
+      getSettings(setSettings, user, setUser, setLocalLoading, navigate, true)
     }
-  }, [settings, setSettings])
+  }, [user, setUser, settings, setSettings, navigate])
 
   // Update settings object in db on submit
-  const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    await updateSettings(setLocalLoading, settings, setSettings, formErr)
-  }
+    const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
+    }
 
   // On localLoading change, change global loading as well
   useEffect(() => {

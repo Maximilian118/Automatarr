@@ -6,7 +6,7 @@ import {
   GuildTextBasedChannel,
   Message,
 } from "discord.js"
-import Settings, { DiscordBotType, settingsDocType, UserType } from "../../models/settings"
+import Settings, { DiscordBotType, settingsDocType, BotUserType } from "../../models/settings"
 import logger from "../../logger"
 import { QualityProfile } from "../../types/qualityProfileType"
 import { dataDocType } from "../../models/data"
@@ -292,7 +292,10 @@ export const matchedDiscordUser = async (
 }
 
 // Check if the passed Discord username exists as a user in Automatarr already
-export const matchedUser = (settings: settingsDocType, identifier: string): UserType | undefined =>
+export const matchedUser = (
+  settings: settingsDocType,
+  identifier: string,
+): BotUserType | undefined =>
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
 
 // Find a quality profile in the database by name

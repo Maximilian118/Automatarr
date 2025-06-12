@@ -6,6 +6,7 @@ import {
   settingsErrorType,
   settingsType,
 } from "../types/settingsType"
+import { UserErrorType, UserType } from "../types/userType"
 
 const initGeneralBot: GeneralBotType = {
   max_movies: 10, // Maximum movies a user is allowed to have downloaded at the same time
@@ -16,7 +17,6 @@ const initGeneralBot: GeneralBotType = {
   series_quality_profile: null, // The name of the quality profile to use for sonarr downloads
   min_free_space: "21474836480", // Default 20gb // A number representing the minimum amount of free space that must be left available
   welcome_message: "", // A welcome message for new bot users
-  users: [], // An array of registered users
 }
 
 const initDiscordBot: DiscordBotType = {
@@ -71,6 +71,9 @@ export const initSettings: settingsType = {
   qBittorrent_API_version: "v2",
   general_bot: initGeneralBot,
   discord_bot: initDiscordBot,
+  lockout: false,
+  lockout_attempts: 5,
+  lockout_mins: 60,
   created_at: "",
   updated_at: "",
 }
@@ -102,4 +105,33 @@ export const initBotErr: botsErrType = {
   discord_bot_channel_name: "",
   general_bot_min_free_space: "",
   general_bot_welcome_message: "",
+}
+
+// Init a user
+export const initUser: UserType = {
+  _id: "",
+  name: "",
+  password: "",
+  admin: false,
+  email: "",
+  icon: "",
+  profile_picture: "",
+  logged_in_at: new Date(0),
+  created_at: new Date(0),
+  updated_at: new Date(0),
+  token: "",
+  localStorage: false,
+}
+
+// Create an object with the same keys as initUser but all values are ""
+export const initUserErrors = (): UserErrorType => {
+  const errObj = {} as UserErrorType
+
+  for (const key in initUser) {
+    if (Object.prototype.hasOwnProperty.call(initUser, key)) {
+      errObj[key as keyof UserErrorType] = ""
+    }
+  }
+
+  return errObj
 }

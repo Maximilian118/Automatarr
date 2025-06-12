@@ -307,21 +307,35 @@ export const coreFunctionsOnce = async (settings: settingsDocType): Promise<void
 }
 
 // Fun little function to prep people for the processing time
-export const processingTimeMessage = (data: dataDocType) => {
+export const processingTimeMessage = (data: dataDocType, activeAPIs: APIData[]) => {
   let libraryLength = 0
+
+  const activeAPINames: string[] = activeAPIs.map((API) => API.name)
+  let apiNameString = ""
+
+  if (activeAPINames.length === 1) {
+    apiNameString = activeAPINames[0]
+  } else if (activeAPINames.length === 2) {
+    apiNameString = `${activeAPINames[0]} and ${activeAPINames[1]}`
+  } else if (activeAPINames.length > 2) {
+    const last = activeAPINames.pop() // remove and store the last item
+    apiNameString = `${activeAPINames.join(", ")} and ${last}`
+  }
 
   for (const library of data.libraries) {
     libraryLength = libraryLength + library.data.length
   }
   // prettier-ignore
-  if (libraryLength > 200 && libraryLength < 500) {
-    logger.info(`Processing ${libraryLength} Library items. Give me a sec...`)
-  } else if (libraryLength > 500 && libraryLength < 1000) {
-    logger.info(`Processing ${libraryLength} Library items. Strap in!`)
-  } else if (libraryLength > 1000 && libraryLength < 10000) {
-    logger.info(`Sweet buttered biscuits on a unicycle! Processing ${libraryLength} Library items!`)
-  } else if (libraryLength > 10000) {
-    logger.info(`I haven't seen a mess like this since spaghetti met ceiling fan! Processing ${libraryLength} Library items!`)
+  if (libraryLength <= 200) {
+    logger.info(`Processing ${libraryLength} library items from ${apiNameString}. Give me a challenge at least...`)
+  } else if (libraryLength <= 500) {
+    logger.info(`Processing ${libraryLength} library items from ${apiNameString}. Give me a sec...`)
+  } else if (libraryLength <= 1000) {
+    logger.info(`Processing ${libraryLength} library items from ${apiNameString}. Strap in!`)
+  } else if (libraryLength <= 10000) {
+    logger.info(`Sweet buttered biscuits on a unicycle! Processing ${libraryLength} library items from ${apiNameString}!`)
+  } else {
+    logger.info(`I haven't seen a mess like this since spaghetti met ceiling fan! Processing ${libraryLength} library items from ${apiNameString}!`)
   }
 }
 

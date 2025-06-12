@@ -1,6 +1,6 @@
 import { GuildMember, Message } from "discord.js"
 import { discordReply, sendDiscordMessage } from "./discordBotUtility"
-import { UserType } from "../../models/settings"
+import { BotUserType } from "../../models/settings"
 
 const OWNER_ROLE_NAME = "Owner"
 
@@ -59,7 +59,7 @@ const ADMIN_ROLE_NAME = "Admin"
 export const updateDiscordAdminRole = async (
   message: Message,
   guildMember: GuildMember,
-  user: UserType,
+  user: BotUserType,
   shouldAdd: boolean,
 ): Promise<string> => {
   const username = guildMember.user.username
@@ -115,7 +115,7 @@ const SUPER_USER_ROLE_NAME = "Super User"
 export const updateDiscordSuperUserRole = async (
   message: Message,
   guildMember: GuildMember,
-  user: UserType,
+  user: BotUserType,
   shouldAdd: boolean,
 ): Promise<string> => {
   const username = guildMember.user.username
