@@ -5,6 +5,8 @@ import { capsFirstLetter, getContentName, updateDownloadQueue } from "../shared/
 import logger from "../logger"
 import { DownloadStatus } from "../types/types"
 import { saveWithRetry } from "../shared/database"
+import { blocklistAndSearchMovie } from "../shared/RadarrStarrRequests"
+import { blocklistAndSearchEpisode } from "../shared/SonarrStarrRequests"
 
 const remove_blocked = async (settings: settingsType): Promise<void> => {
   // Only get data for API's that have been checked and are active
@@ -83,6 +85,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         "not a custom format upgrade",
         "title mismatch",
         "sample",
+        "might need to be extracted",
       ])
       const idConflict = msgCheck(blockedFile, [`matched to ${getContentName(API)} by ID`])
 
@@ -92,6 +95,12 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
 
         if (deleted) {
           deletedKeys.add(dedupKey)
+          // Add the deleted queue item to the blocklist
+          if (API.name === "Radarr") {
+            await blocklistAndSearchMovie(settings, deleted.movieId)
+          } else if (API.name === "Sonarr") {
+            await blocklistAndSearchEpisode(settings, deleted.episodeId)
+          }
           // Update the db with the removed queue item
           updateDownloadQueue(API, data, queue, blockedFile)
         }
@@ -101,7 +110,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
       if (idConflict) {
         if (!oneMessage) {
           logger.warn(
-            `${API.name}: ${blockedFile.title}. ID conflict but has other errors. Deferring to other cases...`,
+            `${API.name} | ${blockedFile.title}. ID conflict but has other errors. Deferring to other cases...`,
           )
         } else {
           await tryDelete("ID Conflict.")
@@ -121,9 +130,9 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         .flatMap((s) => [s.title, ...(s.messages ?? [])])
         .filter(Boolean)
         .join("; ")
-
+      console.log(blockedFile.statusMessages[0])
       logger.warn(
-        `${API.name}: ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
+        `${API.name} | ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
       )
     }
   }

@@ -1,5 +1,5 @@
 import axios from "axios"
-import { settingsDocType } from "../models/settings"
+import { settingsDocType, settingsType } from "../models/settings"
 import { Series } from "../types/seriesTypes"
 import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
@@ -179,7 +179,7 @@ export const getSeriesHistory = async (
 
 // Get history for a specific movie
 export const getEpisodeHistory = async (
-  settings: settingsDocType,
+  settings: settingsType,
   episodeID: number,
 ): Promise<HistoryItem[]> => {
   try {
@@ -314,7 +314,7 @@ export const deleteEpisodeFile = async (
 
 // Mark a episodeFile as failed. This then automagically triggers a search for a replacement.
 export const markEpisodeAsFailed = async (
-  settings: settingsDocType,
+  settings: settingsType,
   historyItemID: number,
 ): Promise<boolean> => {
   try {
@@ -342,4 +342,35 @@ export const markEpisodeAsFailed = async (
   }
 
   return false
+}
+
+// Helper function to blocklist and start the search for another episode
+export const blocklistAndSearchEpisode = async (
+  settings: settingsType,
+  episodeID?: number,
+): Promise<HistoryItem | undefined> => {
+  if (!episodeID) {
+    logger.error(`blocklistAndSearchEpisode: No episodeID passed.`)
+    return
+  }
+
+  const history = await getEpisodeHistory(settings, episodeID)
+
+  if (history.length === 0) {
+    logger.warn(`blocklistAndSearchEpisode: No episode history found for episodeID ${episodeID}`)
+    return
+  }
+
+  const latestGrabbed = history
+    .filter((entry) => entry.eventType === "grabbed")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+  if (await markEpisodeAsFailed(settings, latestGrabbed.id)) {
+    logger.success(`Sonarr | ${latestGrabbed.sourceTitle} blocklisted and new search started.`)
+    return latestGrabbed
+  } else {
+    logger.error(
+      `blocklistAndSearchEpisode: Failed to mark ${latestGrabbed.sourceTitle} as failed.`,
+    )
+  }
 }

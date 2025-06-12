@@ -1,4 +1,4 @@
-import { settingsDocType } from "../models/settings"
+import { settingsDocType, settingsType } from "../models/settings"
 import { Movie } from "../types/movieTypes"
 import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
@@ -130,7 +130,7 @@ export const movieDownloaded = async (
 
 // delete the movie file of a radarr library item
 export const deleteMovieFile = async (
-  settings: settingsDocType,
+  settings: settingsType,
   movieFileID: number,
 ): Promise<boolean> => {
   try {
@@ -161,7 +161,7 @@ export const deleteMovieFile = async (
 
 // Get history for a specific movie
 export const getMovieHistory = async (
-  settings: settingsDocType,
+  settings: settingsType,
   movieID: number,
 ): Promise<HistoryItem[]> => {
   try {
@@ -192,7 +192,7 @@ export const getMovieHistory = async (
 
 // Mark a movieFile as failed. This then automagically triggers a search for a replacement.
 export const markMovieAsFailed = async (
-  settings: settingsDocType,
+  settings: settingsType,
   historyItemID: number,
 ): Promise<boolean> => {
   try {
@@ -220,4 +220,33 @@ export const markMovieAsFailed = async (
   }
 
   return false
+}
+
+// Helper function to blocklist and start the search for another movie
+export const blocklistAndSearchMovie = async (
+  settings: settingsType,
+  movieID?: number,
+): Promise<HistoryItem | undefined> => {
+  if (!movieID) {
+    logger.error(`blocklistAndSearchMovie: No movieID passed.`)
+    return
+  }
+
+  const history = await getMovieHistory(settings, movieID)
+
+  if (history.length === 0) {
+    logger.warn(`blocklistAndSearchMovie: No movie history found for movieID ${movieID}`)
+    return
+  }
+
+  const latestGrabbed = history
+    .filter((entry) => entry.eventType === "grabbed")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+
+  if (await markMovieAsFailed(settings, latestGrabbed.id)) {
+    logger.success(`Radarr | ${latestGrabbed.sourceTitle} blocklisted and new search started.`)
+    return latestGrabbed
+  } else {
+    logger.error(`blocklistAndSearchMovie: Failed to mark ${latestGrabbed.sourceTitle} as failed.`)
+  }
 }
