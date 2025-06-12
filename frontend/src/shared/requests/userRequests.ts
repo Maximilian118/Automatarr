@@ -2,7 +2,7 @@ import axios from "axios"
 import { populateUser } from "./requestPopulation"
 import { UserErrorType, UserType } from "../../types/userType"
 import { Dispatch, SetStateAction } from "react"
-import { loginSuccess } from "../localStorage"
+import { loginSuccess, logout } from "../localStorage"
 import { NavigateFunction } from "react-router-dom"
 import {
   authCheck,
@@ -141,6 +141,13 @@ export const updateUser = async (
       console.error(`updateUser Error: ${res.data.errors[0].message}`)
     } else {
       handleResponseTokens(res.data.data.updateUser, setUser)
+
+      const passwordChanged =
+        !!user.password && !!user.password_check && user.password === user.password_check
+
+      if (passwordChanged) {
+        logout(setUser, navigate)
+      }
     }
   } catch (err) {
     const msg = getAxiosErrorMessage(err)
