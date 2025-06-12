@@ -13,6 +13,11 @@ export const checkRadarr = async (
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => {
+  if (settings && (!settings.radarr_URL || !settings.radarr_KEY)) {
+    console.warn("checkRadarr: Missing URL or KEY")
+    return false
+  }
+
   // prettier-ignore
   try {
     const res = await axios.post("", settings ? 
@@ -54,7 +59,7 @@ export const checkRadarr = async (
         console.log(`${APIName}: OK!`)
         return true
       } else {
-        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
         return false
       }
     }
@@ -70,6 +75,11 @@ export const checkSonarr = async (
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => {
+  if (settings && (!settings.sonarr_URL || !settings.sonarr_KEY)) {
+    console.warn("checkSonarr: Missing URL or KEY")
+    return false
+  }
+
   // prettier-ignore
   try {
     const res = await axios.post("", settings ? 
@@ -111,7 +121,7 @@ export const checkSonarr = async (
         console.log(`${APIName}: OK!`)
         return true
       } else {
-        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
         return false
       }
     }
@@ -127,6 +137,11 @@ export const checkLidarr = async (
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => {
+  if (settings && (!settings.lidarr_URL || !settings.lidarr_KEY)) {
+    console.warn("checkLidarr: Missing URL or KEY")
+    return false
+  }
+
   // prettier-ignore
   try { 
     const res = await axios.post("", settings ?
@@ -168,7 +183,7 @@ export const checkLidarr = async (
         console.log(`${APIName}: OK!`)
         return true
       } else {
-        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
         return false
       }
     }
@@ -184,6 +199,12 @@ export const checkqBittorrent = async (
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => {
+  if (
+    settings &&
+    (!settings.qBittorrent_URL || !settings.qBittorrent_username || !settings.qBittorrent_password)
+  ) {
+    return false
+  }
   // prettier-ignore
   try { 
     const res = await axios.post("", settings ?
@@ -226,7 +247,7 @@ export const checkqBittorrent = async (
         console.log(`${APIName}: OK!`)
         return true
       } else {
-        console.log(`${APIName}: http status ${res.data.data[APIName]}`)
+        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
         return false
       }
     }

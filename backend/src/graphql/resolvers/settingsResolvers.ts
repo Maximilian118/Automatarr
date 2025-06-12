@@ -109,13 +109,14 @@ const settingsResolvers = {
     // Save the updated object
     await saveWithRetry(settings, "updateSettings")
 
-    // Update the data object in the database
     if (!allLoopsDeactivated(settings._doc)) {
-      await Resolvers.getData(settings)
+      // Update the data object in the database
+      Resolvers.getData(settings)
+        // Call the core loop functions once
+        .then(() => coreLoopsOnce(settings))
+        .catch((err) => logger.error("updateSettings: getData/coreLoopsOnce failed.", err))
     }
 
-    // Call the core loop functions once
-    coreLoopsOnce(settings)
     // Ensure the active loops have been started
     // True = Skip first content execution as we've just called content functions once above
     coreLoops(true)
