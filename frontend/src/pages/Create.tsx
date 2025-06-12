@@ -6,7 +6,7 @@ import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initUserErrors } from "../shared/init"
 import { UserErrorType } from "../types/userType"
 import { Button, CircularProgress } from "@mui/material"
-import { AccountCircle, Send } from "@mui/icons-material"
+import { AccountCircle, ArrowBackIos, Send } from "@mui/icons-material"
 import { updateInput } from "../shared/formValidation"
 import { createUser } from "../shared/requests/userRequests"
 import { useNavigate } from "react-router-dom"
@@ -75,15 +75,23 @@ const Create: React.FC = () => {
             minLength={8}
           />
         </InputModel>
-        <Button 
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ? 
-            <CircularProgress size={20} color="inherit"/> : 
-            <Send color="inherit"/>
-          }
-        >Submit</Button>
+        <div className="button-bar">
+          <Button 
+            variant="contained"
+            sx={{ margin: "20px 0" }}
+            startIcon={<ArrowBackIos color="inherit"/>}
+            onClick={() => navigate(-1)}
+          >Back</Button>
+          <Button 
+            type="submit"
+            variant="contained"
+            sx={{ margin: "20px 0" }}
+            endIcon={localLoading ? 
+              <CircularProgress size={20} color="inherit"/> : 
+              <Send color="inherit"/>
+            }
+          >Submit</Button>
+        </div>
       </form>
       <Footer/>
     </>

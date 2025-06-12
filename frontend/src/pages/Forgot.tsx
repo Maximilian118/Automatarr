@@ -2,7 +2,7 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import Footer from "../components/footer/Footer"
 import InputModel from "../components/model/inputModel/InputModel"
 import { Button, CircularProgress } from "@mui/material"
-import { LockReset, Send } from "@mui/icons-material"
+import { ArrowBackIos, LockReset, Send } from "@mui/icons-material"
 import { forgot } from "../shared/requests/userRequests"
 import AppContext from "../context"
 import { useNavigate } from "react-router-dom"
@@ -48,15 +48,23 @@ const Forgot: React.FC = () => {
             onChange={(e) => set_recovery_key(e.target.value)}
           />
         </InputModel>
-        <Button 
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ? 
-            <CircularProgress size={20} color="inherit"/> : 
-            <Send color="inherit"/>
-          }
-        >Submit</Button>
+        <div className="button-bar">
+          <Button 
+            variant="contained"
+            sx={{ margin: "20px 0" }}
+            startIcon={<ArrowBackIos color="inherit"/>}
+            onClick={() => navigate(-1)}
+          >Back</Button>
+          <Button 
+            type="submit"
+            variant="contained"
+            sx={{ margin: "20px 0" }}
+            endIcon={localLoading ? 
+              <CircularProgress size={20} color="inherit"/> : 
+              <Send color="inherit"/>
+            }
+          >Submit</Button>
+        </div>
       </form>
       <Footer/>
     </>

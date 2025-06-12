@@ -56,6 +56,13 @@ body {
       }
     }
 
+    .button-bar {
+      width: 420px;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+    }
+
     footer {
       flex-shrink: 0;
     }
