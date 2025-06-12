@@ -47,9 +47,9 @@ export const checkUserLS = (): UserType => {
       email: email ? email : "",
       icon: icon ? icon : "",
       profile_picture: profile_picture ? profile_picture : "",
-      logged_in_at: logged_in_at ? new Date(logged_in_at) : new Date(0),
-      created_at: created_at ? new Date(created_at) : new Date(0),
-      updated_at: updated_at ? new Date(updated_at) : new Date(0),
+      logged_in_at: logged_in_at ? new Date(Number(logged_in_at)) : new Date(0),
+      created_at: created_at ? new Date(Number(created_at)) : new Date(0),
+      updated_at: updated_at ? new Date(Number(updated_at)) : new Date(0),
       localStorage: true,
     }
 
@@ -137,9 +137,9 @@ export const loginSuccess = (
     email: rawUser.email || "",
     icon: rawUser.icon || "",
     profile_picture: rawUser.profile_picture || "",
-    logged_in_at: rawUser.logged_in_at ? new Date(rawUser.logged_in_at) : new Date(0),
-    created_at: rawUser.created_at ? new Date(rawUser.created_at) : new Date(0),
-    updated_at: rawUser.updated_at ? new Date(rawUser.updated_at) : new Date(0),
+    logged_in_at: rawUser.logged_in_at ? new Date(+rawUser.logged_in_at) : new Date(0),
+    created_at: rawUser.created_at ? new Date(+rawUser.created_at) : new Date(0),
+    updated_at: rawUser.updated_at ? new Date(+rawUser.updated_at) : new Date(0),
     localStorage: true,
   }
 
