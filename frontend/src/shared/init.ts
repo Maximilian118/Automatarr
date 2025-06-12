@@ -112,6 +112,7 @@ export const initUser: UserType = {
   _id: "",
   name: "",
   password: "",
+  password_check: "",
   admin: false,
   email: "",
   icon: "",

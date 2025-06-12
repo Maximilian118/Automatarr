@@ -164,6 +164,8 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
           editPath={editPath}
           value={value}
           setValue={setValue}
+          user={user}
+          setUser={setUser}
           setSettings={setSettings}
           setLoading={setLoading}
           path={paths.find(p => p.path === editPath.path)}

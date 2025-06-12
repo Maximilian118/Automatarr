@@ -3,11 +3,15 @@ import './editPath.scss'
 import { settingsType, tidyPaths } from "../../../../types/settingsType"
 import TidyPath from "../TidyPath/TidyPath"
 import { getChildPaths } from "../../../../shared/requests/fileSystemRequests"
+import { UserType } from "../../../../types/userType"
+import { useNavigate } from "react-router-dom"
 
 interface EditPathType {
   editPath: tidyPaths
   value: string | null
   setValue: Dispatch<SetStateAction<string | null>>
+  user: UserType
+  setUser: Dispatch<SetStateAction<UserType>>
   setSettings: Dispatch<SetStateAction<settingsType>>
   setLoading: Dispatch<SetStateAction<boolean>>
   path?: tidyPaths
@@ -18,12 +22,16 @@ const EditPath: React.FC<EditPathType> = ({
   editPath, 
   value, 
   setValue,
+  user,
+  setUser,
   setSettings,
   setLoading,
   path,
   disabled,
 }) => {
   const [ children, setChildren ] = useState<string[]>([]) // Children of the current value/path in the host fs
+
+  const navigate = useNavigate()
 
   // Ensure the input value of the autocomplete is null
   useEffect(() => {
@@ -35,9 +43,9 @@ const EditPath: React.FC<EditPathType> = ({
   // Get all of the children for this path
   useEffect(() => {
     if (!disabled) {
-      getChildPaths(editPath.path, setChildren, setLoading)
+      getChildPaths(editPath.path, setChildren, setLoading, user, setUser, navigate)
     }
-  }, [editPath, disabled, setLoading])
+  }, [editPath, disabled, setLoading, user, setUser, navigate])
 
   return (
     <div className={`edit-path ${disabled ? " edit-path-disabled" : ""}`}>
