@@ -9,12 +9,13 @@ import path from "path"
 import fs from "fs"
 import logger from "./logger"
 import { bootPermissions } from "./shared/permissions"
-import { allAPIsDeactivated, allLoopsDeactivated, coreLoops } from "./shared/utility"
+import { allAPIsDeactivated, allLoopsDeactivated } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
 import { dataDocType } from "./models/data"
 import { botsControl } from "./bots/botsControl"
 import { auth } from "./middleware/auth"
+import { coreLoops } from "./loops/loops"
 
 // Initialise express.
 const app = express()

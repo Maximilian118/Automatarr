@@ -2,7 +2,7 @@ import moment from "moment"
 import { botsControl } from "../../bots/botsControl"
 import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
-import { allLoopsDeactivated, coreFunctionsOnce, coreLoops } from "../../shared/utility"
+import { allLoopsDeactivated } from "../../shared/utility"
 import Resolvers from "./resolvers"
 import { getAllChannels } from "../../bots/discordBot/discordBotUtility"
 import { getDiscordClient } from "../../bots/discordBot/discordBot"
@@ -11,6 +11,7 @@ import { getAllQualityProfiles } from "../../shared/StarrRequests"
 import { qualityProfile } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
 import { AuthRequest } from "../../middleware/auth"
+import { coreLoops, coreLoopsOnce } from "../../loops/loops"
 
 const settingsResolvers = {
   newSettings: async (): Promise<settingsType> => {
@@ -114,7 +115,7 @@ const settingsResolvers = {
     }
 
     // Call the core loop functions once
-    coreFunctionsOnce(settings)
+    coreLoopsOnce(settings)
     // Ensure the active loops have been started
     // True = Skip first content execution as we've just called content functions once above
     coreLoops(true)
