@@ -4,7 +4,13 @@ import { UserErrorType, UserType } from "../../types/userType"
 import { Dispatch, SetStateAction } from "react"
 import { loginSuccess } from "../localStorage"
 import { NavigateFunction } from "react-router-dom"
-import { authCheck, clearErrors, getAxiosErrorMessage, headers } from "./requestUtility"
+import {
+  authCheck,
+  clearErrors,
+  getAxiosErrorMessage,
+  handleResponseTokens,
+  headers,
+} from "./requestUtility"
 
 export const createUser = async (
   user: UserType,
@@ -134,7 +140,7 @@ export const updateUser = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`updateUser Error: ${res.data.errors[0].message}`)
     } else {
-      console.log(res.data.data.updateUser)
+      handleResponseTokens(res.data.data.updateUser, setUser)
     }
   } catch (err) {
     const msg = getAxiosErrorMessage(err)

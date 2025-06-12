@@ -1,6 +1,6 @@
 import axios from "axios"
 import { Dispatch, SetStateAction } from "react"
-import { authCheck, headers } from "./requestUtility"
+import { authCheck, handleResponseTokens, headers } from "./requestUtility"
 import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
 
@@ -31,13 +31,14 @@ export const getUnixUsers = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`checkUnixUsers Error: ${res.data.errors[0].message}`)
     } else {
-      console.log(`checkUnixUsers: Users retrieved.`)
+      handleResponseTokens(res.data.data.checkUnixUsers, setUser)
       const users = res.data.data.checkUnixUsers.data
 
       if (setUnixUsers) {
         setUnixUsers(users || ["Something went wrong."])
       }
 
+      console.log(`checkUnixUsers: Users retrieved.`)
       return users
     }
   } catch (err) {
@@ -74,13 +75,14 @@ export const getUnixGroups = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`getUnixGroups Error: ${res.data.errors[0].message}`)
     } else {
-      console.log(`getUnixGroups: Groups retrieved.`)
+      handleResponseTokens(res.data.data.checkUnixGroups, setUser)
       const groups = res.data.data.checkUnixGroups.data
 
       if (setUnixGroups) {
         setUnixGroups(groups || ["Something went wrong."])
       }
 
+      console.log(`getUnixGroups: Groups retrieved.`)
       return groups
     }
   } catch (err) {
@@ -125,9 +127,10 @@ export const getChildPaths = async (
       console.error(`getChildPaths Error: ${res.data.errors[0].message}`)
       return []
     } else {
-      console.log(`getChildPaths: Path children for retrieved for ${path ? path : "/"}`)
+      handleResponseTokens(res.data.data.getChildPaths, setUser)
       const children = res.data.data.getChildPaths.data
       setChildren(children)
+      console.log(`getChildPaths: Path children for retrieved for ${path ? path : "/"}`)
       return children
     }
   } catch (err) {

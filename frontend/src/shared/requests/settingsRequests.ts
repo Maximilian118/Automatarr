@@ -4,7 +4,7 @@ import { settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 import { QualityProfile } from "../../types/qualityProfileType"
-import { authCheck, headers } from "./requestUtility"
+import { authCheck, handleResponseTokens, headers } from "./requestUtility"
 import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
 
@@ -37,7 +37,8 @@ export const getSettings = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`getSettings Error: ${res.data.errors[0].message}`)
     } else {
-      const settings = res.data.data.getSettings // Check all API's with the latest credentials
+      const settings = handleResponseTokens(res.data.data.getSettings, setUser)
+      // Check all API's with the latest credentials
       setSettings(
         checkConnections ? await checkAPIs(user, setUser, navigate, settings, true) : settings,
       )
@@ -167,7 +168,7 @@ export const updateSettings = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`updateSettings Error: ${res.data.errors[0].message}`)
     } else {
-      setSettings(res.data.data.updateSettings)
+      setSettings(handleResponseTokens(res.data.data.updateSettings, setUser))
       console.log(`updateSettings: Settings updated.`)
     }
   } catch (err) {
@@ -228,6 +229,8 @@ export const getDiscordChannels = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`getDiscordChannels Error: ${res.data.errors[0].message}`)
     } else {
+      handleResponseTokens(res.data.data.getDiscordChannels, setUser)
+
       setSettings((prevSettings) => {
         return {
           ...prevSettings,
@@ -282,6 +285,7 @@ export const getQualityProfiles = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`getQualityProfiles Error: ${res.data.errors[0].message}`)
     } else {
+      handleResponseTokens(res.data.data.getQualityProfiles, setUser)
       setQualityProfiles(res.data.data.getQualityProfiles.data as QualityProfile[])
       console.log(`getQualityProfiles: Quality Profiles retrieved.`)
     }

@@ -79,3 +79,27 @@ export const clearErrors = <T extends Record<string, string | undefined>>(errObj
     acc[key as keyof T] = "" as T[keyof T]
     return acc
   }, {} as T)
+
+// Handle new tokens
+export const handleResponseTokens = <T extends { tokens?: string[] }>(
+  resObj: T,
+  setUser: Dispatch<SetStateAction<UserType>>,
+): T => {
+  const tokens = resObj.tokens
+
+  if (Array.isArray(tokens) && tokens.length === 2) {
+    const [accessToken, refreshToken] = tokens
+
+    localStorage.setItem("access_token", accessToken)
+    localStorage.setItem("refresh_token", refreshToken)
+
+    setUser((prev) => ({
+      ...prev,
+      token: accessToken,
+    }))
+
+    console.log("Tokens Refreshed!")
+  }
+
+  return resObj
+}

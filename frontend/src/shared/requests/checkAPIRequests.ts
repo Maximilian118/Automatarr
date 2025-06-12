@@ -3,7 +3,7 @@ import { settingsType } from "../../types/settingsType"
 import { Dispatch, SetStateAction } from "react"
 import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
-import { authCheck, headers } from "./requestUtility"
+import { authCheck, handleResponseTokens, headers } from "./requestUtility"
 
 // Checks if API connection is working.
 // If settings not passed, check with params in db.
@@ -48,6 +48,8 @@ export const checkRadarr = async (
       console.error(`${APIName} Error: ${res.data.errors[0].message}`)
       return false
     } else {
+      handleResponseTokens(res.data.data[APIName], setUser)
+
       if (Number(res.data.data[APIName].data) === 200) {
         console.log(`${APIName}: OK!`)
         return true
@@ -103,6 +105,8 @@ export const checkSonarr = async (
       console.error(`${APIName} Error: ${res.data.errors[0].message}`)
       return false
     } else {
+      handleResponseTokens(res.data.data[APIName], setUser)
+
       if (Number(res.data.data[APIName].data) === 200) {
         console.log(`${APIName}: OK!`)
         return true
@@ -158,6 +162,8 @@ export const checkLidarr = async (
       console.error(`${APIName} Error: ${res.data.errors[0].message}`)
       return false
     } else {
+      handleResponseTokens(res.data.data[APIName], setUser)
+
       if (Number(res.data.data[APIName].data) === 200) {
         console.log(`${APIName}: OK!`)
         return true
@@ -214,6 +220,8 @@ export const checkqBittorrent = async (
       console.error(`${APIName} Error: ${res.data.errors[0].message}`)
       return false
     } else {
+      handleResponseTokens(res.data.data[APIName], setUser)
+
       if (Number(res.data.data[APIName].data) === 200) {
         console.log(`${APIName}: OK!`)
         return true
