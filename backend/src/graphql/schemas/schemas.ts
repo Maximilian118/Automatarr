@@ -41,6 +41,7 @@ const Schema = buildSchema(`
 
   type RootMutation {
     createUser(name: String!, password: String!): User!
+    updateUser(userInput: userInput): User!
     updateSettings(settingsInput: settingsInput): Settings
   }
 

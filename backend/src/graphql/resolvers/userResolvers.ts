@@ -1,4 +1,4 @@
-import { signTokens } from "../../middleware/auth"
+import { AuthRequest, signTokens } from "../../middleware/auth"
 import User, { UserDocType, UserType } from "../../models/user"
 import { hashPass } from "../../shared/userUtility"
 import logger from "../../logger"
@@ -134,6 +134,55 @@ const userResolvers = {
       }
     } catch (err) {
       throw err
+    }
+  },
+  updateUser: async (
+    args: { userInput: UserType },
+    req: AuthRequest,
+  ): Promise<UserTypeWithTokens> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const user = (await User.findOne()) as UserDocType
+
+    if (!user) {
+      logger.error(`Auth | No user in the database.`)
+      throw new Error("No user found in the database.")
+    }
+
+    const { name, password, password_check } = args.userInput
+
+    // Update name if changed
+    if (name && name !== user.name) {
+      logger.info(`Auth | Name changed from ${user.name} to ${name}`)
+      user.name = name
+    }
+
+    // Handle password update
+    if (password || password_check) {
+      if (!password || !password_check) {
+        throw new Error("Both password and password_check are required to change password.")
+      }
+
+      if (password !== password_check) {
+        throw new Error("Passwords do not match.")
+      }
+
+      const salt = user.bcrypt_salt_rounds || 12
+      user.password = await hashPass(password, salt)
+      logger.info(`Auth | Password updated for user ${user.name}`)
+    }
+
+    user.updated_at = new Date()
+
+    await saveWithRetry(user, "updateUser")
+
+    return {
+      ...user._doc,
+      tokens: signTokens(user),
+      password: "",
+      password_check: "",
     }
   },
   forgot: async ({ recovery_key }: { recovery_key: string }): Promise<UserTypeWithTokens> => {

@@ -9,17 +9,20 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from "react-router-dom"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import { settingsErrorType} from "../types/settingsType"
-import { initSettingsErrors } from "../shared/init"
+import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import { numberSelection, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { updateInput } from "../shared/formValidation"
+import { UserErrorType } from "../types/userType"
+import { updateUser } from "../shared/requests/userRequests"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
+  const [ userFormErr, setUserFormErr ] = useState<UserErrorType>(initUserErrors())
 
   const navigate = useNavigate()
   
@@ -34,6 +37,7 @@ const Settings: React.FC = () => {
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
+    await updateUser(user, setUser, setUserFormErr, setLocalLoading, navigate)
   }
 
   // On localLoading change, change global loading as well
@@ -93,6 +97,67 @@ const Settings: React.FC = () => {
               }
             }}
             onBlur={(e) => updateInput(e, setSettings, setFormErr, true)}
+          />
+           <MUITextField
+            name="name"
+            label="User Name"
+            value={user.name}
+            formErr={userFormErr}
+            onChange={(e) => {
+              setUser(prev => ({
+                ...prev,
+                name: e.target.value,
+              }))
+
+              if (userFormErr.name) {
+                setUserFormErr(prevErrs => ({
+                  ...prevErrs,
+                  name: "",
+                }))
+              }
+            }}
+          />
+          <MUITextField
+            name="password"
+            label="New Password"
+            value={user.password}
+            formErr={userFormErr}
+            onChange={(e) => {
+              setUser(prev => ({
+                ...prev,
+                password: e.target.value,
+              }))
+
+              if (userFormErr.password) {
+                setUserFormErr(prevErrs => ({
+                  ...prevErrs,
+                  password: "",
+                }))
+              }
+            }}
+            onBlur={(e) => updateInput(e, setUser, setUserFormErr)}
+            type="password"
+          />
+          <MUITextField
+            name="password_check"
+            label="Confirm New Password"
+            value={user.password_check}
+            formErr={userFormErr}
+            onChange={(e) => {
+              setUser(prev => ({
+                ...prev,
+                password_check: e.target.value,
+              }))
+
+              if (userFormErr.password_check) {
+                setUserFormErr(prevErrs => ({
+                  ...prevErrs,
+                  password_check: "",
+                }))
+              }
+            }}
+            onBlur={(e) => updateInput(e, setUser, setUserFormErr)}
+            type="password"
           />
         </InputModel>
         <Button 

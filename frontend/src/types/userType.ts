@@ -2,6 +2,7 @@ export interface UserType {
   _id: string
   name: string
   password: string
+  password_check: string
   admin: boolean
   email: string
   icon: string

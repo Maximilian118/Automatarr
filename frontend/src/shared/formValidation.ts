@@ -125,7 +125,7 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
     if (/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/.test(password) || password === "") {
       inputErr(e.target.name, "")
     } else {
-      inputErr(e.target.name, "Must include a letter, number, special. 8+ length.")
+      inputErr(e.target.name, "Letter, number, special. 8+ length.")
     }
   }
 

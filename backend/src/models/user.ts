@@ -6,6 +6,7 @@ export interface UserType {
   _id: ObjectId
   name: string
   password: string
+  password_check?: string
   recovery_key_hash: string
   refresh_count: number
   admin: boolean
@@ -26,22 +27,27 @@ export interface UserDocType extends UserType, Document {
   _doc: UserType
 }
 
-const userSchema = new mongoose.Schema<UserType>({
-  name: { type: String, required: true },
-  password: { type: String, required: true, minlength: 8 },
-  recovery_key_hash: { type: String, required: true },
-  refresh_count: { type: Number, default: 0 },
-  admin: { type: Boolean, default: false },
-  email: { type: String, default: "" },
-  icon: { type: String, default: "" },
-  profile_picture: { type: String, default: "" },
-  jwt_access_secret: { type: String, default: () => crypto.randomBytes(64).toString("hex") },
-  jwt_refresh_secret: { type: String, default: () => crypto.randomBytes(64).toString("hex") },
-  bcrypt_salt_rounds: { type: Number, required: true },
-  logged_in_at: { type: Date, default: Date.now },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now },
-})
+const userSchema = new mongoose.Schema<UserType>(
+  {
+    name: { type: String, required: true },
+    password: { type: String, required: true, minlength: 8 },
+    recovery_key_hash: { type: String, required: true },
+    refresh_count: { type: Number, default: 0 },
+    admin: { type: Boolean, default: false },
+    email: { type: String, default: "" },
+    icon: { type: String, default: "" },
+    profile_picture: { type: String, default: "" },
+    jwt_access_secret: { type: String, default: () => crypto.randomBytes(64).toString("hex") },
+    jwt_refresh_secret: { type: String, default: () => crypto.randomBytes(64).toString("hex") },
+    bcrypt_salt_rounds: { type: Number, required: true },
+    logged_in_at: { type: Date, default: Date.now },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now },
+  },
+  {
+    optimisticConcurrency: true, // Fixes an issue with __v not updating in db on save().
+  },
+)
 
 const User = mongoose.model<UserType>("User", userSchema)
 

@@ -4,7 +4,7 @@ import { UserErrorType, UserType } from "../../types/userType"
 import { Dispatch, SetStateAction } from "react"
 import { loginSuccess } from "../localStorage"
 import { NavigateFunction } from "react-router-dom"
-import { getAxiosErrorMessage } from "./requestUtility"
+import { authCheck, getAxiosErrorMessage, headers } from "./requestUtility"
 
 export const createUser = async (
   user: UserType,
@@ -91,6 +91,77 @@ export const login = async (
     })
 
     console.error(`login Error: ${err}`)
+  } finally {
+    setLoading(false)
+  }
+}
+
+export const updateUser = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  setFormErr: Dispatch<SetStateAction<UserErrorType>>,
+  setLoading: Dispatch<SetStateAction<boolean>>,
+  navigate: NavigateFunction,
+): Promise<void> => {
+  setLoading(true)
+
+  try {
+    const res = await axios.post(
+      "",
+      {
+        variables: user,
+        query: `
+        mutation UpdateUser(
+          $name: String, 
+          $password: String, 
+          $password_check: String
+        ) {
+          updateUser(userInput: {
+            name: $name
+            password: $password
+            password_check: $password_check
+          }) {
+            ${populateUser}
+          }
+        }
+      `,
+      },
+      { headers: headers(user.token) },
+    )
+
+    if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
+      console.error(`updateUser Error: ${res.data.errors[0].message}`)
+    } else {
+      console.log(res.data.data.updateUser)
+    }
+  } catch (err) {
+    const msg = getAxiosErrorMessage(err)
+    const lowerMsg = msg.toLowerCase()
+
+    let field: keyof UserType | "password_check"
+
+    switch (true) {
+      case lowerMsg.includes("password_check"):
+        field = "password_check"
+        break
+      case lowerMsg.includes("password"):
+        field = "password"
+        break
+      case lowerMsg.includes("name"):
+        field = "name"
+        break
+      default:
+        field = "name"
+        break
+    }
+
+    setFormErr((prevErrs) => ({
+      ...prevErrs,
+      [field]: msg,
+    }))
+
+    console.error(`createUser Error: ${err}`)
   } finally {
     setLoading(false)
   }
