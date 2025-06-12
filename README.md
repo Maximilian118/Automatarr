@@ -7,9 +7,6 @@ _Like this app? Thanks for giving it a_ ⭐️
 Automatarr reduces manual input tasks for Radarr & Sonarr and allows for the control of Starr apps through bots.
 All bots abide by a unified pool system which regulates how much content users can download at once.
 
-Do not expose this application to the internet as it has no security.
-Run it in such a way that only devices on your LAN can access it.
-
 ## Feature overview:
 
 Loops:
@@ -83,5 +80,5 @@ If successful and the application is running, a directory named `automatarr` wil
 - [ ] Add Lidarr support
 - [ ] Add Readarr support
 - [x] Add spinner to top right of settings pages or nav bar for more obvious loading
-- [ ] Add security
-- [ ] Add webhooks for better notifications (Security needed)
+- [x] Add security
+- [ ] Add webhooks for better bot notifications (Security needed)
