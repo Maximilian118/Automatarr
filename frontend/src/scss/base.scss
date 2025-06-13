@@ -71,6 +71,14 @@ body {
 
 /* Styles for mobile devices */
 @media only screen and (max-width: 768px) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  html, body {
+    overflow-x: hidden;
+  }
+  
   body {
     #root {
       form {
@@ -79,6 +87,11 @@ body {
 
       .login-form {
         justify-content: flex-start;
+
+        img {
+          width: 240px;
+          margin: 40px 0 60px;
+        }
       }
     }
   }
