@@ -38,26 +38,21 @@ If your version is below v2.0.0, use `docker-compose` for commands (with a dash)
 
 2. **Create a `docker-compose.yml` File**
 
-Create a file named `docker-compose.yml` in your desired directory and add the following content:
+Create a `docker-compose.yml` file in your desired directory and add the following content:
 
 ```yaml
 services:
   automatarr:
-    image: ghcr.io/maximilian118/automatarr:latest
     container_name: automatarr
-    restart: always
+    image: ghcr.io/maximilian118/automatarr:latest
+    restart: unless-stopped
     ports:
-      - "8090:8090" # Frontend (served at localhost:8090)
-      - "8091:8091" # Backend (served at localhost:8091)
+      - "8090:8090" # Frontend
+      - "8091:8091" # Backend
     volumes:
       - ./automatarr/database:/app/automatarr_database
       - ./automatarr/logs:/app/automatarr_logs
-      - /:/host_fs # Mount the host filesystem
-    environment:
-      # - VITE_BACKEND_IP=192.168.1.2 # Optional - Recommended
-      # - VITE_BACKEND_PORT=8091 # Optional
-      # - VITE_DATABASE_IP=172.0.0.2 # Optional
-      # - VITE_DATABASE_PORT=27020 # Optional
+      - /:/host_fs
 ```
 
 3. `docker compose pull`
@@ -67,6 +62,69 @@ services:
 If successful and the application is running, a directory named `automatarr` will be created alongside the `docker-compose.yml` file. The `automatarr` directory contains a `database` directory where `MongoDB` stores its local database, as well as a `logs` directory where all backend logs are stored.
 
 `/:/host_fs` exposes your machine's entire filesystem to Automatarr. If you're not comfortable with this, that's absolutely fine — simply omit it. However, this means Automatarr will not have access to, and therefore cannot manipulate, content outside of what is achievable through API requests.
+
+## Connect via Domain (NGINX + SSL)
+
+To access Automatarr via a domain name (e.g. https://automatarr.yourdomain.com), use `NGINX` or `NGINX Proxy Manager` to forward traffic to the correct internal ports.
+
+**Using NGINX manually:**
+
+Replace 192.168.x.x with your server's internal IP, e.g. 192.168.1.100
+
+```nginx
+server {
+  listen 443 ssl;
+  server_name example.yourdomain.com;
+
+  ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+  location / {
+    proxy_pass http://192.168.x.x:8090;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+
+  location /graphql {
+    proxy_pass http://192.168.x.x:8091/graphql;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+}
+```
+
+**Using NGINX Proxy Manager GUI:**
+
+Create a Proxy Host for example.yourdomain.com, forwarding to:
+
+```nginx
+Scheme: http
+Forward Hostname/IP: 192.168.x.x
+Forward Port: 8090
+```
+
+Under the Custom Locations tab, add:
+
+```nginx
+Location: /graphql
+Scheme: http
+Forward Hostname/IP: 192.168.x.x (Same IP)
+Forward Port: 8091
+```
+
+Then click the cog symbol to open the textarea and paste the following:
+
+```nginx
+location /graphql {
+  proxy_pass http://192.168.x.x:8091/graphql;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+}
+```
+
+The /graphql location is required so the frontend can reach the backend through the same domain.
+
+✅ That’s it! You can now access the app securely at https://example.yourdomain.com.
 
 ## To do:
 

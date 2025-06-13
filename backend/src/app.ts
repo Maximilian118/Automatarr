@@ -54,10 +54,10 @@ if (!fs.existsSync(databasePath)) {
 }
 
 const startServer = async () => {
-  const db_IP = process.env.VITE_DATABASE_IP || "127.0.0.1"
-  const db_PORT = process.env.VITE_DATABASE_PORT || "27020"
+  const db_IP = "0.0.0.0"
+  const db_PORT = "27020"
   const backend_IP = "0.0.0.0"
-  const backend_PORT = process.env.VITE_BACKEND_PORT || "8091"
+  const backend_PORT = "8091"
 
   // Set up MongoMemoryServer to store data in the local 'database' folder
   let mongoServer

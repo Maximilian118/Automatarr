@@ -5,12 +5,21 @@ import { ThemeProvider, createTheme } from '@mui/material/styles'
 import App from './App.tsx'
 import axios from 'axios'
 
-const protocol = window.location.protocol // http: or https:
-const backend_IP = import.meta.env.VITE_BACKEND_IP ? import.meta.env.VITE_BACKEND_IP : "localhost" // Allow env variable overwrite
-const backend_PORT = import.meta.env.VITE_BACKEND_PORT ? import.meta.env.VITE_BACKEND_PORT : "8091" // Target backend port if changed
+// URL for backend requests.
+const isLocalhost = window.location.hostname === "localhost"
+const isDomain = /^[a-zA-Z.-]+$/.test(window.location.hostname) // crude domain check
+const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)
 
-// URL for all GraphQL requests.
-axios.defaults.baseURL = `${protocol}//${backend_IP}:${backend_PORT}/graphql`
+if (isLocalhost || isDomain) {
+  // Development (localhost) or Production with NGINX & domain proxying
+  axios.defaults.baseURL = "/graphql"
+} else if (isIP) {
+  // Access via LAN IP: use the same IP but port 8091
+  axios.defaults.baseURL = `http://${window.location.hostname}:8091/graphql`
+} else {
+  console.warn("Unknown frontend access pattern. Falling back to /graphql.")
+  axios.defaults.baseURL = "/graphql"
+}
 
 // MUI style
 const theme = createTheme({
