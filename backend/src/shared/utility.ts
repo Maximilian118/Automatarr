@@ -188,14 +188,14 @@ export const currentPaths = (data: dataType): string[] => {
     return paths
   }
 
+  const prefs = data.qBittorrent.preferences
+
   // Add all qBittorrent download location paths
   if (data.qBittorrent.categories.length > 0) {
     for (const qBitCat of data.qBittorrent.categories) {
-      paths.push(qBitCat.savePath)
+      paths.push(`${prefs.save_path}/${qBitCat.savePath}`)
     }
   }
-
-  const prefs = data.qBittorrent.preferences
 
   // If data.qBittorrent.preferences is populated
   if (prefs && Object.keys(prefs).length > 0) {

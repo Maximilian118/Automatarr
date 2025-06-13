@@ -14,7 +14,7 @@ const hostFS = "/host_fs"
 // Function to verify host filesystem availability
 const isHostFsAvailable = (isDocker?: boolean): boolean => {
   if (isDocker && !fs.existsSync(hostFS)) {
-    logger.warn("Host filesystem not mounted.")
+    logger.warn("Permissions | Host filesystem not mounted.")
     return false
   }
 
@@ -28,8 +28,8 @@ export const checkPermissions = (
   perms?: permissionTypes[],
   APIName?: string,
 ): boolean => {
-  if (process.env.NODE_ENV === "development") {
-    logger.info("Permissions Check bypassed. In Development mode.")
+  if (!isDocker) {
+    logger.info("Permissions | Check bypassed. In Development mode.")
     return true
   }
 
@@ -70,15 +70,15 @@ export const checkPermissions = (
       switch (perm) {
         case "read":
           if (!fs.existsSync(dirOrFilePath)) {
-            logger.error(`Path does not exist: ${dirOrFilePath}`)
+            logger.error(`Permissions | Path does not exist: ${dirOrFilePath}`)
             return false
           }
           if (isDirectory && !fs.readdirSync(dirOrFilePath)) {
-            logger.error(`Read permission denied: ${dirOrFilePath}`)
+            logger.error(`Permissions | Read permission denied: ${dirOrFilePath}`)
             return false
           }
           if (!isDirectory && !fs.readFileSync(dirOrFilePath)) {
-            logger.error(`Read permission denied: ${dirOrFilePath}`)
+            logger.error(`Permissions | Read permission denied: ${dirOrFilePath}`)
             return false
           }
           break
@@ -100,18 +100,18 @@ export const checkPermissions = (
           break
 
         default:
-          logger.error(`Invalid permission type specified: ${perm}`)
+          logger.error(`Permissions | Invalid permission type specified: ${perm}`)
       }
     }
 
     if (APIName) {
-      logger.info(`${APIName} | Permissions: ${neatPerms} ${originalPath} OK!`)
+      logger.success(`Permissions | ${APIName} | ${neatPerms} ${originalPath} OK!`)
     }
 
     return true
   } catch (err) {
     logger.error(`
-      ${APIName ? `${APIName} |` : ""} Permissions: ${neatPerms} check failed for ${originalPath}. 
+      Permissions | ${APIName ? `${APIName} |` : ""} ${neatPerms} check failed for ${originalPath}. 
       Error: ${errCodeAndMsg(err)}`)
     return false
   }
@@ -119,6 +119,11 @@ export const checkPermissions = (
 
 // Check all needed directories on boot
 export const bootPermissions = (data: dataType | undefined): void => {
+  if (!isDocker) {
+    logger.info("Permissions | Check bypassed. In Development mode.")
+    return
+  }
+
   if (!isHostFsAvailable(isDocker)) {
     logger.warn(`bootPermissions: Cannot find host file system.`)
     return
