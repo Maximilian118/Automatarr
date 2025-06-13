@@ -2,6 +2,8 @@
 
 _Like this app? Thanks for giving it a_ ⭐️
 
+<a href="https://coff.ee/maximilian118" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
 ## Overview
 
 Automatarr reduces manual input tasks for Radarr & Sonarr and allows for the control of Starr apps through bots.
