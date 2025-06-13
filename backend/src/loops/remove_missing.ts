@@ -15,7 +15,7 @@ import { deleteFromLibrary } from "../shared/StarrRequests"
 import { isMovie } from "../types/typeGuards"
 import moment from "moment"
 import { saveWithRetry } from "../shared/database"
-import { deleteFromMachine, getChildPaths } from "../shared/fileSystem"
+import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem"
 
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
@@ -169,6 +169,13 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         // Loop through all of the updated library items that now has torrent data
         for (const libraryItem of itemsForDeletion) {
           const deleteFromLibraryHelper = async () => {
+            if (!isDocker) {
+              logger.info(
+                `${API.name}: ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
+              )
+              return
+            }
+
             // Delete libraryItem from Starr app library as well as usenet downloader and storage
             if (await deleteFromLibrary(libraryItem, API)) {
               // On request succes remove deleted library item from filteredLibrary

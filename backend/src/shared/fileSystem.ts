@@ -2,10 +2,21 @@ import fs from "fs"
 import path from "path"
 import { isPosix, isThreeDigitOctal } from "./utility"
 import logger from "../logger"
-import { isDocker } from "../app"
 import { checkPermissions } from "./permissions"
 import { execSync } from "child_process"
 import { errCodeAndMsg } from "./requestError"
+
+// Check if code is running in a Docker container or not
+export const isDocker = (() => {
+  try {
+    if (fs.existsSync("/.dockerenv")) return true
+
+    const cgroup = fs.readFileSync("/proc/1/cgroup", "utf8")
+    return cgroup.includes("docker") || cgroup.includes("kubepods")
+  } catch {
+    return false
+  }
+})()
 
 // Delete a file or directory from the filesystem of the machine
 export const deleteFromMachine = (dirOrFilePath: string): boolean => {

@@ -39,9 +39,6 @@ app.use(
   }),
 )
 
-// Check if code is running in a Docker container or not
-export const isDocker = fs.existsSync("/.dockerenv")
-
 // Create or use existing directory for database files
 const databasePath = path.join(__dirname, "..", "..", "automatarr_database")
 

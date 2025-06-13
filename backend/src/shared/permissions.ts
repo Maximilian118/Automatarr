@@ -3,8 +3,8 @@ import path from "path"
 import { capsFirstLetter, currentPaths } from "./utility"
 import { dataType } from "../models/data"
 import logger from "../logger"
-import { isDocker } from "../app"
 import { errCodeAndMsg } from "./requestError"
+import { isDocker } from "./fileSystem"
 
 type permissionTypes = "read" | "write" | "delete" | "move" | "all"
 
