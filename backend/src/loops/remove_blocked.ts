@@ -16,7 +16,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
   for (const API of activeAPIs) {
     // Create a downloadQueue object and retrieve the latest queue data
     let queue = await getQueue(API, data)
-    console.log(queue)
+
     if (!queue) {
       updateDownloadQueue(API, data)
       logger.error(`importBlocked: ${API.name} download queue could not be retrieved.`)
