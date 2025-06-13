@@ -31,7 +31,7 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
   try {
     const res = await axios.get(
       cleanUrl(
-        `${API.data.URL}/api/${API.data.API_version}/queue?page=1&pageSize=1000&sortDirection=ascending&sortKey=timeleft&includeUnknownMovieItems=true&apikey=${API.data.KEY}`,
+        `${API.data.URL}/api/${API.data.API_version}/queue?page=1&pageSize=1000&sortDirection=ascending&sortKey=timeleft&includeUnknownMovieItems=true&includeUnknownSeriesItems=true&apikey=${API.data.KEY}`,
       ),
     )
 
