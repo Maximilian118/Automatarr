@@ -1,7 +1,7 @@
 import { Client, Events, GatewayIntentBits } from "discord.js"
 import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
-import { getServerandChannels, initDiscordBot } from "./discordBotUtility"
+import { getServerandChannels, handleDiscordErrors, initDiscordBot } from "./discordBotUtility"
 import { messageListeners } from "./discordBotListeners"
 import { guildMemberAddListener } from "./discordBotGuildMemberAdd"
 
@@ -67,6 +67,10 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     await client.login(settings.discord_bot.token)
     await readyPromise
 
+    // Handle errors
+    handleDiscordErrors(client)
+
+    // Start listeners
     await messageListeners(client)
     guildMemberAddListener(client)
 

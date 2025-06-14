@@ -401,3 +401,17 @@ export const randomEpisodeStillNotDownloadedMessage = (
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+export const randomCrashedMessage = (err: unknown): string => {
+  const errStr = err instanceof Error ? err.message : String(err)
+
+  const messages = [
+    `💥 Something exploded while handling your request. My sincerest digital apologies: ${errStr}`,
+    `Blaah aghh uuuug... I crashed 💀. Here's a load of error crap: ${errStr}`,
+    `I do apologise. I crashed 💀. I need to puke out a bunch of error mumbo jumbo: ${errStr}`,
+    `⚠️ Well... that broke. Here's the mess I made: ${errStr}`,
+    `😵 That didn't go well. Here's what the server had to say: ${errStr}`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}

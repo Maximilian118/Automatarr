@@ -1,5 +1,5 @@
 import { Client, Message } from "discord.js"
-import { adminCheck, sendDiscordMessage } from "./discordBotUtility"
+import { sendDiscordMessage } from "./discordBotUtility"
 import {
   caseAdmin,
   caseDeleteUser,
@@ -16,6 +16,7 @@ import {
   caseList,
   caseRemove,
 } from "./discordBotContentListeners"
+import { handleDiscordCase } from "./discordBotCaseHandler"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -33,7 +34,7 @@ export const messageListeners = async (client: Client) => {
     if (!message.content.startsWith(prefix)) return
 
     const [command, ..._args] = message.content.slice(prefix.length).trim().split(/\s+/)
-    // prettier-ignore
+
     switch (command.toLowerCase()) {
       case "ping": // Calculate round trip time
         await message.channel.send(casePing(client, message))
@@ -41,47 +42,48 @@ export const messageListeners = async (client: Client) => {
       case "hello": // Say Hello!
         await message.channel.send(`Hello, ${message.author.username}!`)
         break
-      case "help": caseHelp(message) // Display all commands and how to use them
+      case "help": // Display all commands and how to use them
+        caseHelp(message)
         break
       case "owner": // Assign the server owner
-        await message.channel.send((await adminCheck(message)) || (await caseOwner(message)))
+        await handleDiscordCase(message, caseOwner, true)
         break
-      case "admin": // Promote or Demote somone from Admin
-        await message.channel.send((await adminCheck(message)) || (await caseAdmin(message)))
+      case "admin": // Promote or Demote someone from Admin
+        await handleDiscordCase(message, caseAdmin, true)
         break
-      case "superuser": // Promote or Demote somone from a super user
-        await message.channel.send((await adminCheck(message)) || (await caseSuperUser(message)))
+      case "superuser": // Promote or Demote someone from a super user
+        await handleDiscordCase(message, caseSuperUser, true)
         break
       case "maximum":
       case "max": // Set the max_<content>_overwrite for a user
-        await message.channel.send((await adminCheck(message)) || (await caseMax(message)))
+        await handleDiscordCase(message, caseMax, true)
         break
       case "initialize":
       case "initialise":
       case "init": // Initialise a new user in the database *** admin gets checked in the case ***
-        await message.channel.send(await caseInit(message))
+        await handleDiscordCase(message, caseInit)
         break
-      case "deleteuser": // Delete a user in databse only
-        await message.channel.send((await adminCheck(message)) || (await caseDeleteUser(message)))
+      case "deleteuser": // Delete a user in the database only
+        await handleDiscordCase(message, caseDeleteUser, true)
         break
-      case "removeuser": // Remove a user from the database and the discord server
-        await message.channel.send((await adminCheck(message)) || (await caseRemoveUser(message)))
+      case "removeuser": // Remove a user from the database and the Discord server
+        await handleDiscordCase(message, caseRemoveUser, true)
         break
       case "stats": // Display the stats of the author or another user
-        await message.channel.send((await caseStats(message)))
+        await handleDiscordCase(message, caseStats)
         break
       case "list": // List pool for a user
-        await message.channel.send(await caseList(message))
+        await handleDiscordCase(message, caseList)
         break
       case "download": // Download content
-        await message.channel.send(await caseDownloadSwitch(message))
+        await handleDiscordCase(message, caseDownloadSwitch)
         break
-      case "remove": // Remove content from users pool
-        await message.channel.send(await caseRemove(message))
+      case "remove": // Remove content from user's pool
+        await handleDiscordCase(message, caseRemove)
         break
       case "blocklist":
       case "dud": // Mark a download as unsatisfactory, blocklist it and start a new download
-        await message.channel.send(await caseBlocklist(message))
+        await handleDiscordCase(message, caseBlocklist)
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)

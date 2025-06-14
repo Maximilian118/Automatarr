@@ -20,21 +20,21 @@ const settingsResolvers = {
 
     // Return settings object if it already exists
     if (settings) {
-      logger.success("Found existing settings object in database.")
+      logger.success("MongoDB | Found existing settings object in database.")
       return settings
     }
 
     // Create a new settings object
     const newSettings = new Settings({}, (err: string) => {
       if (err) {
-        logger.error("newSettings: Could not create new Settings.")
+        logger.error("MongoDB | Could not create new Settings.")
         throw new Error(err)
       }
     })
 
     // Push settings object to the database
     const createdSettings = (await newSettings.save()) as settingsDocType
-    logger.success("New settings object created.")
+    logger.success("MongoDB | New settings object created.")
 
     return createdSettings
   },

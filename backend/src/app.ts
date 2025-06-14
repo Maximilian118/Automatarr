@@ -45,9 +45,9 @@ const databasePath = path.join(__dirname, "..", "..", "automatarr_database")
 // Ensure the directory exists
 if (!fs.existsSync(databasePath)) {
   fs.mkdirSync(databasePath)
-  logger.success(`Database not found. Creating directory at: ${databasePath}`)
+  logger.success(`MongoDB | Database not found. Creating directory at: ${databasePath}`)
 } else {
-  logger.success(`Database found at: ${databasePath}`)
+  logger.success(`MongoDB | Database found at: ${databasePath}`)
 }
 
 const startServer = async () => {
@@ -70,13 +70,21 @@ const startServer = async () => {
       },
     })
   } catch (err) {
-    logger.error(`MongoMemoryServer failed to start: ${err}`)
+    logger.catastrophic(`MongoDB | failed to start! ${err}`)
+
+    if (String(err).toLowerCase().includes("failed to start within")) {
+      logger.catastrophic(
+        `MongoDB | You're likely seeing this error if your host machine is too slow due to I/O or CPU performance.`,
+      )
+    }
+
     process.exit(1)
   }
 
   // Gracefully shut down MongoMemoryServer
   const shutdown = async () => {
-    logger.catastrophic("Shutting down MongoMemoryServer...")
+    logger.catastrophic("MongoDB | Shutting down...")
+
     if (mongoServer) {
       await mongoServer.stop()
     }
@@ -88,7 +96,7 @@ const startServer = async () => {
   process.on("SIGTERM", shutdown)
   process.on("SIGUSR2", async () => {
     // Nodemon uses SIGUSR2 signal to restart
-    logger.warn("Restarting server (triggered by Nodemon)...")
+    logger.warn("MongoDB | Restarting server...")
     await shutdown() // Gracefully shutdown MongoMemoryServer
     process.kill(process.pid, "SIGUSR2") // Restart Nodemon
   })
@@ -102,11 +110,11 @@ const startServer = async () => {
 
     // Start the server once MongoDB is connected
     app.listen(Number(backend_PORT), backend_IP, () => {
-      logger.success(`Server started at ${backend_IP}:${backend_PORT}`)
-      logger.success(`MongoDB started at ${mongoUri}`)
+      logger.success(`MongoDB | Server started at ${backend_IP}:${backend_PORT}`)
+      logger.success(`MongoDB | Started at ${mongoUri}`)
     })
   } catch (err) {
-    logger.error(`Error starting MongoDB or server: ${err}`)
+    logger.error(`MongoDB | Error starting MongoDB or server: ${err}`)
   }
 
   // Initialise settings in db if first boot. If settings exists, return settings.

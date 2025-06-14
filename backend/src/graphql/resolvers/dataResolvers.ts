@@ -23,21 +23,21 @@ const dataResolvers = {
 
     // Return data object if it already exists
     if (data) {
-      logger.success("Found existing data object in database.")
+      logger.success("MongoDB | Found existing data object in database.")
       return data
     }
 
     // Create new data object
     const newData = new Data({}, (err: string) => {
       if (err) {
-        logger.error("newData: Could not create new data object.")
+        logger.error("MongoDB | Could not create new data object.")
         throw new Error(err)
       }
     })
 
     // Push data object to the database
     await newData.save()
-    logger.success("New data object created.")
+    logger.success("MongoDB | New data object created.")
 
     return newData
   },

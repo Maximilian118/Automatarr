@@ -15,6 +15,21 @@ import { formatBytes } from "../../shared/utility"
 import moment from "moment"
 import { getDiscordClient } from "./discordBot"
 
+// Handle errors
+export const handleDiscordErrors = (client: Client) => {
+  client.on("error", (err) => {
+    logger.catastrophic(`Error event caught: ${err}`)
+  })
+
+  client.on("shardError", (err) => {
+    logger.catastrophic(`Shard Error event caught: ${err}`)
+  })
+
+  process.on("unhandledRejection", (reason, promise) => {
+    logger.error("Unhandled Rejection at:", promise, "reason:", reason)
+  })
+}
+
 export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   return {
     ...discord_bot,
