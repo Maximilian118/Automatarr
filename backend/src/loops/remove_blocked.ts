@@ -1,6 +1,6 @@
 import { settingsType } from "../models/settings"
 import { activeAPIsArr } from "../shared/activeAPIsArr"
-import { deleteFromQueue, getQueue } from "../shared/StarrRequests"
+import { deleteFromQueue, getQueue, importCommand } from "../shared/StarrRequests"
 import { capsFirstLetter, getContentName, updateDownloadQueue } from "../shared/utility"
 import logger from "../logger"
 import { DownloadStatus } from "../types/types"
@@ -55,7 +55,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
             statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
         )
 
-        if (hasMatch) return `${capsFirstLetter(msg)}.`
+        if (hasMatch) return `| ${capsFirstLetter(msg)}.`
       }
 
       return ""
@@ -80,6 +80,11 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
       if (deletedKeys.has(dedupKey)) continue
 
       const oneMessage = blockedFile.statusMessages.length < 2
+      const matchedID = msgCheck(blockedFile, [
+        `Found matching ${getContentName(
+          API,
+        )} via grab history, but release was matched to ${getContentName(API)} by ID`,
+      ])
       const deleteCase = msgCheck(blockedFile, [
         "missing",
         "unsupported",
@@ -88,13 +93,12 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         "sample",
         "might need to be extracted",
       ])
-      const idConflict = msgCheck(blockedFile, [`matched to ${getContentName(API)} by ID`])
 
       // Attempt to delete and record the deduplication key
       const tryDelete = async (reason: string) => {
         if (!isDocker) {
           logger.info(
-            `${API.name}: ${blockedFile.title} Skipped deletion. Running in development mode. 🧊`,
+            `${API.name} | ${blockedFile.title} | Skipped deletion. Running in development mode. 🧊`,
           )
           return
         }
@@ -115,13 +119,13 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
       }
 
       // If the problem is an ID conflict and that's the only problem, delete.
-      if (idConflict) {
+      if (matchedID) {
         if (!oneMessage) {
           logger.warn(
-            `${API.name} | ${blockedFile.title}. ID conflict but has other errors. Deferring to other cases...`,
+            `${API.name} | ${blockedFile.title} | Matches by ID but couldn't verify title. There are other issues as well. Deferring to other cases...`,
           )
         } else {
-          await tryDelete("ID Conflict.")
+          await importCommand(blockedFile, API)
         }
 
         continue

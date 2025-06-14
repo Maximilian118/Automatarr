@@ -25,6 +25,7 @@ import { Artist } from "../types/artistTypes"
 import moment from "moment"
 import { errCodeAndMsg } from "./requestError"
 import { QualityProfile } from "../types/qualityProfileType"
+import { isDocker } from "./fileSystem"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
@@ -517,12 +518,16 @@ export const getManualImport = async (
 
 // Import a file from the queue
 export const importCommand = async (download: DownloadStatus, API: APIData): Promise<boolean> => {
+  if (!isDocker) {
+    logger.info(`${API.name} | ${download.title} | Skipped Import. Running in development mode. 🧊`)
+
+    return false
+  }
+
   const manualImport = await getManualImport(download, API)
 
   if (!manualImport) {
-    logger.error(
-      `importCommand: ${API.name}: Failed to retrieve preliminary data from getManualImport request.`,
-    )
+    logger.error(`${API.name} | Failed to retrieve preliminary data from getManualImport request.`)
     return false
   }
 
@@ -555,6 +560,7 @@ export const importCommand = async (download: DownloadStatus, API: APIData): Pro
       return false
     }
 
+    logger.success(`${API.name} | ${download.title} | Imported!`)
     return true
   } catch (err) {
     logger.error(`importCommand: ${errCodeAndMsg(err)}`)

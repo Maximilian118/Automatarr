@@ -10,24 +10,6 @@ if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory)
 }
 
-// --- Emoji support detection ---
-function supportsEmojis(): boolean {
-  return (
-    process.platform !== "linux" ||
-    Boolean(process.env.TERM?.includes("xterm") || process.env.TERM_PROGRAM)
-  )
-}
-
-const supportsEmoji = supportsEmojis()
-
-// --- Emoji stripping utility ---
-function stripEmojis(text: string): string {
-  return text.replace(
-    /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF])/g,
-    "",
-  )
-}
-
 // Custom timestamp format
 const timestampFormat = () => moment().format("DD-MM-YYYY HH:mm:ss")
 
@@ -55,21 +37,20 @@ const customLevels = {
 
 // Emoji mapping
 const emojiMap: Record<string, string> = {
-  catastrophic: supportsEmoji ? "💀" : "",
-  error: supportsEmoji ? "❌" : "",
-  warn: supportsEmoji ? "⚠️" : "",
-  success: supportsEmoji ? "✅" : "",
-  loop: supportsEmoji ? "🔄" : "",
-  info: supportsEmoji ? "ℹ️" : "",
-  debug: supportsEmoji ? "🐞" : "",
+  catastrophic: "💀",
+  error: "❌",
+  warn: "⚠️",
+  success: "✅",
+  loop: "🔄",
+  info: "ℹ️",
+  debug: "🐞",
 }
 
-// Custom formatter with conditional emoji sanitization
+// Custom formatter
 const customFormat = format.printf(({ timestamp, level, message }) => {
   const emoji = emojiMap[level] || ""
   const upperLevel = level.toUpperCase()
-  const sanitizedMessage = supportsEmoji ? message : stripEmojis(message)
-  return `[${timestamp}] [${emoji ? `${emoji} ` : ""}${upperLevel}] ${sanitizedMessage}`
+  return `[${timestamp}] [${emoji} ${upperLevel}] ${message}`
 })
 
 // Filter to allow only specific log levels
