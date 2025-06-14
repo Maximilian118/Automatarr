@@ -22,7 +22,7 @@ const search_wanted_missing = async (settings: settingsType): Promise<void> => {
         commands.some((a) => a.name.toLowerCase().startsWith("missing"))
 
       if (alreadySearching(API.data.commands)) {
-        logger.info(`wantedMissing: ${API.name} is already searching.`)
+        logger.info(`wanted_missing | ${API.name} is already searching.`)
         continue
       }
     }

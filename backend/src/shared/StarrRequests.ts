@@ -468,7 +468,7 @@ export const searchMissing = async (
 ): Promise<boolean> => {
   // Ensure we have a list of commands for this API
   if (!commandList) {
-    logger.error(`searchMissing: Could not find any commands for ${APIname}.`)
+    logger.error(`wanted_missing | Could not find any commands for ${APIname}.`)
     return false
   }
 
@@ -477,7 +477,7 @@ export const searchMissing = async (
 
   // Ensure missingSearchString is populated
   if (!missingSearchString) {
-    logger.error(`searchMissing: Could not find a command string for ${APIname}.`)
+    logger.error(`wanted_missing | Could not find a command string for ${APIname}.`)
     return false
   }
 
@@ -486,10 +486,10 @@ export const searchMissing = async (
       name: missingSearchString,
     })
 
-    logger.info(`searchMissing: ${APIname} search started.`)
+    logger.info(`wanted_missing | ${APIname} search started.`)
     return true
   } catch (err) {
-    logger.error(`searchMissing: ${APIname} error: ${err}.`)
+    logger.error(`wanted_missing | ${APIname} error: ${err}.`)
     return false
   }
 }
