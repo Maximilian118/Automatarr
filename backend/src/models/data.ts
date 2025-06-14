@@ -60,6 +60,21 @@ export interface qBittorrent extends baseData {
   preferences: qBittorrentPreferences
 }
 
+// General Loop data
+export interface LoopData {
+  first_ran: Date
+  last_ran: Date
+}
+
+export interface Loops {
+  permissions_change: LoopData | null
+  remove_blocked: LoopData | null
+  remove_failed: LoopData | null
+  remove_missing: LoopData | null
+  search_wanted_missing: LoopData | null
+  tidy_directories: LoopData | null
+}
+
 // Main dataType
 export interface dataType {
   _id: ObjectId
@@ -72,6 +87,7 @@ export interface dataType {
   libraries: library[]
   missingWanteds: library[]
   qBittorrent: qBittorrent
+  loops: Loops
   created_at: string
   updated_at: string
   tokens: string[] // Tokens to be sent in resolver return for session data.
@@ -137,6 +153,20 @@ const qBittorrentSchema = new mongoose.Schema<qBittorrent>({
   preferences: { type: mongoose.Schema.Types.Mixed, default: {} },
 })
 
+const loopDataSchema = new mongoose.Schema<LoopData>({
+  first_ran: { type: Date, default: Date.now },
+  last_ran: { type: Date, default: Date.now },
+})
+
+const loopSchema = new mongoose.Schema<Loops>({
+  permissions_change: { type: loopDataSchema, default: null },
+  remove_blocked: { type: loopDataSchema, default: null },
+  remove_failed: { type: loopDataSchema, default: null },
+  remove_missing: { type: loopDataSchema, default: null },
+  search_wanted_missing: { type: loopDataSchema, default: null },
+  tidy_directories: { type: loopDataSchema, default: null },
+})
+
 const initqBittorrent: qBittorrent = {
   name: "qBittorrent",
   created_at: moment().format(),
@@ -159,6 +189,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },
   qBittorrent: { type: qBittorrentSchema, default: initqBittorrent },
+  loops: { type: loopSchema, default: () => ({}) },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

@@ -8,10 +8,15 @@ import { saveWithRetry } from "../shared/database"
 import { blocklistAndSearchMovie } from "../shared/RadarrStarrRequests"
 import { blocklistAndSearchEpisode } from "../shared/SonarrStarrRequests"
 import { isDocker } from "../shared/fileSystem"
+import { shouldSkipLoop, updateLoopData } from "./loopUtility"
 
 const remove_blocked = async (settings: settingsType): Promise<void> => {
   // Only get data for API's that have been checked and are active
   const { data, activeAPIs } = await activeAPIsArr(settings)
+
+  // If loop exists and has a last_ran timestamp, check how long ago it was
+  const { shouldSkip } = shouldSkipLoop("remove_blocked", data, settings.remove_blocked_loop)
+  if (shouldSkip) return
 
   // Loop through all of the active API's
   for (const API of activeAPIs) {
@@ -148,6 +153,8 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
       )
     }
   }
+
+  updateLoopData("remove_blocked", data)
 
   // Save the latest download queue data to the db
   await saveWithRetry(data, "remove_blocked")
