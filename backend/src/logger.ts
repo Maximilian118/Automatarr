@@ -10,6 +10,24 @@ if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory)
 }
 
+// --- Emoji support detection ---
+function supportsEmojis(): boolean {
+  return (
+    process.platform !== "linux" ||
+    Boolean(process.env.TERM?.includes("xterm") || process.env.TERM_PROGRAM)
+  )
+}
+
+const supportsEmoji = supportsEmojis()
+
+// --- Emoji stripping utility ---
+function stripEmojis(text: string): string {
+  return text.replace(
+    /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|\uD83E[\uDD00-\uDDFF])/g,
+    "",
+  )
+}
+
 // Custom timestamp format
 const timestampFormat = () => moment().format("DD-MM-YYYY HH:mm:ss")
 
@@ -37,26 +55,35 @@ const customLevels = {
 
 // Emoji mapping
 const emojiMap: Record<string, string> = {
-  catastrophic: "💀",
-  error: "❌",
-  warn: "⚠️",
-  success: "✅",
-  loop: "🔄",
-  info: "ℹ️",
-  debug: "🐞",
+  catastrophic: supportsEmoji ? "💀" : "",
+  error: supportsEmoji ? "❌" : "",
+  warn: supportsEmoji ? "⚠️" : "",
+  success: supportsEmoji ? "✅" : "",
+  loop: supportsEmoji ? "🔄" : "",
+  info: supportsEmoji ? "ℹ️" : "",
+  debug: supportsEmoji ? "🐞" : "",
 }
 
-// Custom formatter with emojis
+// Custom formatter with conditional emoji sanitization
 const customFormat = format.printf(({ timestamp, level, message }) => {
   const emoji = emojiMap[level] || ""
   const upperLevel = level.toUpperCase()
-  return `[${timestamp}] [${emoji} ${upperLevel}] ${message}`
+  const sanitizedMessage = supportsEmoji ? message : stripEmojis(message)
+  return `[${timestamp}] [${emoji ? `${emoji} ` : ""}${upperLevel}] ${sanitizedMessage}`
 })
 
 // Filter to allow only specific log levels
 const debugFilter = format((info) => {
   const allowedLevels = ["catastrophic", "error", "warn", "debug"]
   return allowedLevels.includes(info.level) ? info : false
+})
+
+// Filter for auth-related messages
+const authFilter = format((info) => {
+  if (typeof info.message === "string" && info.message.toLowerCase().startsWith("auth |")) {
+    return info
+  }
+  return false
 })
 
 // Create the logger
@@ -90,11 +117,23 @@ const logger = winston.createLogger({
 
     new DailyRotateFile({
       filename: path.join(logDirectory, "debug-filtered-%DATE%.log"),
-      level: "debug", // Upper bound; filter limits actual levels written
+      level: "debug",
       datePattern: "DD-MM-YYYY",
       maxFiles: "7d",
       format: format.combine(
         debugFilter(),
+        format.timestamp({ format: timestampFormat }),
+        customFormat,
+      ),
+    }),
+
+    new DailyRotateFile({
+      filename: path.join(logDirectory, "auth-%DATE%.log"),
+      level: "debug",
+      datePattern: "DD-MM-YYYY",
+      maxFiles: "14d",
+      format: format.combine(
+        authFilter(),
         format.timestamp({ format: timestampFormat }),
         customFormat,
       ),

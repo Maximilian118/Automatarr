@@ -7,6 +7,7 @@ import { DownloadStatus } from "../types/types"
 import { saveWithRetry } from "../shared/database"
 import { blocklistAndSearchMovie } from "../shared/RadarrStarrRequests"
 import { blocklistAndSearchEpisode } from "../shared/SonarrStarrRequests"
+import { isDocker } from "../shared/fileSystem"
 
 const remove_blocked = async (settings: settingsType): Promise<void> => {
   // Only get data for API's that have been checked and are active
@@ -91,6 +92,13 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
 
       // Attempt to delete and record the deduplication key
       const tryDelete = async (reason: string) => {
+        if (!isDocker) {
+          logger.info(
+            `${API.name}: ${blockedFile.title} Skipped deletion. Running in development mode. 🧊`,
+          )
+          return
+        }
+
         const deleted = await deleteFromQueue(blockedFile, API, reason)
 
         if (deleted) {
