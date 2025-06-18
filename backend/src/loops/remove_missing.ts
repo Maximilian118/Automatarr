@@ -138,25 +138,32 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
       const userPoolIds = new Set(userPool.map((p) => p.id))
       const removedItems = itemsForDeletion.filter((item) => userPoolIds.has(item.id))
+      const singular = API.name === "Radarr" ? "movie" : "series"
+      const plural = API.name === "Radarr" ? "movies" : "series"
 
-      // Log removed items with associated user name(s)
-      removedItems.forEach((item) => {
-        const usersWithItem = settings.general_bot.users
-          .filter((user) =>
-            (API.name === "Radarr" ? user.pool.movies : user.pool.series).some(
-              (p) => p.id === item.id,
-            ),
-          )
-          .map((user) => user.name)
+      // Group removed items by user
+      const userSkippedMap: Record<string, string[]> = {}
 
+      for (const item of removedItems) {
+        for (const user of settings.general_bot.users) {
+          const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
+          if (pool.some((p) => p.id === item.id)) {
+            if (!userSkippedMap[user.name]) {
+              userSkippedMap[user.name] = []
+            }
+            userSkippedMap[user.name].push(item.title)
+          }
+        }
+      }
+
+      // Log one message per user with their skipped titles
+      for (const [user, titles] of Object.entries(userSkippedMap)) {
         logger.info(
-          `${API.name}: Skipping ${
-            item.title
-          } — it's not in any Import List, but it's still part of ${usersWithItem.join(
-            ", ",
-          )}'s pool. 🔒`,
+          `${API.name}: Skipping ${titles.length} ${
+            titles.length < 2 ? singular : plural
+          } in ${user}'s pool: [${titles.join(", ")}] 🔒`,
         )
-      })
+      }
 
       // Filter user pool items out
       itemsForDeletion = itemsForDeletion.filter((item) => !userPoolIds.has(item.id))
