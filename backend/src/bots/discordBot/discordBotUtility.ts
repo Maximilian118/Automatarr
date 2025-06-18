@@ -14,6 +14,8 @@ import { DownloadStatus, rootFolderData } from "../../types/types"
 import { formatBytes } from "../../shared/utility"
 import moment from "moment"
 import { getDiscordClient } from "./discordBot"
+import { WebHookWaitingType } from "../../models/webhook"
+import { isTextBasedChannel } from "./discordBotTypeGuards"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -23,10 +25,6 @@ export const handleDiscordErrors = (client: Client) => {
 
   client.on("shardError", (err) => {
     logger.catastrophic(`Shard Error event caught: ${err}`)
-  })
-
-  process.on("unhandledRejection", (reason, promise) => {
-    logger.error("Unhandled Rejection at:", promise, "reason:", reason)
   })
 }
 
@@ -52,6 +50,63 @@ export const sendDiscordMessage = async (message: Message, content: string): Pro
   } else {
     logger.warn(`safeSend: Channel is not text-based. Could not send message: "${content}"`)
   }
+}
+
+export const sendDiscordNotification = async (
+  webhookMatch: WebHookWaitingType,
+): Promise<boolean> => {
+  const client = getDiscordClient()
+
+  if (!client) {
+    logger.error("sendDiscordNotification: Could not get Discord Client")
+    return false
+  }
+
+  if (!webhookMatch.discordData) {
+    logger.error("sendDiscordNotification: No discordData.")
+    return false
+  }
+
+  let channel
+
+  try {
+    channel = await client.channels.fetch(webhookMatch.discordData.channelId)
+  } catch (err) {
+    logger.error(
+      `sendDiscordNotification: Failed to fetch channel ${
+        webhookMatch.discordData.channelId
+      }: ${String(err)}`,
+    )
+    return false
+  }
+
+  const textBasedChannel = isTextBasedChannel(channel)
+
+  if (!textBasedChannel) {
+    logger.error(
+      `sendDiscordNotification: Channel is not text-based: ${webhookMatch.discordData.channelId}`,
+    )
+    return false
+  }
+
+  try {
+    const sentMessage = await textBasedChannel.send(webhookMatch.message)
+
+    if (sentMessage) {
+      logger.info(
+        `Webhook | Discord Notification Sent | ${webhookMatch.waitForStatus} | ${webhookMatch.discordData.authorUsername} | ${webhookMatch.content.title}`,
+      )
+      return true
+    }
+  } catch (err) {
+    logger.error(
+      `sendDiscordNotification: Failed to send message to ${
+        webhookMatch.discordData.channelId
+      }: ${String(err)}`,
+    )
+  }
+
+  return false
 }
 
 // A basic function that returns the passed string and logs it in the backend

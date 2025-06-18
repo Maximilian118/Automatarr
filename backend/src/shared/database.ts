@@ -2,9 +2,10 @@ import logger from "../logger"
 import { dataDocType } from "../models/data"
 import { settingsDocType } from "../models/settings"
 import { UserDocType } from "../models/user"
+import { WebHookDocType } from "../models/webhook"
 
 export const saveWithRetry = async (
-  dbObject: dataDocType | settingsDocType | UserDocType,
+  dbObject: dataDocType | settingsDocType | UserDocType | WebHookDocType,
   identifier: string,
   maxRetries: number = 3,
   delay: number = 3000,

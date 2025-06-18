@@ -22,6 +22,12 @@
   align-items: center;
 }
 
+@mixin flexbox-space-evenly {
+  display: flex;
+  justify-content: space-evenly;
+  align-items: center;
+}
+
 @mixin flexbox-column {
   display: flex;
   flex-flow: column nowrap;

@@ -12,6 +12,9 @@ import { NavigateFunction } from "react-router-dom"
 // Simple request response success indication
 export const requestSuccess = (status: number): boolean => status >= 200 && status < 300
 
+// Simple string mutations
+export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1)
+
 // Check the status of each API
 export const checkAPIs = async (
   user: UserType,
@@ -155,4 +158,15 @@ export const parseBytes = (input: string): string => {
 
   const bytes = BigInt(Math.floor(num * Math.pow(1024, index)))
   return bytes.toString()
+}
+
+export const webhookURL = (settings: settingsType): string => {
+  const origin = window.location.origin
+  const hostname = window.location.hostname
+
+  const isLocal = /^(localhost|127\.|192\.168\.|10\.)/.test(hostname)
+
+  const URL = `${origin}/graphql/webhooks?token=${settings.webhooks_token}`
+
+  return isLocal ? "Invalid URL" : URL
 }

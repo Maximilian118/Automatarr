@@ -61,11 +61,13 @@ const Bots: React.FC = () => {
         description={`
           Users must be approved by an admin before accessing the bots, at which point a content pool is created for them.
 
-          Each pool has limits and expiration times for different content types.
+          Each pool has a maximum download limit for each content type.
 
-          An admin can also assign Super Users, who are exempt from these restrictions.
+          An admin can assign Super Users, who have double the general limit.
 
-          Content in user pools cannot be removed via loops.
+          Limits for a user can be overwitten by an admin to increase or reduce their pool size at any time.
+
+          Content in pools cannot be removed via loops.
         `}
       >
         <MUIAutocomplete
@@ -85,27 +87,11 @@ const Bots: React.FC = () => {
           }}
         />
         <MUIAutocomplete
-          label="Movie Expiration Time (days)"
-          options={numberSelection("Infinite")}
-          value={toStringWithCap(settings.general_bot.movie_pool_expiry, 99, "Infinite")}
-          setValue={(val) => {
-            setSettings(prevSettings => {
-              return {
-                ...prevSettings,
-                general_bot: {
-                  ...prevSettings.general_bot,
-                  movie_pool_expiry: val ? stringSelectionToNumber(val) : prevSettings.general_bot.movie_pool_expiry
-                }
-              }
-            })
-          }}
-        />
-        <MUIAutocomplete
           label="Movie Quality Profile"
           options={qualityProfiles.find(qp => qp.name === "Radarr")?.data.map(qp => qp.name) || []}
           value={settings.general_bot.movie_quality_profile}
           loading={qpLoading}
-          disabled={qpLoading}
+          disabled={qpLoading || !settings.radarr_active}
           setValue={(val) => {
             setSettings(prevSettings => {
               return {
@@ -135,27 +121,11 @@ const Bots: React.FC = () => {
           }}
         />
         <MUIAutocomplete
-          label="Series Expiration Time (days)"
-          options={numberSelection("Infinite")}
-          value={toStringWithCap(settings.general_bot.series_pool_expiry, 99, "Infinite")}
-          setValue={(val) => {
-            setSettings(prevSettings => {
-              return {
-                ...prevSettings,
-                general_bot: {
-                  ...prevSettings.general_bot,
-                  series_pool_expiry: val ? stringSelectionToNumber(val) : prevSettings.general_bot.series_pool_expiry
-                }
-              }
-            })
-          }}
-        />
-        <MUIAutocomplete
           label="Series Quality Profile"
           options={qualityProfiles.find(qp => qp.name === "Sonarr")?.data.map(qp => qp.name) || []}
           value={settings.general_bot.series_quality_profile}
           loading={qpLoading}
-          disabled={qpLoading}
+          disabled={qpLoading || !settings.sonarr_active}
           setValue={(val) => {
             setSettings(prevSettings => {
               return {

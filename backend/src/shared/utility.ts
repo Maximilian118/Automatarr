@@ -5,6 +5,30 @@ import { baseData, dataDocType, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
 import { settingsType } from "../models/settings"
 
+export const globalErrorHandlers = (): void => {
+  // Catch unhandled promise rejections
+  process.on("unhandledRejection", (reason: any, promise) => {
+    logger.error("Unhandled Rejection at Promise:", promise)
+
+    if (reason instanceof Error) {
+      logger.error("Reason (Error):", reason.message)
+      logger.error(reason.stack)
+    } else {
+      logger.error("Reason (Non-Error):", JSON.stringify(reason, null, 2))
+    }
+  })
+
+  // Catch uncaught exceptions
+  process.on("uncaughtException", (err) => {
+    logger.catastrophic(`Uncaught Exception: ${err.stack || err}`)
+  })
+
+  // Catch uncaught exceptions in monitored environments
+  process.on("uncaughtExceptionMonitor", (err) => {
+    logger.error(`Uncaught Exception (monitored): ${err.stack || err}`)
+  })
+}
+
 // Simple calculations
 export const minsToSecs = (mins: number): number => mins * 60
 export const minsToMillisecs = (mins: number): number => mins * 60000

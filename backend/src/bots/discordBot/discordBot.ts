@@ -55,6 +55,9 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     ],
   })
 
+  // Handle errors
+  handleDiscordErrors(client)
+
   try {
     // Attempt to login, if success set ready and collect data.
     const readyPromise = new Promise<void>((resolve) => {
@@ -66,9 +69,6 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
 
     await client.login(settings.discord_bot.token)
     await readyPromise
-
-    // Handle errors
-    handleDiscordErrors(client)
 
     // Start listeners
     await messageListeners(client)

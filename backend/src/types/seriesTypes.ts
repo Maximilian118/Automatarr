@@ -27,7 +27,7 @@ type SeasonStatistics = {
   percentOfEpisodes: number
 }
 
-type Season = {
+export type Season = {
   seasonNumber: number
   monitored: boolean
   statistics: SeasonStatistics

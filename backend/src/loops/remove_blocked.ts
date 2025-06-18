@@ -147,7 +147,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         .flatMap((s) => [s.title, ...(s.messages ?? [])])
         .filter(Boolean)
         .join("; ")
-      console.log(blockedFile.statusMessages[0])
+
       logger.warn(
         `${API.name} | ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
       )

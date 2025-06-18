@@ -34,6 +34,8 @@ import {
   randomRemovalSuccessMessage,
   randomMovieReplacementMessage,
   randomEpisodeReplacementMessage,
+  randomMovieReadyMessage,
+  randomSeriesReadyMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -61,6 +63,7 @@ import {
   notifyMovieDownloaded,
   notifySeriesDownloaded,
 } from "./discordBotAsync"
+import { waitForWebhook } from "../../webhooks/webhookUtility"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -200,10 +203,19 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
-  // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
-  notifyMovieDownloaded(message, settings, movie).catch((err) =>
-    logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
-  )
+  if (settings.webhooks) {
+    if (settings.webhooks_enabled.includes("Import")) {
+      // prettier-ignore
+      waitForWebhook("Radarr", ["Discord"], message, null, movie, "Import", 
+        randomMovieReadyMessage(message.author.toString(), movie.title)
+      )
+    }
+  } else {
+    // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
+    notifyMovieDownloaded(message, settings, movie).catch((err) =>
+      logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
+    )
+  }
 
   // Notify that we've grabbed a movie
   return discordReply(
@@ -395,10 +407,19 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
 
-  // Start an asynchronous loop waiting for the series to finish downloading. Then send a notification.
-  notifySeriesDownloaded(message, settings, series).catch((err) =>
-    logger.error(`notifySeriesDownloaded: Something went wrong: ${err}`),
-  )
+  if (settings.webhooks) {
+    if (settings.webhooks_enabled.includes("Import")) {
+      // prettier-ignore
+      waitForWebhook("Sonarr", ["Discord"], message, null, series, "Import", 
+        randomSeriesReadyMessage(message.author.toString(), series.title)
+      )
+    }
+  } else {
+    // Start an asynchronous loop waiting for the series to finish downloading. Then send a notification.
+    notifySeriesDownloaded(message, settings, series).catch((err) =>
+      logger.error(`notifySeriesDownloaded: Something went wrong: ${err}`),
+    )
+  }
 
   return discordReply(
     randomSeriesDownloadStartMessage(series),
@@ -593,10 +614,19 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
       return `I've been able to delete the file for ${title} but I couldn't start another download. If you'd like to watch the movie now you might want to give an admin a poke!`
     }
 
-    // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
-    notifyMovieDownloaded(message, settings, movieInDB).catch((err) =>
-      logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
-    )
+    if (settings.webhooks) {
+      if (settings.webhooks_enabled.includes("Import")) {
+        // prettier-ignore
+        waitForWebhook("Radarr", ["Discord"], message, null, movieInDB, "Import", 
+          randomMovieReadyMessage(message.author.toString(), movieInDB.title)
+        )
+      }
+    } else {
+      // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
+      notifyMovieDownloaded(message, settings, movieInDB).catch((err) =>
+        logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
+      )
+    }
 
     return randomMovieReplacementMessage(title)
   } else {
@@ -649,10 +679,19 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
       return `I've been able to delete the file for ${title} season ${episode.seasonNumber} episode ${episode.episodeNumber} but I couldn't start another download. If you'd like to watch the episode now you might want to give an admin a poke!`
     }
 
-    // Start an asynchronous loop waiting for the episode to finish downloading. Then send a notification.
-    notifyEpisodeDownloaded(message, settings, seriesInDB, episode).catch((err) =>
-      logger.error(`notifyEpisodeDownloaded: Something went wrong: ${err}`),
-    )
+    if (settings.webhooks) {
+      if (settings.webhooks_enabled.includes("Import")) {
+        // prettier-ignore
+        waitForWebhook("Sonarr", ["Discord"], message, null, seriesInDB, "Import", 
+          randomSeriesReadyMessage(message.author.toString(), seriesInDB.title)
+        )
+      }
+    } else {
+      // Start an asynchronous loop waiting for the episode to finish downloading. Then send a notification.
+      notifyEpisodeDownloaded(message, settings, seriesInDB, episode).catch((err) =>
+        logger.error(`notifyEpisodeDownloaded: Something went wrong: ${err}`),
+      )
+    }
 
     return randomEpisodeReplacementMessage(title, episode.seasonNumber, episode.episodeNumber)
   }

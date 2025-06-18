@@ -63,6 +63,9 @@ export const populateSettings = `
   lockout
   lockout_attempts
   lockout_mins
+  webhooks
+  webhooks_enabled
+  webhooks_token
   created_at
   updated_at
   tokens

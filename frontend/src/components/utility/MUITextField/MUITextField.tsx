@@ -18,6 +18,7 @@ type MUITextFieldProps<T extends Record<string, unknown>> = {
   error?: boolean
   multiline?: number
   onlyNumbers?: boolean
+  readonly?: boolean
 }
 
 const MUITextField = <T extends Record<string, unknown>>({
@@ -36,6 +37,7 @@ const MUITextField = <T extends Record<string, unknown>>({
   error,
   multiline,
   onlyNumbers,
+  readonly,
 }: MUITextFieldProps<T>) => {
   const displayValue = value === Infinity ? "" : String(value)
   const [localValue, setLocalValue] = useState(displayValue)
@@ -98,6 +100,9 @@ const MUITextField = <T extends Record<string, unknown>>({
           inputMode: onlyNumbers ? "numeric" : undefined,
           pattern: onlyNumbers ? "\\d*" : undefined,
         },
+        input: {
+          readOnly: readonly
+        }
       }}
       disabled={disabled}
     />

@@ -101,6 +101,8 @@ const settingsResolvers = {
     settings.lockout = args.settingsInput.lockout
     settings.lockout_attempts = args.settingsInput.lockout_attempts
     settings.lockout_mins = args.settingsInput.lockout_mins
+    settings.webhooks = args.settingsInput.webhooks
+    settings.webhooks_enabled = args.settingsInput.webhooks_enabled
     settings.updated_at = moment().format()
 
     // Update settings as needed with Bot data

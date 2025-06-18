@@ -9,13 +9,18 @@ import path from "path"
 import fs from "fs"
 import logger from "./logger"
 import { bootPermissions } from "./shared/permissions"
-import { allAPIsDeactivated, allLoopsDeactivated } from "./shared/utility"
+import { allAPIsDeactivated, allLoopsDeactivated, globalErrorHandlers } from "./shared/utility"
 import { settingsDocType } from "./models/settings"
 import { isOnCorrectLAN } from "./shared/network"
 import { dataDocType } from "./models/data"
 import { botsControl } from "./bots/botsControl"
 import { auth } from "./middleware/auth"
 import { coreLoops } from "./loops/loops"
+import createWebhookRouter from "./middleware/webhooks"
+import { newWebhook } from "./webhooks/webhookUtility"
+
+// Start listening for errors
+globalErrorHandlers()
 
 // Initialise express.
 const app = express()
@@ -28,16 +33,6 @@ app.use(corsHandler)
 
 // Make token authentication middleware available in all reducers by passing req.
 app.use(auth as any)
-
-// Set up GraphQL
-app.use(
-  "/graphql",
-  graphqlHTTP({
-    schema: Schema,
-    rootValue: Resolvers,
-    graphiql: true,
-  }),
-)
 
 // Create or use existing directory for database files
 const databasePath = path.join(__dirname, "..", "..", "automatarr_database")
@@ -123,8 +118,22 @@ const startServer = async () => {
   // Ping API's with populated credentials to check if backend is running on correct LAN
   isOnCorrectLAN(bootSettings)
 
-  // Initialise data in db if first boot
+  // Intercept webhooks
+  app.use("/graphql/webhooks", createWebhookRouter(bootSettings))
+
+  // Set up GraphQL
+  app.use(
+    "/graphql",
+    graphqlHTTP({
+      schema: Schema,
+      rootValue: Resolvers,
+      graphiql: true,
+    }),
+  )
+
+  // Initialise objects in mongoDB if first boot
   await Resolvers.newData()
+  await newWebhook()
 
   // Check that at least one API is active
   if (!allAPIsDeactivated(bootSettings._doc)) {

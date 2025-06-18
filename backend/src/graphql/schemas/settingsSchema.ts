@@ -74,6 +74,9 @@ const settingsSchema = `
     lockout: Boolean!
     lockout_attempts: Int!
     lockout_mins: Int!
+    webhooks: Boolean!
+    webhooks_enabled: [String!]!
+    webhooks_token: String!
     created_at: String!
     updated_at: String!
     tokens: [String!]!
@@ -149,6 +152,8 @@ const settingsSchema = `
     lockout: Boolean
     lockout_attempts: Int
     lockout_mins: Int
+    webhooks: Boolean
+    webhooks_enabled: [String!]!
   }
 `
 export default settingsSchema

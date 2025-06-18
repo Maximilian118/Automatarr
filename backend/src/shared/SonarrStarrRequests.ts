@@ -32,6 +32,30 @@ export const getSonarrLibrary = async (
   return
 }
 
+// Get series data
+export const getSonarrSeries = async (
+  settings: settingsDocType,
+  seriesID: number,
+): Promise<Series | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/series/${seriesID}?apikey=${settings.sonarr_KEY}`,
+      ),
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as Series
+    } else {
+      logger.error(`getSonarrSeries: Could not retrieve Sonarr series with ID ${seriesID}`)
+    }
+  } catch (err) {
+    logger.error(`getSonarrSeries: Sonarr series search error: ${errCodeAndMsg(err)}`)
+  }
+
+  return
+}
+
 // Get the Sonarr Queue in circumstances where the API object isn't available
 export const getSonarrQueue = async (
   settings: settingsDocType,

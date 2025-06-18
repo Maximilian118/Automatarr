@@ -1,3 +1,16 @@
+export type EventType =
+  | "Test"
+  | "Download" // Turns into "Import" or "Upgrade" based on the starrWebhookEventType() return
+  | "Grab"
+  | "MovieAdded"
+  | "MovieDelete"
+  | "MovieFileDelete"
+  | "SeriesAdd"
+  | "SeriesDelete"
+  | "EpisodeFileDelete"
+  | "Import" // Not actually an eventType from Starr apps. Returned from starrWebhookEventType()
+  | "Upgrade" // Not actually an eventType from Starr apps. Returned from starrWebhookEventType()
+
 export type tidyPaths = {
   path: string
   allowedDirs: string[]
@@ -70,6 +83,9 @@ export interface settingsType {
   lockout: boolean // Enable or disable the lockout mechanism
   lockout_attempts: number | null // Amount of tries before lockout
   lockout_mins: number | null // How long the lockout is for
+  webhooks: boolean // Enable or disable webhooks
+  webhooks_enabled: EventType[] // An array of webhooks the user would like
+  webhooks_token: string // A randomly generated token for connecting webhooks to Automatarr
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
 }

@@ -6,9 +6,10 @@ interface ToggleType {
   name: string
   checked: boolean
   onToggle: (value: boolean) => void
+  disabled?: boolean
 }
 
-const Toggle: React.FC<ToggleType> = ({ name, checked, onToggle }) => {
+const Toggle: React.FC<ToggleType> = ({ name, checked, onToggle, disabled }) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       onToggle(event.target.checked)
     }
@@ -20,6 +21,7 @@ const Toggle: React.FC<ToggleType> = ({ name, checked, onToggle }) => {
         checked={checked}
         onChange={handleSwitchChange}
         inputProps={{ 'aria-label': 'controlled' }}
+        disabled={disabled}
       />
     </div>
   )

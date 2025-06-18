@@ -74,6 +74,9 @@ export const initSettings: settingsType = {
   lockout: false,
   lockout_attempts: 5,
   lockout_mins: 60,
+  webhooks: false,
+  webhooks_enabled: [],
+  webhooks_token: "",
   created_at: "",
   updated_at: "",
 }

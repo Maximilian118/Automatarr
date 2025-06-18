@@ -1,20 +1,20 @@
-import { Button, CircularProgress } from "@mui/material"
+import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Logout, Send } from "@mui/icons-material"
+import { Logout, Send, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from "react-router-dom"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
-import { settingsErrorType} from "../types/settingsType"
+import { EventType, settingsErrorType} from "../types/settingsType"
 import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
-import { numberSelection, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
+import { capsFirstLetter, numberSelection, stringSelectionToNumber, toStringWithCap, webhookURL } from "../shared/utility"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
-import { updateInput } from "../shared/formValidation"
+import { inputLabel, updateInput } from "../shared/formValidation"
 import { UserErrorType } from "../types/userType"
 import { updateUser } from "../shared/requests/userRequests"
 
@@ -47,11 +47,33 @@ const Settings: React.FC = () => {
     }
   }, [localLoading, loading, setLoading])
 
+  const webhookURLInvalid = webhookURL(settings).includes("Invalid")
+
+  const webhookNotificationType = (type: EventType) => (
+    <Toggle 
+      name={`${capsFirstLetter(type)} Notifications:`}
+      checked={settings.webhooks_enabled.includes(type)}
+      disabled={webhookURLInvalid}
+      onToggle={() =>
+        setSettings(prevSettings => {
+          const enabled = prevSettings.webhooks_enabled.includes(type)
+
+          return {
+            ...prevSettings,
+            webhooks_enabled: enabled
+              ? prevSettings.webhooks_enabled.filter(e => e !== type)
+              : [...prevSettings.webhooks_enabled, type],
+          }
+        })
+      }
+    />
+  )
+
   return (
-    <>
+    <main>
       <form onSubmit={e => onSubmitHandler(e)}>
         <InputModel 
-          title="Settings" 
+          title="User Settings" 
           startIcon={<SettingsIcon/>}
         >
           <Toggle 
@@ -160,6 +182,45 @@ const Settings: React.FC = () => {
             type="password"
           />
         </InputModel>
+        <InputModel
+          title="Webhooks" 
+          startIcon={<Webhook/>}
+          description={`Webhooks allow you to send specific notifications through your bots.
+
+          For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.`}
+        >
+          <Toggle 
+            name="Use Webhooks:" 
+            checked={settings.webhooks}
+            disabled={webhookURLInvalid}
+            onToggle={() => {
+              setSettings(prevSettings => {
+                return {
+                  ...prevSettings,
+                  webhooks_active: !prevSettings.webhooks,
+                }
+              })
+            
+              if (formErr.webhooks_token) { 
+                setFormErr(prevFormErr => {
+                  return {
+                    ...prevFormErr,
+                    webhooks_token: "",
+                  }
+                })
+              }
+            }}
+          />
+          <TextField
+            fullWidth
+            value={webhookURL(settings)}
+            label={settings.webhooks ? inputLabel("webhooks_token", formErr, "Webhook URL") : ""}
+            slotProps={{ input: {readOnly: true } }}
+            error={webhookURLInvalid}
+            disabled={!settings.webhooks}
+          />
+          {webhookNotificationType("Import")}
+        </InputModel>
         <Button 
           type="submit"
           variant="contained"
@@ -170,18 +231,20 @@ const Settings: React.FC = () => {
           }
         >Submit</Button>
       </form>
-      <Button 
-        variant="contained"
-        sx={{ margin: "20px 0" }}
-        endIcon={localLoading ? 
-          <CircularProgress size={20} color="inherit"/> : 
-          <Logout color="inherit"/>
-        }
-        color="error"
-        onClick={() => logout(setUser, navigate)}
-      >Logout</Button>
-      <Footer/>
-    </>
+      <div className="bottom">
+        <Button 
+          variant="contained"
+          sx={{ margin: "20px 0" }}
+          endIcon={localLoading ? 
+            <CircularProgress size={20} color="inherit"/> : 
+            <Logout color="inherit"/>
+          }
+          color="error"
+          onClick={() => logout(setUser, navigate)}
+        >Logout</Button>
+        <Footer/>
+      </div>
+    </main>
   )
 }
 

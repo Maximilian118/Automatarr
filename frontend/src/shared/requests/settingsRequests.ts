@@ -114,6 +114,8 @@ export const updateSettings = async (
           $lockout: Boolean
           $lockout_attempts: Int
           $lockout_mins: Int
+          $webhooks: Boolean
+          $webhooks_enabled: [String!]!
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -155,6 +157,8 @@ export const updateSettings = async (
             lockout: $lockout
             lockout_attempts: $lockout_attempts
             lockout_mins: $lockout_mins
+            webhooks: $webhooks
+            webhooks_enabled: $webhooks_enabled
           }) {
             ${populateSettings}
           }

@@ -354,7 +354,7 @@ export const channelValid = (
   } as const
 
   return {
-    channel,
+    channel: channel as TextBasedChannel,
     contentType: singularMap[matched.contentType],
     contentTypePlural: matched.contentType,
   }
