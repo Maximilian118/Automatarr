@@ -10,6 +10,7 @@ import {
 } from "../models/data"
 import { APIData } from "./activeAPIsArr"
 import {
+  capsFirstLetter,
   checkTimePassed,
   cleanUrl,
   dataBoilerplate,
@@ -516,19 +517,48 @@ export const getManualImport = async (
   }
 }
 
-// Import a file from the queue
-export const importCommand = async (download: DownloadStatus, API: APIData): Promise<boolean> => {
-  if (!isDocker) {
-    logger.info(`${API.name} | ${download.title} | Skipped Import. Running in development mode. 🧊`)
-
-    return false
+// Check for rejections after manualImport
+const rejectionsCheck = (manualImport: ManualImportResponse, msgArr: string[]): string => {
+  if (!manualImport.rejections || manualImport.rejections.length === 0) {
+    return ""
   }
 
-  const manualImport = await getManualImport(download, API)
+  for (const msg of msgArr) {
+    const lowerMsg = msg.toLowerCase()
+
+    const hasMatch = manualImport.rejections.some((rejMsg) => rejMsg.reason.includes(lowerMsg))
+    if (hasMatch) return `| ${capsFirstLetter(msg)}.`
+  }
+
+  return ""
+}
+
+// Import a file from the queue
+export const importCommand = async (
+  blockedFile: DownloadStatus,
+  API: APIData,
+): Promise<string | void> => {
+  if (!isDocker) {
+    logger.info(
+      `${API.name} | ${blockedFile.title} | Skipped Import. Running in development mode. 🧊`,
+    )
+
+    return
+  }
+
+  const manualImport = await getManualImport(blockedFile, API)
 
   if (!manualImport) {
     logger.error(`${API.name} | Failed to retrieve preliminary data from getManualImport request.`)
-    return false
+    return
+  }
+
+  // Check to see if the manualImport has any rejections
+  const deleteCase = rejectionsCheck(manualImport, ["already imported"])
+
+  if (deleteCase) {
+    await deleteFromQueue(blockedFile, API, deleteCase)
+    return
   }
 
   try {
@@ -557,14 +587,14 @@ export const importCommand = async (download: DownloadStatus, API: APIData): Pro
 
     if (Number(res.status) !== 201) {
       logger.error(`importCommand: Unexpected Status code: ${res.status}`)
-      return false
+      return
     }
 
-    logger.success(`${API.name} | ${download.title} | Imported!`)
-    return true
+    logger.success(`${API.name} | ${blockedFile.title} | Imported!`)
+    return
   } catch (err) {
     logger.error(`importCommand: ${errCodeAndMsg(err)}`)
-    return false
+    return
   }
 }
 

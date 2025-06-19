@@ -94,6 +94,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         "missing",
         "unsupported",
         "not a custom format upgrade",
+        "not an upgrade",
         "title mismatch",
         "sample",
         "might need to be extracted",
@@ -131,6 +132,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
           )
         } else {
           await importCommand(blockedFile, API)
+          deletedKeys.add(dedupKey)
         }
 
         continue
