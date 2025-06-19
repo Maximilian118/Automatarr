@@ -114,9 +114,9 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         if (deleted) {
           deletedKeys.add(dedupKey)
           // Add the deleted queue item to the blocklist
-          if (API.name === "Radarr") {
+          if (API.name === "Radarr" && !deleteCase.includes("upgrade")) {
             await blocklistAndSearchMovie(settings, deleted.movieId)
-          } else if (API.name === "Sonarr") {
+          } else if (API.name === "Sonarr" && !deleteCase.includes("upgrade")) {
             await blocklistAndSearchEpisode(settings, deleted.episodeId)
           }
           // Update the db with the removed queue item
