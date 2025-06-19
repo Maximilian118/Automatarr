@@ -499,7 +499,7 @@ export const searchMissing = async (
 export const getManualImport = async (
   download: DownloadStatus,
   API: APIData,
-): Promise<ManualImportResponse | undefined> => {
+): Promise<ManualImportResponse | "Download Missing!" | "Unknown Error"> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -508,6 +508,10 @@ export const getManualImport = async (
     )
 
     if (requestSuccess(res.status)) {
+      if (Array.isArray(res.data) && res.data.length === 0) {
+        return "Download Missing!"
+      }
+
       return res.data[0]
     } else {
       logger.error(`getManualImport: ${API.name}: Could not retrieve data for ${download.title}.`)
@@ -515,6 +519,8 @@ export const getManualImport = async (
   } catch (err) {
     logger.error(`getManualImport: ${errCodeAndMsg(err)}`)
   }
+
+  return "Unknown Error"
 }
 
 // Check for rejections after manualImport
@@ -547,6 +553,14 @@ export const importCommand = async (
   }
 
   const manualImport = await getManualImport(blockedFile, API)
+
+  if (typeof manualImport === "string") {
+    if (manualImport === "Download Missing!") {
+      await deleteFromQueue(blockedFile, API, manualImport)
+    }
+
+    return
+  }
 
   if (!manualImport) {
     logger.error(`${API.name} | Failed to retrieve preliminary data from getManualImport request.`)
