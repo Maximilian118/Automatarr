@@ -15,7 +15,7 @@ export const requestSuccess = (status: number): boolean => status >= 200 && stat
 // Simple string mutations
 export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCase() + str.slice(1)
 
-// Check the status of each API
+// Check the status of each API by sending requests
 export const checkAPIs = async (
   user: UserType,
   setUser: Dispatch<SetStateAction<UserType>>,
@@ -38,6 +38,13 @@ export const checkAPIs = async (
     lidarr_active,
     qBittorrent_active,
   }
+}
+
+// Check if any starr apps are connected
+export const anyStarrActive = (settings: settingsType): boolean => {
+  return Object.entries(settings)
+    .filter(([key]) => key.includes('arr') && key.endsWith('_active'))
+    .some(([, value]) => value === true)
 }
 
 // Pass a string literal and output respects new lines

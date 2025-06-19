@@ -12,7 +12,7 @@ import { EventType, settingsErrorType} from "../types/settingsType"
 import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
-import { capsFirstLetter, numberSelection, stringSelectionToNumber, toStringWithCap, webhookURL } from "../shared/utility"
+import { anyStarrActive, capsFirstLetter, numberSelection, stringSelectionToNumber, toStringWithCap, webhookURL } from "../shared/utility"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { inputLabel, updateInput } from "../shared/formValidation"
 import { UserErrorType } from "../types/userType"
@@ -48,12 +48,13 @@ const Settings: React.FC = () => {
   }, [localLoading, loading, setLoading])
 
   const webhookURLInvalid = webhookURL(settings).includes("Invalid")
+  const anyStarrAct = anyStarrActive(settings)
 
   const webhookNotificationType = (type: EventType) => (
     <Toggle 
       name={`${capsFirstLetter(type)} Notifications:`}
-      checked={settings.webhooks_enabled.includes(type)}
-      disabled={webhookURLInvalid}
+      checked={anyStarrAct ? settings.webhooks_enabled.includes(type) : false}
+      disabled={!anyStarrAct || webhookURLInvalid}
       onToggle={() =>
         setSettings(prevSettings => {
           const enabled = prevSettings.webhooks_enabled.includes(type)
@@ -187,12 +188,15 @@ const Settings: React.FC = () => {
           startIcon={<Webhook/>}
           description={`Webhooks allow you to send specific notifications through your bots.
 
-          For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.`}
+          For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.
+          
+          Note: Without Webhooks users will still receive "Imported" notifications by Polling Starr apps.
+          `}
         >
           <Toggle 
             name="Use Webhooks:" 
-            checked={settings.webhooks}
-            disabled={webhookURLInvalid}
+            checked={anyStarrAct ? settings.webhooks : false}
+            disabled={!anyStarrAct || webhookURLInvalid}
             onToggle={() => {
               setSettings(prevSettings => {
                 return {
@@ -216,8 +220,8 @@ const Settings: React.FC = () => {
             value={webhookURL(settings)}
             label={settings.webhooks ? inputLabel("webhooks_token", formErr, "Webhook URL") : ""}
             slotProps={{ input: {readOnly: true } }}
-            error={webhookURLInvalid}
-            disabled={!settings.webhooks}
+            error={webhookURLInvalid && settings.webhooks}
+            disabled={!anyStarrAct || !settings.webhooks}
           />
           {webhookNotificationType("Import")}
         </InputModel>
