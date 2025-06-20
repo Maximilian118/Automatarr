@@ -14,6 +14,7 @@ import InputModel from "../components/model/inputModel/InputModel"
 import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import { QualityProfile } from "../types/qualityProfileType"
 import { useNavigate } from "react-router-dom"
+import { AvailableBots } from "../types/settingsType"
 
 const Bots: React.FC = () => {
   const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -23,6 +24,7 @@ const Bots: React.FC = () => {
   const [ formErr, setFormErr ] = useState<botsErrType>(initBotErr)
   const [ qualityProfiles, setQualityProfiles ] = useState<QualityProfile[]>([])
   const [ qpReqSent, setQPReqSent ] = useState<boolean>(false)
+  const [ autoInitOptions, setAutoInitOptions ] = useState<AvailableBots[]>([])
 
   const navigate = useNavigate()
 
@@ -30,6 +32,14 @@ const Bots: React.FC = () => {
   useEffect(() => {
     if (!settings.updated_at) {
       getSettings(setSettings, user, setUser, setLocalLoading, navigate)
+    }
+
+    if (settings.discord_bot.active) {
+      setAutoInitOptions(prevOptions => {
+        return prevOptions.includes("Discord")
+          ? prevOptions
+          : [...prevOptions, "Discord" as AvailableBots]
+      })
     }
   }, [user, setUser, settings, setSettings, navigate])
 
@@ -70,6 +80,23 @@ const Bots: React.FC = () => {
           Content in pools cannot be removed via loops.
         `}
       >
+        <MUIAutocomplete
+          label="Auto Initialise Users"
+          options={autoInitOptions}
+          value={settings.general_bot.auto_init}
+          disabled={autoInitOptions.length === 0}
+          setValue={(val) => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                general_bot: {
+                  ...prevSettings.general_bot,
+                  auto_init: !val ? "" : val as AvailableBots
+                }
+              }
+            })
+          }}
+        />
         <MUIAutocomplete
           label="Max Movies"
           options={numberSelection("Infinite")}

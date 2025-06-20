@@ -46,6 +46,7 @@ export const populateSettings = `
     series_quality_profile
     min_free_space
     welcome_message
+    auto_init
   }
   discord_bot {
     active

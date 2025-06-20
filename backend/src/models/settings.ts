@@ -47,6 +47,8 @@ export type BotUserType = {
   updated_at: string // When user was updated.
 }
 
+export type AvailableBots = "Discord" | "Whatsapp" | ""
+
 // General information for all Bots
 type GeneralBotType = {
   max_movies: number | null // Maximum movies a user is allowed to have downloaded at the same time. Null = Infinite
@@ -57,6 +59,7 @@ type GeneralBotType = {
   series_quality_profile: string | null // The name of the quality profile to use for sonarr downloads
   min_free_space: string // A number representing the minimum amount of free space that must be left available
   welcome_message: string // A welcome message for new bot users
+  auto_init: AvailableBots // Automatically initialise a user pool for every new bot user. Only available on one bot of the server owners choosing.
   users: BotUserType[] // An array of registered users
 }
 
@@ -163,6 +166,7 @@ const generalBotSchema = new mongoose.Schema<GeneralBotType>({
   series_quality_profile: { type: String, default: null },
   min_free_space: { type: String, default: "21474836480" }, // 20gb
   welcome_message: { type: String, default: "" },
+  auto_init: { type: String, default: "" },
   users: { type: [userSchema], default: [] },
 })
 

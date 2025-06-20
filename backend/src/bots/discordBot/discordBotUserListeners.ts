@@ -290,7 +290,10 @@ export const caseMax = async (message: Message): Promise<string> => {
     ? randomPositiveComment(`<@${guildMember.id}>`)
     : randomSadComment(`<@${guildMember.id}>`)
 
-  return `I've ${changeDirection} the maximum ${contentType} for <@${guildMember.id}> to ${amount}. ${comment}`
+  return discordReply(
+    `I've ${changeDirection} the maximum ${contentType} for <@${guildMember.id}> to ${amount}. ${comment}`,
+    "success",
+  )
 }
 
 // Initialise a user
@@ -299,7 +302,7 @@ export const caseInit = async (message: Message): Promise<string> => {
   if (!settings) return noDBPull()
 
   // Validate the request string: `!init <discord_username> <display_name>`
-  const msgArr = message.content.slice().trim().split(/\s+/)
+  const msgArr = message.content.trim().split(/\s+/)
   const validationError = validateInitCommand(msgArr)
   if (validationError) return validationError
 
@@ -309,11 +312,29 @@ export const caseInit = async (message: Message): Promise<string> => {
   if (!guildMember) return `The user \`${msgArr[1]}\` does not exist in this server.`
   const username = guildMember.user.username
 
+  // If users exist, check for admin privileges before continuing
+  const adminError = await adminCheck(message, settings)
+  if (adminError) return adminError
+
+  return runUserInit(username, name, settings)
+}
+
+// Core user initialization logic, used by both commands and auto-init flows
+export const runUserInit = async (
+  username: string,
+  displayName: string,
+  settings?: settingsDocType,
+): Promise<string> => {
+  settings = settings ? settings : ((await Settings.findOne()) as settingsDocType)
+  if (!settings) return noDBPull()
+
+  const name = capsFirstLetter(displayName)
+
   // If no users exist in the database, create the first user with admin privileges
   if (settings.general_bot.users.length === 0) {
     const user = initUser(name, username, false, true)
     settings.general_bot.users.push(user)
-    if (!(await saveWithRetry(settings, "caseInit First"))) return noDBSave()
+    if (!(await saveWithRetry(settings, "autoInit First"))) return noDBSave()
 
     return discordReply(
       `Welcome to the Automatarr Discord Bot ${user.name}! Your user has been created with admin privileges and owner status. Type !help to see all of my commands!`,
@@ -322,18 +343,14 @@ export const caseInit = async (message: Message): Promise<string> => {
     )
   }
 
-  // If users exist, check for admin privileges before continuing
-  const adminError = await adminCheck(message, settings)
-  if (adminError) return adminError
-
   // Check for duplicate discord usernames
   if (matchedUser(settings, username)) {
     return discordReply(`A user with the Discord username "${username}" already exists.`, "error")
   }
 
-  // Finally, if all checks pass, create the user.
+  // Finally, if all checks pass, create the user
   settings.general_bot.users.push(initUser(name, username))
-  if (!(await saveWithRetry(settings, "caseInit"))) return noDBSave()
+  if (!(await saveWithRetry(settings, "autoInit"))) return noDBSave()
 
   return discordReply(
     `Welcome to the Automatarr Discord Bot ${name}! You can now download up to ${settings.general_bot.max_movies} Movies and ${settings.general_bot.max_series} Series. If you ever need help use the !help command.`,
@@ -379,7 +396,7 @@ export const caseDeleteUser = async (message: Message): Promise<string> => {
   // Save the new users array to the database
   if (!(await saveWithRetry(settings, "caseDeleteUser"))) return noDBSave()
 
-  return `${user.name} has been deleted from the database.`
+  return discordReply(`${user.name} has been deleted from the database.`, "success")
 }
 
 // Remove a user from the database and the discord server
@@ -423,7 +440,10 @@ export const caseRemoveUser = async (message: Message): Promise<string> => {
   // Save the new users array to the database
   if (!(await saveWithRetry(settings, "caseRemoveUser"))) return noDBSave()
 
-  return `${user.name} has been deleted from the database.`
+  return discordReply(
+    `${user.name} has been deleted from the database and removed from the server.`,
+    "success",
+  )
 }
 
 // Display the stats of the author or another user

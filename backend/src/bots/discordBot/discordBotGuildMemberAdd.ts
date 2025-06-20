@@ -1,6 +1,7 @@
 import { Client, GuildMember } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
 import { discordReply, findChannelByName, noDBPull } from "./discordBotUtility"
+import { runUserInit } from "./discordBotUserListeners"
 
 export const guildMemberAddListener = (client: Client) => {
   client.on("guildMemberAdd", async (member: GuildMember) => {
@@ -21,10 +22,21 @@ export const guildMemberAddListener = (client: Client) => {
         )
       }
 
+      // Optionally, automatically initialise the user
+      const auto_init = settings.general_bot.auto_init === "Discord"
+
+      if (auto_init) {
+        runUserInit(member.user.username, member.displayName || member.user.username)
+      }
+
       textBasedChannel.send(
         welcome_message
           ? welcome_message
-          : `🎉 Welcome to the Automatarr Discord server, ${member.user.username}!`,
+          : `🎉 Welcome to the Automatarr Discord server, ${member.user.username}! ${
+              auto_init
+                ? `I've already created your user pool. You can now download ${settings.general_bot.max_movies} movies and ${settings.general_bot.max_series} series to the server!`
+                : ""
+            }`,
       )
     } catch (err) {
       console.error("Failed to send welcome message:", err)

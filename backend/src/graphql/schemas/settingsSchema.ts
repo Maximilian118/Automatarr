@@ -18,6 +18,7 @@ const settingsSchema = `
     series_quality_profile: String
     min_free_space: String!
     welcome_message: String!
+    auto_init: String!
   }
 
   type DiscordBot {
@@ -96,6 +97,7 @@ const settingsSchema = `
     series_quality_profile: String
     min_free_space: String
     welcome_message: String
+    auto_init: String
   }
 
   input discordBot {

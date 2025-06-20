@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb"
 import { Movie } from "../types/movieTypes"
 import { Season, Series } from "../types/seriesTypes"
 import { Episode } from "../types/episodeTypes"
+import { AvailableBots } from "./settings"
 
 export type EventType =
   | "Test"
@@ -36,7 +37,7 @@ export interface BasicEpisodeDataType {
 export interface WebHookWaitingType {
   _id?: ObjectId
   APIName: "Radarr" | "Sonarr" | "Lidarr" // Name of the app the webhook should come from
-  bots: ("Discord" | "Whatsapp")[] // Bots to send the message to
+  bots: AvailableBots[] // Bots to send the message to
   discordData: DiscordDataType | null // All the data discord needs to send a message
   whatsappData: null // All the data whatsapp needs to send a message
   content: Movie | Series | Episode // What is the topic

@@ -17,6 +17,7 @@ const initGeneralBot: GeneralBotType = {
   series_quality_profile: null, // The name of the quality profile to use for sonarr downloads
   min_free_space: "21474836480", // Default 20gb // A number representing the minimum amount of free space that must be left available
   welcome_message: "", // A welcome message for new bot users
+  auto_init: "", // Automatically initialise a user pool for every new bot user. Only available on one bot of the server owners choosing.
 }
 
 const initDiscordBot: DiscordBotType = {
