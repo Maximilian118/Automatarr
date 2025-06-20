@@ -25,12 +25,13 @@ const Settings: React.FC = () => {
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
   const [ userFormErr, setUserFormErr ] = useState<UserErrorType>(initUserErrors())
   const [ webhooksConnected, setWebhooksConnected ] = useState<("Radarr" | "Sonarr" | "Lidarr")[]>([])
+  const [ webhooksLoading, setWebhooksLoading ] = useState<boolean>(false)
 
   const navigate = useNavigate()
 
   useEffect(() => {
     const onPageLoadHandler = async () => {
-      setWebhooksConnected(await checkWebhooks(user, setUser, setLoading, navigate, webhookURL(settings)))
+      setWebhooksConnected(await checkWebhooks(user, setUser, setWebhooksLoading, navigate, webhookURL(settings)))
     }
 
     onPageLoadHandler()
@@ -84,7 +85,7 @@ const Settings: React.FC = () => {
   const apiConnection = (src: string, link: string, connected: boolean) => (
     <div className="api-connection">
       <img alt="API Symbol" src={src} onClick={() => window.open(link, '_blank')}/>
-      {connected ? <Done color="success"/> : <Close color="error"/>}
+      {webhooksLoading ? <CircularProgress size={20}/> : connected ? <Done color="success"/> : <Close color="error"/>}
     </div>
   )
 
@@ -242,7 +243,7 @@ const Settings: React.FC = () => {
                 <Webhook color="inherit"/>
               }
               disabled={!anyStarrAct || webhookURLInvalid}
-              onClick={async () => setWebhooksConnected(await checkWebhooks(user, setUser, setLoading, navigate, webhookURL(settings)))}
+              onClick={async () => setWebhooksConnected(await checkWebhooks(user, setUser, setWebhooksLoading, navigate, webhookURL(settings)))}
             >Add Connections</Button>
             <div className="api-connections-bar">
               {apiConnection("https://radarr.video/img/logo.png", settings.radarr_URL, webhooksConnected.includes("Radarr"))}
