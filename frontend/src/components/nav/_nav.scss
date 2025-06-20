@@ -9,8 +9,9 @@ nav {
   border-bottom: 2px solid black;
   padding-right: 15px;
   box-sizing: border-box;
-  position: relative;
+  position: sticky;
   z-index: 999;
+  top: 0;
 
   .nav-left {
     height: 100%;
