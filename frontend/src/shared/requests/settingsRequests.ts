@@ -23,12 +23,12 @@ export const getSettings = async (
       "",
       {
         query: `
-        query {
-          getSettings {
-            ${populateSettings}
+          query {
+            getSettings {
+              ${populateSettings}
+            }
           }
-        }
-      `,
+        `,
       },
       { headers: headers(user.token) },
     )

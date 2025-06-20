@@ -1,13 +1,15 @@
 import Settings, { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import axios from "axios"
-import { cleanUrl } from "../../shared/utility"
+import { cleanUrl, requestSuccess } from "../../shared/utility"
 import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBittorrentRequests"
 import Data, { dataDocType } from "../../models/data"
 import moment from "moment"
 import { saveWithRetry } from "../../shared/database"
 import { errCodeAndMsg } from "../../shared/requestError"
 import { AuthRequest } from "../../middleware/auth"
+import { activeAPIsArr } from "../../shared/activeAPIsArr"
+import { initWebhookBody } from "../../types/webhookType"
 
 const checkResolvers = {
   checkRadarr: async (
@@ -215,6 +217,70 @@ const checkResolvers = {
     } catch (err) {
       logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
       return { data: status, tokens }
+    }
+  },
+  checkWebhooks: async (
+    { webhookURL }: { webhookURL: string },
+    req: AuthRequest,
+  ): Promise<{ data: ("Radarr" | "Sonarr" | "Lidarr")[]; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    // Find settings object
+    let settings = (await Settings.findOne()) as settingsDocType
+
+    // Throw error if no object was found
+    if (!settings) {
+      logger.error("checkWebhooks: No settings found.")
+      throw new Error("No settings found.")
+    }
+
+    // Only get data for API's that have been checked and are active
+    const { activeAPIs } = await activeAPIsArr(settings._doc)
+
+    let connectedAPIs: ("Radarr" | "Sonarr" | "Lidarr")[] = []
+
+    // Send requests to add the webhook to each active API
+    for (const API of activeAPIs) {
+      try {
+        const res = await axios.post(
+          cleanUrl(`${API.data.URL}/api/${API.data.API_version}/notification`),
+          initWebhookBody(API, webhookURL),
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Api-Key": API.data.KEY,
+            },
+          },
+        )
+
+        if (requestSuccess(res.status)) {
+          connectedAPIs.push(API.name)
+          logger.success(`Webhook | Connection for ${API.name} established!`)
+        } else {
+          logger.error(`Webhook | Unknown error. Status: ${res.status} - ${res.statusText}`)
+        }
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.data) {
+          const errors = err.response.data
+
+          if (Array.isArray(errors) && errors.some((e) => e?.errorMessage === "Should be unique")) {
+            // Treat as already connected
+            connectedAPIs.push(API.name)
+            logger.info(`Webhook | Connection for ${API.name} already exists.`)
+          } else {
+            logger.error(`Webhook | ${JSON.stringify(errors, null, 2)}`)
+          }
+        } else {
+          logger.error(`Webhook |  Unexpected error: ${errCodeAndMsg(err)}`)
+        }
+      }
+    }
+
+    return {
+      data: connectedAPIs,
+      tokens: req.tokens,
     }
   },
 }

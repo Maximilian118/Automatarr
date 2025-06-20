@@ -37,6 +37,7 @@ const Schema = buildSchema(`
     checkqBittorrent(URL: String, USER: String, PASS: String): CheckStatus!
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
+    checkWebhooks(webhookURL: String!): StringArr!
   }
 
   type RootMutation {

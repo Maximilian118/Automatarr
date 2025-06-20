@@ -63,6 +63,29 @@
   .model-description {
     margin-bottom: 40px;
   }
+
+  .api-connections-bar {
+    @include mixins.flexbox-space-between;
+
+    .api-connection:not(:last-of-type) {
+      margin-right: 5px;
+    }
+
+    .api-connection {
+      cursor: pointer;
+
+      img {
+        width: 24px;
+        height: 24px;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+        margin-left: 5px;
+      }
+    }
+  }
 }
 
 /* Styles for mobile devices */

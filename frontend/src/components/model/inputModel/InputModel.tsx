@@ -2,6 +2,7 @@ import React, { ReactNode } from "react"
 import '../model.scss'
 import { statusColours } from "../modelUtility"
 import { multilineText } from "../../../shared/utility"
+import { Switch } from "@mui/material"
 
 interface InputModelType {
   children: ReactNode
@@ -10,9 +11,18 @@ interface InputModelType {
   status?: "Connected" | "Disconnected"
   description?: string
   bottom?: JSX.Element
+  checked?: boolean
+  onToggle?: (value: boolean) => void
+  disabled?: boolean
 }
 
-const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status, description, bottom }) => {
+const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status, description, bottom, checked, onToggle, disabled }) => {
+  const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (onToggle) {
+      onToggle(event.target.checked)
+    }
+  }
+
   return (
     <div className="model" style={bottom && { paddingBottom: 20 }}>
       <div className="model-top">
@@ -21,6 +31,14 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
           {title && <h2>{title}</h2>}
         </div>
         {status && <p style={{ color: statusColours(status) }}>{status}</p>}
+        {onToggle && (
+          <Switch
+            checked={checked}
+            onChange={handleSwitchChange}
+            inputProps={{ 'aria-label': 'controlled' }}
+            disabled={disabled}
+          />
+        )}
       </div>
       {description && multilineText(description, "model-description")}
       {children}

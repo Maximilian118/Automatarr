@@ -1,4 +1,5 @@
 import { EventType } from "../models/webhook"
+import { APIData } from "../shared/activeAPIsArr"
 
 type Language = {
   id: number
@@ -124,4 +125,130 @@ export type StarrWebhookType = {
   fileCount?: number
   sourcePath?: string
   destinationPath?: string
+}
+
+export type StarrWebhookResponseType = {
+  configContract: "WebhookSettings"
+  fields: [
+    { name: "url"; value: string },
+    { name: "method"; value: 1 },
+    { name: "username" },
+    { name: "password" },
+    { name: "headers"; value: [] },
+  ]
+  implementation: "Webhook"
+  implementationName: "Webhook"
+  includeHealthWarnings: boolean
+  infoLink: string
+  name: string
+
+  // Shared Event Toggles
+  onApplicationUpdate: boolean
+  onDownload: boolean
+  onGrab: boolean
+  onHealthIssue: boolean
+  onHealthRestored: boolean
+  onManualInteractionRequired: boolean
+  onRename: boolean
+  onUpgrade: boolean
+
+  // Radarr-specific
+  onMovieAdded?: boolean
+  onMovieDelete?: boolean
+  onMovieFileDelete?: boolean
+  onMovieFileDeleteForUpgrade?: boolean
+
+  // Sonarr-specific
+  onImportComplete?: boolean
+  onSeriesAdd?: boolean
+  onSeriesDelete?: boolean
+  onEpisodeFileDelete?: boolean
+  onEpisodeFileDeleteForUpgrade?: boolean
+
+  // Supported flags (optional, returned in GET responses)
+  supportsOnApplicationUpdate?: boolean
+  supportsOnDownload?: boolean
+  supportsOnGrab?: boolean
+  supportsOnHealthIssue?: boolean
+  supportsOnHealthRestored?: boolean
+  supportsOnManualInteractionRequired?: boolean
+  supportsOnRename?: boolean
+  supportsOnUpgrade?: boolean
+
+  supportsOnMovieAdded?: boolean
+  supportsOnMovieDelete?: boolean
+  supportsOnMovieFileDelete?: boolean
+  supportsOnMovieFileDeleteForUpgrade?: boolean
+
+  supportsOnImportComplete?: boolean
+  supportsOnSeriesAdd?: boolean
+  supportsOnSeriesDelete?: boolean
+  supportsOnEpisodeFileDelete?: boolean
+  supportsOnEpisodeFileDeleteForUpgrade?: boolean
+
+  tags: string[]
+}
+
+export const initWebhookBody = (API: APIData, webhookURL: string): StarrWebhookResponseType => {
+  return {
+    configContract: "WebhookSettings",
+    fields: [
+      { name: "url", value: webhookURL },
+      { name: "method", value: 1 },
+      { name: "username" },
+      { name: "password" },
+      { name: "headers", value: [] },
+    ],
+    implementation: "Webhook",
+    implementationName: "Webhook",
+    includeHealthWarnings: false,
+    infoLink: `https://wiki.servarr.com/${API.name.toLowerCase()}/supported#webhook`,
+    name: "Automatarr",
+
+    // Shared
+    onApplicationUpdate: true,
+    onDownload: true,
+    onGrab: true,
+    onHealthIssue: false,
+    onHealthRestored: false,
+    onManualInteractionRequired: true,
+    onRename: true,
+    onUpgrade: true,
+
+    // Radarr
+    onMovieAdded: true,
+    onMovieDelete: true,
+    onMovieFileDelete: true,
+    onMovieFileDeleteForUpgrade: true,
+
+    // Sonarr
+    onImportComplete: true,
+    onSeriesAdd: true,
+    onSeriesDelete: true,
+    onEpisodeFileDelete: true,
+    onEpisodeFileDeleteForUpgrade: true,
+
+    // Supported flags (not required for POST, but allowed)
+    supportsOnApplicationUpdate: true,
+    supportsOnDownload: true,
+    supportsOnGrab: true,
+    supportsOnHealthIssue: true,
+    supportsOnHealthRestored: true,
+    supportsOnManualInteractionRequired: true,
+    supportsOnRename: true,
+    supportsOnUpgrade: true,
+
+    supportsOnMovieAdded: true,
+    supportsOnMovieDelete: true,
+    supportsOnMovieFileDelete: true,
+    supportsOnMovieFileDeleteForUpgrade: true,
+
+    supportsOnImportComplete: true,
+    supportsOnSeriesAdd: true,
+    supportsOnSeriesDelete: true,
+    supportsOnEpisodeFileDelete: true,
+    supportsOnEpisodeFileDeleteForUpgrade: true,
+
+    tags: [],
+  }
 }

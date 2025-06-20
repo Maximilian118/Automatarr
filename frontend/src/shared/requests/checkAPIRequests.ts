@@ -256,3 +256,52 @@ export const checkqBittorrent = async (
     return false
   }
 }
+
+// send requests to active API's and ensure each one has a connection to the webhook URL.
+export const checkWebhooks = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  setLoading: Dispatch<SetStateAction<boolean>>,
+  navigate: NavigateFunction,
+  webhookURL: string,
+): Promise<("Radarr" | "Sonarr" | "Lidarr")[]> => {
+  if (webhookURL.includes("Invalid")) {
+    console.error(`checkWebhooks: Invalid Webhook URL.`)
+    return []
+  }
+
+  setLoading(true)
+
+  try {
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          webhookURL,
+        },
+        query: `
+          query CheckWebhooks($webhookURL: String!) {
+            checkWebhooks(webhookURL: $webhookURL) {
+              data
+              tokens
+            }
+          }
+        `,
+      },
+      { headers: headers(user.token) },
+    )
+
+    if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
+      console.error(`checkWebhooks Error: ${res.data.errors[0].message}`)
+    } else {
+      return res.data.data.checkWebhooks.data
+    }
+  } catch (err) {
+    console.error(`checkWebhooks Error: ${err}`)
+  } finally {
+    setLoading(false)
+  }
+
+  return []
+}

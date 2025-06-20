@@ -1,7 +1,7 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Logout, Send, Webhook } from "@mui/icons-material"
+import { Close, Done, Logout, Send, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
@@ -17,14 +17,25 @@ import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { inputLabel, updateInput } from "../shared/formValidation"
 import { UserErrorType } from "../types/userType"
 import { updateUser } from "../shared/requests/userRequests"
+import { checkWebhooks } from "../shared/requests/checkAPIRequests"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
   const [ userFormErr, setUserFormErr ] = useState<UserErrorType>(initUserErrors())
+  const [ webhooksConnected, setWebhooksConnected ] = useState<("Radarr" | "Sonarr" | "Lidarr")[]>([])
 
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const onPageLoadHandler = async () => {
+      setWebhooksConnected(await checkWebhooks(user, setUser, setLoading, navigate, webhookURL(settings)))
+    }
+
+    onPageLoadHandler()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -68,6 +79,13 @@ const Settings: React.FC = () => {
         })
       }
     />
+  )
+
+  const apiConnection = (src: string, link: string, connected: boolean) => (
+    <div className="api-connection">
+      <img alt="API Symbol" src={src} onClick={() => window.open(link, '_blank')}/>
+      {connected ? <Done color="success"/> : <Close color="error"/>}
+    </div>
   )
 
   return (
@@ -188,33 +206,50 @@ const Settings: React.FC = () => {
           startIcon={<Webhook/>}
           description={`Webhooks allow you to send specific notifications through your bots.
 
-          For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.
-          
-          Note: Without Webhooks users will still receive "Imported" notifications by Polling Starr apps.
+            For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.
+            
+            Note: Without Webhooks users will still receive "Imported" notifications by Polling Starr apps.
+
+            Setup: Copy and paste the below URL into: Starr App > Settings > Connect > Webhook > Webhook URL. Test it and press save.
+
+            Alternatively, just press the "Add Connections" below to connect all active Starr Apps.
           `}
-        >
-          <Toggle 
-            name="Use Webhooks:" 
-            checked={anyStarrAct ? settings.webhooks : false}
-            disabled={!anyStarrAct || webhookURLInvalid}
-            onToggle={() => {
-              setSettings(prevSettings => {
+          checked={anyStarrAct ? settings.webhooks : false}
+          disabled={!anyStarrAct || webhookURLInvalid}
+          onToggle={() => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                webhooks_active: !prevSettings.webhooks,
+              }
+            })
+          
+            if (formErr.webhooks_token) { 
+              setFormErr(prevFormErr => {
                 return {
-                  ...prevSettings,
-                  webhooks_active: !prevSettings.webhooks,
+                  ...prevFormErr,
+                  webhooks_token: "",
                 }
               })
-            
-              if (formErr.webhooks_token) { 
-                setFormErr(prevFormErr => {
-                  return {
-                    ...prevFormErr,
-                    webhooks_token: "",
-                  }
-                })
+            }
+          }}
+        >
+          <div className="button-bar" style={{ width: "100%", justifyContent: "space-between", marginBottom: 39.5 }}>
+            <Button 
+              variant="contained"
+              endIcon={localLoading ? 
+                <CircularProgress size={20} color="inherit"/> : 
+                <Webhook color="inherit"/>
               }
-            }}
-          />
+              disabled={!anyStarrAct || webhookURLInvalid}
+              onClick={async () => setWebhooksConnected(await checkWebhooks(user, setUser, setLoading, navigate, webhookURL(settings)))}
+            >Add Connections</Button>
+            <div className="api-connections-bar">
+              {apiConnection("https://radarr.video/img/logo.png", settings.radarr_URL, webhooksConnected.includes("Radarr"))}
+              {apiConnection("https://sonarr.tv/img/logo.png", settings.sonarr_URL, webhooksConnected.includes("Sonarr"))}
+              {apiConnection("https://lidarr.audio/img/logo.png", settings.lidarr_URL, webhooksConnected.includes("Lidarr"))}
+            </div>
+          </div>
           <TextField
             fullWidth
             value={webhookURL(settings)}
