@@ -5,6 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "nodemon dist/app.js",
+    "start:prod": "pm2-runtime dist/ecosystem.config.js",
     "build": "tsc",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/app.ts"
   },
@@ -22,6 +23,7 @@
     "mongodb": "^6.9.0",
     "mongodb-memory-server": "^10.1.2",
     "mongoose": "^8.7.2",
+    "pm2": "^6.0.8",
     "winston": "^3.15.0",
     "winston-daily-rotate-file": "^5.0.0"
   },

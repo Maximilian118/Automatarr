@@ -25,7 +25,7 @@ RUN npm run build
 # --------------------
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm install
+RUN npm install --omit=dev
 COPY backend ./
 RUN npm run build
 
@@ -42,4 +42,4 @@ EXPOSE 8091
 # --------------------
 CMD concurrently \
   "npm run --prefix /app/frontend start" \
-  "node /app/backend/dist/app.js"
+  "npm run --prefix /app/backend start:prod"
