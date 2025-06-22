@@ -64,6 +64,9 @@ import {
   notifySeriesDownloaded,
 } from "./discordBotAsync"
 import { waitForWebhook } from "../../webhooks/webhookUtility"
+import { sortTMDBSearchArray } from "../botUtility"
+import { Movie } from "../../types/movieTypes"
+import { Series } from "../../types/seriesTypes"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -106,7 +109,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   }
 
   // If message is valid, give me the juicy data
-  const { searchString } = parsed
+  const { searchString, year } = parsed
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -124,8 +127,11 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     return randomNotFoundMessage()
   }
 
+  // Sort foundMoviesArr so that if any titles are the same, the passed year is higher in the order
+  const sortedMoviesArr = sortTMDBSearchArray<Movie>(foundMoviesArr, year)
+
   // Grab the first movie in the array
-  const foundMovie = foundMoviesArr[0]
+  const foundMovie = sortedMoviesArr[0]
 
   // Check if the movie is already downloaded
   if (foundMovie.movieFile) {
@@ -245,7 +251,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   // If message is valid, give me the juicy data
-  const { searchString } = parsed
+  const { searchString, year } = parsed
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -263,8 +269,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     return randomNotFoundMessage()
   }
 
+  // Sort foundMoviesArr so that if any titles are the same, the passed year is higher in the order
+  const sortedSeriesArr = sortTMDBSearchArray<Series>(foundSeriesArr, year)
+
   // Grab the first series in the array
-  const foundSeries = foundSeriesArr[0]
+  const foundSeries = sortedSeriesArr[0]
 
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType

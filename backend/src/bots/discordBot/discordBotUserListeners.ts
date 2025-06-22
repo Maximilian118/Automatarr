@@ -313,8 +313,10 @@ export const caseInit = async (message: Message): Promise<string> => {
   const username = guildMember.user.username
 
   // If users exist, check for admin privileges before continuing
-  const adminError = await adminCheck(message, settings)
-  if (adminError) return adminError
+  if (settings.general_bot.users.length !== 0) {
+    const adminError = await adminCheck(message, settings)
+    if (adminError) return adminError
+  }
 
   return runUserInit(username, name, settings)
 }
