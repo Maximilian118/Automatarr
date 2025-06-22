@@ -150,11 +150,11 @@ export const randomQueuedMessage = (timeLeft?: string): string => {
     `Added to the download queue${eta}${longWaitNote}. Shouldn't be long now.`,
     `Waiting in the queue${eta}${longWaitNote} — we haven't forgotten it.`,
     `Your download is doing the digital equivalent of waiting at the DMV${eta}${longWaitNote}.`,
-    `It’s in the queue — possibly behind someone's entire anime backlog${eta}${longWaitNote}.`,
+    `It's in the queue — possibly behind someone's entire anime backlog${eta}${longWaitNote}.`,
     `We've got it lined up${eta}${longWaitNote}. Just waiting for the stars to align.`,
     `It's waiting for the servers to finish their coffee break${eta}${longWaitNote}.`,
     `Queued... kind of like that email you meant to send three days ago${eta}${longWaitNote}.`,
-    `It’s in queue purgatory${eta}${longWaitNote}. Be patient, or sacrifice a USB stick to the gods.`,
+    `It's in queue purgatory${eta}${longWaitNote}. Be patient, or sacrifice a USB stick to the gods.`,
     `Queued and comfy. It'll get there. Probably before the heat death of the universe${eta}${longWaitNote}.`,
   ]
 
@@ -187,7 +187,7 @@ export const randomDownloadingMessage = (timeLeft?: string): string => {
     `Downloading... at a speed that legally counts as motion${eta}${longWaitNote}.`,
     `Right now, it's racing a snail — and losing${eta}${longWaitNote}.`,
     `Yes, it's downloading. Yes, time is an illusion${eta}${longWaitNote}.`,
-    `Downloading like it’s 2002 and someone picked up the phone line${eta}${longWaitNote}.`,
+    `Downloading like it's 2002 and someone picked up the phone line${eta}${longWaitNote}.`,
     `Slow? Yes. Steady? Kinda. Eventually yours? Absolutely${eta}${longWaitNote}.`,
     `Somewhere, somehow, your download is being assembled by elves${eta}${longWaitNote}.`,
   ]
@@ -482,7 +482,7 @@ export const randomEpisodeStillNotDownloadedMessage = (
     `🚫 Timeout reached. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber}: *${title}* never showed.`,
     `🕵️‍♂️ Looked under every rock, but \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) is still missing.`,
     `🔍 \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) refused to download. How rude.`,
-    `⏰ Time’s up. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) hasn’t been found.`,
+    `⏰ Time's up. \`${seriesTitle}\` S${seasonNumber}E${episodeNumber} (*${title}*) hasn't been found.`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
