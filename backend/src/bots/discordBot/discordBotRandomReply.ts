@@ -1,8 +1,23 @@
 // Just a bit of fun so we don't see the same message everytime
 
+import moment from "moment"
+import { formatTimeLeft } from "../../shared/utility"
 import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
+
+const longWaitComments = [
+  "Sheesh, that's a long wait!",
+  "Could finish a whole season before that one's done!",
+  "Might be faster to mail you a DVD.",
+  "That's not buffering — that's hibernating.",
+  "You could fly to Hollywood and film it yourself in less time.",
+  "By the time it's done, the sequel might be out.",
+  "Even the sloths from Zootopia are judging this speed.",
+  "Hope you weren't planning on watching it *today*.",
+  "Legend says it's still downloading...",
+  "Honestly, you might want to start a new show in the meantime.",
+]
 
 export const randomMovieReadyMessage = (name: string, movieTitle: string) => {
   const messages = [
@@ -113,27 +128,70 @@ export const randomAlreadyAddedMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-const randomQueuedMessage = (timeLeft?: string) => {
-  const time = timeLeft ? ` (ETA: ${timeLeft})` : ""
+export const randomQueuedMessage = (timeLeft?: string): string => {
+  let eta = ""
+  let longWaitNote = ""
+
+  if (timeLeft) {
+    const duration = moment.duration(timeLeft)
+    const formatted = formatTimeLeft(timeLeft)
+    eta = ` — last one finishes in ${formatted}`
+
+    if (duration.asHours() > 8) {
+      const note = longWaitComments[Math.floor(Math.random() * longWaitComments.length)]
+      longWaitNote = ` — ${note}`
+    }
+  }
+
   const messages = [
-    `Your request is queued — waiting for its turn to download${time}.`,
-    `It's in line to be downloaded${time}. Hang tight.`,
-    `That one's queued${time}. We'll grab it as soon as we can.`,
-    `Added to the download queue${time}. Shouldn't be long now.`,
-    `Waiting in the queue${time} — we haven't forgotten it.`,
+    `Your request is queued${eta}${longWaitNote}.`,
+    `It's in line to be downloaded${eta}${longWaitNote}. Hang tight.`,
+    `That one's queued${eta}${longWaitNote}. We'll grab it as soon as we can.`,
+    `Added to the download queue${eta}${longWaitNote}. Shouldn't be long now.`,
+    `Waiting in the queue${eta}${longWaitNote} — we haven't forgotten it.`,
+    `Your download is doing the digital equivalent of waiting at the DMV${eta}${longWaitNote}.`,
+    `It’s in the queue — possibly behind someone's entire anime backlog${eta}${longWaitNote}.`,
+    `We've got it lined up${eta}${longWaitNote}. Just waiting for the stars to align.`,
+    `It's waiting for the servers to finish their coffee break${eta}${longWaitNote}.`,
+    `Queued... kind of like that email you meant to send three days ago${eta}${longWaitNote}.`,
+    `It’s in queue purgatory${eta}${longWaitNote}. Be patient, or sacrifice a USB stick to the gods.`,
+    `Queued and comfy. It'll get there. Probably before the heat death of the universe${eta}${longWaitNote}.`,
   ]
+
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-const randomDownloadingMessage = (timeLeft?: string) => {
-  const time = timeLeft ? ` (ETA: ${timeLeft})` : ""
+export const randomDownloadingMessage = (timeLeft?: string): string => {
+  let eta = ""
+  let longWaitNote = ""
+
+  if (timeLeft) {
+    const duration = moment.duration(timeLeft)
+    const formatted = formatTimeLeft(timeLeft)
+    eta = ` — last one finishes in ${formatted}`
+
+    if (duration.asHours() > 8) {
+      const note = longWaitComments[Math.floor(Math.random() * longWaitComments.length)]
+      longWaitNote = ` — ${note}`
+    }
+  }
+
   const messages = [
-    `It's downloading right now${time} — progress is happening.`,
-    `Currently being downloaded${time}. You'll have it soon.`,
-    `Download in progress${time}. Just a little longer.`,
-    `We're on it — that one's coming down as we speak${time}.`,
-    `It's actively downloading${time}. Almost there.`,
+    `It's downloading right now${eta}${longWaitNote}.`,
+    `Currently being downloaded${eta}${longWaitNote}. You'll have it soon.`,
+    `Download in progress${eta}${longWaitNote}. Just a little longer.`,
+    `We're on it — that one's coming down as we speak${eta}${longWaitNote}.`,
+    `It's actively downloading${eta}${longWaitNote}. Almost there.`,
+    `Bits and bytes are doing their thing${eta}${longWaitNote}.`,
+    `You're not watching it yet, but at least it's moving!${eta}${longWaitNote}.`,
+    `Downloading... at a speed that legally counts as motion${eta}${longWaitNote}.`,
+    `Right now, it's racing a snail — and losing${eta}${longWaitNote}.`,
+    `Yes, it's downloading. Yes, time is an illusion${eta}${longWaitNote}.`,
+    `Downloading like it’s 2002 and someone picked up the phone line${eta}${longWaitNote}.`,
+    `Slow? Yes. Steady? Kinda. Eventually yours? Absolutely${eta}${longWaitNote}.`,
+    `Somewhere, somehow, your download is being assembled by elves${eta}${longWaitNote}.`,
   ]
+
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
@@ -273,21 +331,48 @@ export const randomMissingEpisodesSearchInProgress = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomEpisodesDownloadingMessage = (count: number) => {
+export const randomEpisodesDownloadingMessage = (count: number, timeleft?: string): string => {
+  let eta = ""
+  let longWaitNote = ""
+
+  if (timeleft) {
+    const duration = moment.duration(timeleft)
+    const formatted = formatTimeLeft(timeleft)
+    eta = ` — last one finishes in ${formatted}`
+
+    if (duration.asHours() > 8) {
+      const note = longWaitComments[Math.floor(Math.random() * longWaitComments.length)]
+      longWaitNote = ` — ${note}`
+    }
+  }
+
   const messages = [
     `I'm already downloading ${count} episode${
       count > 1 ? "s" : ""
-    } for that series. They're coming!`,
-    `${count} episode${count > 1 ? "s" : ""} are already on their way — sit tight!`,
-    `Hang tight! I'm already fetching ${count} episode${count > 1 ? "s" : ""}.`,
-    `Already working on it — ${count} episode${count > 1 ? "s" : ""} are in the pipe.`,
-    `No need to worry, ${count} episode${count > 1 ? "s" : ""} are already being downloaded.`,
-    `I'm already on it! ${count} episode${count > 1 ? "s" : ""} are currently downloading.`,
+    }. They're coming!${eta}${longWaitNote}`,
+    `${count} episode${
+      count > 1 ? "s" : ""
+    } are already on their way — sit tight!${eta}${longWaitNote}`,
+    `Hang tight! I'm already fetching ${count} episode${
+      count > 1 ? "s" : ""
+    }.${eta}${longWaitNote}`,
+    `Already working on it — ${count} episode${
+      count > 1 ? "s" : ""
+    } are in the pipe.${eta}${longWaitNote}`,
+    `No need to worry, ${count} episode${
+      count > 1 ? "s" : ""
+    } are already being downloaded.${eta}${longWaitNote}`,
+    `I'm already on it! ${count} episode${
+      count > 1 ? "s" : ""
+    } are currently downloading.${eta}${longWaitNote}`,
     `This series is already in the library. ${count} episode${
       count > 1 ? "s" : ""
-    } are being grabbed now.`,
-    `Already added! ${count} episode${count > 1 ? "s" : ""} are coming your way.`,
+    } are being grabbed now.${eta}${longWaitNote}`,
+    `Already added! ${count} episode${
+      count > 1 ? "s" : ""
+    } are coming your way.${eta}${longWaitNote}`,
   ]
+
   return messages[Math.floor(Math.random() * messages.length)]
 }
 

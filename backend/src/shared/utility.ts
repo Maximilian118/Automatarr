@@ -326,3 +326,23 @@ export const formatBytes = (bytesInput: string | number | bigint, decimals = 2):
   const value = Number(bytes) / Math.pow(1024, i)
   return `${parseFloat(value.toFixed(decimals))}${sizes[i]}`
 }
+
+// formatTimeLeft("49:12:30")
+// => "2 days, 1 hour, 12 minutes, 30 seconds"
+export const formatTimeLeft = (hhmmss: string): string => {
+  const duration = moment.duration(hhmmss)
+
+  const days = Math.floor(duration.asDays()) // full days
+  const hours = duration.hours()
+  const minutes = duration.minutes()
+  const seconds = duration.seconds()
+
+  const parts = [
+    days ? `${days} day${days !== 1 ? "s" : ""}` : "",
+    hours ? `${hours} hour${hours !== 1 ? "s" : ""}` : "",
+    minutes ? `${minutes} minute${minutes !== 1 ? "s" : ""}` : "",
+    seconds ? `${seconds} second${seconds !== 1 ? "s" : ""}` : "",
+  ].filter(Boolean)
+
+  return parts.join(", ")
+}

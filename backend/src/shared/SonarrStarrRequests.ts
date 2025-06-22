@@ -64,7 +64,7 @@ export const getSonarrQueue = async (
   try {
     const res = await axios.get(
       cleanUrl(
-        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.sonarr_KEY}`,
+        `${settings.sonarr_URL}/api/${settings.sonarr_API_version}/queue?page=1&pageSize=1000&sortDirection=ascending&sortKey=timeleft&includeUnknownSeriesItems=true&apikey=${settings.sonarr_KEY}`,
       ),
     )
 

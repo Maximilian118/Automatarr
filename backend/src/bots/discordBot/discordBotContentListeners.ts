@@ -319,9 +319,10 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     // Check download Queue and see if any episodes for this series are currently being downloaded
     const queue = await getSonarrQueue(settings)
     const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
+    const lastEpisode = episodesInQueue.at(-1)
 
     if (episodesInQueue.length > 0) {
-      return randomEpisodesDownloadingMessage(episodesInQueue.length)
+      return randomEpisodesDownloadingMessage(episodesInQueue.length, lastEpisode?.timeleft)
     }
 
     if (now - lastSearchTime < tenMinutes) {
