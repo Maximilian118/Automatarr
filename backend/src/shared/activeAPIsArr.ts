@@ -5,7 +5,13 @@ import { Artist } from "../types/artistTypes"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
-import { commandData, DownloadStatus, ImportListData, rootFolderData } from "../types/types"
+import {
+  commandData,
+  DownloadStatus,
+  ImportListData,
+  MdblistItem,
+  rootFolderData,
+} from "../types/types"
 import { getContentName } from "./utility"
 
 type APIDataFields = {
@@ -17,6 +23,7 @@ type APIDataFields = {
   commandList?: string[]
   downloadQueue?: DownloadStatus[]
   importLists?: ImportListData[]
+  listItems?: MdblistItem[]
   rootFolder?: rootFolderData
   library?: (Movie | Series | Artist)[]
   episodes?: Episode[]
@@ -85,7 +92,8 @@ export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs>
     return {
       data,
       activeAPIs: activeAPIs.map((API) => {
-        const subData = data.libraries.find((c) => API.name === c.name)?.subData
+        const listItems = data.importLists.find((c) => API.name === c.name)?.listItems
+        const episodes = data.libraries.find((c) => API.name === c.name)?.episodes
 
         return {
           ...API,
@@ -97,14 +105,15 @@ export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs>
               .filter((d) => API.name === d.name)
               .flatMap((d) => d.data),
             importLists: data.importLists.filter((l) => API.name === l.name).flatMap((l) => l.data),
+            ...(listItems ? { [getContentName(API, true, true)]: listItems } : {}), // Add listItems only if listItems exists
             rootFolder: data.rootFolders.find((f) => API.name === f.name)?.data,
             library: data.libraries
               .filter((c) => API.name === c.name)
               .flatMap((c) => c.data as (Movie | Series | Artist)[]),
+            ...(episodes ? { [getContentName(API, true, true)]: episodes } : {}), // Add episodes only if episodes exists
             missingWanted: data.missingWanteds
               .filter((c) => API.name === c.name)
               .flatMap((c) => c.data as (Movie | Series | Artist)[]),
-            ...(subData ? { [getContentName(API, true, true)]: subData } : {}), // Add subData only if subData exists
           },
         }
       }),

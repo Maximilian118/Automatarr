@@ -75,7 +75,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
     // Ensure library for this API exists
     if (!library) {
-      logger.error(`removeMissing: No library data for ${API.name}.`)
+      logger.error(`Remove Missing | ${API.name} | No library data.`)
       continue
     }
 
@@ -93,12 +93,45 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     if (settings.remove_missing_level === "Import List") {
       // Skip if this API has no import lists
       if (!API.data.importLists || API.data.importLists.length === 0) {
-        logger.warn(`removeMissing: ${API.name} has no Import Lists.`)
+        logger.warn(`Remove Missing | ${API.name} | has no Import Lists.`)
         continue
       }
 
       // An array of items from import lists from various list APIs such as mdbList
-      const importListItems = await getMdbListItems(API)
+      const { importListItems, newListItems, listsError } = await getMdbListItems(API)
+
+      if (listsError) {
+        logger.warn(
+          `Remove Missing | ${API.name} | Stopped execution due to getMdbListItems error.`,
+        )
+        return
+      }
+
+      // If importListItems is still empty, don't go any further
+      if (importListItems.length === 0) {
+        logger.error(`Remove Missing | ${API.name} | No Import list data. Skipping...`)
+        continue
+      }
+
+      if (importListItems.length > 0 && !newListItems) {
+        logger.warn(
+          `Remove Missing | ${API.name} | No new mdbLists could be retreived. Falling back to lists in the databse.`,
+        )
+      }
+
+      // Replace list items with new ones in databse
+      if (newListItems) {
+        data.importLists = data.importLists.map((il) => {
+          if (il.name === API.name) {
+            return {
+              ...il,
+              listItems: newListItems,
+              updated_at: moment().format(),
+            }
+          }
+          return il
+        })
+      }
 
       // Log the amount of import list items for each Starr app API
       if (API.name === "Radarr") {
@@ -159,7 +192,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
       // Log one message per user with their skipped titles
       for (const [user, titles] of Object.entries(userSkippedMap)) {
         logger.info(
-          `${API.name}: Skipping ${titles.length} ${
+          `Remove Missing | ${API.name} | Skipping ${titles.length} ${
             titles.length < 2 ? singular : plural
           } in ${user}'s pool: [${titles.join(", ")}] 🔒`,
         )
@@ -178,7 +211,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
           const deleteFromLibraryHelper = async () => {
             if (!isDocker) {
               logger.info(
-                `${API.name}: ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
+                `Remove Missing | ${API.name} | ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
               )
               return
             }
@@ -251,7 +284,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     if (settings.remove_missing_level === "Library") {
       // Check we have root folder path
       if (!API.data.rootFolder) {
-        logger.error(`removeMissing: Root folder data missing for ${API.name}.`)
+        logger.error(`Remove Missing | ${API.name} | Root folder data missing for ${API.name}.`)
         continue
       }
 
@@ -280,9 +313,12 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     const deleted = API.name === "Radarr" ? logging.radarrDeleted : logging.sonarrDeleted
 
     logger.success(
-      `Remove Missing ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
+      `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
     )
   }
+
+  // Save the changes to data to the database
+  await saveWithRetry(data, "remove_missing")
 }
 
 export default remove_missing

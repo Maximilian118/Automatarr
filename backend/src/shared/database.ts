@@ -1,3 +1,4 @@
+import moment from "moment"
 import logger from "../logger"
 import { dataDocType } from "../models/data"
 import { settingsDocType } from "../models/settings"
@@ -14,6 +15,10 @@ export const saveWithRetry = async (
 
   while (attempts < maxRetries) {
     try {
+      if ("updated_at" in dbObject && typeof dbObject.updated_at === "string") {
+        dbObject.updated_at = moment().format()
+      }
+
       const res = await dbObject.save()
       return res
     } catch (err: any) {

@@ -325,7 +325,7 @@ export const getAllLibraries = async (
       if (API.name === "Sonarr") {
         return {
           ...baseLibrary,
-          subData: await getAllEpisodes(updatedLibrary.data as Series[], API),
+          episodes: await getAllEpisodes(updatedLibrary.data as Series[], API),
         }
       }
 

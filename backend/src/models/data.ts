@@ -1,7 +1,13 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
-import { commandData, DownloadStatus, ImportListData, rootFolderData } from "../types/types"
+import {
+  commandData,
+  DownloadStatus,
+  ImportListData,
+  MdblistItem,
+  rootFolderData,
+} from "../types/types"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
@@ -33,6 +39,7 @@ export interface downloadQueue extends baseData {
 // A name to categorize a list of import lists
 export interface importList extends baseData {
   data: ImportListData[]
+  listItems?: MdblistItem[] // All of the Import list items for this API
 }
 
 // A name to categorize the root folder for each API
@@ -48,7 +55,7 @@ export interface qualityProfile extends baseData {
 // A name to categorize each library
 export interface library extends baseData {
   data: (Movie | Series | Artist)[]
-  subData?: Episode[] // Sonarr Episodes
+  episodes?: Episode[] // Sonarr Episodes
 }
 
 // An object with qBittorrent data
@@ -126,6 +133,7 @@ const downloadQueuesSchema = new mongoose.Schema<downloadQueue>({
 const importListSchema = new mongoose.Schema<importList>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of import lists
+  listItems: { type: mongoose.Schema.Types.Mixed, required: false }, // All of the Import list items for this API
 })
 
 const rootFoldersSchema = new mongoose.Schema<rootFolder>({
@@ -141,7 +149,7 @@ const qualityProfilesSchmea = new mongoose.Schema<qualityProfile>({
 const librariesSchema = new mongoose.Schema<library>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // No limitations on the structure
-  subData: { type: mongoose.Schema.Types.Mixed, required: false }, // No limitations on the structure
+  episodes: { type: mongoose.Schema.Types.Mixed, required: false }, // No limitations on the structure
 })
 
 const qBittorrentSchema = new mongoose.Schema<qBittorrent>({
