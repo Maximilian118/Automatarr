@@ -141,4 +141,4 @@ The /graphql location is required so the frontend can reach the backend through 
 - [ ] Add Readarr support
 - [x] Add spinner to top right of settings pages or nav bar for more obvious loading
 - [x] Add security
-- [ ] Add webhooks for better bot notifications (Security needed)
+- [x] Add webhooks for better bot notifications (Security needed)
