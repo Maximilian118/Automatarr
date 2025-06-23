@@ -238,7 +238,7 @@ export const validateDownload = async (
     // See what returns from the API for examples
     const searchString = rest.join(" ") // all words after !download, including possibly invalid year
     // TMDB-safe title validation (basic ASCII + common punctuation)
-    const invalidCharMatch = searchString.match(/[^a-zA-Z0-9 ':,\-&.]/)
+    const invalidCharMatch = searchString.match(/[\x00-\x1F\x7F]/)
 
     if (invalidCharMatch) {
       return `The ${content} title contains unsupported characters: \`${invalidCharMatch[0]}\``
@@ -599,4 +599,87 @@ export const validateBlocklistCommand = async (
   return (
     noMatchMessage + (suggestionStrings ? `Did you mean any of these?\n` + suggestionStrings : "")
   )
+}
+
+// Validate the array data for the caseInit message
+export const validateWaitCommand = async (
+  message: Message,
+  settings: settingsDocType,
+): Promise<
+  | string
+  | {
+      channel: TextBasedChannel
+      command: string
+      title: string
+      year: string
+      searchString: string
+    }
+> => {
+  // Check if an accepted channel has been used
+  const validChannel = channelValid(message.channel, settings)
+  if (typeof validChannel === "string") return validChannel
+
+  const { channel, contentType } = validChannel
+
+  const msgArr = message.content.trim().split(/\s+/)
+
+  const [command, ...rest] = msgArr
+
+  const validCommands = ["!waittime", "!wait"]
+  if (!validCommands.includes(command.toLowerCase())) {
+    return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
+  }
+
+  if (msgArr.length < 2) {
+    return `The !${command} command must contain a ${contentType} title and a 4-digit year. For example: !${command} ${
+      contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
+    }`
+  }
+
+  const yearCandidate = rest[rest.length - 1]
+  const yearMatch = yearCandidate.match(/^\d{4}$/)
+
+  if (!yearMatch) {
+    // See what returns from the API for examples
+    const searchString = rest.join(" ") // all words after !download, including possibly invalid year
+    // TMDB-safe title validation (basic ASCII + common punctuation)
+    const invalidCharMatch = searchString.match(/[\x00-\x1F\x7F]/)
+
+    if (invalidCharMatch) {
+      return `The ${contentType} title contains unsupported characters: \`${invalidCharMatch[0]}\``
+    }
+
+    const foundContentArr =
+      contentType === "movie"
+        ? (await searchRadarr(settings, searchString)) || []
+        : (await searchSonarr(settings, searchString)) || []
+
+    const recommendations =
+      foundContentArr.length === 0
+        ? "I couldn't find any recommendations for that title."
+        : `Is it any of these you wanted? ⛏️\n\n` +
+          foundContentArr
+            .slice(0, 10)
+            .map((c) => `${c.title} ${c.year}`)
+            .join("\n")
+
+    return `The last part of the command must be a 4 digit year. ⚠️\n` + recommendations
+  }
+
+  const year = yearCandidate
+  const title = rest.slice(0, -1).join(" ")
+
+  // TMDB-safe title validation (basic ASCII + common punctuation)
+  const invalidCharMatch = title.match(/[^a-zA-Z0-9 ':,\-&.]/)
+  if (invalidCharMatch) {
+    return `The ${contentType} title contains unsupported characters: \`${invalidCharMatch[0]}\``
+  }
+
+  return {
+    channel,
+    command,
+    title,
+    year,
+    searchString: `${title} ${year}`,
+  }
 }

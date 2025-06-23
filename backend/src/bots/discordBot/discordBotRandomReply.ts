@@ -168,7 +168,7 @@ export const randomDownloadingMessage = (timeLeft?: string): string => {
   if (timeLeft) {
     const duration = moment.duration(timeLeft)
     const formatted = formatTimeLeft(timeLeft)
-    eta = ` — last one finishes in ${formatted}`
+    eta = ` — finishes in ${formatted}`
 
     if (duration.asHours() > 8) {
       const note = longWaitComments[Math.floor(Math.random() * longWaitComments.length)]
@@ -177,19 +177,16 @@ export const randomDownloadingMessage = (timeLeft?: string): string => {
   }
 
   const messages = [
-    `It's downloading right now${eta}${longWaitNote}.`,
-    `Currently being downloaded${eta}${longWaitNote}. You'll have it soon.`,
-    `Download in progress${eta}${longWaitNote}. Just a little longer.`,
-    `We're on it — that one's coming down as we speak${eta}${longWaitNote}.`,
-    `It's actively downloading${eta}${longWaitNote}. Almost there.`,
-    `Bits and bytes are doing their thing${eta}${longWaitNote}.`,
-    `You're not watching it yet, but at least it's moving!${eta}${longWaitNote}.`,
-    `Downloading... at a speed that legally counts as motion${eta}${longWaitNote}.`,
-    `Right now, it's racing a snail — and losing${eta}${longWaitNote}.`,
-    `Yes, it's downloading. Yes, time is an illusion${eta}${longWaitNote}.`,
-    `Downloading like it's 2002 and someone picked up the phone line${eta}${longWaitNote}.`,
-    `Slow? Yes. Steady? Kinda. Eventually yours? Absolutely${eta}${longWaitNote}.`,
-    `Somewhere, somehow, your download is being assembled by elves${eta}${longWaitNote}.`,
+    `It's downloading now${eta}${longWaitNote}.`,
+    `The movie is on its way${eta}${longWaitNote}.`,
+    `Download started successfully${eta}${longWaitNote}.`,
+    `Your movie is being fetched as we speak${eta}${longWaitNote}.`,
+    `Hang tight — it's downloading${eta}${longWaitNote}.`,
+    `All set! The download is in progress${eta}${longWaitNote}.`,
+    `Sit back — your movie is coming through${eta}${longWaitNote}.`,
+    `It's working its way onto your library${eta}${longWaitNote}.`,
+    `It’s in motion — no need to do anything else${eta}${longWaitNote}.`,
+    `The bits are flowing — your movie is en route${eta}${longWaitNote}.`,
   ]
 
   return messages[Math.floor(Math.random() * messages.length)]

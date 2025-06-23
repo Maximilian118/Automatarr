@@ -12,7 +12,7 @@ export const getRadarrQueue = async (settings: settingsDocType): Promise<Downloa
   try {
     const res = await axios.get(
       cleanUrl(
-        `${settings.radarr_URL}/api/${settings.radarr_API_version}/queue?page=1&pageSize=1000&apikey=${settings.radarr_KEY}`,
+        `${settings.radarr_URL}/api/${settings.radarr_API_version}/queue?page=1&pageSize=1000&sortDirection=ascending&sortKey=timeleft&includeUnknownMovieItems=true&apikey=${settings.radarr_KEY}`,
       ),
     )
 

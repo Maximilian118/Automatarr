@@ -15,6 +15,7 @@ import {
   caseDownloadSwitch,
   caseList,
   caseRemove,
+  caseWaitTime,
 } from "./discordBotContentListeners"
 import { handleDiscordCase } from "./discordBotCaseHandler"
 
@@ -84,6 +85,10 @@ export const messageListeners = async (client: Client) => {
       case "blocklist":
       case "dud": // Mark a download as unsatisfactory, blocklist it and start a new download
         await handleDiscordCase(message, caseBlocklist)
+        break
+      case "waittime":
+      case "wait": // Get the amount of time a download in queue will take
+        await handleDiscordCase(message, caseWaitTime)
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -220,7 +225,7 @@ const commandRegistry: CommandEntry[] = [
     category: "Content",
     shortDescription: "Download content",
     description: "Download some content and add it to your pool.",
-    usage: "!download <movieTitle + Year / seriesTitle SxxEyy>",
+    usage: "!download <movieTitle + Year / seriesTitle + Year>",
     adminRequired: false,
   },
   {
@@ -239,6 +244,15 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "Replace content",
     description: "Mark a download as problematic, delete it and replace it with a different file.",
     usage: "!blocklist <movieTitle + Year / seriesTitle SxxEyy>",
+    adminRequired: false,
+  },
+  {
+    name: "!waittime",
+    aliases: ["`!wait`"],
+    category: "Content",
+    shortDescription: "Download Time",
+    description: "Check how long it will take for content in the queue to download.",
+    usage: "!wait <movieTitle + Year / seriesTitle + Year>",
     adminRequired: false,
   },
 ]
