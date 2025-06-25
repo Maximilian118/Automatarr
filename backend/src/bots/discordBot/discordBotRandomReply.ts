@@ -128,6 +128,33 @@ export const randomAlreadyAddedMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+export const randomInLibraryNotDownloadedMessage = () => {
+  const messages = [
+    "It's in your library — just waiting for you to hit download.",
+    "Already in the library, but not on your device yet!",
+    "You own it, but it's still chilling in the cloud.",
+    "That one's in your library — now give it a proper home.",
+    "You've got it, just not downloaded yet. Slacking?",
+    "In your collection, but not downloaded. Why the delay?",
+    "It's yours, just not on your device. Yet.",
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomAddedToPoolMessage = (contentType: "Movie" | "Series", title: string) => {
+  const messages = [
+    `${title} has been added to your ${contentType.toLowerCase()} pool. It's safe and sound.`,
+    `No worries — ${title} is now part of your ${contentType.toLowerCase()} collection.`,
+    `${contentType} locked in! ${title} won’t be removed from the server.`,
+    `${title} is staying put. It's been added to your ${contentType.toLowerCase()} pool.`,
+    `You're keeping ${title}? Got it. It won't be touched.`,
+    `${title} is in your ${contentType.toLowerCase()} pool now — it's going nowhere.`,
+    `Nice choice. ${title} is now permanently in your ${contentType.toLowerCase()} stack.`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomQueuedMessage = (timeLeft?: string): string => {
   let eta = ""
   let longWaitNote = ""
@@ -185,7 +212,7 @@ export const randomDownloadingMessage = (timeLeft?: string): string => {
     `All set! The download is in progress${eta}${longWaitNote}.`,
     `Sit back — your movie is coming through${eta}${longWaitNote}.`,
     `It's working its way onto your library${eta}${longWaitNote}.`,
-    `It’s in motion — no need to do anything else${eta}${longWaitNote}.`,
+    `It's in motion — no need to do anything else${eta}${longWaitNote}.`,
     `The bits are flowing — your movie is en route${eta}${longWaitNote}.`,
   ]
 

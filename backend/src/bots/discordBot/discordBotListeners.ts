@@ -15,6 +15,7 @@ import {
   caseDownloadSwitch,
   caseList,
   caseRemove,
+  caseStay,
   caseWaitTime,
 } from "./discordBotContentListeners"
 import { handleDiscordCase } from "./discordBotCaseHandler"
@@ -89,6 +90,9 @@ export const messageListeners = async (client: Client) => {
       case "waittime":
       case "wait": // Get the amount of time a download in queue will take
         await handleDiscordCase(message, caseWaitTime)
+        break
+      case "stay": // Ensure some content isn't deleted by adding it to your user pool
+        await handleDiscordCase(message, caseStay)
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -253,6 +257,14 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "Download Time",
     description: "Check how long it will take for content in the queue to download.",
     usage: "!wait <movieTitle + Year / seriesTitle + Year>",
+    adminRequired: false,
+  },
+  {
+    name: "!stay",
+    category: "Content",
+    shortDescription: "Keep content downloaded",
+    description: "Ensure some content isn't deleted by adding it to your user pool.",
+    usage: "!stay <movieTitle + Year / seriesTitle + Year>",
     adminRequired: false,
   },
 ]
