@@ -260,6 +260,7 @@ const Settings: React.FC = () => {
             disabled={!anyStarrAct || !settings.webhooks}
           />
           {webhookNotificationType("Import")}
+          {webhookNotificationType("Grab")}
         </InputModel>
         <Button 
           type="submit"

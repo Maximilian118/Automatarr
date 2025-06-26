@@ -54,6 +54,7 @@ export const sendDiscordMessage = async (message: Message, content: string): Pro
 
 export const sendDiscordNotification = async (
   webhookMatch: WebHookWaitingType,
+  expired?: boolean,
 ): Promise<boolean> => {
   const client = getDiscordClient()
 
@@ -90,12 +91,25 @@ export const sendDiscordNotification = async (
   }
 
   try {
-    const sentMessage = await textBasedChannel.send(webhookMatch.message)
+    const expiredMessage = webhookMatch.expired_message
+      ? webhookMatch.expired_message
+      : `Hmm... I didn't get any notification information of status ${
+          webhookMatch.waitForStatus
+        } for ${webhookMatch.content.title} after ${moment(webhookMatch.expiry).format(
+          "dddd, MMMM Do YYYY, h:mm A",
+        )}.`
+
+    const sentMessage = await textBasedChannel.send(expired ? expiredMessage : webhookMatch.message)
 
     if (sentMessage) {
       logger.info(
-        `Webhook | Discord Notification Sent | ${webhookMatch.waitForStatus} | ${webhookMatch.discordData.authorUsername} | ${webhookMatch.content.title}`,
+        `Webhook | ${expired ? "Expiry | " : ""}Discord Notification Sent | ${
+          webhookMatch.waitForStatus
+        } | ${webhookMatch.discordData.authorUsername} | ${
+          webhookMatch.content.title
+        } | ${sentMessage}`,
       )
+
       return true
     }
   } catch (err) {

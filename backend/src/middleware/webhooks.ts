@@ -7,7 +7,11 @@ import {
   handleSonarrWebhook,
   starrWebhookEventType,
 } from "../webhooks/webhookHandler"
-import { webhookCleanup } from "../webhooks/webhookUtility"
+import {
+  cleanupExpiredWebhooks,
+  startWebhookExpiryWatcher,
+  webhookCleanup,
+} from "../webhooks/webhookUtility"
 
 const createWebhookRouter = (settings: settingsDocType) => {
   const router = Router()
@@ -28,9 +32,16 @@ const createWebhookRouter = (settings: settingsDocType) => {
       return
     }
 
-    // run a quick cleanup function here to get rid of old webhookwaiting in databse that haven't triggured
+    // 1. Remove stale webhooks (older than 1 day)
     await webhookCleanup()
 
+    // 2. Immediately remove expired webhooks (expiry timestamp passed)
+    await cleanupExpiredWebhooks()
+
+    // 3. Start expiry watcher if not already started
+    startWebhookExpiryWatcher()
+
+    // 4. Process webhook
     switch (webhook.instanceName) {
       case "Radarr":
         await handleRadarrWebhook(starrWebhookEventType(webhook))

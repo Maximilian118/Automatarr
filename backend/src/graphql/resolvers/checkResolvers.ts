@@ -6,10 +6,10 @@ import { getqBitCookieFromHeaders, qBitCookieExpired } from "../../shared/qBitto
 import Data, { dataDocType } from "../../models/data"
 import moment from "moment"
 import { saveWithRetry } from "../../shared/database"
-import { errCodeAndMsg } from "../../shared/requestError"
 import { AuthRequest } from "../../middleware/auth"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { initWebhookBody } from "../../types/webhookType"
+import { axiosErrorMessage } from "../../shared/requestError"
 
 const checkResolvers = {
   checkRadarr: async (
@@ -52,7 +52,7 @@ const checkResolvers = {
       status = res.status
       logger.success(`Radarr | OK!`)
     } catch (err) {
-      logger.error(`checkRadarr: Error - ${errCodeAndMsg(err)}`)
+      logger.error(`checkRadarr: Error - ${axiosErrorMessage(err)}`)
     }
 
     return { data: status, tokens }
@@ -96,7 +96,7 @@ const checkResolvers = {
       status = res.status
       logger.success(`Sonarr | OK!`)
     } catch (err) {
-      logger.error(`checkSonarr: Error - ${errCodeAndMsg(err)}`)
+      logger.error(`checkSonarr: Error - ${axiosErrorMessage(err)}`)
     }
 
     return { data: status, tokens }
@@ -140,7 +140,7 @@ const checkResolvers = {
       status = res.status
       logger.success(`Lidarr | OK!`)
     } catch (err) {
-      logger.error(`checkLidarr: Error - ${errCodeAndMsg(err)}`)
+      logger.error(`checkLidarr: Error - ${axiosErrorMessage(err)}`)
     }
 
     return { data: status, tokens }
@@ -215,7 +215,7 @@ const checkResolvers = {
       logger.success(`qBittorrent | Login OK!`)
       return { data: res.status, tokens }
     } catch (err) {
-      logger.error(`qBittorrent | Error: ${errCodeAndMsg(err)}`)
+      logger.error(`qBittorrent | Error: ${axiosErrorMessage(err)}`)
       return { data: status, tokens }
     }
   },
@@ -273,7 +273,7 @@ const checkResolvers = {
             logger.error(`Webhook | ${JSON.stringify(errors, null, 2)}`)
           }
         } else {
-          logger.error(`Webhook |  Unexpected error: ${errCodeAndMsg(err)}`)
+          logger.error(`Webhook |  Unexpected error: ${axiosErrorMessage(err)}`)
         }
       }
     }

@@ -3,10 +3,10 @@ import { settingsDocType, settingsType } from "../models/settings"
 import { Series } from "../types/seriesTypes"
 import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
-import { errCodeAndMsg } from "./requestError"
 import { DownloadStatus } from "../types/types"
 import { Episode, EpisodeFile } from "../types/episodeTypes"
 import { HistoryItem } from "../types/historyTypes"
+import { axiosErrorMessage } from "./requestError"
 
 // Get sonarr library
 export const getSonarrLibrary = async (
@@ -26,7 +26,7 @@ export const getSonarrLibrary = async (
       logger.error(`getSonarrLibrary: Could not retrieve Sonarr library.. how peculiar..`)
     }
   } catch (err) {
-    logger.error(`getSonarrLibrary: Sonarr series search error: ${errCodeAndMsg(err)}`)
+    logger.error(`getSonarrLibrary: Sonarr series search error: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -50,7 +50,7 @@ export const getSonarrSeries = async (
       logger.error(`getSonarrSeries: Could not retrieve Sonarr series with ID ${seriesID}`)
     }
   } catch (err) {
-    logger.error(`getSonarrSeries: Sonarr series search error: ${errCodeAndMsg(err)}`)
+    logger.error(`getSonarrSeries: Sonarr series search error: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -76,7 +76,7 @@ export const getSonarrQueue = async (
       logger.error(`getSonarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getSonarrQueue: Sonarr Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getSonarrQueue: Sonarr Error: ${axiosErrorMessage(err)}`)
   }
 
   return []
@@ -102,7 +102,7 @@ export const searchSonarr = async (
       logger.error(`searchSonarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`searchSonarr: ${errCodeAndMsg(err)}`)
+    logger.info(`searchSonarr: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -164,7 +164,7 @@ export const downloadSeries = async (
       logger.error(`downloadSeries: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`downloadSeries: ${errCodeAndMsg(err)}`)
+    logger.info(`downloadSeries: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -195,7 +195,7 @@ export const getSeriesHistory = async (
       `getSeriesHistory: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`getSeriesHistory: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+    logger.error(`getSeriesHistory: Sonarr history fetch error: ${axiosErrorMessage(err)}`)
   }
 
   return []
@@ -226,7 +226,7 @@ export const getEpisodeHistory = async (
       `getEpisodeHistory: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`getEpisodeHistory: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+    logger.error(`getEpisodeHistory: Sonarr history fetch error: ${axiosErrorMessage(err)}`)
   }
 
   return []
@@ -261,7 +261,9 @@ export const getSeriesEpisodes = async (
     return episodes
   } catch (err) {
     logger.error(
-      `getSeriesEpisodes: Series episode search error for ${series.title}: ${errCodeAndMsg(err)}`,
+      `getSeriesEpisodes: Series episode search error for ${series.title}: ${axiosErrorMessage(
+        err,
+      )}`,
     )
     return []
   }
@@ -296,7 +298,7 @@ export const getSeriesEpisodeFiles = async (
     }
   } catch (err) {
     logger.error(
-      `getSeriesEpisodeFiles: Sonarr episode file search error for ID ${seriesID}: ${errCodeAndMsg(
+      `getSeriesEpisodeFiles: Sonarr episode file search error for ID ${seriesID}: ${axiosErrorMessage(
         err,
       )}`,
     )
@@ -330,7 +332,7 @@ export const deleteEpisodeFile = async (
       `deleteEpisodeFile: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`deleteEpisodeFile: Radarr delete movieFile error: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteEpisodeFile: Radarr delete movieFile error: ${axiosErrorMessage(err)}`)
   }
 
   return false
@@ -362,7 +364,7 @@ export const markEpisodeAsFailed = async (
       `markEpisodeAsFailed: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`markEpisodeAsFailed: Sonarr history fetch error: ${errCodeAndMsg(err)}`)
+    logger.error(`markEpisodeAsFailed: Sonarr history fetch error: ${axiosErrorMessage(err)}`)
   }
 
   return false

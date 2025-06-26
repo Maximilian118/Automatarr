@@ -1,4 +1,3 @@
-import { movieDownloaded } from "../../shared/RadarrStarrRequests"
 import {
   randomEpisodeReadyMessage,
   randomEpisodeStillNotDownloadedMessage,
@@ -18,6 +17,7 @@ import {
 import { Series } from "../../types/seriesTypes"
 import { getSeriesEpisodes, getSonarrQueue } from "../../shared/SonarrStarrRequests"
 import { Episode } from "../../types/episodeTypes"
+import { getMovie } from "../../shared/RadarrStarrRequests"
 
 // Asynchronously loop until movie is downloaded. THen notify.
 export const notifyMovieDownloaded = async (
@@ -30,7 +30,7 @@ export const notifyMovieDownloaded = async (
   const start = Date.now()
 
   while (Date.now() - start < timeoutMs) {
-    const downloaded = await movieDownloaded(settings, movie.id)
+    const downloaded = await getMovie(settings, movie.id)
 
     if (downloaded) {
       await sendDiscordMessage(

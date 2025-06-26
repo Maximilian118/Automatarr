@@ -4,7 +4,7 @@ import { isPosix, isThreeDigitOctal } from "./utility"
 import logger from "../logger"
 import { checkPermissions } from "./permissions"
 import { execSync } from "child_process"
-import { errCodeAndMsg } from "./requestError"
+import { axiosErrorMessage } from "./requestError"
 
 // Check if code is running in a Docker container or not
 export const isDocker = (() => {
@@ -52,7 +52,7 @@ export const deleteFromMachine = (dirOrFilePath: string): boolean => {
 
     return true
   } catch (err) {
-    logger.error(`deleteFromMachine: Error deleting file or directory: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteFromMachine: Error deleting file or directory: ${axiosErrorMessage(err)}`)
     return false
   }
 }
@@ -156,7 +156,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
         }
       } catch (err) {
         logger.error(
-          `deleteFailedDownloads: Error processing path: ${basePath}. ${errCodeAndMsg(err)}`,
+          `deleteFailedDownloads: Error processing path: ${basePath}. ${axiosErrorMessage(err)}`,
         )
       }
 

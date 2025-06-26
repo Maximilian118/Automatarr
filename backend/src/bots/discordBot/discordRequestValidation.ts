@@ -516,7 +516,7 @@ export const validateWaitCommand = async (
   }
 
   if (msgArr.length < 2) {
-    return `The !${command} command must contain a ${contentType} title and a 4-digit year. For example: !${command} ${
+    return `The ${command} command must contain a ${contentType} title and a 4-digit year. For example: ${command} ${
       contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
     }`
   }
@@ -560,7 +560,7 @@ export const validateStayCommand = async (
   }
 
   if (msgArr.length < 2) {
-    return `The !${command} command must contain a ${contentType} title and a 4-digit year. For example: !${command} ${
+    return `The ${command} command must contain a ${contentType} title and a 4-digit year. For example: ${command} ${
       contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
     }`
   }

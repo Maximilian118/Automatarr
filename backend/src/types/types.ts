@@ -219,3 +219,30 @@ export type LogFile = {
   downloadUrl: string
   id: number
 }
+
+export type SearchCommandResponseType = {
+  name: string
+  commandName: string
+  body: {
+    movieIds: number[]
+    sendUpdatesToClient: boolean
+    updateScheduledTask: boolean
+    requiresDiskAccess: boolean
+    isExclusive: boolean
+    isTypeExclusive: boolean
+    isLongRunning: boolean
+    name: string
+    trigger: "manual" | string
+    suppressMessages: boolean
+  }
+  priority: "normal" | "low" | "high" | string
+  status: "started" | "completed" | "failed" | "unknown" | string
+  result: string
+  queued: string // ISO date string
+  started: string // ISO date string
+  trigger: "manual" | string
+  stateChangeTime: string // ISO date string
+  sendUpdatesToClient: boolean
+  updateScheduledTask: boolean
+  id: number
+}

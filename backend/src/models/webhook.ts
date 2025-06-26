@@ -45,6 +45,8 @@ export interface WebHookWaitingType {
   episodes: BasicEpisodeDataType[] // An array of all the episodes in the series with data to check if they've been imported
   waitForStatus: EventType // Status are we waiting for
   message: string // Message for the user
+  expiry?: Date | null // Time that we stop waiting for a webhook that matches
+  expired_message?: string // Message to send if we stop waiting for a webhook that matches
   created_at: Date
 }
 
@@ -79,6 +81,8 @@ const WebHookWaitingSchema = new mongoose.Schema<WebHookWaitingType>({
   episodes: { type: mongoose.Schema.Types.Mixed, default: [] },
   waitForStatus: { type: String, required: true },
   message: { type: String, required: true },
+  expiry: { type: Date, default: null },
+  expired_message: { type: String, default: "" },
   created_at: { type: Date, default: Date.now },
 })
 

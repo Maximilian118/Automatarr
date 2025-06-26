@@ -3,7 +3,7 @@ import { dataBoilerplate } from "./utility"
 import logger from "../logger"
 import { commandList, dataType } from "../models/data"
 import { APIData } from "./activeAPIsArr"
-import { errCodeAndMsg } from "./requestError"
+import { axiosErrorMessage } from "./requestError"
 
 // Function to scrape commands from a given URL
 export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] | []> => {
@@ -28,7 +28,7 @@ export const scrapeCommandsFromURL = async (APIname: string): Promise<string[] |
     return commands
   } catch (err) {
     logger.error(
-      `scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${errCodeAndMsg(err)}`,
+      `scrapeCommandsFromURL: Error while scraping ${APIname} commands: ${axiosErrorMessage(err)}`,
     )
     return []
   }

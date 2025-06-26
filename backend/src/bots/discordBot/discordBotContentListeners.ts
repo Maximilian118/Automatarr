@@ -39,15 +39,19 @@ import {
   randomSeriesReadyMessage,
   randomInLibraryNotDownloadedMessage,
   randomAddedToPoolMessage,
+  randomGrabbedMessage,
+  randomGrabNotFoundMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
 import {
   deleteMovieFile,
   downloadMovie,
+  getMovie,
   getMovieHistory,
   getRadarrQueue,
   markMovieAsFailed,
+  searchMovieCommand,
   searchRadarr,
 } from "../../shared/RadarrStarrRequests"
 import {
@@ -66,11 +70,11 @@ import {
   notifyMovieDownloaded,
   notifySeriesDownloaded,
 } from "./discordBotAsync"
-import { waitForWebhook } from "../../webhooks/webhookUtility"
 import { sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./discordBotRequestValidationUtility"
+import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -142,10 +146,13 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     return randomAlreadyAddedMessage()
   }
 
-  // Check if the movie is in the download queue
-  const queue = await getRadarrQueue(settings)
-  const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
-  if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+  // If the foundMovie has been added to the library and therefore has an id
+  if (foundMovie.id) {
+    // Check if the movie is in the download queue
+    const queue = await getRadarrQueue(settings)
+    const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
+    if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+  }
 
   // Ensure a quality profile is selected
   const selectedQP = settings.general_bot.movie_quality_profile
@@ -187,7 +194,23 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
 
   // Download the movie
-  const movie = await downloadMovie(settings, foundMovie, qualityProfile.id, rootFolder.path)
+  let movie = null
+
+  // If the movie exists in the library, just search for it. Otherwise, add and download the movie.
+  if (foundMovie.id) {
+    const searchRes = await searchMovieCommand(settings, foundMovie)
+
+    if (!searchRes) {
+      return discordReply(
+        "That one is in my library but I can't download it. Please poke an admin!",
+        "error",
+      )
+    }
+
+    movie = await getMovie(settings, searchRes.body.movieIds[0])
+  } else {
+    movie = await downloadMovie(settings, foundMovie, qualityProfile.id, rootFolder.path)
+  }
 
   if (!movie) {
     return discordReply(
@@ -214,11 +237,26 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
   if (settings.webhooks) {
+    const queueNotifications: QueueNotificationType[] = []
+
     if (settings.webhooks_enabled.includes("Import")) {
-      // prettier-ignore
-      waitForWebhook("Radarr", ["Discord"], message, null, movie, "Import", 
-        randomMovieReadyMessage(message.author.toString(), movie.title)
-      )
+      queueNotifications.push({
+        waitForStatus: "Import",
+        message: randomMovieReadyMessage(message.author.toString(), movie.title),
+      })
+    }
+
+    if (settings.webhooks_enabled.includes("Grab")) {
+      queueNotifications.push({
+        waitForStatus: "Grab",
+        message: randomGrabbedMessage(movie.title),
+        expiry: new Date(Date.now() + 2 * 60 * 1000),
+        expired_message: randomGrabNotFoundMessage(movie.title),
+      })
+    }
+
+    if (queueNotifications.length > 0) {
+      await waitForWebhooks(queueNotifications, "Radarr", ["Discord"], message, null, movie)
     }
   } else {
     // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
@@ -422,11 +460,26 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
 
   if (settings.webhooks) {
+    const queueNotifications: QueueNotificationType[] = []
+
     if (settings.webhooks_enabled.includes("Import")) {
-      // prettier-ignore
-      waitForWebhook("Sonarr", ["Discord"], message, null, series, "Import", 
-        randomSeriesReadyMessage(message.author.toString(), series.title)
-      )
+      queueNotifications.push({
+        waitForStatus: "Import",
+        message: randomSeriesReadyMessage(message.author.toString(), series.title),
+      })
+    }
+
+    if (settings.webhooks_enabled.includes("Grab")) {
+      queueNotifications.push({
+        waitForStatus: "Grab",
+        message: randomGrabbedMessage(series.title),
+        expiry: new Date(Date.now() + 2 * 60 * 1000),
+        expired_message: randomGrabNotFoundMessage(series.title),
+      })
+    }
+
+    if (queueNotifications.length > 0) {
+      await waitForWebhooks(queueNotifications, "Sonarr", ["Discord"], message, null, series)
     }
   } else {
     // Start an asynchronous loop waiting for the series to finish downloading. Then send a notification.
@@ -629,11 +682,26 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     }
 
     if (settings.webhooks) {
+      const queueNotifications: QueueNotificationType[] = []
+
       if (settings.webhooks_enabled.includes("Import")) {
-        // prettier-ignore
-        waitForWebhook("Radarr", ["Discord"], message, null, movieInDB, "Import", 
-          randomMovieReadyMessage(message.author.toString(), movieInDB.title)
-        )
+        queueNotifications.push({
+          waitForStatus: "Import",
+          message: randomMovieReadyMessage(message.author.toString(), movieInDB.title),
+        })
+      }
+
+      if (settings.webhooks_enabled.includes("Grab")) {
+        queueNotifications.push({
+          waitForStatus: "Grab",
+          message: randomGrabbedMessage(movieInDB.title),
+          expiry: new Date(Date.now() + 2 * 60 * 1000),
+          expired_message: randomGrabNotFoundMessage(movieInDB.title),
+        })
+      }
+
+      if (queueNotifications.length > 0) {
+        await waitForWebhooks(queueNotifications, "Radarr", ["Discord"], message, null, movieInDB)
       }
     } else {
       // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
@@ -694,11 +762,26 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     }
 
     if (settings.webhooks) {
+      const queueNotifications: QueueNotificationType[] = []
+
       if (settings.webhooks_enabled.includes("Import")) {
-        // prettier-ignore
-        waitForWebhook("Sonarr", ["Discord"], message, null, seriesInDB, "Import", 
-          randomSeriesReadyMessage(message.author.toString(), seriesInDB.title)
-        )
+        queueNotifications.push({
+          waitForStatus: "Import",
+          message: randomSeriesReadyMessage(message.author.toString(), seriesInDB.title),
+        })
+      }
+
+      if (settings.webhooks_enabled.includes("Grab")) {
+        queueNotifications.push({
+          waitForStatus: "Grab",
+          message: randomGrabbedMessage(seriesInDB.title),
+          expiry: new Date(Date.now() + 2 * 60 * 1000),
+          expired_message: randomGrabNotFoundMessage(seriesInDB.title),
+        })
+      }
+
+      if (queueNotifications.length > 0) {
+        await waitForWebhooks(queueNotifications, "Sonarr", ["Discord"], message, null, seriesInDB)
       }
     } else {
       // Start an asynchronous loop waiting for the episode to finish downloading. Then send a notification.

@@ -2,9 +2,9 @@ import axios from "axios"
 import logger from "../logger"
 import { MdblistItem } from "../types/types"
 import { APIData } from "./activeAPIsArr"
-import { errCodeAndMsg } from "./requestError"
 import Settings, { settingsDocType } from "../models/settings"
 import { saveWithRetry } from "./database"
+import { axiosErrorMessage } from "./requestError"
 
 // A basic function that returns the passed string and logs it in the backend
 const sendListsError = (
@@ -110,7 +110,7 @@ export const getMdbListItems = async (
         const res = await axios.get(`${field.value}/json`)
         mdblistItems.push(...res.data)
       } catch (err) {
-        logger.warn(`Remove Missing | ${API.name} | Something went wrong ${errCodeAndMsg(err)}`)
+        logger.warn(`Remove Missing | ${API.name} | Something went wrong ${axiosErrorMessage(err)}`)
         allRequestsSucceeded = false
         continue
       }

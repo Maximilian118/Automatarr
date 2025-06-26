@@ -155,6 +155,39 @@ export const randomAddedToPoolMessage = (contentType: "Movie" | "Series", title:
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+export const randomGrabbedMessage = (title: string) => {
+  const messages = [
+    `${title} has been found and the download has started. Get your popcorn ready!`,
+    `Great news — ${title} is downloading now. It’ll be ready before you know it.`,
+    `We found ${title} and it's now being downloaded straight to your library.`,
+    `${title} matched a source and the download is underway.`,
+    `${title} is officially on the way — downloading as we speak.`,
+    `Heads up! ${title} is downloading after being matched with a source.`,
+    `Match found: ${title}. Download just kicked off.`,
+    `${title} has been picked up and the download has started.`,
+    `No need to hunt — ${title} has been located and is downloading now.`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomGrabNotFoundMessage = (title: string) => {
+  const messages = [
+    `I checked around, but couldn’t find ${title} online.`,
+    `I searched for ${title}, but nothing turned up.`,
+    `No luck — I couldn’t find ${title} from any sources.`,
+    `I looked, but ${title} didn’t show up anywhere.`,
+    `${title} wasn’t available when I checked.`,
+    `I gave it a shot, but ${title} wasn’t out there.`,
+    `Scanned the usual spots — no sign of ${title}.`,
+    `Tried to find ${title}, but came up empty.`,
+    `${title}? I searched, but there was nothing to pull in.`,
+    `I looked for ${title}, but it didn’t seem to be available right now.`,
+  ]
+
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomQueuedMessage = (timeLeft?: string): string => {
   let eta = ""
   let longWaitNote = ""

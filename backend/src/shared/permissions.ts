@@ -3,8 +3,8 @@ import path from "path"
 import { capsFirstLetter, currentPaths } from "./utility"
 import { dataType } from "../models/data"
 import logger from "../logger"
-import { errCodeAndMsg } from "./requestError"
 import { isDocker } from "./fileSystem"
+import { axiosErrorMessage } from "./requestError"
 
 type permissionTypes = "read" | "write" | "delete" | "move" | "all"
 
@@ -112,7 +112,7 @@ export const checkPermissions = (
   } catch (err) {
     logger.error(`
       Permissions | ${APIName ? `${APIName} |` : ""} ${neatPerms} check failed for ${originalPath}. 
-      Error: ${errCodeAndMsg(err)}`)
+      Error: ${axiosErrorMessage(err)}`)
     return false
   }
 }

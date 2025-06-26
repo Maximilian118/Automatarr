@@ -2,10 +2,10 @@ import { settingsDocType, settingsType } from "../models/settings"
 import { Movie } from "../types/movieTypes"
 import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
-import { errCodeAndMsg } from "./requestError"
 import axios from "axios"
-import { DownloadStatus } from "../types/types"
+import { DownloadStatus, SearchCommandResponseType } from "../types/types"
 import { HistoryItem } from "../types/historyTypes"
+import { axiosErrorMessage } from "./requestError"
 
 // Get the Radarr Queue in circumstances where the API object isn't available
 export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
@@ -24,7 +24,7 @@ export const getRadarrQueue = async (settings: settingsDocType): Promise<Downloa
       logger.error(`getRadarrQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getRadarrQueue: Radarr Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getRadarrQueue: Radarr Error: ${axiosErrorMessage(err)}`)
   }
 
   return []
@@ -50,7 +50,7 @@ export const searchRadarr = async (
       logger.error(`searchRadarr: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`searchRadarr: ${errCodeAndMsg(err)}`)
+    logger.info(`searchRadarr: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -93,17 +93,61 @@ export const downloadMovie = async (
       logger.error(`downloadMovie: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`downloadMovie: ${errCodeAndMsg(err)}`)
+    logger.info(`downloadMovie: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// search for a movie that's already added in the Radarr library
+export const searchMovieCommand = async (
+  settings: settingsDocType,
+  foundMovie: Movie,
+): Promise<SearchCommandResponseType | undefined> => {
+  if (!foundMovie.id) {
+    logger.error(`searchMovie: movie.id required.`)
+    return
+  }
+
+  const searchParams = {
+    name: "MoviesSearch",
+    movieIds: [foundMovie.id],
+  }
+
+  try {
+    const res = await axios.post(
+      cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/command`),
+      searchParams,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return res.data as SearchCommandResponseType
+    } else {
+      logger.error(`downloadMovie: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.info(`downloadMovie: ${axiosErrorMessage(err)}`)
   }
 
   return
 }
 
 // A request designed to be as quick as possible to check if a movie has been downloaded
-export const movieDownloaded = async (
+export const getMovie = async (
   settings: settingsDocType,
   movieId: number,
-): Promise<boolean> => {
+): Promise<Movie | undefined> => {
+  if (!movieId) {
+    logger.error("getMovie: No movieId passed.")
+    return
+  }
+
   try {
     const res = await axios.get(
       cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/movie/${movieId}`),
@@ -115,17 +159,17 @@ export const movieDownloaded = async (
     )
 
     if (requestSuccess(res.status)) {
-      return res.data?.hasFile === true
+      return res.data as Movie
     }
 
     logger.error(
       `movieDownloaded: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`movieDownloaded: Radarr lookup error: ${errCodeAndMsg(err)}`)
+    logger.error(`movieDownloaded: Radarr lookup error: ${axiosErrorMessage(err)}`)
   }
 
-  return false
+  return
 }
 
 // delete the movie file of a radarr library item
@@ -153,7 +197,7 @@ export const deleteMovieFile = async (
       `deleteMovieFile: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`deleteMovieFile: Radarr delete movieFile error: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteMovieFile: Radarr delete movieFile error: ${axiosErrorMessage(err)}`)
   }
 
   return false
@@ -184,7 +228,7 @@ export const getMovieHistory = async (
       `getMovieHistory: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`getMovieHistory: Radarr history fetch error: ${errCodeAndMsg(err)}`)
+    logger.error(`getMovieHistory: Radarr history fetch error: ${axiosErrorMessage(err)}`)
   }
 
   return []
@@ -216,7 +260,7 @@ export const markMovieAsFailed = async (
       `markMovieAsFailed: Unexpected response from Radarr. Status: ${res.status} - ${res.statusText}`,
     )
   } catch (err) {
-    logger.error(`markMovieAsFailed: Radarr history fetch error: ${errCodeAndMsg(err)}`)
+    logger.error(`markMovieAsFailed: Radarr history fetch error: ${axiosErrorMessage(err)}`)
   }
 
   return false

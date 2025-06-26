@@ -5,8 +5,8 @@ import { checkTimePassed, cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
-import { errCodeAndMsg } from "./requestError"
 import { saveWithRetry } from "./database"
+import { axiosErrorMessage } from "./requestError"
 
 // Retreive qBittorrent cookie from check request headers
 export const getqBitCookieFromHeaders = async (
@@ -114,7 +114,7 @@ export const renewqBitCookie = async (
       cookie_expiry,
     }
   } catch (err) {
-    logger.error(`qBittorrent | Cookie Renewal Error: ${errCodeAndMsg(err)}`)
+    logger.error(`qBittorrent | Cookie Renewal Error: ${axiosErrorMessage(err)}`)
   }
 
   return response
@@ -224,7 +224,7 @@ export const getqBittorrentTorrents = async (
       )
     }
   } catch (err) {
-    logger.error(`qBittorrent | ${ident ? `${ident} | ` : ""}Error: ${errCodeAndMsg(err)}`)
+    logger.error(`qBittorrent | ${ident ? `${ident} | ` : ""}Error: ${axiosErrorMessage(err)}`)
   }
 
   return {
@@ -262,7 +262,7 @@ export const getqBittorrentCategories = async (
       savePath: c.savePath,
     }))
   } catch (err) {
-    logger.error(`getqBittorrentCategories: Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getqBittorrentCategories: Error: ${axiosErrorMessage(err)}`)
   }
 
   return categories
@@ -289,7 +289,7 @@ export const getqBittorrentPreferences = async (
 
     preferences = res.data
   } catch (err) {
-    logger.error(`getqBittorrentPreferences: Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getqBittorrentPreferences: Error: ${axiosErrorMessage(err)}`)
   }
 
   return preferences
@@ -371,7 +371,7 @@ export const deleteqBittorrent = async (
     }
   } catch (err) {
     console.log(torrent)
-    logger.error(`deleteqBittorrent: Error: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteqBittorrent: Error: ${axiosErrorMessage(err)}`)
   }
 
   return false

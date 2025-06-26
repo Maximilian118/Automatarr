@@ -24,9 +24,9 @@ import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import { Artist } from "../types/artistTypes"
 import moment from "moment"
-import { errCodeAndMsg } from "./requestError"
 import { QualityProfile } from "../types/qualityProfileType"
 import { isDocker } from "./fileSystem"
+import { axiosErrorMessage } from "./requestError"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
@@ -48,7 +48,7 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
       logger.error(`getQueue: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getQueue: ${API.name} Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getQueue: ${API.name} Error: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -86,7 +86,7 @@ export const getRootFolder = async (
       logger.error(`getRootFolder: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`getRootFolder: ${API.name} Error: ${errCodeAndMsg(err)}`)
+    logger.error(`getRootFolder: ${API.name} Error: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -162,7 +162,7 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
     }
   } catch (err) {
     logger.error(
-      `getLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
+      `getLibrary: ${API.name} ${getContentName(API)} search error: ${axiosErrorMessage(err)}`,
     )
   }
 
@@ -240,7 +240,9 @@ export const getAllEpisodes = async (
         }
       } catch (err) {
         logger.error(
-          `getEpisodes: ${API.name} episode search error for ID ${title}: ${errCodeAndMsg(err)}`,
+          `getEpisodes: ${API.name} episode search error for ID ${title}: ${axiosErrorMessage(
+            err,
+          )}`,
         )
       }
     }),
@@ -279,9 +281,9 @@ export const getEpisodeFiles = async (API: APIData, seriesID: number): Promise<E
     }
   } catch (err) {
     logger.error(
-      `getEpisodeFiles: ${API.name} episode file search error for ID ${seriesID}: ${errCodeAndMsg(
-        err,
-      )}`,
+      `getEpisodeFiles: ${
+        API.name
+      } episode file search error for ID ${seriesID}: ${axiosErrorMessage(err)}`,
     )
   }
 
@@ -353,7 +355,7 @@ export const existsInLibrary = async (
     return res.data
   } catch (err) {
     logger.info(
-      `existsInLibrary: ${API.name} ${getContentName(API)} search error: ${errCodeAndMsg(err)}`,
+      `existsInLibrary: ${API.name} ${getContentName(API)} search error: ${axiosErrorMessage(err)}`,
     )
     return
   }
@@ -383,7 +385,9 @@ export const getMissingwanted = async (
       logger.error(`getMissingWanted: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`getMissingWanted: ${API.name} missing wanted search error: ${errCodeAndMsg(err)}`)
+    logger.info(
+      `getMissingWanted: ${API.name} missing wanted search error: ${axiosErrorMessage(err)}`,
+    )
   }
 
   return
@@ -428,7 +432,7 @@ export const deleteFromQueue = async (
       )
     }
   } catch (err) {
-    logger.error(`deleteFromQueue: Could not delete ${download.title}: ${errCodeAndMsg(err)}`)
+    logger.error(`deleteFromQueue: Could not delete ${download.title}: ${axiosErrorMessage(err)}`)
   }
 }
 
@@ -453,7 +457,9 @@ export const deleteFromLibrary = async (
       logger.error(`deleteFromLibrary: Unkown error. Status: ${res.status}`)
     }
   } catch (err) {
-    logger.info(`deleteFromLibrary: Could not delete ${libraryItem.title}: ${errCodeAndMsg(err)}`)
+    logger.info(
+      `deleteFromLibrary: Could not delete ${libraryItem.title}: ${axiosErrorMessage(err)}`,
+    )
   }
 
   return false
@@ -517,7 +523,7 @@ export const getManualImport = async (
       logger.error(`getManualImport: ${API.name}: Could not retrieve data for ${download.title}.`)
     }
   } catch (err) {
-    logger.error(`getManualImport: ${errCodeAndMsg(err)}`)
+    logger.error(`getManualImport: ${axiosErrorMessage(err)}`)
   }
 
   return "Unknown Error"
@@ -607,7 +613,7 @@ export const importCommand = async (
     logger.success(`${API.name} | ${blockedFile.title} | Imported!`)
     return
   } catch (err) {
-    logger.error(`importCommand: ${errCodeAndMsg(err)}`)
+    logger.error(`importCommand: ${axiosErrorMessage(err)}`)
     return
   }
 }
@@ -633,7 +639,7 @@ export const getImportLists = async (
       logger.error(`getImportLists: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`getImportLists: ${errCodeAndMsg(err)}`)
+    logger.info(`getImportLists: ${axiosErrorMessage(err)}`)
   }
 
   return
@@ -671,7 +677,7 @@ export const getQualityProfiles = async (
       logger.error(`getQualityProfiles: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.info(`getQualityProfiles: ${errCodeAndMsg(err)}`)
+    logger.info(`getQualityProfiles: ${axiosErrorMessage(err)}`)
   }
 
   return
