@@ -1,5 +1,6 @@
 import moment from "moment"
 import { PoolType, BotUserType } from "../models/settings"
+import { Series } from "../types/seriesTypes"
 
 const initPool: PoolType = {
   movies: [],
@@ -69,4 +70,14 @@ export const sortTMDBSearchArray = <T extends { title: string; year: number }>(
   })
 
   return sorted
+}
+
+// Determine if a series has been relased yet
+export const isSeriesReleased = (series: Series): boolean => {
+  if (!series.firstAired) return false
+
+  const firstAiredDate = new Date(series.firstAired)
+  const now = new Date()
+
+  return firstAiredDate <= now
 }

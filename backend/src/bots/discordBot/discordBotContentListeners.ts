@@ -41,6 +41,7 @@ import {
   randomAddedToPoolMessage,
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
+  randomNotReleasedMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -70,7 +71,7 @@ import {
   notifyMovieDownloaded,
   notifySeriesDownloaded,
 } from "./discordBotAsync"
-import { sortTMDBSearchArray } from "../botUtility"
+import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./discordBotRequestValidationUtility"
@@ -140,7 +141,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // Grab the first movie in the array
   const foundMovie = sortedMoviesArr[0]
-
+  console.log(foundMovie)
   // Check if the movie is already downloaded
   if (foundMovie.movieFile) {
     return randomAlreadyAddedMessage()
@@ -152,6 +153,15 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     const queue = await getRadarrQueue(settings)
     const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
     if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+  }
+
+  // Check to see if the movie is available
+  if (!foundMovie.isAvailable) {
+    return discordReply(
+      randomNotReleasedMessage(message.author.toString(), foundMovie.title, foundMovie.status),
+      "info",
+      `${user.name} tried to download ${foundMovie.title} but it's not available.`,
+    )
   }
 
   // Ensure a quality profile is selected
@@ -316,6 +326,15 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
   // Grab the first series in the array
   const foundSeries = sortedSeriesArr[0]
+
+  // Check if the series has been aired
+  if (!isSeriesReleased(foundSeries)) {
+    return discordReply(
+      randomNotReleasedMessage(message.author.toString(), foundSeries.title),
+      "info",
+      `${user.name} tried to download ${foundSeries.title} but it's not available.`,
+    )
+  }
 
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType

@@ -34,6 +34,53 @@ export const randomMovieReadyMessage = (name: string, movieTitle: string) => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+export const randomNotReleasedMessage = (
+  name: string,
+  title: string,
+  status?: "inCinemas" | "released" | "announced",
+) => {
+  const statusTaglines: Record<"inCinemas" | "released" | "announced", string[]> = {
+    announced: [
+      "It's been announced, but there's no release date yet.",
+      "It's out there in spirit, there's just no date yet.",
+      "Patience, this one's still a while off.",
+    ],
+    inCinemas: [
+      "It's in theaters, but not ready for home viewing.",
+      "It's cinematic only right now — off you go!",
+      "Unless your living room is a theater, you'll have to wait.",
+    ],
+    released: [
+      "Weird, it should be available... maybe try again shortly?",
+      "It claims to be released, but I still can't grab it.",
+      "If it's released, it's playing hard to get. Try again later.",
+    ],
+  }
+
+  const baseMessages = [
+    `Hey ${name} — ${title} exists, but it hasn't been released yet.`,
+    `Sorry, ${name}, but ${title} hasn't hit the shelves yet.`,
+    `I can see ${title} in the database, ${name}, but it's not out in the world yet.`,
+    `Yep, ${title} is a real thing — just not released yet. The wait is the hardest part.`,
+    `Good eye, ${name}. ${title} is coming... just not available until release day.`,
+    `Found it! But not really — ${title} hasn't been released, so no download yet.`,
+    `${title}? Oh, it's real. But until it's released, there's nothing I can grab.`,
+    `The world knows about ${title}, ${name}, but no one has it yet.`,
+    `You're ahead of the curve, ${name}. ${title} hasn't been released to the public yet.`,
+    `I checked — ${title} is in the system, but it's not available until its release.`,
+  ]
+
+  const base = baseMessages[Math.floor(Math.random() * baseMessages.length)]
+
+  if (status) {
+    const taglines = statusTaglines[status]
+    const statusMessage = taglines[Math.floor(Math.random() * taglines.length)]
+    return `${base} ${statusMessage}`
+  }
+
+  return base
+}
+
 export const randomSeriesReadyMessage = (name: string, seriesTitle: string) => {
   const messages = [
     `Hey ${name}, '${seriesTitle}' just finished downloading! Time to binge! 📺`,
@@ -145,7 +192,7 @@ export const randomAddedToPoolMessage = (contentType: "Movie" | "Series", title:
   const messages = [
     `${title} has been added to your ${contentType.toLowerCase()} pool. It's safe and sound.`,
     `No worries — ${title} is now part of your ${contentType.toLowerCase()} collection.`,
-    `${contentType} locked in! ${title} won’t be removed from the server.`,
+    `${contentType} locked in! ${title} won't be removed from the server.`,
     `${title} is staying put. It's been added to your ${contentType.toLowerCase()} pool.`,
     `You're keeping ${title}? Got it. It won't be touched.`,
     `${title} is in your ${contentType.toLowerCase()} pool now — it's going nowhere.`,
@@ -158,7 +205,7 @@ export const randomAddedToPoolMessage = (contentType: "Movie" | "Series", title:
 export const randomGrabbedMessage = (title: string) => {
   const messages = [
     `${title} has been found and the download has started. Get your popcorn ready!`,
-    `Great news — ${title} is downloading now. It’ll be ready before you know it.`,
+    `Great news — ${title} is downloading now. It'll be ready before you know it.`,
     `We found ${title} and it's now being downloaded straight to your library.`,
     `${title} matched a source and the download is underway.`,
     `${title} is officially on the way — downloading as we speak.`,
@@ -173,16 +220,16 @@ export const randomGrabbedMessage = (title: string) => {
 
 export const randomGrabNotFoundMessage = (title: string) => {
   const messages = [
-    `I checked around, but couldn’t find ${title} online.`,
+    `I checked around, but couldn't find ${title} online.`,
     `I searched for ${title}, but nothing turned up.`,
-    `No luck — I couldn’t find ${title} from any sources.`,
-    `I looked, but ${title} didn’t show up anywhere.`,
-    `${title} wasn’t available when I checked.`,
-    `I gave it a shot, but ${title} wasn’t out there.`,
+    `No luck — I couldn't find ${title} from any sources.`,
+    `I looked, but ${title} didn't show up anywhere.`,
+    `${title} wasn't available when I checked.`,
+    `I gave it a shot, but ${title} wasn't out there.`,
     `Scanned the usual spots — no sign of ${title}.`,
     `Tried to find ${title}, but came up empty.`,
     `${title}? I searched, but there was nothing to pull in.`,
-    `I looked for ${title}, but it didn’t seem to be available right now.`,
+    `I looked for ${title}, but it didn't seem to be available right now.`,
   ]
 
   return messages[Math.floor(Math.random() * messages.length)]

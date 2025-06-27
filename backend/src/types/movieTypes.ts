@@ -85,7 +85,7 @@ export type Movie = {
   secondaryYearSourceId: number
   sortTitle: string
   sizeOnDisk: number
-  status: string
+  status: "inCinemas" | "released" | "announced"
   overview: string
   inCinemas: string
   physicalRelease: string
