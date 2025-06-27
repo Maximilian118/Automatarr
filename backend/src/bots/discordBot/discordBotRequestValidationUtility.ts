@@ -30,12 +30,6 @@ export const validateTitleAndYear = async (
   let foundContentArr: Movie[] | Series[] = []
 
   if (!yearMatch) {
-    const invalidCharMatch = searchString.match(/[\x00-\x1F\x7F]/)
-
-    if (invalidCharMatch) {
-      return `The ${contentType} title contains unsupported characters: \`${invalidCharMatch[0]}\``
-    }
-
     foundContentArr =
       contentType === "movie"
         ? (await searchRadarr(settings, searchString)) || []
@@ -75,12 +69,6 @@ export const validateTitleAndYear = async (
 
   const year = yearCandidate
   const title = rest.slice(0, -1).join(" ")
-
-  const invalidCharMatch = title.match(/[^a-zA-Z0-9 ':,\-&.]/)
-
-  if (invalidCharMatch) {
-    return `The ${contentType} title contains unsupported characters: \`${invalidCharMatch[0]}\``
-  }
 
   return {
     title,
