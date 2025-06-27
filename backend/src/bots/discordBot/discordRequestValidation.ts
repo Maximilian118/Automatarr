@@ -102,7 +102,7 @@ export const validateListCommand = (msgArr: string[]): string => {
   const unsupported = ["album", "albums", "book", "books"]
 
   if (msgArr.length > 3) {
-    return "The !list command must contain no more than three parts: `!list <contentType> <optional_discord_username>`."
+    return "The !list command must contain no more than three parts: `!list <optional_contentType> <optional_discord_username>`."
   }
 
   const [command, contentType] = msgArr
@@ -112,7 +112,7 @@ export const validateListCommand = (msgArr: string[]): string => {
   }
 
   if (!contentType) {
-    return "Please specify a content type: `pool / movie / series."
+    return ""
   }
 
   const typeLower = contentType.toLowerCase()

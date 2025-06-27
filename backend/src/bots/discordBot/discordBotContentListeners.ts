@@ -500,7 +500,7 @@ export const caseList = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
-  // Validate the request string: `!list <contentType> <optional_discord_username>`
+  // Validate the request string: `!list <optional_contentType> <optional_discord_username>`
   const msgArr = message.content.slice().trim().split(/\s+/)
   const validationError = validateListCommand(msgArr)
   if (validationError) return validationError
@@ -515,7 +515,8 @@ export const caseList = async (message: Message): Promise<string> => {
   const user = matchedUser(settings, username)
   if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
-  const contentType = msgArr[1].toLowerCase() as "pool" | "movie" | "movies" | "series"
+  const contentType =
+    msgArr[1] && (msgArr[1].toLowerCase() as "pool" | "movie" | "movies" | "series")
 
   // If channels exist extreact mentions for better discord UX
   const { mention: movieChannel } = findChannelByName(settings.discord_bot.movie_channel_name)
@@ -552,7 +553,7 @@ export const caseList = async (message: Message): Promise<string> => {
   return (
     `🎞️ Content Pool for <@${guildMember.id}>\n` +
     `\n` +
-    (contentType === "pool"
+    (!contentType || contentType === "pool"
       ? `${movies}\n` + series
       : contentType.includes("movie")
       ? movies

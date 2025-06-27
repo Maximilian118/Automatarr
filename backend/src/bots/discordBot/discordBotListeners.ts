@@ -221,7 +221,7 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "List a user's pool items",
     description:
       "List content in a user's pool. ContentType = pool / movies / series. Add a Discord username to target someone else.",
-    usage: "!list <contentType> <optional_discord_username>",
+    usage: "!list <optional_contentType> <optional_discord_username>",
     adminRequired: false,
   },
   {
