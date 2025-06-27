@@ -803,7 +803,7 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
   if (!data) return noDBPull()
 
   // Validate the message
-  const parsed = await validateWaitCommand(message, settings)
+  const parsed = await validateWaitCommand(message, settings, data)
 
   // Return if an error string is returned from validateDownload
   if (typeof parsed === "string") {
@@ -909,8 +909,11 @@ export const caseStay = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
+  const data = (await Data.findOne()) as dataDocType
+  if (!data) return noDBPull()
+
   // Validate the message
-  const parsed = await validateStayCommand(message, settings)
+  const parsed = await validateStayCommand(message, settings, data)
 
   // Return if an error string is returned from validateDownload
   if (typeof parsed === "string") {
@@ -976,9 +979,6 @@ export const caseStay = async (message: Message): Promise<string> => {
 
   // If user is in series channel
   if (channel.name === settings.discord_bot.series_channel_name) {
-    const data = (await Data.findOne()) as dataDocType
-    if (!data) return noDBPull()
-
     // See what returns from the sonarr API
     const foundSeriesArr = await searchSonarr(settings, searchString)
 

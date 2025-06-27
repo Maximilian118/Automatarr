@@ -5,23 +5,29 @@ import { searchSonarr } from "../../shared/SonarrStarrRequests"
 import { getDiscordClient } from "./discordBot"
 import { discordReply } from "./discordBotUtility"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
+import { Movie } from "../../types/movieTypes"
+import { Series } from "../../types/seriesTypes"
+import { dataDocType } from "../../models/data"
 
 export const validateTitleAndYear = async (
   rest: string[], // The fill string of a command after the inital !command
   contentType: "movie" | "series" | "album" | "book", // What content type are we searching for?
   settings: settingsDocType,
+  data?: dataDocType,
 ): Promise<
   | string
   | {
       title: string
       year: string
       searchString: string
+      foundContentArr: Movie[] | Series[]
     }
 > => {
   const yearCandidate = rest[rest.length - 1]
   const yearMatch = yearCandidate.match(/^\d{4}$/)
 
   const searchString = rest.join(" ")
+  let foundContentArr: Movie[] | Series[] = []
 
   if (!yearMatch) {
     const invalidCharMatch = searchString.match(/[\x00-\x1F\x7F]/)
@@ -30,15 +36,35 @@ export const validateTitleAndYear = async (
       return `The ${contentType} title contains unsupported characters: \`${invalidCharMatch[0]}\``
     }
 
-    const foundContentArr =
+    foundContentArr =
       contentType === "movie"
         ? (await searchRadarr(settings, searchString)) || []
         : (await searchSonarr(settings, searchString)) || []
 
+    if (data) {
+      if (contentType === "movie") {
+        const movieLibrary = (data.libraries.find((api) => api.name === "Radarr")?.data ??
+          []) as Movie[]
+        foundContentArr = (foundContentArr as Movie[]).filter((c) =>
+          movieLibrary.some((l) => l.tmdbId === c.tmdbId),
+        )
+      } else {
+        const seriesLibrary = (data.libraries.find((api) => api.name === "Sonarr")?.data ??
+          []) as Series[]
+        foundContentArr = (foundContentArr as Series[]).filter((c) =>
+          seriesLibrary.some((l) => l.tvdbId === c.tvdbId),
+        )
+      }
+    }
+
+    const suggestionsHeader = data
+      ? "I've found these in your library: 📚"
+      : "Is it any of these you wanted? ⛏️"
+
     const recommendations =
       foundContentArr.length === 0
         ? "I couldn't find any recommendations for that title."
-        : `Is it any of these you wanted? ⛏️\n\n` +
+        : `${suggestionsHeader}\n\n` +
           foundContentArr
             .slice(0, 10)
             .map((c) => `${c.title} ${c.year}`)
@@ -60,6 +86,7 @@ export const validateTitleAndYear = async (
     title,
     year,
     searchString: `${title} ${year}`,
+    foundContentArr,
   }
 }
 

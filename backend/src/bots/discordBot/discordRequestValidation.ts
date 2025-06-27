@@ -490,6 +490,7 @@ export const validateBlocklistCommand = async (
 export const validateWaitCommand = async (
   message: Message,
   settings: settingsDocType,
+  data: dataDocType,
 ): Promise<
   | string
   | {
@@ -521,7 +522,7 @@ export const validateWaitCommand = async (
     }`
   }
 
-  const validated = await validateTitleAndYear(rest, contentType, settings)
+  const validated = await validateTitleAndYear(rest, contentType, settings, data)
   if (typeof validated === "string") return validated
 
   return {
@@ -535,6 +536,7 @@ export const validateWaitCommand = async (
 export const validateStayCommand = async (
   message: Message,
   settings: settingsDocType,
+  data: dataDocType,
 ): Promise<
   | string
   | {
@@ -565,7 +567,7 @@ export const validateStayCommand = async (
     }`
   }
 
-  const validated = await validateTitleAndYear(rest, contentType, settings)
+  const validated = await validateTitleAndYear(rest, contentType, settings, data)
   if (typeof validated === "string") return validated
 
   return {
