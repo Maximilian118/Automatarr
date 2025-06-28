@@ -1,6 +1,7 @@
 import Resolvers from "../graphql/resolvers/resolvers"
 import { settingsDocType } from "../models/settings"
 import { dynamicLoop } from "../shared/dynamicLoop"
+import backups from "./backups"
 import permissions_change from "./permissions_change"
 import remove_blocked from "./remove_blocked"
 import remove_failed from "./remove_failed"
@@ -39,6 +40,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("permissions_change_loop", async (settings) => {
     await permissions_change(settings)
   }, skipFirst)
+  // Backup the settings and user pool data
+  await dynamicLoop("backups_loop", async (settings) => {
+    await backups(settings)
+  }, skipFirst)
 }
 
 // Call all core loop functions once
@@ -66,5 +71,9 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {
     await permissions_change(settings._doc)
+  }
+  // Backup the settings and user pool data
+  if (settings.backups) {
+    await backups(settings)
   }
 }

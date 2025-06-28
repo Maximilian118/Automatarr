@@ -9,6 +9,11 @@
   box-sizing: border-box;
   border-radius: 4px;
 
+  h1, h2, h3, h4, h5 {
+    width: 100%;
+    text-align: left;
+  }
+
   .model-top {
     width: 100%;
     @include mixins.flexbox-space-between;

@@ -1,14 +1,14 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Close, Done, Logout, Send, Webhook } from "@mui/icons-material"
+import { Close, Done, Logout, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from "react-router-dom"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
-import { EventType, settingsErrorType} from "../types/settingsType"
+import { EventType, settingsErrorType, settingsType} from "../types/settingsType"
 import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
@@ -18,6 +18,7 @@ import { inputLabel, updateInput } from "../shared/formValidation"
 import { UserErrorType } from "../types/userType"
 import { updateUser } from "../shared/requests/userRequests"
 import { checkWebhooks } from "../shared/requests/checkAPIRequests"
+import LoopTime from "../components/loop/looptime/Looptime"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
@@ -92,6 +93,40 @@ const Settings: React.FC = () => {
   return (
     <main>
       <form onSubmit={e => onSubmitHandler(e)}>
+        <InputModel
+          title="Backups" 
+          startIcon={<SettingsBackupRestore/>}
+          description={`Backup your settings and user pool data to the path assigned in the docker-compose.yml file.`}
+          checked={settings.backups}
+          onToggle={() => {
+            setSettings(prevSettings => {
+              return {
+                ...prevSettings,
+                backups: !prevSettings.backups,
+              }
+            })
+          }}
+        >
+          <h4>Backup Frequency</h4>
+          <LoopTime
+            loop={"backups_loop" as keyof settingsType}
+            settings={settings}
+            setSettings={setSettings}
+            formErr={formErr}
+            setFormErr={setFormErr}
+            maxUnit="weeks"
+            minUnit="hours"
+          />
+          <h4>Retention Period</h4>
+          <LoopTime
+            loop={"backups_rotation_date" as keyof settingsType}
+            settings={settings}
+            setSettings={setSettings}
+            formErr={formErr}
+            setFormErr={setFormErr}
+            minUnit="weeks"
+          />
+        </InputModel>
         <InputModel 
           title="User Settings" 
           startIcon={<SettingsIcon/>}

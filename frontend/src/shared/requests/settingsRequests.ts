@@ -4,7 +4,7 @@ import { settingsType } from "../../types/settingsType"
 import { populateSettings } from "./requestPopulation"
 import { checkAPIs, formHasErr } from "../utility"
 import { QualityProfile } from "../../types/qualityProfileType"
-import { authCheck, handleResponseTokens, headers } from "./requestUtility"
+import { authCheck, getAxiosErrorMessage, handleResponseTokens, headers } from "./requestUtility"
 import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
 
@@ -45,7 +45,7 @@ export const getSettings = async (
       console.log(`getSettings: Settings retrieved.`)
     }
   } catch (err) {
-    console.error(`getSettings Error: ${err}`)
+    console.error(getAxiosErrorMessage(err))
   } finally {
     setLoading(false)
   }
@@ -116,6 +116,9 @@ export const updateSettings = async (
           $lockout_mins: Int
           $webhooks: Boolean
           $webhooks_enabled: [String!]!
+          $backups: Boolean
+          $backups_loop: Int
+          $backups_rotation_date: Int
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -159,6 +162,9 @@ export const updateSettings = async (
             lockout_mins: $lockout_mins
             webhooks: $webhooks
             webhooks_enabled: $webhooks_enabled
+            backups: $backups 
+            backups_loop: $backups_loop
+            backups_rotation_date: $backups_rotation_date
           }) {
             ${populateSettings}
           }
@@ -176,7 +182,7 @@ export const updateSettings = async (
       console.log(`updateSettings: Settings updated.`)
     }
   } catch (err) {
-    console.error(`updateSettings Error: ${err}`)
+    console.error(getAxiosErrorMessage(err))
   } finally {
     setLoading(false)
   }
@@ -248,7 +254,7 @@ export const getDiscordChannels = async (
       console.log(`getDiscordChannels: Discord channels retrieved for ${server_name}.`)
     }
   } catch (err) {
-    console.error(`getDiscordChannels Error: ${err}`)
+    console.error(getAxiosErrorMessage(err))
   } finally {
     setLoading(false)
   }
@@ -294,7 +300,7 @@ export const getQualityProfiles = async (
       console.log(`getQualityProfiles: Quality Profiles retrieved.`)
     }
   } catch (err) {
-    console.error(`getQualityProfiles Error: ${err}`)
+    console.error(getAxiosErrorMessage(err))
   } finally {
     setQPLoading(false)
   }

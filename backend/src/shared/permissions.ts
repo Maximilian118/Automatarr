@@ -27,9 +27,10 @@ export const checkPermissions = (
   dirOrFilePath: string,
   perms?: permissionTypes[],
   APIName?: string,
+  useHostFs: boolean = true,
 ): boolean => {
   if (!isDocker) {
-    logger.info("Permissions | Check bypassed. In Development mode.")
+    logger.info("Permissions | Check bypassed. In Development mode. 🔧")
     return true
   }
 
@@ -41,8 +42,8 @@ export const checkPermissions = (
   // Save the original passed path for logging
   const originalPath = dirOrFilePath
 
-  // If code is running in a Docker container, Prepend /host_fs to the path.
-  if (isDocker) {
+  // If code is running in a Docker container and hostFS is enabled, prepend it
+  if (isDocker && useHostFs) {
     dirOrFilePath = path.join(hostFS, dirOrFilePath)
   }
 
@@ -120,7 +121,7 @@ export const checkPermissions = (
 // Check all needed directories on boot
 export const bootPermissions = (data: dataType | undefined): void => {
   if (!isDocker) {
-    logger.info("Permissions | Check bypassed. In Development mode.")
+    logger.info("Permissions | Check bypassed. In Development mode. 🔧")
     return
   }
 

@@ -21,7 +21,7 @@ export const isDocker = (() => {
 // Delete a file or directory from the filesystem of the machine
 export const deleteFromMachine = (dirOrFilePath: string): boolean => {
   if (process.env.NODE_ENV === "development") {
-    logger.info("deleteFromMachine bypassed. In Development mode... risky stuff!")
+    logger.info("deleteFromMachine bypassed. In Development mode... risky stuff! 🔧")
     return false
   }
 
@@ -84,7 +84,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
 
   try {
     if (process.env.NODE_ENV === "development") {
-      logger.info("removeFailed bypassed. In Development mode.")
+      logger.info("removeFailed bypassed. In Development mode. 🔧")
       return result
     }
 
@@ -262,7 +262,7 @@ export const updatePaths = async (
   verbose?: boolean,
 ): Promise<updatePathsResult[]> => {
   if (process.env.NODE_ENV === "development") {
-    logger.info("updatePaths cancelled. In Development mode.")
+    logger.info("updatePaths cancelled. In Development mode. 🔧")
     return []
   }
 

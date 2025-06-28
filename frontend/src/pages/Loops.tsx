@@ -103,6 +103,7 @@ const Loops: React.FC = () => {
             formErr={formErr}
             setFormErr={setFormErr}
             disabled={!settings[name] || disabled}
+            maxUnit="weeks"
           />
           {params}
         </>

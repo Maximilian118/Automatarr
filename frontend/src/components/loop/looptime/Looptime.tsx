@@ -10,50 +10,54 @@ interface LoopTimeType {
   formErr: settingsErrorType
   setFormErr: Dispatch<SetStateAction<settingsErrorType>>
   disabled?: boolean
+  maxUnit?: UnitsType
+  minUnit?: UnitsType
 }
 
-type UnitsType = "minutes" | "hours" | "days" | "weeks"
+type UnitsType = "minutes" | "hours" | "days" | "weeks" | "months" | "years"
 
 type IntType = { 
   interval: number
   unit: UnitsType
 }
 
-const minutesToInterval = (loopMins: number): IntType => {
-  const units = ["minutes", "hours", "days", "weeks"]
-  const factors = [1, 60, 1440, 10080]
+const unitFactors: Record<UnitsType, number> = {
+  minutes: 1,
+  hours: 60,
+  days: 1440,
+  weeks: 10080,
+  months: 43800,    // ~30.42 days
+  years: 525600     // ~365 days
+}
 
-  for (let i = factors.length - 1; i >= 0; i--) {
-    if (loopMins >= factors[i]) {
-      const interval = loopMins / factors[i]
+const orderedUnits: UnitsType[] = [
+  "minutes",
+  "hours",
+  "days",
+  "weeks",
+  "months",
+  "years"
+]
+
+const minutesToInterval = (loopMins: number): IntType => {
+  for (let i = orderedUnits.length - 1; i >= 0; i--) {
+    const unit = orderedUnits[i]
+    const factor = unitFactors[unit]
+    if (loopMins >= factor) {
+      const interval = loopMins / factor
       if (interval <= 60) {
-        return { interval: Math.round(interval), unit: units[i] as UnitsType}
+        return { interval: Math.round(interval), unit }
       }
     }
   }
-  return { interval: loopMins, unit: "minutes" } // Default to minutes if nothing matches
+  return { interval: loopMins, unit: "minutes" }
 }
 
-const intervalToMinutes = (interval: number, unit: "minutes" | "hours" | "days" | "weeks") => {
-  const unitToMinutes = {
-    minutes: 1,
-    hours: 60,
-    days: 1440,
-    weeks: 10080,
-  }
-
-  return interval * unitToMinutes[unit]
+const intervalToMinutes = (interval: number, unit: UnitsType): number => {
+  return interval * unitFactors[unit]
 }
 
-const mins = () => {
-  const nums = []
-
-  for (let n = 1; n <= 60; n++) {
-    nums.push(String(n))
-  }
-
-  return nums
-}
+const mins = (): string[] => Array.from({ length: 60 }, (_, i) => String(i + 1))
 
 const LoopTime: React.FC<LoopTimeType> = ({
   loop,
@@ -62,27 +66,31 @@ const LoopTime: React.FC<LoopTimeType> = ({
   formErr,
   setFormErr,
   disabled,
+  maxUnit,
+  minUnit
 }) => {
-  const [ int, setInt ] = useState(minutesToInterval(settings[loop] as number))
+  const [int, setInt] = useState<IntType>(minutesToInterval(settings[loop] as number))
+
+  // Compute allowed unit range
+  const minIndex = minUnit ? orderedUnits.indexOf(minUnit) : 0
+  const maxIndex = maxUnit ? orderedUnits.indexOf(maxUnit) : orderedUnits.length - 1
+  const availableUnits = orderedUnits.slice(minIndex, maxIndex + 1)
 
   useEffect(() => {
     const mins = intervalToMinutes(int.interval, int.unit)
 
     if (Number.isNaN(mins)) {
-      setFormErr(prevErrs => {
-        return {
-          ...prevErrs,
-          [loop]: "Loop value is not a number.",
-        }
-      })
+      setFormErr(prevErrs => ({
+        ...prevErrs,
+        [loop]: "Loop value is not a number.",
+      }))
+      return
     }
 
-    setSettings(prevSettings => {
-      return {
-        ...prevSettings,
-        [loop]: mins,
-      }
-    })
+    setSettings(prevSettings => ({
+      ...prevSettings,
+      [loop]: mins,
+    }))
   }, [int, loop, setSettings, setFormErr])
 
   return (
@@ -90,48 +98,44 @@ const LoopTime: React.FC<LoopTimeType> = ({
       <Autocomplete
         value={String(int.interval)}
         onChange={(_, interval: string | null) => {
-          setFormErr(prevErrs => {
-            return {
-              ...prevErrs,
-              [loop]: "",
-            }
-          })
-          
-          setInt(prevInt => {
-            return {
-              ...prevInt,
-              interval: Number(interval),
-            }
-          })
+          setFormErr(prevErrs => ({
+            ...prevErrs,
+            [loop]: "",
+          }))
+
+          setInt(prevInt => ({
+            ...prevInt,
+            interval: Number(interval),
+          }))
         }}
         disablePortal
         options={mins()}
         sx={{ width: "110px" }}
-        renderInput={(params) => <TextField {...params} label="Interval" error={!!formErr[loop]}/>}
+        renderInput={(params) => (
+          <TextField {...params} label="Interval" error={!!formErr[loop]} />
+        )}
         size="small"
         disabled={disabled}
       />
       <Autocomplete
         value={int.unit}
         onChange={(_, unit: string | null) => {
-          setFormErr(prevErrs => {
-            return {
-              ...prevErrs,
-              [loop]: "",
-            }
-          })
-          
-          setInt(prevInt => {
-            return {
-              ...prevInt,
-              unit: unit as UnitsType,
-            }
-          })
+          setFormErr(prevErrs => ({
+            ...prevErrs,
+            [loop]: "",
+          }))
+
+          setInt(prevInt => ({
+            ...prevInt,
+            unit: unit as UnitsType,
+          }))
         }}
         disablePortal
-        options={["minutes", "hours", "days", "weeks"]}
-        sx={{ width: "145px"}}
-        renderInput={(params) => <TextField {...params} label="Unit" error={!!formErr[loop]}/>}
+        options={availableUnits}
+        sx={{ width: "145px" }}
+        renderInput={(params) => (
+          <TextField {...params} label="Unit" error={!!formErr[loop]} />
+        )}
         size="small"
         disabled={disabled}
       />

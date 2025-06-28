@@ -67,6 +67,9 @@ export const populateSettings = `
   webhooks
   webhooks_enabled
   webhooks_token
+  backups
+  backups_loop
+  backups_rotation_date
   created_at
   updated_at
   tokens

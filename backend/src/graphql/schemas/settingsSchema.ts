@@ -78,6 +78,9 @@ const settingsSchema = `
     webhooks: Boolean!
     webhooks_enabled: [String!]!
     webhooks_token: String!
+    backups: Boolean!
+    backups_loop: Int!
+    backups_rotation_date: Int!
     created_at: String!
     updated_at: String!
     tokens: [String!]!
@@ -154,6 +157,9 @@ const settingsSchema = `
     lockout: Boolean
     lockout_attempts: Int
     lockout_mins: Int
+    backups: Boolean
+    backups_loop: Int
+    backups_rotation_date: Int
     webhooks: Boolean
     webhooks_enabled: [String!]!
   }

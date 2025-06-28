@@ -78,6 +78,9 @@ export const initSettings: settingsType = {
   webhooks: false,
   webhooks_enabled: [],
   webhooks_token: "",
+  backups: false,
+  backups_loop: 1440, // 1 day
+  backups_rotation_date: 525600, // 1 year
   created_at: "",
   updated_at: "",
 }

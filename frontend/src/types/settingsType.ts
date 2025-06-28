@@ -89,6 +89,9 @@ export interface settingsType {
   webhooks: boolean // Enable or disable webhooks
   webhooks_enabled: EventType[] // An array of webhooks the user would like
   webhooks_token: string // A randomly generated token for connecting webhooks to Automatarr
+  backups: boolean // Enable or disable backups
+  backups_loop: number // Loop timer for backups. Unit = minutes
+  backups_rotation_date: number // The amount of time that determines when we start deleting log files
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
 }

@@ -54,6 +54,7 @@ services:
     volumes:
       - ./automatarr/database:/app/automatarr_database
       - ./automatarr/logs:/app/automatarr_logs
+      - ./automatarr/backups:/app/automatarr_backups
       - /:/host_fs
 ```
 
