@@ -47,7 +47,7 @@ if (!fs.existsSync(databasePath)) {
 
 const startServer = async () => {
   const db_IP = "0.0.0.0"
-  const db_PORT = "27020"
+  const db_PORT = process.env.DB_PORT || "27020"
   const backend_IP = "0.0.0.0"
   const backend_PORT = "8091"
 

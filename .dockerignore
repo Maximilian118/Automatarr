@@ -1,7 +1,14 @@
-automatarr_database/
-automatarr_logs/
 node_modules
-npm-debug.log
+**/node_modules
+**/dist
+*.log
+npm-debug.log*
+automatarr_logs/
+automatarr_database/
 Dockerfile
+.dockerignore
 .git
 .gitignore
+.vscode
+.idea
+*.tsbuildinfo
