@@ -1,11 +1,10 @@
 import axios, { AxiosResponse } from "axios"
-import Data, { dataType, qBittorrent } from "../models/data"
-import Settings, { settingsDocType, settingsType } from "../models/settings"
+import Data, { dataDocType, dataType, qBittorrent } from "../models/data"
+import { settingsType } from "../models/settings"
 import { checkTimePassed, cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
-import { saveWithRetry } from "./database"
 import { axiosErrorMessage } from "./requestError"
 
 // Retreive qBittorrent cookie from check request headers
@@ -52,7 +51,7 @@ export const getqBitCookieFromHeaders = async (
 // Check if cookie has expired
 export const qBitCookieExpired = async (passedData?: dataType): Promise<boolean> => {
   // Retrieve the data object from the db
-  const data = passedData ? passedData : await Data.findOne()
+  const data = passedData ? passedData : ((await Data.findOne()) as dataDocType)
 
   if (!data) {
     logger.error("qBittorrent | Could not find data object in db.")
@@ -78,7 +77,7 @@ export const qBitCookieExpired = async (passedData?: dataType): Promise<boolean>
 // Renew qBittorrent cookie
 export const renewqBitCookie = async (
   settings: settingsType,
-  data: dataType,
+  data: dataDocType,
 ): Promise<{
   cookie: string
   cookie_expiry: string
@@ -103,11 +102,15 @@ export const renewqBitCookie = async (
     const { cookie, cookie_expiry } = await getqBitCookieFromHeaders(res, data)
 
     if (!cookie) {
-      logger.error("renewqBitCookie: Failed to retrieve Cookie.")
+      logger.error("qBittorrent | Failed to find Cookie in headers.")
       return response
     }
 
     logger.success("qBittorrent | Cookie Renewed!")
+
+    data.qBittorrent.cookie = cookie
+    data.qBittorrent.cookie_expiry = cookie_expiry
+    data.qBittorrent.updated_at = moment().format()
 
     return {
       cookie,
@@ -120,38 +123,16 @@ export const renewqBitCookie = async (
   return response
 }
 
-const updateQbitSettingsCookie = async (
-  newCookie: string,
-  expiry: string,
-): Promise<settingsDocType> => {
-  // Find settings object by ID
-  let settings = (await Settings.findOne()) as settingsDocType
-
-  // Throw error if no object was found
-  if (!settings) {
-    logger.error("updateQbitSettingsCookie: No settings found in database.")
-  }
-
-  settings.qBittorrent.cookie = newCookie
-  settings.qBittorrent.cookie_expiry = expiry
-
-  // save to the db
-  await saveWithRetry(settings, "updateQbitSettingsCookie")
-
-  return settings
-}
-
 // Get all current torrents
 export const getqBittorrentTorrents = async (
   settings: settingsType,
-  data: dataType,
+  data: dataDocType,
   ident?: string,
 ): Promise<{
   torrents: Torrent[]
   cookieRenewed: boolean
-  newCookie?: string
-  newCookieExpiry?: string
-  newSettings?: settingsDocType
+  cookie?: string
+  cookie_expiry?: string
 }> => {
   // Only get qBittorrent data if 10 mins has passed since last update
   const firstRun = data.qBittorrent.torrents.length === 0
@@ -171,26 +152,21 @@ export const getqBittorrentTorrents = async (
     }
   }
 
-  let newSettings: settingsDocType | undefined = undefined
-  let cookieRenewed = false
   let cookie = data.qBittorrent.cookie
-  let newCookieExpiry = ""
+  let cookie_expiry = data.qBittorrent.cookie_expiry
+  let cookieRenewed = false
 
   // Check cookie expiry and get a new cookie if needed
   if (await qBitCookieExpired(data)) {
-    const { cookie: newCookie, cookie_expiry } = await renewqBitCookie(settings, data)
-    cookie = newCookie
-    newCookieExpiry = cookie_expiry
+    const { cookie: newCookie, cookie_expiry: newCookieExpiry } = await renewqBitCookie(
+      settings,
+      data,
+    )
 
-    if (newCookie) {
+    if (newCookie && newCookieExpiry) {
+      cookie = newCookie
+      cookie_expiry = newCookieExpiry
       cookieRenewed = true
-      newSettings = await updateQbitSettingsCookie(newCookie, cookie_expiry)
-    } else {
-      logger.warn(
-        `qBittorrent | ${
-          ident && `${ident} | `
-        }Cookie renewal attempted but new cookie was not set.`,
-      )
     }
   }
 
@@ -230,9 +206,8 @@ export const getqBittorrentTorrents = async (
   return {
     torrents,
     cookieRenewed,
-    newCookie: cookie,
-    newCookieExpiry,
-    newSettings,
+    cookie,
+    cookie_expiry,
   }
 }
 
@@ -298,13 +273,14 @@ export const getqBittorrentPreferences = async (
 // Retrieve all data Automatarr requires from qBittorrent
 export const getqBittorrentData = async (
   settings: settingsType,
-  data: dataType,
+  data: dataDocType,
 ): Promise<qBittorrent> => {
   // If qBittorent is not active, do not make any requests.
   if (!settings.qBittorrent_active) {
     logger.warn(
       `qBittorrent | Inactive! This application is quite limited without qBittorrent. Sorry about that.`,
     )
+
     return data.qBittorrent
   }
 
@@ -321,26 +297,18 @@ export const getqBittorrentData = async (
     return data.qBittorrent
   }
 
-  // Check if we have a cookie. If cookie expired, renew.
-  if (await qBitCookieExpired(data)) {
-    const { cookie, cookie_expiry } = await renewqBitCookie(settings, data)
+  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(settings, data)
 
-    if (cookie) {
-      data.qBittorrent.cookie = cookie
-      data.qBittorrent.cookie_expiry = cookie_expiry
-    } else {
-      logger.error("getqBittorrentData: Failed to renew Cookie!")
-      return data.qBittorrent
-    }
-  }
-
-  const { torrents } = await getqBittorrentTorrents(settings, data)
+  const currentCookie = cookie ? cookie : data.qBittorrent.cookie
+  const currentCookieExpiry = cookie_expiry ? cookie_expiry : data.qBittorrent.cookie_expiry
 
   return {
     ...data.qBittorrent,
     torrents,
-    categories: await getqBittorrentCategories(settings, data.qBittorrent.cookie),
-    preferences: await getqBittorrentPreferences(settings, data.qBittorrent.cookie),
+    cookie: currentCookie,
+    cookie_expiry: currentCookieExpiry,
+    categories: await getqBittorrentCategories(settings, currentCookie),
+    preferences: await getqBittorrentPreferences(settings, currentCookie),
     updated_at: moment().format(),
   }
 }

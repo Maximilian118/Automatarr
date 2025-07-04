@@ -1,7 +1,6 @@
 import { settingsType } from "../models/settings"
 import logger from "../logger"
 import { activeAPIsArr } from "../shared/activeAPIsArr"
-import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
 import { processingTimeMessage } from "../shared/utility"
 import {
   findLibraryTorrents,
@@ -16,6 +15,7 @@ import { isMovie } from "../types/typeGuards"
 import moment from "moment"
 import { saveWithRetry } from "../shared/database"
 import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem"
+import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
 
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
@@ -27,8 +27,11 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
   const { data, activeAPIs } = await activeAPIsArr(settings)
 
   // Retrieve torrents, if no connection to qBit, return empty array
-  // IF WE WEVER DECIDE TO UPDATE SETTINGS IN REMOVE_MISSING, GET NEWSETTINGS FROM HERE
-  const { torrents } = await getqBittorrentTorrents(settings, data, "remove_missing")
+  const { torrents, cookieRenewed, cookie, cookie_expiry } = await getqBittorrentTorrents(
+    settings,
+    data,
+    "remove_missing",
+  )
 
   // Depending on the amount of library items, logs can hang here so give an indication of how long
   processingTimeMessage(data, activeAPIs)
@@ -315,6 +318,13 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     logger.success(
       `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
     )
+  }
+
+  // If we have a new qbittorrent cookie
+  if (cookieRenewed && cookie && cookie_expiry) {
+    data.qBittorrent.cookie = cookie
+    data.qBittorrent.cookie_expiry = cookie_expiry
+    data.qBittorrent.updated_at = moment().format()
   }
 
   // Save the changes to data to the database
