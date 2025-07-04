@@ -1,7 +1,7 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Close, Done, Logout, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
+import { Close, Done, Logout, Restore, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
@@ -19,6 +19,7 @@ import { UserErrorType } from "../types/userType"
 import { updateUser } from "../shared/requests/userRequests"
 import { checkWebhooks } from "../shared/requests/checkAPIRequests"
 import LoopTime from "../components/loop/looptime/Looptime"
+import { getBackupFiles } from "../shared/requests/miscRequests"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
@@ -27,12 +28,16 @@ const Settings: React.FC = () => {
   const [ userFormErr, setUserFormErr ] = useState<UserErrorType>(initUserErrors())
   const [ webhooksConnected, setWebhooksConnected ] = useState<("Radarr" | "Sonarr" | "Lidarr")[]>([])
   const [ webhooksLoading, setWebhooksLoading ] = useState<boolean>(false)
+  const [ backupFileNames, setBackupFileNames ] = useState<string[]>([])
+  const [ backupFileName, setBackupFileName ] = useState<string | null>(null)
+  const [ backupFileLoading, setBackupFileLoading ] = useState<boolean>(false)
 
   const navigate = useNavigate()
 
   useEffect(() => {
     const onPageLoadHandler = async () => {
       setWebhooksConnected(await checkWebhooks(user, setUser, setWebhooksLoading, navigate, webhookURL(settings)))
+      setBackupFileNames(await getBackupFiles(user, setUser, navigate, setBackupFileLoading))
     }
 
     onPageLoadHandler()
@@ -126,6 +131,21 @@ const Settings: React.FC = () => {
             setFormErr={setFormErr}
             minUnit="weeks"
           />
+          <h4 style={{ marginTop: 30 }}>Restore</h4>
+          <MUIAutocomplete
+            label="Restore File"
+            options={backupFileNames}
+            disabled={backupFileLoading}
+            value={backupFileName}
+            setValue={(val) => setBackupFileName(val)}
+            loading={backupFileLoading}
+          />
+          <Button
+            variant="contained"
+            sx={{ marginTop: "10px" }}
+            disabled={backupFileLoading || backupFileNames.length === 0 || !backupFileName}
+            endIcon={<Restore/>}
+          >Restore</Button>
         </InputModel>
         <InputModel 
           title="User Settings" 

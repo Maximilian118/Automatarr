@@ -44,7 +44,7 @@ export const removeMongoIds = (input: any): any => {
   return root
 }
 
-const backups = async (settings: settingsType): Promise<void> => {
+export const backups = async (settings: settingsType): Promise<void> => {
   // Check if we're running in a docker container
   if (!isDocker) {
     logger.info("Backups | Bypassed. In Development mode. 🔧")
@@ -118,3 +118,31 @@ const backups = async (settings: settingsType): Promise<void> => {
 }
 
 export default backups
+
+export const readBackups = (): string[] => {
+  const backupPath = "/app/automatarr_backups"
+  const timestampRegex = /^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/
+
+  try {
+    if (!fs.existsSync(backupPath)) {
+      logger.warn(`ReadBackups | Backup directory does not exist: ${backupPath}`)
+      return []
+    }
+
+    const files = fs.readdirSync(backupPath)
+
+    const sorted = files
+      .map((file) => ({
+        name: file,
+        timestamp: file.match(timestampRegex)?.[1] ?? "",
+      }))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+      .map((f) => f.name)
+
+    logger.info(`ReadBackups | Found ${sorted.length} backup file(s).`)
+    return sorted
+  } catch (err) {
+    logger.error(`ReadBackups | Failed to read backup directory: ${err}`)
+    return []
+  }
+}

@@ -31,6 +31,7 @@ const Schema = buildSchema(`
     getChildPaths(path: String): StringArr!
     getDiscordChannels(server_name: String!): StringArr!
     getQualityProfiles: QPReturn!
+    getBackupFiles: StringArr!
     checkRadarr(URL: String, KEY: String): CheckStatus!
     checkSonarr(URL: String, KEY: String): CheckStatus!
     checkLidarr(URL: String, KEY: String): CheckStatus!
