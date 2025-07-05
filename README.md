@@ -131,15 +131,13 @@ The /graphql location is required so the frontend can reach the backend through 
 
 ## To do:
 
-- [x] Add Sonarr support to Remove Missing - Import List level
 - [x] Add Discord Bot
 - [ ] Add Whatsapp Bot
 - [ ] Allow for deletion of downloading torrents
 - [ ] Add stalled or slow torrent download deletion
-- [x] Separate settings page into an API Connections page and Loops page
 - [ ] Add graphs for basic data visuals to stats page
 - [ ] Add Lidarr support
 - [ ] Add Readarr support
-- [x] Add spinner to top right of settings pages or nav bar for more obvious loading
 - [x] Add security
-- [x] Add webhooks for better bot notifications (Security needed)
+- [x] Add webhooks
+- [x] Add periodic backups
