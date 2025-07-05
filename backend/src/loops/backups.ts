@@ -72,6 +72,31 @@ export const backups = async (settings: settingsType): Promise<void> => {
   }
 
   try {
+    // Check if a recent backup was already created
+    const loopMinutes = settings.backups_loop ?? 1440 // Default: 1 day
+    const loopThresholdMs = loopMinutes * 60 * 1000
+    const now = Date.now()
+
+    const files = fs
+      .readdirSync(BACKUP_DIR)
+      .filter((f) => f.endsWith("-settings.json"))
+      .sort((a, b) => {
+        const aTime = fs.statSync(path.join(BACKUP_DIR, a)).mtime.getTime()
+        const bTime = fs.statSync(path.join(BACKUP_DIR, b)).mtime.getTime()
+        return bTime - aTime // newest first
+      })
+
+    if (files.length > 0) {
+      const latestFile = files[0]
+      const latestFilePath = path.join(BACKUP_DIR, latestFile)
+      const latestMtime = fs.statSync(latestFilePath).mtime.getTime()
+
+      if (now - latestMtime < loopThresholdMs) {
+        logger.info("Backups | Latest file is too recent.")
+        return
+      }
+    }
+
     // Create the backup settings object
     const { __v, ...topLevelClean } = settings
     const fullyClean = removeMongoIds(topLevelClean)
@@ -93,9 +118,6 @@ export const backups = async (settings: settingsType): Promise<void> => {
     // Cleanup: Remove old backup files
     const rotationThresholdMins = settings.backups_rotation_date ?? 525600 // Default: 1 year
     const rotationThresholdMs = rotationThresholdMins * 60 * 1000
-    const now = Date.now()
-
-    const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith("-settings.json"))
 
     for (const file of files) {
       const filePath = path.join(BACKUP_DIR, file)
