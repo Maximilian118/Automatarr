@@ -1,7 +1,7 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Close, Done, Logout, Restore, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
+import { ArrowBackIos, Close, Done, Logout, Restore, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
@@ -19,7 +19,7 @@ import { UserErrorType } from "../types/userType"
 import { updateUser } from "../shared/requests/userRequests"
 import { checkWebhooks } from "../shared/requests/checkAPIRequests"
 import LoopTime from "../components/loop/looptime/Looptime"
-import { getBackupFiles } from "../shared/requests/miscRequests"
+import { getBackupFile, getBackupFiles } from "../shared/requests/miscRequests"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
@@ -31,6 +31,8 @@ const Settings: React.FC = () => {
   const [ backupFileNames, setBackupFileNames ] = useState<string[]>([])
   const [ backupFileName, setBackupFileName ] = useState<string | null>(null)
   const [ backupFileLoading, setBackupFileLoading ] = useState<boolean>(false)
+  const [ backupFileErr, setBackupFileErr ] = useState<string>("")
+  const [ backupBtnClicked, setBackupBtnClicked ] = useState<boolean>(false)
 
   const navigate = useNavigate()
 
@@ -133,19 +135,59 @@ const Settings: React.FC = () => {
           />
           <h4 style={{ marginTop: 30 }}>Restore</h4>
           <MUIAutocomplete
-            label="Restore File"
+            label={`Restore File${backupFileErr ? `: ${backupFileErr}` : ""}`}
             options={backupFileNames}
             disabled={backupFileLoading}
             value={backupFileName}
             setValue={(val) => setBackupFileName(val)}
             loading={backupFileLoading}
+            error={!!backupFileErr}
           />
-          <Button
-            variant="contained"
-            sx={{ marginTop: "10px" }}
-            disabled={backupFileLoading || backupFileNames.length === 0 || !backupFileName}
-            endIcon={<Restore/>}
-          >Restore</Button>
+          <div className="model-row" style={{ justifyContent: backupBtnClicked ? "space-between" : "center" }}>
+            {backupBtnClicked && (
+              <>
+                <h4 style={{ width: "auto" }}>Are you sure?!</h4>
+                <Button
+                  variant="contained"
+                  color={"error"}
+                  endIcon={<ArrowBackIos color="inherit"/>}
+                  onClick={() => {
+                    setBackupFileName(null)
+                    setBackupBtnClicked(false)
+                  }}
+                >Back</Button>
+              </>
+            )}
+            <Button
+              variant="contained"
+              color={backupFileErr ? "error" : "primary"}
+              disabled={backupFileLoading || backupFileNames.length === 0 || !backupFileName}
+              endIcon={<Restore/>}
+              onClick={async () => {
+                if (!backupFileName) {
+                  console.log("No backup file name")
+                  return
+                }
+
+                if (!backupBtnClicked) {
+                  setBackupBtnClicked(true)
+                  return
+                }
+
+                await getBackupFile(
+                  user,
+                  setUser, 
+                  navigate, 
+                  setBackupFileLoading, 
+                  backupFileName,
+                  setBackupFileName,
+                  setSettings, 
+                  setBackupFileErr,
+                  setBackupBtnClicked
+                )
+              }}
+            >Restore</Button>
+          </div>
         </InputModel>
         <InputModel 
           title="User Settings" 

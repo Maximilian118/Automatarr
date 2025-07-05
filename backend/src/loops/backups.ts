@@ -5,6 +5,8 @@ import { checkPermissions } from "../shared/permissions"
 import fs from "fs"
 import path from "path"
 
+const BACKUP_DIR = "/app/automatarr_backups"
+
 /**
  * Safely removes all `_id` and `__v` fields from a deeply nested object or array.
  * Handles large structures and circular references without blowing the call stack.
@@ -57,17 +59,15 @@ export const backups = async (settings: settingsType): Promise<void> => {
     return
   }
 
-  const backupPath = "/app/automatarr_backups"
-
   // Create the backup dir if it doesn't exist
-  if (!fs.existsSync(backupPath)) {
-    fs.mkdirSync(backupPath, { recursive: true })
+  if (!fs.existsSync(BACKUP_DIR)) {
+    fs.mkdirSync(BACKUP_DIR, { recursive: true })
     logger.success("Backups | Created backup directory.")
   }
 
   // Check permissions for the backup path
-  if (!checkPermissions(backupPath, ["all"], "Backups", false)) {
-    logger.error(`Backups | Insufficient permissions for backup path: ${backupPath}`)
+  if (!checkPermissions(BACKUP_DIR, ["all"], "Backups", false)) {
+    logger.error(`Backups | Insufficient permissions for backup path: ${BACKUP_DIR}`)
     return
   }
 
@@ -84,7 +84,7 @@ export const backups = async (settings: settingsType): Promise<void> => {
     // Generate timestamped filename
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
     const filename = `${timestamp}-settings.json`
-    const fullPath = path.join(backupPath, filename)
+    const fullPath = path.join(BACKUP_DIR, filename)
 
     // Write the backup file
     fs.writeFileSync(fullPath, JSON.stringify(fullyClean, null, 2), "utf-8")
@@ -95,10 +95,10 @@ export const backups = async (settings: settingsType): Promise<void> => {
     const rotationThresholdMs = rotationThresholdMins * 60 * 1000
     const now = Date.now()
 
-    const files = fs.readdirSync(backupPath).filter((f) => f.endsWith("-settings.json"))
+    const files = fs.readdirSync(BACKUP_DIR).filter((f) => f.endsWith("-settings.json"))
 
     for (const file of files) {
-      const filePath = path.join(backupPath, file)
+      const filePath = path.join(BACKUP_DIR, file)
 
       try {
         const stats = fs.statSync(filePath)
@@ -119,17 +119,17 @@ export const backups = async (settings: settingsType): Promise<void> => {
 
 export default backups
 
+// Return an array of backup file names
 export const readBackups = (): string[] => {
-  const backupPath = "/app/automatarr_backups"
   const timestampRegex = /^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/
 
   try {
-    if (!fs.existsSync(backupPath)) {
-      logger.warn(`ReadBackups | Backup directory does not exist: ${backupPath}`)
+    if (!fs.existsSync(BACKUP_DIR)) {
+      logger.warn(`ReadBackups | Backup directory does not exist: ${BACKUP_DIR}`)
       return []
     }
 
-    const files = fs.readdirSync(backupPath)
+    const files = fs.readdirSync(BACKUP_DIR)
 
     const sorted = files
       .map((file) => ({
@@ -145,4 +145,16 @@ export const readBackups = (): string[] => {
     logger.error(`ReadBackups | Failed to read backup directory: ${err}`)
     return []
   }
+}
+
+// find and parse a backup file
+export const loadBackupFile = (fileName: string): settingsType => {
+  const filePath = path.join(BACKUP_DIR, fileName)
+
+  if (!fs.existsSync(filePath)) {
+    throw new Error(`Backup file "${fileName}" not found`)
+  }
+
+  const raw = fs.readFileSync(filePath, "utf-8")
+  return JSON.parse(raw) as settingsType
 }

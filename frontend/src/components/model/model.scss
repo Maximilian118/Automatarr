@@ -36,6 +36,12 @@
     }
   }
 
+  .model-row {
+    width: 100%;
+    @include mixins.flexbox-space-between;
+    margin-top: 10px;
+  }
+
   .model-bottom {
     width: 100%;
     min-height: 40px;
