@@ -30,22 +30,22 @@ export const sonarrImport = async (
 
     let shouldSave = false
 
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("Webhook | sonarrImport | No settings were found.")
+      return
+    }
+
+    const series = await getSonarrSeries(settings, webhook.series.id)
+
+    if (!series) {
+      logger.error("Webhook | sonarrImport | No series by that ID.")
+      return
+    }
+
     // If this is the first time we're seeing a notification about this series, request series for populated seasons data
     if (webhookMatch.seasons.length === 0) {
-      const settings = (await Settings.findOne()) as settingsDocType
-
-      if (!settings) {
-        logger.error("Webhook | sonarrImport | No settings were found.")
-        return
-      }
-
-      const series = await getSonarrSeries(settings, webhook.series.id)
-
-      if (!series) {
-        logger.error("Webhook | sonarrImport | No series by that ID.")
-        return
-      }
-
       webhookMatch.seasons = series.seasons
 
       waitingWebhooks.waiting = waitingWebhooks.waiting.map((ww) => {
@@ -118,7 +118,9 @@ export const sonarrImport = async (
       }
     }
 
-    const allImported = webhookMatch.episodes.every((ep) => ep.imported)
+    const allImported =
+      webhookMatch.episodes.every((ep) => ep.imported) ||
+      series.statistics.percentOfEpisodes === 100
 
     if (allImported) {
       // All the episodes are imported. Hazah! Send notifications about it.
