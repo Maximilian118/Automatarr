@@ -53,7 +53,6 @@ export const handleRadarrWebhook = async (webhook: StarrWebhookType): Promise<vo
       `Webhook | handleRadarrWebhook | ${webhook.eventType} | ${title} | No movie found in the webhook.`,
     )
 
-    console.log(webhook)
     return
   }
 
@@ -109,7 +108,7 @@ export const handleSonarrWebhook = async (webhook: StarrWebhookType): Promise<vo
 
   // Find the webhookWaiting that matches the webhook content and the eventType for that content
   const webhookMatch = waitingWebhooks.waiting.find(
-    (w) => w.content.id === webhook.movie?.id && w.waitForStatus === webhook.eventType,
+    (w) => w.content.id === webhook.series?.id && w.waitForStatus === webhook.eventType,
   )
 
   // Silently return as we don't want notifications for every webhook we don't care about

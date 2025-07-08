@@ -260,7 +260,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       queueNotifications.push({
         waitForStatus: "Grab",
         message: randomGrabbedMessage(movie.title),
-        expiry: new Date(Date.now() + 2 * 60 * 1000),
+        expiry: new Date(Date.now() + 5 * 60 * 1000),
         expired_message: randomGrabNotFoundMessage(movie.title),
       })
     }
@@ -492,7 +492,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
       queueNotifications.push({
         waitForStatus: "Grab",
         message: randomGrabbedMessage(series.title),
-        expiry: new Date(Date.now() + 2 * 60 * 1000),
+        expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 Mins
         expired_message: randomGrabNotFoundMessage(series.title),
       })
     }
@@ -719,7 +719,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
         queueNotifications.push({
           waitForStatus: "Grab",
           message: randomGrabbedMessage(movieInDB.title),
-          expiry: new Date(Date.now() + 2 * 60 * 1000),
+          expiry: new Date(Date.now() + 5 * 60 * 1000),
           expired_message: randomGrabNotFoundMessage(movieInDB.title),
         })
       }
@@ -799,7 +799,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
         queueNotifications.push({
           waitForStatus: "Grab",
           message: randomGrabbedMessage(seriesInDB.title),
-          expiry: new Date(Date.now() + 2 * 60 * 1000),
+          expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 mins
           expired_message: randomGrabNotFoundMessage(seriesInDB.title),
         })
       }
