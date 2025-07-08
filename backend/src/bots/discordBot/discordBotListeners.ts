@@ -238,7 +238,7 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "Remove content",
     description:
       "Remove content from your pool. The !list command is handy to help choose what you'd like to remove.",
-    usage: "!remove <contentType> <index/title>",
+    usage: "!remove <Index/Title + Year>",
     adminRequired: false,
   },
   {

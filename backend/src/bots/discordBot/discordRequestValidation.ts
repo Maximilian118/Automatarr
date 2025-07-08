@@ -252,6 +252,7 @@ export const validateRemoveCommand = async (
 ): Promise<
   | string
   | {
+      channel: TextBasedChannel
       command: string
       passedIndex: number | null
       poolItemTitle: string
@@ -261,19 +262,29 @@ export const validateRemoveCommand = async (
   const contentTypes = ["movie", "movies", "series"]
   const unsupported = ["album", "albums", "book", "books"]
 
-  const msgArr = message.content.trim().split(/\s+/)
-  if (msgArr.length < 3) {
-    return "The !remove command must contain at least three parts: `!remove <contentType> <index/title>`."
-  }
+  // Check if an accepted channel has been used
+  const validChannel = channelValid(message.channel, settings)
+  if (typeof validChannel === "string") return validChannel
 
-  const [command, contentType, ...rest] = msgArr
-  const typeLower = contentType.toLowerCase()
-  const singular = typeLower.includes("movie") ? "movie" : "series"
-  const plural = singular === "movie" ? "movies" : "series"
+  const { channel, contentType } = validChannel
+
+  const msgArr = message.content.trim().split(/\s+/)
+
+  const [command, ...rest] = msgArr
 
   if (command.toLowerCase() !== "!remove") {
     return `Invalid command \`${command}\`.`
   }
+
+  if (msgArr.length < 2) {
+    return `The ${command} command must contain a ${contentType} title and a 4-digit year. For example: ${command} ${
+      contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
+    }`
+  }
+
+  const typeLower = contentType.toLowerCase()
+  const singular = typeLower.includes("movie") ? "movie" : "series"
+  const plural = singular === "movie" ? "movies" : "series"
 
   if (unsupported.includes(typeLower)) {
     return `I do apologise. My maker hasn't programmed me for ${
@@ -319,6 +330,7 @@ export const validateRemoveCommand = async (
     const poolItemTitle = `${item.title} ${item.year}`
 
     return {
+      channel,
       command,
       passedIndex: adjustedIndex + 1,
       poolItemTitle,
@@ -339,6 +351,7 @@ export const validateRemoveCommand = async (
   const poolItemTitle = `${title.trim()} ${year}`
 
   return {
+    channel,
     command,
     passedIndex: null,
     poolItemTitle,

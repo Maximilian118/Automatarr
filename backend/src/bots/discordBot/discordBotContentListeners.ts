@@ -587,11 +587,15 @@ export const caseRemove = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
-  // Validate the request string: `!remove <contentType> <index/title>`
+  // Validate the request string: `!remove <Index/Title + Year>`
   const parsed = await validateRemoveCommand(message, settings)
   if (typeof parsed === "string") return parsed
 
-  const { poolItemTitle, contentType } = parsed
+  const { channel, poolItemTitle, contentType } = parsed
+
+  if (!("name" in channel) || !channel.name) {
+    return "Wups! This command can only be used in a named server channel."
+  }
 
   // Get guildMember while checking if <discord_username> exists on the server
   const guildMember = await matchedDiscordUser(message, message.author.username)
@@ -608,12 +612,12 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
     const pool = u.pool
     const updatedMovies =
-      contentType === "movie"
+      channel.name === settings.discord_bot.movie_channel_name
         ? pool.movies.filter((m) => `${m.title} ${m.year}` !== poolItemTitle)
         : pool.movies
 
     const updatedSeries =
-      contentType === "series"
+      channel.name === settings.discord_bot.series_channel_name
         ? pool.series.filter((s) => `${s.title} ${s.year}` !== poolItemTitle)
         : pool.series
 
