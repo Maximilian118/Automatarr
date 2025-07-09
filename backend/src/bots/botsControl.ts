@@ -37,12 +37,12 @@ export const botsControl = async (
 ): Promise<settingsDocType> => {
   // If Bot settings have not changed, return settings.
   if (!oldSettings) {
-    logger.info("Bots | Initialising.")
+    logger.bot("Bots | Initialising.")
   } else if (!botKeysChanged(settings.toObject(), oldSettings)) {
-    logger.info("Bots | No changes.")
+    logger.bot("Bots | No changes.")
     return settings
   } else {
-    logger.info("Bots | Bot settings changed.")
+    logger.bot("Bots | Bot settings changed.")
   }
 
   // Call all bot functions and mutate settings accordingly

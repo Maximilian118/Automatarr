@@ -126,15 +126,15 @@ export const sendDiscordNotification = async (
 // A basic function that returns the passed string and logs it in the backend
 export const discordReply = (
   msg: string,
-  level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success",
+  level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success" | "bot",
   customLog?: string,
 ): string => {
   const logMessage = `Discord Bot | ${customLog || msg}`
 
   if (typeof logger[level] === "function") {
-    logger[level](logMessage)
+    logger.bot(logMessage) // changed to bot instead of logger[level]
   } else {
-    logger.info(logMessage) // fallback in case of unexpected level
+    logger.info(logMessage)
   }
 
   return msg
@@ -213,7 +213,7 @@ export const getAllGuilds = async (client: Client): Promise<Guild[]> => {
       const fullGuild = await partialGuild.fetch()
       guilds.push(fullGuild)
     } catch (err) {
-      console.error(`Failed to fetch guild ${partialGuild.id}:`, err)
+      logger.error(`Failed to fetch guild ${partialGuild.id}:`, err)
     }
   }
 
@@ -246,7 +246,7 @@ export const getAllChannels = async (
       // If filtering by guildName, we can return early
       if (guildName) break
     } catch (err) {
-      console.error(`Failed to fetch channels for guild ${guild.id}:`, err)
+      logger.error(`Failed to fetch channels for guild ${guild.id}:`, err)
     }
   }
 
@@ -304,7 +304,7 @@ export const getAllMembersForGuild = async (
 
     return Array.from(members.values())
   } catch (err) {
-    console.error(`Error fetching members for guild ${guildId}:`, err)
+    logger.error(`Error fetching members for guild ${guildId}:`, err)
     return []
   }
 }

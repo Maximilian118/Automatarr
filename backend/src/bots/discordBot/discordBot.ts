@@ -40,7 +40,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
 
   // If already initialized, just get latest server and channel data.
   if (client) {
-    logger.info("Discord Bot | Already initialized.")
+    logger.bot("Discord Bot | Already initialized.")
     settings.discord_bot.ready = true
 
     return getServerandChannels(client, settings)
@@ -62,7 +62,7 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
     // Attempt to login, if success set ready and collect data.
     const readyPromise = new Promise<void>((resolve) => {
       client!.once(Events.ClientReady, (readyClient) => {
-        logger.success(`Discord Bot | Ready! Logged in as ${readyClient.user.tag}`)
+        logger.bot(`Discord Bot | Ready! Logged in as ${readyClient.user.tag}`)
         resolve()
       })
     })

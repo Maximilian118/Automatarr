@@ -141,7 +141,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // Grab the first movie in the array
   const foundMovie = sortedMoviesArr[0]
-  console.log(foundMovie)
+
   // Check if the movie is already downloaded
   if (foundMovie.movieFile) {
     return randomAlreadyAddedMessage()
@@ -279,7 +279,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   return discordReply(
     randomMovieDownloadStartMessage(movie),
     "success",
-    `${user.name} | ${message.author.username} started a Radarr download of ${movie.title}. They have ${currentLeft} pool allowance available for movies.`,
+    `${user.name} | Started Movie Download | ${movie.title} | They have ${currentLeft} pool allowance available for movies.`,
   )
 }
 
@@ -510,7 +510,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   return discordReply(
     randomSeriesDownloadStartMessage(series),
     "success",
-    `${user.name} | ${message.author.username} started a series download of ${series.title}. They have ${currentLeft} pool allowance available for series.`,
+    `${user.name} | Started Series Download | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
   )
 }
 
@@ -603,12 +603,12 @@ export const caseRemove = async (message: Message): Promise<string> => {
   const username = guildMember.user.username
 
   // Get user while checking if user exists in the database
-  const user = matchedUser(settings, username)
+  let user = matchedUser(settings, username)
   if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
   // Remove from the user's pool
   settings.general_bot.users = settings.general_bot.users.map((u) => {
-    if (u._id !== user._id) return u
+    if (user && u._id !== user._id) return u
 
     const pool = u.pool
     const updatedMovies =
@@ -621,7 +621,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
         ? pool.series.filter((s) => `${s.title} ${s.year}` !== poolItemTitle)
         : pool.series
 
-    return {
+    const newUser = {
       ...u,
       pool: {
         ...pool,
@@ -629,12 +629,26 @@ export const caseRemove = async (message: Message): Promise<string> => {
         series: updatedSeries,
       },
     }
+
+    user = newUser
+    return newUser
   })
 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseRemove"))) return noDBSave()
 
-  return randomRemovalSuccessMessage(poolItemTitle, contentType)
+  const { currentLeft } =
+    contentType === "movie"
+      ? checkUserMovieLimit(user, settings)
+      : checkUserSeriesLimit(user, settings)
+
+  const plural = contentType === "movie" ? "movies" : "series"
+
+  return discordReply(
+    randomRemovalSuccessMessage(poolItemTitle, contentType),
+    "success",
+    `${user.name} | Removed a ${contentType} | ${poolItemTitle} | They have ${currentLeft} pool allowance available for ${plural}.`,
+  )
 }
 
 // Mark a download as unsatisfactory, blocklist it and add start a new download

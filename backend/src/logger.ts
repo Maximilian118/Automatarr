@@ -23,6 +23,7 @@ const customLevels = {
     loop: 4,
     info: 5,
     debug: 6,
+    bot: 5,
   },
   colors: {
     catastrophic: "magenta",
@@ -32,6 +33,7 @@ const customLevels = {
     loop: "cyan",
     info: "blue",
     debug: "gray",
+    bot: "white",
   },
 }
 
@@ -44,6 +46,7 @@ const emojiMap: Record<string, string> = {
   loop: "🔄",
   info: "ℹ️",
   debug: "🐞",
+  bot: "🤖",
 }
 
 // Custom formatter
@@ -65,6 +68,11 @@ const authFilter = format((info) => {
     return info
   }
   return false
+})
+
+// Filter for bot level
+const botFilter = format((info) => {
+  return info.level === "bot" ? info : false
 })
 
 // Create the logger
@@ -119,6 +127,18 @@ const logger = winston.createLogger({
         customFormat,
       ),
     }),
+
+    new DailyRotateFile({
+      filename: path.join(logDirectory, "bot-%DATE%.log"),
+      level: "bot",
+      datePattern: "DD-MM-YYYY",
+      maxFiles: "7d",
+      format: format.combine(
+        botFilter(),
+        format.timestamp({ format: timestampFormat }),
+        customFormat,
+      ),
+    }),
   ],
 })
 
@@ -130,6 +150,7 @@ interface CustomLogger extends winston.Logger {
   success: (message: string) => void
   catastrophic: (message: string) => void
   loop: (message: string) => void
+  bot: (message: string) => void
 }
 
 // --- Cast the logger to the extended type ---
@@ -139,5 +160,6 @@ const typedLogger = logger as CustomLogger
 typedLogger.success = (message: string) => typedLogger.log("success", message)
 typedLogger.catastrophic = (message: string) => typedLogger.log("catastrophic", message)
 typedLogger.loop = (message: string) => typedLogger.log("loop", message)
+typedLogger.bot = (message: string) => typedLogger.log("bot", message)
 
 export default typedLogger
