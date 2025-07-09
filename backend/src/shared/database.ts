@@ -58,7 +58,9 @@ export const saveWithRetry = async (
         }
 
         // Merge changes from old object into the fresh one
-        Object.assign(latest, dbObject)
+        const { _id, __v, ...changes } = dbObject.toObject?.() || dbObject
+        Object.assign(latest, changes)
+
         dbObject = latest
       } catch (refetchErr: any) {
         logger.error(`${identifier} | Error refetching object from DB: ${refetchErr.message}`)
