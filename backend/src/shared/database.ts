@@ -5,6 +5,7 @@ import Settings, { settingsDocType } from "../models/settings"
 import User, { UserDocType } from "../models/user"
 import WebHook, { WebHookDocType } from "../models/webhook"
 import { isDataDoc, isSettingsDoc, isUserDoc, isWebHookDoc } from "../types/typeGuards"
+import { removeMongoIds } from "../loops/backups"
 
 export const saveWithRetry = async (
   dbObject: dataDocType | settingsDocType | UserDocType | WebHookDocType,
@@ -58,7 +59,7 @@ export const saveWithRetry = async (
         }
 
         // Merge changes from old object into the fresh one
-        const { _id, __v, ...changes } = dbObject.toObject?.() || dbObject
+        const changes = removeMongoIds(dbObject.toObject?.() || dbObject)
         Object.assign(latest, changes)
 
         dbObject = latest
