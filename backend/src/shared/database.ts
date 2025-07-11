@@ -22,7 +22,7 @@ export const saveWithRetry = async (
       }
 
       const res = await dbObject.save()
-      logger.success(`${identifier} | Save succeeded.`)
+      logger.success(`${identifier} | Saved.`)
       return res
     } catch (err: any) {
       attempts++

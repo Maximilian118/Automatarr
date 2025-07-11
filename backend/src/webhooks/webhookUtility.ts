@@ -172,13 +172,21 @@ export const webhookCleanup = async (): Promise<void> => {
   const now = new Date()
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-  // Keep only webhooks created within the last 24 hours
+  const originalLength = waitingWebhooks.waiting.length
+
+  // Filter only webhooks created within the last 24 hours
   waitingWebhooks.waiting = waitingWebhooks.waiting.filter((w) => {
     return w.created_at && new Date(w.created_at) > oneDayAgo
   })
 
-  // Save to the db
-  await saveWithRetry(waitingWebhooks, "WebhookCleanup")
+  if (waitingWebhooks.waiting.length < originalLength) {
+    await saveWithRetry(waitingWebhooks, "WebhookCleanup")
+    logger.info(
+      `Webhook | Cleanup | Removed ${
+        originalLength - waitingWebhooks.waiting.length
+      } expired webhook(s).`,
+    )
+  }
 }
 
 export const cleanupExpiredWebhooks = async (): Promise<void> => {
