@@ -28,7 +28,8 @@ export const removeMongoIds = (input: any): any => {
 
       const value = source[key]
 
-      if (value && typeof value === "object") {
+      // Preserve original reference for non-plain objects (Date, Buffer, ObjectId, etc.)
+      if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
         if (seen.has(value)) {
           target[key] = seen.get(value)
         } else {

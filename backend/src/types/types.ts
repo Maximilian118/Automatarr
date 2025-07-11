@@ -70,7 +70,7 @@ export type DownloadStatus = {
   timeleft?: string
   estimatedCompletionTime?: string
   added: string
-  status: string
+  status: "failed" | "downloading" | "warning"
   trackedDownloadStatus: string
   trackedDownloadState: string
   statusMessages: StatusMessage[]

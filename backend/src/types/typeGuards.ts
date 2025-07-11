@@ -29,7 +29,14 @@ export const isEpisode = (item: Movie | Series | Artist | Episode): item is Epis
 
 // Type Guard to check if type is dataDocType
 export const isDataDoc = (obj: any): obj is dataDocType => {
-  return obj?.name !== undefined && "loops" in obj
+  return (
+    obj &&
+    Array.isArray(obj.commands) &&
+    Array.isArray(obj.libraries) &&
+    obj.qBittorrent &&
+    typeof obj.updated_at === "string" &&
+    typeof obj.created_at === "string"
+  )
 }
 
 // Type Guard to check if type is settingsDocType

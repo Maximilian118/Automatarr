@@ -33,6 +33,13 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     "remove_missing",
   )
 
+  // If we have a new qbittorrent cookie
+  if (cookieRenewed && cookie && cookie_expiry) {
+    data.qBittorrent.cookie = cookie
+    data.qBittorrent.cookie_expiry = cookie_expiry
+    data.qBittorrent.updated_at = moment().format()
+  }
+
   // Depending on the amount of library items, logs can hang here so give an indication of how long
   processingTimeMessage(data, activeAPIs)
 
@@ -318,13 +325,6 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     logger.success(
       `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
     )
-  }
-
-  // If we have a new qbittorrent cookie
-  if (cookieRenewed && cookie && cookie_expiry) {
-    data.qBittorrent.cookie = cookie
-    data.qBittorrent.cookie_expiry = cookie_expiry
-    data.qBittorrent.updated_at = moment().format()
   }
 
   // Save the changes to data to the database

@@ -8,15 +8,15 @@ import { saveWithRetry } from "../shared/database"
 import { blocklistAndSearchMovie } from "../shared/RadarrStarrRequests"
 import { blocklistAndSearchEpisode } from "../shared/SonarrStarrRequests"
 import { isDocker } from "../shared/fileSystem"
-import { shouldSkipLoop, updateLoopData } from "./loopUtility"
+import { stalledDownloadRemover, updateLoopData } from "./loopUtility"
 
 const remove_blocked = async (settings: settingsType): Promise<void> => {
   // Only get data for API's that have been checked and are active
   const { data, activeAPIs } = await activeAPIsArr(settings)
 
   // If loop exists and has a last_ran timestamp, check how long ago it was
-  const { shouldSkip } = shouldSkipLoop("remove_blocked", data, settings.remove_blocked_loop)
-  if (shouldSkip) return
+  // const { shouldSkip } = shouldSkipLoop("remove_blocked", data, settings.remove_blocked_loop)
+  // if (shouldSkip) return
 
   // Loop through all of the active API's
   for (const API of activeAPIs) {
@@ -25,13 +25,15 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
 
     if (!queue) {
       updateDownloadQueue(API, data)
-      logger.error(`importBlocked: ${API.name} download queue could not be retrieved.`)
+      logger.error(`${API.name} | download queue could not be retrieved.`)
       continue
     }
 
-    // Find all of the items in the queue that have trackedDownloadState of importBlocked
+    // Find all of the items in the queue that are problematic
     const importBlockedArr: DownloadStatus[] = queue.data.filter(
       (item) =>
+        item.status === "failed" ||
+        item.status === "warning" ||
         item.trackedDownloadState === "importBlocked" ||
         item.trackedDownloadState === "importFailed" ||
         item.trackedDownloadState === "importPending",
@@ -40,7 +42,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
     // If no blocked files, return.
     if (importBlockedArr.length === 0) {
       updateDownloadQueue(API, data, queue)
-      logger.info(`importBlocked: There are no blocked files in the ${API.name} Queue.`)
+      logger.info(`${API.name} | There are no blocked files in the Queue.`)
       continue
     }
 
@@ -53,12 +55,14 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
 
       for (const msg of msgArr) {
         const lowerMsg = msg.toLowerCase()
+        const errorMsg = blockedFile.errorMessage ? blockedFile.errorMessage.toLowerCase() : ""
 
-        const hasMatch = blockedFile.statusMessages.some(
-          (statusMsg) =>
-            statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
-            statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
-        )
+        const hasMatch =
+          blockedFile.statusMessages.some(
+            (statusMsg) =>
+              statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
+              statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
+          ) || errorMsg.includes(msg)
 
         if (hasMatch) return `| ${capsFirstLetter(msg)}.`
       }
@@ -90,6 +94,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
           API,
         )} via grab history, but release was matched to ${getContentName(API)} by ID`,
       ])
+
       const deleteCase = msgCheck(blockedFile, [
         "missing",
         "unsupported",
@@ -98,7 +103,10 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         "title mismatch",
         "sample",
         "might need to be extracted",
+        "download has failed",
       ])
+
+      const stalledCase = msgCheck(blockedFile, ["stalled"])
 
       // Attempt to delete and record the deduplication key
       const tryDelete = async (reason: string) => {
@@ -144,15 +152,19 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         continue
       }
 
+      // Manage stalled downloads
+      await stalledDownloadRemover(blockedFile, stalledCase, API)
+
       // Catch-all: log anything that made it through without matching any expected reason
       const statusMsgs = blockedFile.statusMessages
         .flatMap((s) => [s.title, ...(s.messages ?? [])])
         .filter(Boolean)
         .join("; ")
 
-      logger.warn(
-        `${API.name} | ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
-      )
+      !stalledCase &&
+        logger.warn(
+          `${API.name} | ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
+        )
     }
   }
 

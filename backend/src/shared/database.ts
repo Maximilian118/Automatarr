@@ -22,6 +22,7 @@ export const saveWithRetry = async (
       }
 
       const res = await dbObject.save()
+      logger.success(`${identifier} | Save succeeded.`)
       return res
     } catch (err: any) {
       attempts++
@@ -51,6 +52,8 @@ export const saveWithRetry = async (
           latest = await User.findOne()
         } else if (isWebHookDoc(dbObject)) {
           latest = await WebHook.findOne()
+        } else {
+          logger.error(`${identifier} | Object doesn't match any type guards.`)
         }
 
         if (!latest) {

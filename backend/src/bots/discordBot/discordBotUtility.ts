@@ -102,7 +102,7 @@ export const sendDiscordNotification = async (
     const sentMessage = await textBasedChannel.send(expired ? expiredMessage : webhookMatch.message)
 
     if (sentMessage) {
-      logger.info(
+      logger.bot(
         `Webhook | ${expired ? "Expiry | " : ""}Discord Notification Sent | ${
           webhookMatch.waitForStatus
         } | ${webhookMatch.discordData.authorUsername} | ${
