@@ -13,7 +13,7 @@ All bots abide by a unified pool system which regulates how much content users c
 
 Loops:
 
-- Remove Missing - Remove all library content not in Starr App Import Lists while respecting torrent ratio/time requirements.
+- Remove Missing - Remove all library content not in Starr App Import Lists while respecting download ratio/time requirements.
 - Wanted Missing - Search for all wanted missing items across all Starr Apps.
 - Remove Blocked - Remove all blocked downloads in the queue.
 - Remove Failed - Remove all failed downloads.
@@ -25,7 +25,7 @@ Bots:
 - User Pools - Each user has a pool of content they've downloaded to the server. Users pools are immune to being removed by loops.
 - User permission hierarchy - Can assign admins and super users.
 - Custom pool size - Each user's limits can be overwritten higher or lower.
-- Download - Each user can download x amount of movies from Radarr or series from Sonarr without even knowing what Starr apps are.
+- Download - Each user can download x amount of movies with Radarr or series with Sonarr.
 - Remove - Each user can remove from their own pool.
 - Blocklist - Users can mark a download as unsatisfactory, blocklist it and start a new download.
 
@@ -133,11 +133,19 @@ The /graphql location is required so the frontend can reach the backend through 
 
 - [x] Add Discord Bot
 - [ ] Add Whatsapp Bot
-- [ ] Allow for deletion of downloading torrents
-- [ ] Add stalled or slow torrent download deletion
+- [x] Add stalled or slow download deletion
 - [ ] Add graphs for basic data visuals to stats page
 - [ ] Add Lidarr support
 - [ ] Add Readarr support
 - [x] Add security
 - [x] Add webhooks
 - [x] Add periodic backups
+
+## Legal Disclaimer
+
+> **Automatarr is a content automation and management tool intended solely for use with legally acquired media.**  
+> This software does **not host, index, or distribute** any content and does **not provide or promote access to pirated material**.
+>
+> Automatarr integrates with third-party applications (such as Radarr, Sonarr, and qBittorrent) to help users manage their **self-curated media libraries**. Any automation involving torrents or downloads is entirely under user control, and **it is the user's responsibility to comply with all applicable laws** in their country or region.
+>
+> The developer of Automatarr **does not condone or support piracy** and is **not liable for how others choose to use this software**.
