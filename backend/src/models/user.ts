@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema<UserType>(
   },
 )
 
+// Add indexes for efficient querying
+userSchema.index({ name: 1 }, { unique: true })
+userSchema.index({ created_at: -1 })
+
 const User = mongoose.model<UserType>("User", userSchema)
 
 export default User

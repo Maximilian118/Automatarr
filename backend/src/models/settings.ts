@@ -241,6 +241,10 @@ const settingsSchema = new mongoose.Schema<settingsType>(
   },
 )
 
+// Add indexes for efficient querying
+settingsSchema.index({ updated_at: -1 })
+
+// Enable optimistic concurrency control (already in schema options)
 const Settings = mongoose.model<settingsType>("Settings", settingsSchema)
 
 export default Settings

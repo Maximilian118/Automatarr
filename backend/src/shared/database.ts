@@ -61,9 +61,15 @@ export const saveWithRetry = async (
           return
         }
 
-        // Merge changes from old object into the fresh one
+        // Merge changes from old object into the fresh one while preserving version
         const changes = removeMongoIds(dbObject.toObject?.() || dbObject)
+        // Preserve the version number from the fresh document if it exists
+        const currentVersion = (latest as any).__v
         Object.assign(latest, changes)
+        // Restore the correct version number to avoid conflicts
+        if (currentVersion !== undefined) {
+          (latest as any).__v = currentVersion
+        }
 
         dbObject = latest
       } catch (refetchErr: any) {
