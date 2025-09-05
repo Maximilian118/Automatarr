@@ -1,5 +1,5 @@
 import React, { FormEvent, useContext, useEffect, useState } from "react"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import InputModel from "../components/model/inputModel/InputModel"
 import { Button, CircularProgress } from "@mui/material"
 import { ArrowBackIos, LockReset, Send } from "@mui/icons-material"

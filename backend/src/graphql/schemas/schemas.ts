@@ -42,7 +42,7 @@ const Schema = buildSchema(`
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!
-    getStats: StatsReturn!
+    getStats: Stats!
   }
 
   type RootMutation {

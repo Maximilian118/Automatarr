@@ -29,13 +29,13 @@ const statsResolvers = {
   },
   
   getStats: async (
-    req?: AuthRequest,
-  ): Promise<{ data: statsType; tokens: string[] }> => {
-    if (req && !req.isAuth) {
+    _: any,
+    _args: any,
+    req: AuthRequest,
+  ): Promise<statsType> => {
+    if (!req.isAuth) {
       throw new Error("Unauthorised")
     }
-    
-    const tokens = req?.tokens || []
     
     let stats = (await Stats.findOne()) as statsDocType
     
@@ -43,7 +43,10 @@ const statsResolvers = {
       stats = (await statsResolvers.initStats()) as statsDocType
     }
     
-    return { data: stats, tokens }
+    return {
+      ...stats._doc,
+      tokens: req.tokens,
+    }
   },
   
   updateStats: async (): Promise<statsDocType | undefined> => {

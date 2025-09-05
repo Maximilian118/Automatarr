@@ -37,6 +37,7 @@ export interface StatsType {
   dailyStats: HourlyStats[]
   created_at: string
   updated_at: string
+  tokens: string[]
 }
 
 export const getStats = async (
@@ -54,61 +55,59 @@ export const getStats = async (
         query: `
           query {
             getStats {
-              data {
-                _id
-                currentSnapshot {
-                  timestamp
-                  downloaded {
-                    movies
-                    series
-                    episodes
-                  }
-                  deleted {
-                    movies
-                    series
-                    episodes
-                  }
-                  diskUsage
-                  activeDownloads
-                  queuedDownloads
-                  failedDownloads
-                  totalBandwidth
+              _id
+              currentSnapshot {
+                timestamp
+                downloaded {
+                  movies
+                  series
+                  episodes
                 }
-                hourlyStats {
-                  hour
-                  downloaded {
-                    movies
-                    series
-                    episodes
-                  }
-                  deleted {
-                    movies
-                    series
-                    episodes
-                  }
-                  averageDiskUsage
-                  averageBandwidth
-                  peakActiveDownloads
+                deleted {
+                  movies
+                  series
+                  episodes
                 }
-                dailyStats {
-                  hour
-                  downloaded {
-                    movies
-                    series
-                    episodes
-                  }
-                  deleted {
-                    movies
-                    series
-                    episodes
-                  }
-                  averageDiskUsage
-                  averageBandwidth
-                  peakActiveDownloads
-                }
-                created_at
-                updated_at
+                diskUsage
+                activeDownloads
+                queuedDownloads
+                failedDownloads
+                totalBandwidth
               }
+              hourlyStats {
+                hour
+                downloaded {
+                  movies
+                  series
+                  episodes
+                }
+                deleted {
+                  movies
+                  series
+                  episodes
+                }
+                averageDiskUsage
+                averageBandwidth
+                peakActiveDownloads
+              }
+              dailyStats {
+                hour
+                downloaded {
+                  movies
+                  series
+                  episodes
+                }
+                deleted {
+                  movies
+                  series
+                  episodes
+                }
+                averageDiskUsage
+                averageBandwidth
+                peakActiveDownloads
+              }
+              created_at
+              updated_at
               tokens
             }
           }
@@ -121,10 +120,10 @@ export const getStats = async (
       authCheck(res.data.errors, setUser, navigate)
       console.error(`getStats Error: ${res.data.errors[0].message}`)
     } else {
-      const stats = handleResponseTokens(res.data.data.getStats, setUser) as { data: StatsType }
+      const stats = handleResponseTokens(res.data.data.getStats, setUser) as StatsType
       console.log(`getStats: Stats retrieved successfully`)
       setLoading(false)
-      return stats.data
+      return stats
     }
   } catch (err) {
     console.error(getAxiosErrorMessage(err))

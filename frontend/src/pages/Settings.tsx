@@ -3,7 +3,7 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { ArrowBackIos, Close, Done, Logout, Restore, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import { logout } from "../shared/localStorage"
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from "react-router-dom"

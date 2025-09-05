@@ -32,10 +32,6 @@ const statsSchema = `
     dailyStats: [HourlyStats!]!
     created_at: String!
     updated_at: String!
-  }
-
-  type StatsReturn {
-    data: Stats!
     tokens: [String!]!
   }
 `

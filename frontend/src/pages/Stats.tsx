@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react"
 import { useNavigate } from "react-router-dom"
 import AppContext from "../context"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import CenteredLoading from "../components/utility/CenteredLoading/CenteredLoading"
 import { getStats, StatsType } from "../shared/requests/statsRequests"
 import {

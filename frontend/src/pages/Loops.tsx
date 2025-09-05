@@ -12,7 +12,7 @@ import LoopTime from "../components/loop/looptime/Looptime"
 import { createChownString } from "../shared/utility"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import TidyPathPicker from "../components/utility/TidyPathPicker/TidyPathPicker"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { getUnixGroups, getUnixUsers } from "../shared/requests/fileSystemRequests"
 import { useNavigate } from "react-router-dom"
@@ -40,14 +40,14 @@ const Loops: React.FC = () => {
     if (unixUsers.length === 0) {
       getUnixUsers(user, setUser, navigate, setUnixUsers)
     }
-  }, [user, setUser, navigate, unixUsers])
+  }, [user.token]) // Only depend on user token to avoid infinite loops
 
   // Retrieve groups of the OS the backend is running on
   useEffect(() => {
     if (unixGroups.length === 0) {
       getUnixGroups(user, setUser, navigate, setUnixGroups)
     }
-  }, [user, setUser, navigate, unixGroups])
+  }, [user.token]) // Only depend on user token to avoid infinite loops
 
   // Create a chown string from user and group states
   useEffect(() => {
