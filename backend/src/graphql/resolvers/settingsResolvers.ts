@@ -1,7 +1,7 @@
 import moment from "moment"
 import { botsControl } from "../../bots/botsControl"
 import logger from "../../logger"
-import Settings, { settingsDocType, settingsType } from "../../models/settings"
+import Settings, { settingsDocType, settingsType, BotUserType } from "../../models/settings"
 import { allLoopsDeactivated } from "../../shared/utility"
 import Resolvers from "./resolvers"
 import { getAllChannels } from "../../bots/discordBot/discordBotUtility"
@@ -238,6 +238,72 @@ const settingsResolvers = {
       data: qualityProfiles,
       tokens: req.tokens,
     }
+  },
+  getBotUsers: async (args: any, req: AuthRequest): Promise<BotUserType[]> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("getBotUsers: No settings found.")
+      throw new Error("No settings found.")
+    }
+
+    return settings.general_bot.users || []
+  },
+  removeFromBotUserPool: async (
+    args: { input: { userId: string; movieIds?: string[]; seriesIds?: string[] } },
+    req: AuthRequest,
+  ): Promise<BotUserType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("removeFromBotUserPool: No settings found.")
+      throw new Error("No settings found.")
+    }
+
+    const userIndex = settings.general_bot.users.findIndex(
+      (user) => user._id?.toString() === args.input.userId
+    )
+
+    if (userIndex === -1) {
+      logger.error(`removeFromBotUserPool: User with ID ${args.input.userId} not found.`)
+      throw new Error("User not found.")
+    }
+
+    const user = settings.general_bot.users[userIndex]
+
+    // Remove specified movies from the user's pool
+    if (args.input.movieIds && args.input.movieIds.length > 0) {
+      user.pool.movies = user.pool.movies.filter(
+        (movie: any) => !args.input.movieIds?.includes(movie.id?.toString() || movie.tmdbId?.toString())
+      )
+    }
+
+    // Remove specified series from the user's pool
+    if (args.input.seriesIds && args.input.seriesIds.length > 0) {
+      user.pool.series = user.pool.series.filter(
+        (series: any) => !args.input.seriesIds?.includes(series.id?.toString() || series.tvdbId?.toString())
+      )
+    }
+
+    user.updated_at = moment().format()
+    settings.general_bot.users[userIndex] = user
+    settings.updated_at = moment().format()
+
+    await saveWithRetry(settings, "removeFromBotUserPool")
+
+    logger.success(
+      `Removed ${args.input.movieIds?.length || 0} movies and ${args.input.seriesIds?.length || 0} series from user ${user.name}'s pool.`
+    )
+
+    return user
   },
 }
 

@@ -43,12 +43,14 @@ const Schema = buildSchema(`
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!
     getStats: Stats!
+    getBotUsers: [BotUser!]!
   }
 
   type RootMutation {
     createUser(name: String!, password: String!): User!
     updateUser(userInput: userInput): User!
     updateSettings(settingsInput: settingsInput): Settings
+    removeFromBotUserPool(input: removeFromPoolInput!): BotUser!
   }
 
   schema {

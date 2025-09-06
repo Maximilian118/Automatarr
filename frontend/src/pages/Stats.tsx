@@ -4,6 +4,7 @@ import AppContext from "../context"
 import Footer from "../components/footer/footer"
 import CenteredLoading from "../components/utility/CenteredLoading/CenteredLoading"
 import { getStats, StatsType } from "../shared/requests/statsRequests"
+import UserPoolManager from "../components/UserPoolManager/UserPoolManager"
 import {
   LineChart,
   Line,
@@ -356,6 +357,10 @@ const Stats: React.FC = () => {
               />
             </Box>
           </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <UserPoolManager />
         </Grid>
       </Grid>
       
