@@ -77,10 +77,16 @@ const statsSchema = new mongoose.Schema<statsType>({
   updated_at: { type: String, default: moment().format() },
 })
 
-// Add indexes for efficient querying
+// Add indexes for efficient querying of time-series data
 statsSchema.index({ "currentSnapshot.timestamp": -1 })
 statsSchema.index({ "hourlyStats.hour": -1 })
+statsSchema.index({ "dailyStats.hour": -1 })
 statsSchema.index({ updated_at: -1 })
+statsSchema.index({ created_at: -1 })
+
+// Compound indexes for efficient range queries
+statsSchema.index({ "hourlyStats.hour": 1, "hourlyStats.downloaded.movies": -1 })
+statsSchema.index({ "dailyStats.hour": 1, "dailyStats.downloaded.movies": -1 })
 
 // Enable optimistic concurrency control
 statsSchema.set("optimisticConcurrency", true)

@@ -57,6 +57,16 @@ const statsResolvers = {
         stats = (await statsResolvers.initStats()) as statsDocType
       }
       
+      // Check if we should skip this update (within 55 minutes of last update to avoid near-duplicates)
+      const lastUpdate = moment(stats.updated_at)
+      const now = moment()
+      const timeSinceLastUpdate = now.diff(lastUpdate, 'minutes')
+      
+      if (timeSinceLastUpdate < 55) {
+        logger.info(`updateStats: Skipping update. Only ${timeSinceLastUpdate} minutes since last update.`)
+        return stats
+      }
+      
       const settings = (await Settings.findOne()) as settingsDocType
       
       if (!settings) {
@@ -138,22 +148,32 @@ const statsResolvers = {
         })
       }
       
+      // Store previous snapshot for comparison
+      const previousSnapshot = stats.currentSnapshot
       stats.currentSnapshot = currentSnapshot
       
       const currentHour = moment().format("YYYY-MM-DD HH:00:00")
       let hourlyEntry = stats.hourlyStats.find(entry => entry.hour === currentHour)
       
       if (!hourlyEntry) {
-        const previousSnapshot = stats.hourlyStats[stats.hourlyStats.length - 1]
+        // Calculate actual changes since previous snapshot
+        const downloadedDiff = {
+          movies: Math.max(0, currentSnapshot.downloaded.movies - (previousSnapshot?.downloaded.movies || 0)),
+          series: Math.max(0, currentSnapshot.downloaded.series - (previousSnapshot?.downloaded.series || 0)),
+          episodes: Math.max(0, currentSnapshot.downloaded.episodes - (previousSnapshot?.downloaded.episodes || 0)),
+        }
+        
+        // Calculate deleted items (if current count is less than previous)
+        const deletedDiff = {
+          movies: Math.max(0, (previousSnapshot?.downloaded.movies || 0) - currentSnapshot.downloaded.movies),
+          series: Math.max(0, (previousSnapshot?.downloaded.series || 0) - currentSnapshot.downloaded.series),
+          episodes: Math.max(0, (previousSnapshot?.downloaded.episodes || 0) - currentSnapshot.downloaded.episodes),
+        }
         
         const newHourlyEntry: HourlyStats = {
           hour: currentHour,
-          downloaded: {
-            movies: currentSnapshot.downloaded.movies - (previousSnapshot?.downloaded.movies || 0),
-            series: currentSnapshot.downloaded.series - (previousSnapshot?.downloaded.series || 0),
-            episodes: currentSnapshot.downloaded.episodes - (previousSnapshot?.downloaded.episodes || 0),
-          },
-          deleted: { movies: 0, series: 0, episodes: 0 },
+          downloaded: downloadedDiff,
+          deleted: deletedDiff,
           averageDiskUsage: currentSnapshot.diskUsage,
           averageBandwidth: currentSnapshot.totalBandwidth,
           peakActiveDownloads: currentSnapshot.activeDownloads,
@@ -161,13 +181,66 @@ const statsResolvers = {
         
         stats.hourlyStats.push(newHourlyEntry)
         
+        // Keep only last 7 days of hourly data (168 hours)
         if (stats.hourlyStats.length > 168) {
           stats.hourlyStats = stats.hourlyStats.slice(-168)
         }
+        
+        // Generate daily stats by aggregating hourly data
+        const currentDay = moment().format("YYYY-MM-DD")
+        const dayHours = stats.hourlyStats.filter(entry => entry.hour.startsWith(currentDay))
+        
+        if (dayHours.length > 0) {
+          const dailyTotals = dayHours.reduce(
+            (acc, hour) => ({
+              downloaded: {
+                movies: acc.downloaded.movies + hour.downloaded.movies,
+                series: acc.downloaded.series + hour.downloaded.series,
+                episodes: acc.downloaded.episodes + hour.downloaded.episodes,
+              },
+              deleted: {
+                movies: acc.deleted.movies + hour.deleted.movies,
+                series: acc.deleted.series + hour.deleted.series,
+                episodes: acc.deleted.episodes + hour.deleted.episodes,
+              },
+              averageDiskUsage: acc.averageDiskUsage + hour.averageDiskUsage,
+              averageBandwidth: acc.averageBandwidth + hour.averageBandwidth,
+              peakActiveDownloads: Math.max(acc.peakActiveDownloads, hour.peakActiveDownloads),
+            }),
+            { downloaded: { movies: 0, series: 0, episodes: 0 }, deleted: { movies: 0, series: 0, episodes: 0 }, averageDiskUsage: 0, averageBandwidth: 0, peakActiveDownloads: 0 }
+          )
+          
+          // Update or create daily entry
+          const existingDayIndex = stats.dailyStats.findIndex(entry => entry.hour === currentDay)
+          const dailyEntry: HourlyStats = {
+            hour: currentDay,
+            downloaded: dailyTotals.downloaded,
+            deleted: dailyTotals.deleted,
+            averageDiskUsage: dailyTotals.averageDiskUsage / dayHours.length,
+            averageBandwidth: dailyTotals.averageBandwidth / dayHours.length,
+            peakActiveDownloads: dailyTotals.peakActiveDownloads,
+          }
+          
+          if (existingDayIndex >= 0) {
+            stats.dailyStats[existingDayIndex] = dailyEntry
+          } else {
+            stats.dailyStats.push(dailyEntry)
+          }
+          
+          // Keep only last 30 days of daily data
+          if (stats.dailyStats.length > 30) {
+            stats.dailyStats = stats.dailyStats.slice(-30)
+          }
+        }
+        
+        logger.success(`updateStats: Created new hourly entry for ${currentHour}`)
       } else {
+        // Update existing hourly entry with running averages
         hourlyEntry.averageDiskUsage = (hourlyEntry.averageDiskUsage + currentSnapshot.diskUsage) / 2
         hourlyEntry.averageBandwidth = (hourlyEntry.averageBandwidth + currentSnapshot.totalBandwidth) / 2
         hourlyEntry.peakActiveDownloads = Math.max(hourlyEntry.peakActiveDownloads, currentSnapshot.activeDownloads)
+        
+        logger.info(`updateStats: Updated existing hourly entry for ${currentHour}`)
       }
       
       stats.updated_at = moment().format()
