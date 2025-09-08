@@ -16,6 +16,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("get_data", async () => {
     await Resolvers.getData()
   }, true, 60)
+  // Update stats data hourly
+  await dynamicLoop("update_stats", async () => {
+    await Resolvers.updateStats()
+  }, true, 3600)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)

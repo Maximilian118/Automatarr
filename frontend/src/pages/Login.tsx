@@ -1,5 +1,5 @@
 import React, { FormEvent, useContext, useState } from "react"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import AppContext from "../context"
 import InputModel from "../components/model/inputModel/InputModel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"

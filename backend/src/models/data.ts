@@ -202,6 +202,15 @@ const dataSchema = new mongoose.Schema<dataType>({
   updated_at: { type: String, default: moment().format() },
 })
 
+// Add indexes for efficient querying
+dataSchema.index({ "commands.name": 1 })
+dataSchema.index({ "libraries.name": 1 })
+dataSchema.index({ "downloadQueues.name": 1 })
+dataSchema.index({ updated_at: -1 })
+
+// Enable optimistic concurrency control
+dataSchema.set("optimisticConcurrency", true)
+
 // Data Model
 const Data = mongoose.model<dataType>("Data", dataSchema)
 export default Data

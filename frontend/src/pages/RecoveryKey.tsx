@@ -1,5 +1,5 @@
 import React, { FormEvent, useContext, useEffect, useState } from "react"
-import Footer from "../components/footer/Footer"
+import Footer from "../components/footer/footer"
 import { Button, TextField } from "@mui/material"
 import { Check, Key } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
