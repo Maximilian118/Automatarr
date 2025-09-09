@@ -1,3 +1,40 @@
+// Population fields for a stats request
+export const populateStats = `
+  _id
+  data_points {
+    timestamp
+    movies {
+      downloaded
+      deleted
+      queued
+      total_library_size
+    }
+    series {
+      downloaded
+      deleted
+      queued
+      total_library_size
+      episodes_downloaded
+      episodes_deleted
+    }
+    storage {
+      total_storage
+      free_storage
+      minimum_free_storage
+      used_percentage
+    }
+    system {
+      active_users
+      active_loops
+      total_downloads
+      failed_downloads
+      blocked_downloads
+    }
+  }
+  created_at
+  updated_at
+`
+
 // Population fields for a settings request
 export const populateSettings = `
   _id

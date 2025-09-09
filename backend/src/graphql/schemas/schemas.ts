@@ -10,6 +10,7 @@ import qualityProfileSchema from "./qualityProfileSchema"
 import checkSchema from "./checkSchema"
 import miscSchema from "./miscSchema"
 import userSchema from "./userSchema"
+import statsSchema from "./statsSchema"
 
 const Schema = buildSchema(`
   ${miscSchema}
@@ -23,6 +24,7 @@ const Schema = buildSchema(`
   ${settingsSchema}
   ${dataSchema}
   ${userSchema}
+  ${statsSchema}
 
   type RootQuery {
     login(name: String!, password: String!): User!
@@ -40,6 +42,7 @@ const Schema = buildSchema(`
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!
+    getStats(statsInput: StatsQueryInput): Stats
   }
 
   type RootMutation {

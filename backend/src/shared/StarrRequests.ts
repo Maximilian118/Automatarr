@@ -7,6 +7,7 @@ import {
   library,
   qualityProfile,
   rootFolder,
+  diskspace,
 } from "../models/data"
 import { APIData } from "./activeAPIsArr"
 import {
@@ -139,6 +140,48 @@ export const getAllRootFolders = async (
 
   // Filter out undefined values to ensure results is of type rootFolder[]
   return results.filter((folder): folder is rootFolder => folder !== undefined)
+}
+
+// Get disk space information from a single API  
+export const getDiskspace = async (
+  API: APIData,
+  data: dataType,
+): Promise<diskspace | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/diskspace?apikey=${API.data.KEY}`),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Retrieving Disk Space.`)
+
+      return {
+        ...dataBoilerplate(API, data.diskspaces),
+        data: {
+          name: API.name,
+          timestamp: moment().format(),
+          data: res.data,
+        },
+      }
+    } else {
+      logger.error(`getDiskspace: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`getDiskspace: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// Retrieve disk space information from all active APIs
+export const getAllDiskspaces = async (
+  activeAPIs: APIData[],
+  data: dataType,
+): Promise<diskspace[]> => {
+  const results = await Promise.all(activeAPIs.map(async (API) => await getDiskspace(API, data)))
+
+  // Filter out undefined values
+  return results.filter((diskspaceResult): diskspaceResult is diskspace => diskspaceResult !== undefined)
 }
 
 // Retrieve the entire library of one of the Starr apps

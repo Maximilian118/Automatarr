@@ -10,6 +10,7 @@ import {
   getAllMissingwanted,
   getAllQualityProfiles,
   getAllRootFolders,
+  getAllDiskspaces,
 } from "../../shared/StarrRequests"
 import moment from "moment"
 import { getCommandLists } from "../../shared/miscRequests"
@@ -68,6 +69,7 @@ const dataResolvers = {
     data.downloadQueues = await getAllDownloadQueues(activeAPIs, data)
     data.importLists = await getAllImportLists(activeAPIs, data)
     data.rootFolders = await getAllRootFolders(activeAPIs, data)
+    data.diskspaces = await getAllDiskspaces(activeAPIs, data)
     data.qualityProfiles = await getAllQualityProfiles(activeAPIs, data)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
     data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API

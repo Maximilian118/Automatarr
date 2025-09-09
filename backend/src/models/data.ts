@@ -1,12 +1,14 @@
 import mongoose, { Document } from "mongoose"
 import moment from "moment"
 import { ObjectId } from "mongodb"
+// Force recompilation
 import {
   commandData,
   DownloadStatus,
   ImportListData,
   MdblistItem,
   rootFolderData,
+  diskspaceData,
 } from "../types/types"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
@@ -45,6 +47,10 @@ export interface importList extends baseData {
 // A name to categorize the root folder for each API
 export interface rootFolder extends baseData {
   data: rootFolderData
+}
+
+export interface diskspace extends baseData {
+  data: diskspaceData
 }
 
 // A name to categorize the root folder for each API
@@ -90,6 +96,7 @@ export interface dataType {
   downloadQueues: downloadQueue[]
   importLists: importList[]
   rootFolders: rootFolder[]
+  diskspaces: diskspace[]
   qualityProfiles: qualityProfile[]
   libraries: library[]
   missingWanteds: library[]
@@ -139,6 +146,11 @@ const importListSchema = new mongoose.Schema<importList>({
 const rootFoldersSchema = new mongoose.Schema<rootFolder>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // The root folder directory
+})
+
+const diskspacesSchema = new mongoose.Schema<diskspace>({
+  ...baseSchema,
+  data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of diskspace info
 })
 
 const qualityProfilesSchmea = new mongoose.Schema<qualityProfile>({
@@ -193,6 +205,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
   importLists: { type: [importListSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
+  diskspaces: { type: [diskspacesSchema], default: [] },
   qualityProfiles: { type: [qualityProfilesSchmea], default: [] },
   libraries: { type: [librariesSchema], default: [] },
   missingWanteds: { type: [librariesSchema], default: [] },

@@ -1,6 +1,7 @@
 import Resolvers from "../graphql/resolvers/resolvers"
 import { settingsDocType } from "../models/settings"
 import { dynamicLoop } from "../shared/dynamicLoop"
+import { collectStats } from "../shared/statsCollector"
 import backups from "./backups"
 import permissions_change from "./permissions_change"
 import remove_blocked from "./remove_blocked"
@@ -12,10 +13,16 @@ import tidy_directories from "./tidy_directories"
 // Start looping through all of the core loops
 // prettier-ignore
 export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
+  
   // Retrieve the latest API data and add to database
   await dynamicLoop("get_data", async () => {
     await Resolvers.getData()
-  }, true, 60)
+    try {
+      await collectStats()
+    } catch (error) {
+      console.error("ERROR in collectStats():", error)
+    }
+  }, false, 60)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)

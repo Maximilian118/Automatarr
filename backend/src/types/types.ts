@@ -246,3 +246,17 @@ export type SearchCommandResponseType = {
   updateScheduledTask: boolean
   id: number
 }
+
+// Diskspace API response types
+export type DiskspaceInfo = {
+  path: string
+  label: string
+  freeSpace: number
+  totalSpace: number
+}
+
+export type diskspaceData = {
+  name: string
+  timestamp: string
+  data: DiskspaceInfo[]
+}

@@ -16,6 +16,7 @@ import moment from "moment"
 import { saveWithRetry } from "../shared/database"
 import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem"
 import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
+import { incrementMovieDeletions, incrementSeriesDeletions } from "../shared/statsCollector"
 
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
@@ -230,11 +231,15 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
             if (await deleteFromLibrary(libraryItem, API)) {
               // On request succes remove deleted library item from filteredLibrary
               filteredLibrary = filteredLibrary.filter((item) => item.id !== libraryItem.id)
-              // Log the deletions
+              // Log the deletions and update stats
               if (API.name === "Radarr") {
                 logging.radarrDeleted++
+                await incrementMovieDeletions(1)
               } else if (API.name === "Sonarr") {
                 logging.sonarrDeleted++
+                // For series, we need to count episodes if available
+                const episodeCount = (libraryItem as Series).statistics?.episodeFileCount || 0
+                await incrementSeriesDeletions(1, episodeCount)
               }
             }
           }
