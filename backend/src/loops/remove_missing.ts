@@ -17,6 +17,7 @@ import { saveWithRetry } from "../shared/database"
 import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem"
 import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
 import { incrementMovieDeletions, incrementSeriesDeletions } from "../shared/statsCollector"
+import { matchesPoolItem } from "./loopUtility"
 
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
@@ -180,10 +181,11 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         userPool = settings.general_bot.users.flatMap((u) => u.pool.series)
       }
 
-      const userPoolIds = new Set(userPool.map((p) => p.id))
-      const removedItems = itemsForDeletion.filter((item) => userPoolIds.has(item.id))
-      const singular = API.name === "Radarr" ? "movie" : "series"
-      const plural = API.name === "Radarr" ? "movies" : "series"
+      // Check if library item is in user pool using robust matching
+      const isInUserPool = (libraryItem: Movie | Series): boolean =>
+        userPool.some((poolItem) => matchesPoolItem(poolItem, libraryItem, API.name))
+
+      const removedItems = itemsForDeletion.filter(isInUserPool)
 
       // Group removed items by user
       const userSkippedMap: Record<string, string[]> = {}
@@ -191,7 +193,9 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
       for (const item of removedItems) {
         for (const user of settings.general_bot.users) {
           const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
-          if (pool.some((p) => p.id === item.id)) {
+          const isUserItem = pool.some((poolItem) => matchesPoolItem(poolItem, item, API.name))
+
+          if (isUserItem) {
             if (!userSkippedMap[user.name]) {
               userSkippedMap[user.name] = []
             }
@@ -199,6 +203,9 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
           }
         }
       }
+
+      const singular = API.name === "Radarr" ? "movie" : "series"
+      const plural = API.name === "Radarr" ? "movies" : "series"
 
       // Log one message per user with their skipped titles
       for (const [user, titles] of Object.entries(userSkippedMap)) {
@@ -209,8 +216,8 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         )
       }
 
-      // Filter user pool items out
-      itemsForDeletion = itemsForDeletion.filter((item) => !userPoolIds.has(item.id))
+      // Filter user pool items out using the robust matching
+      itemsForDeletion = itemsForDeletion.filter((item) => !isInUserPool(item))
 
       // If some library items have been selected for deletion filter any that should not be deleted
       if (itemsForDeletion.length > 0) {

@@ -1,11 +1,10 @@
 import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { ArrowBackIos, Close, Done, Logout, Restore, Send, SettingsBackupRestore, Webhook } from "@mui/icons-material"
+import { ArrowBackIos, Close, Done, Logout, Person, Restore, Send, Settings as SettingsIcon, SettingsBackupRestore, Webhook } from "@mui/icons-material"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
-import SettingsIcon from '@mui/icons-material/Settings';
 import { useNavigate } from "react-router-dom"
 import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
 import { EventType, settingsErrorType, settingsType} from "../types/settingsType"
@@ -191,7 +190,7 @@ const Settings: React.FC = () => {
         </InputModel>
         <InputModel 
           title="User Settings" 
-          startIcon={<SettingsIcon/>}
+          startIcon={<Person/>}
         >
           <Toggle 
             name="Lockout Security:" 
@@ -358,6 +357,22 @@ const Settings: React.FC = () => {
           />
           {webhookNotificationType("Import")}
           {webhookNotificationType("Grab")}
+        </InputModel>
+        <InputModel
+          title="Advanced"
+          startIcon={<SettingsIcon/>}
+          description={`Advanced system settings for experienced users. These settings control internal system behavior and should be used with caution.`}
+        >
+          <Toggle 
+            name="User Pool Content Checker:"
+            checked={settings.user_pool_checker}
+            onToggle={() =>
+              setSettings(prevSettings => ({
+                ...prevSettings,
+                user_pool_checker: !prevSettings.user_pool_checker
+              }))
+            }
+          />
         </InputModel>
         <Button 
           type="submit"

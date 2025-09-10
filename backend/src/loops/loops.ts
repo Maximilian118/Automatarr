@@ -9,6 +9,7 @@ import remove_failed from "./remove_failed"
 import remove_missing from "./remove_missing"
 import search_wanted_missing from "./search_wanted_missing"
 import tidy_directories from "./tidy_directories"
+import userPoolContentChecker from "./userPoolContentChecker"
 
 // Start looping through all of the core loops
 // prettier-ignore
@@ -22,7 +23,7 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
     } catch (error) {
       console.error("ERROR in collectStats():", error)
     }
-  }, false, 60)
+  }, true, 60)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)
@@ -34,6 +35,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_failed_loop", async (settings) => {
     await remove_failed(settings)
+  }, skipFirst)
+  // Check user pools and re-download missing content FIRST to ensure library is complete
+  await dynamicLoop("user_pool_checker_loop", async (settings) => {
+    await userPoolContentChecker(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_missing_loop", async (settings) => {
@@ -66,6 +71,10 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_failed) {
     await remove_failed(settings._doc)
+  }
+  // Check user pools and re-download missing content FIRST to ensure library is complete
+  if (settings.user_pool_checker) {
+    await userPoolContentChecker(settings._doc)
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {

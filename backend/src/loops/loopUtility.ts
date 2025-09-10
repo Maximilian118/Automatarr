@@ -4,6 +4,8 @@ import { APIData } from "../shared/activeAPIsArr"
 import { isDocker } from "../shared/fileSystem"
 import { deleteFromQueue } from "../shared/StarrRequests"
 import { DownloadStatus } from "../types/types"
+import { Movie } from "../types/movieTypes"
+import { Series } from "../types/seriesTypes"
 
 // Update the loop data
 export const updateLoopData = (loopName: keyof dataType["loops"], data: dataType): void => {
@@ -92,4 +94,36 @@ export const stalledDownloadRemover = async (
       logger.error(`${API.name} | Stalled | ${blockedFile.title} | Could not be deleted.`)
     }
   }
+}
+
+// Robust matching function for user pool items using multiple identifiers
+export const matchesPoolItem = (
+  poolItem: Movie | Series,
+  libraryItem: Movie | Series,
+  apiName: string,
+): boolean => {
+  if (poolItem.id === libraryItem.id) return true
+  if (poolItem.tmdbId && poolItem.tmdbId === libraryItem.tmdbId) return true
+  if (poolItem.imdbId && poolItem.imdbId === libraryItem.imdbId) return true
+
+  // For series, also match by tvdbId
+  if (
+    apiName === "Sonarr" &&
+    "tvdbId" in poolItem &&
+    "tvdbId" in libraryItem &&
+    poolItem.tvdbId &&
+    poolItem.tvdbId === libraryItem.tvdbId
+  ) {
+    return true
+  }
+
+  // Match by title and year (last resort)
+  if (
+    poolItem.title.toLowerCase() === libraryItem.title.toLowerCase() &&
+    poolItem.year === libraryItem.year
+  ) {
+    return true
+  }
+
+  return false
 }

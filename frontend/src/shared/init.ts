@@ -81,6 +81,8 @@ export const initSettings: settingsType = {
   backups: false,
   backups_loop: 1440, // 1 day
   backups_rotation_date: 525600, // 1 year
+  user_pool_checker: true,
+  user_pool_checker_loop: 60, // 1 hour
   created_at: "",
   updated_at: "",
 }

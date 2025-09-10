@@ -81,6 +81,8 @@ const settingsSchema = `
     backups: Boolean!
     backups_loop: Int!
     backups_rotation_date: Int!
+    user_pool_checker: Boolean!
+    user_pool_checker_loop: Int!
     created_at: String!
     updated_at: String!
     tokens: [String!]!
@@ -160,6 +162,8 @@ const settingsSchema = `
     backups: Boolean
     backups_loop: Int
     backups_rotation_date: Int
+    user_pool_checker: Boolean
+    user_pool_checker_loop: Int
     webhooks: Boolean
     webhooks_enabled: [String!]!
   }

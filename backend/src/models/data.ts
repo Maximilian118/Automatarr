@@ -86,6 +86,7 @@ export interface Loops {
   remove_missing: LoopData | null
   search_wanted_missing: LoopData | null
   tidy_directories: LoopData | null
+  user_pool_checker: LoopData | null
 }
 
 // Main dataType
@@ -185,6 +186,7 @@ const loopSchema = new mongoose.Schema<Loops>({
   remove_missing: { type: loopDataSchema, default: null },
   search_wanted_missing: { type: loopDataSchema, default: null },
   tidy_directories: { type: loopDataSchema, default: null },
+  user_pool_checker: { type: loopDataSchema, default: null },
 })
 
 const initqBittorrent: qBittorrent = {

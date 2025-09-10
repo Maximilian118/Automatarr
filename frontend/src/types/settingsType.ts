@@ -92,6 +92,8 @@ export interface settingsType {
   backups: boolean // Enable or disable backups
   backups_loop: number // Loop timer for backups. Unit = minutes
   backups_rotation_date: number // The amount of time that determines when we start deleting log files
+  user_pool_checker: boolean // Enable or disable user pool content checker
+  user_pool_checker_loop: number // Loop timer for user pool checker. Unit = minutes
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
 }

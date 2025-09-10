@@ -12,7 +12,6 @@ import {
 import { APIData } from "./activeAPIsArr"
 import {
   capsFirstLetter,
-  checkTimePassed,
   cleanUrl,
   dataBoilerplate,
   getContentName,
@@ -142,7 +141,7 @@ export const getAllRootFolders = async (
   return results.filter((folder): folder is rootFolder => folder !== undefined)
 }
 
-// Get disk space information from a single API  
+// Get disk space information from a single API
 export const getDiskspace = async (
   API: APIData,
   data: dataType,
@@ -181,7 +180,9 @@ export const getAllDiskspaces = async (
   const results = await Promise.all(activeAPIs.map(async (API) => await getDiskspace(API, data)))
 
   // Filter out undefined values
-  return results.filter((diskspaceResult): diskspaceResult is diskspace => diskspaceResult !== undefined)
+  return results.filter(
+    (diskspaceResult): diskspaceResult is diskspace => diskspaceResult !== undefined,
+  )
 }
 
 // Retrieve the entire library of one of the Starr apps
@@ -342,15 +343,6 @@ export const getAllLibraries = async (
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
       const library = data.libraries.find((l) => API.name === l.name)
-
-      // Skip if update was done within the last hour
-      if (!checkTimePassed(1, "hours", library?.updated_at)) {
-        const timer = 60 - moment().diff(moment(library?.updated_at), "minutes")
-        logger.info(
-          `${API.name} | Skipping Library retrieval. Only once per hour. ${timer} minutes left.`,
-        )
-        return library
-      }
 
       // Try to fetch new library data
       const updatedLibrary = await getLibrary(API, data)

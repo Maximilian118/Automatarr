@@ -16,6 +16,10 @@ export const navItems = [
     url: "/loops",
   },
   {
+    text: "Logs",
+    url: "/logs",
+  },
+  {
     text: "Settings",
     url: "/settings",
   },
