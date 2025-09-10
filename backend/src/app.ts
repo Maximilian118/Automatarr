@@ -18,6 +18,7 @@ import { auth } from "./middleware/auth"
 import { coreLoops } from "./loops/loops"
 import createWebhookRouter from "./middleware/webhooks"
 import { newWebhook } from "./webhooks/webhookUtility"
+import logsRouter from "./routes/logs"
 
 // Start listening for errors
 globalErrorHandlers()
@@ -33,6 +34,9 @@ app.use(corsHandler)
 
 // Make token authentication middleware available in all reducers by passing req.
 app.use(auth as any)
+
+// Set up logs API routes (before authentication and database setup)
+app.use("/api/logs", logsRouter)
 
 // Create or use existing directory for database files
 const databasePath = path.join(__dirname, "..", "..", "automatarr_database")

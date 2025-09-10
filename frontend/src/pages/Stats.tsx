@@ -152,17 +152,27 @@ const Stats: React.FC = () => {
       backgroundColor: '#0f0f0f',
       padding: '16px',
       borderRadius: '4px',
-      border: 'none'
+      border: 'none',
+      ...(isMobile && {
+        width: '100vw',
+        marginLeft: 'calc(-50vw + 50%)',
+        borderRadius: 0
+      })
     }}>
       <div style={{ padding: '0 48px' }}>
-        <h6 style={{ color: 'white', margin: '0 0 16px 0', fontSize: '1.25rem' }}>
+        <h6 style={{ color: 'white', margin: '0', fontSize: '1.25rem' }}>
           {title}
         </h6>
       </div>
       <div style={{ height: isMobile ? '250px' : '400px' }}>
         <ResponsiveLine
           data={data}
-          margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+          margin={{ 
+            top: 50, 
+            right: isMobile ? 60 : 110, // Add more right padding on mobile for balance
+            bottom: 50, 
+            left: 60 
+          }}
           xScale={{ type: 'point' }}
           yScale={{ 
             type: 'linear', 
@@ -196,7 +206,7 @@ const Stats: React.FC = () => {
           enablePoints={false}
           useMesh={true}
           tooltip={ChartTooltip}
-          legends={getLineLegendConfig()}
+          legends={isMobile ? [] : getLineLegendConfig()} // Hide legends on mobile
           theme={getChartTheme(theme)}
         />
       </div>
@@ -209,8 +219,7 @@ const Stats: React.FC = () => {
 
   return (
     <main>
-      <div style={{ padding: isMobile ? '16px' : '24px' }}>
-        
+      <div>
         {/* Error Display */}
         {error && (
           <Alert severity="error" style={{ marginBottom: '24px' }}>
@@ -229,15 +238,21 @@ const Stats: React.FC = () => {
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', 
-              gap: '24px', 
-              marginBottom: '24px' 
+              gap: isMobile ? '0' : '24px', 
+              marginBottom: isMobile ? '0' : '24px' // Remove bottom margin on mobile to avoid double spacing
             }}>
               {/* Movies Summary */}
               <div style={{
                 backgroundColor: '#0f0f0f',
                 padding: '16px',
                 borderRadius: '4px',
-                border: 'none'
+                border: 'none',
+                ...(isMobile && {
+                  width: '100vw',
+                  marginLeft: 'calc(-50vw + 50%)',
+                  borderRadius: 0,
+                  marginBottom: '24px'
+                })
               }}>
                 <h6 style={{ color: '#90caf9', margin: '0 0 8px 0', fontSize: '1.25rem' }}>🎬 Movies</h6>
                 <h4 style={{ color: 'white', margin: '0 0 8px 0', fontSize: '2.125rem' }}>
@@ -253,7 +268,13 @@ const Stats: React.FC = () => {
                 backgroundColor: '#0f0f0f',
                 padding: '16px',
                 borderRadius: '4px',
-                border: 'none'
+                border: 'none',
+                ...(isMobile && {
+                  width: '100vw',
+                  marginLeft: 'calc(-50vw + 50%)',
+                  borderRadius: 0,
+                  marginBottom: '24px'
+                })
               }}>
                 <h6 style={{ color: '#90caf9', margin: '0 0 8px 0', fontSize: '1.25rem' }}>📺 Series</h6>
                 <h4 style={{ color: 'white', margin: '0 0 8px 0', fontSize: '2.125rem' }}>
@@ -269,7 +290,13 @@ const Stats: React.FC = () => {
                 backgroundColor: '#0f0f0f',
                 padding: '16px',
                 borderRadius: '4px',
-                border: 'none'
+                border: 'none',
+                ...(isMobile && {
+                  width: '100vw',
+                  marginLeft: 'calc(-50vw + 50%)',
+                  borderRadius: 0,
+                  marginBottom: '24px'
+                })
               }}>
                 <h6 style={{ color: '#90caf9', margin: '0 0 8px 0', fontSize: '1.25rem' }}>💾 Storage</h6>
                 <h4 style={{ color: 'white', margin: '0 0 8px 0', fontSize: '2.125rem' }}>
@@ -286,24 +313,33 @@ const Stats: React.FC = () => {
             <div style={{ 
               display: 'flex',
               flexDirection: 'column',
-              gap: '24px' 
+              gap: isMobile ? '0' : '24px'
             }}>
               
               {/* Movies Line Chart */}
-              {renderLineChart(movieChartData, movieChartMax, "Movies")}
+              <div style={{ ...(isMobile && { marginBottom: '24px' }) }}>
+                {renderLineChart(movieChartData, movieChartMax, "Movies")}
+              </div>
 
               {/* Series Line Chart */}
-              {renderLineChart(seriesChartData, seriesChartMax, "Series")}
+              <div style={{ ...(isMobile && { marginBottom: '24px' }) }}>
+                {renderLineChart(seriesChartData, seriesChartMax, "Series")}
+              </div>
 
               {/* Storage Pie Chart */}
               <div style={{
                 backgroundColor: '#0f0f0f',
                 padding: '16px',
                 borderRadius: '4px',
-                border: 'none'
+                border: 'none',
+                ...(isMobile && {
+                  width: '100vw',
+                  marginLeft: 'calc(-50vw + 50%)',
+                  borderRadius: 0
+                })
               }}>
                 <div style={{ padding: '0 48px' }}>
-                  <h6 style={{ color: 'white', margin: '0 0 16px 0', fontSize: '1.25rem' }}>
+                  <h6 style={{ color: 'white', margin: '0', fontSize: '1.25rem' }}>
                     Storage Usage
                   </h6>
                 </div>

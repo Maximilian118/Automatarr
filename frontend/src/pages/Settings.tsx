@@ -97,7 +97,7 @@ const Settings: React.FC = () => {
   )
 
   return (
-    <main>
+    <>
       <form onSubmit={e => onSubmitHandler(e)}>
         <InputModel
           title="Backups" 
@@ -397,7 +397,7 @@ const Settings: React.FC = () => {
         >Logout</Button>
         <Footer/>
       </div>
-    </main>
+    </>
   )
 }
 

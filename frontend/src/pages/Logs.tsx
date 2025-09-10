@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Typography, Box, Paper } from '@mui/material'
 import { getApiBaseUrl } from '../utils/apiConfig'
 
 interface LogEntry {
@@ -66,9 +65,22 @@ const Logs: React.FC = () => {
     return () => {
       if (eventSource) {
         eventSource.close()
+        setEventSource(null)
+        setIsStreaming(false)
       }
     }
   }, [])
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSource) {
+        eventSource.close()
+        setEventSource(null)
+        setIsStreaming(false)
+      }
+    }
+  }, [eventSource])
 
   const formatLogLine = (entry: LogEntry, index: number) => {
     // Remove ANSI color codes for cleaner display
@@ -105,76 +117,43 @@ const Logs: React.FC = () => {
   }
 
   return (
-    <Box sx={{ height: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column', p: 2, overflow: 'hidden' }}>
-      <Paper
-        elevation={3}
-        sx={{
-          backgroundColor: '#1e1e1e',
-          border: '1px solid #333',
-          borderRadius: 1,
-          flex: '1 1 0',
-          minHeight: 0,
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column'
+    <div style={{
+      height: 'calc(100vh - 48px)',
+      width: '100vw',
+      position: 'fixed',
+      top: '48px',
+      left: 0,
+      zIndex: 1,
+      overflow: 'hidden',
+      background: 'transparent' // Let app background show through
+    }}>
+      {/* Logs container */}
+      <div
+        ref={logsContainerRef}
+        style={{
+          height: '100%', // Full height now that header is removed
+          width: '100%',
+          overflow: 'auto',
+          padding: '16px',
+          boxSizing: 'border-box',
+          background: 'transparent'
         }}
       >
-        <Box
-          sx={{
-            backgroundColor: '#2d2d2d',
-            color: '#ffffff',
-            padding: '8px 32px 8px 16px',
-            borderBottom: '1px solid #333',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            flexShrink: 0
-          }}
-        >
-          Backend Logs
-        </Box>
-        
-        <Box
-          ref={logsContainerRef}
-          sx={{
-            flex: '1 1 0',
-            minHeight: 0,
-            overflow: 'auto',
-            padding: '16px',
-            backgroundColor: '#1e1e1e',
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              backgroundColor: '#2d2d2d',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              backgroundColor: '#555',
-              borderRadius: '4px',
-            },
-            '&::-webkit-scrollbar-thumb:hover': {
-              backgroundColor: '#777',
-            },
-          }}
-        >
-          {logs.length === 0 ? (
-            <Typography
-              variant="body2"
-              sx={{
-                color: '#888',
-                fontStyle: 'italic',
-                textAlign: 'center',
-                mt: 4
-              }}
-            >
-              No logs yet. Click "Start Streaming" to begin viewing real-time logs.
-            </Typography>
-          ) : (
-            logs.map((entry, index) => formatLogLine(entry, index))
-          )}
-          <div ref={logsEndRef} />
-        </Box>
-      </Paper>
-    </Box>
+        {logs.length === 0 ? (
+          <div style={{
+            color: '#888',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            marginTop: '2rem'
+          }}>
+            {isStreaming ? "Loading logs..." : "No logs available."}
+          </div>
+        ) : (
+          logs.map((entry, index) => formatLogLine(entry, index))
+        )}
+        <div ref={logsEndRef} />
+      </div>
+    </div>
   )
 }
 

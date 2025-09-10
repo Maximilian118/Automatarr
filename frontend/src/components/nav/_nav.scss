@@ -9,9 +9,10 @@ nav {
   border-bottom: 2px solid black;
   padding-right: 15px;
   box-sizing: border-box;
-  position: sticky;
+  position: fixed; // Changed from sticky to fixed
   z-index: 999;
   top: 0;
+  left: 0; // Ensure it starts from the very left edge
 
   .nav-left {
     height: 100%;
@@ -19,7 +20,7 @@ nav {
 
     img {
       height: 75%;
-      margin: 0 0 0 15px;
+      margin: 0 15px 0;
       cursor: pointer;
     }
 

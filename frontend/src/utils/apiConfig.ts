@@ -4,8 +4,11 @@ export const getApiBaseUrl = (): string => {
   const isDomain = /^[a-zA-Z.-]+$/.test(window.location.hostname) // crude domain check
   const isIP = /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname)
 
-  if (isLocalhost || isDomain) {
-    // Development (localhost) or Production with NGINX & domain proxying
+  if (isLocalhost) {
+    // Development (localhost) - connect to backend on port 8091
+    return "http://localhost:8091"
+  } else if (isDomain) {
+    // Production with NGINX & domain proxying
     return ""
   } else if (isIP) {
     // Access via LAN IP: use the same IP but port 8091

@@ -32,16 +32,13 @@ body {
     min-height: 100%;
     @include mixins.flexbox-column;
 
-    main {
-      flex-grow: 1;
-      @include mixins.flexbox-column;
-    }
-
-    form {
+    // Consistent layout for all pages: margin-top for nav spacing, padding for content spacing
+    main, form {
+      margin-top: 48px;
+      padding: 20px 0;
       @include mixins.flexbox-start-column;
       flex-shrink: 0;
       width: 100%;
-      padding: 20px 0 0;
       box-sizing: border-box;
 
       >:not(:last-child) {
@@ -49,8 +46,16 @@ body {
       }
     }
 
+    main {
+      flex-grow: 1;
+      min-height: calc(100vh - 48px); // Ensure full height minus nav
+    }
+
     .login-form {
       justify-content: center;
+      flex-grow: 1;
+      margin-top: 0;
+      padding: 0;
       
       img {
         width: 300px;
