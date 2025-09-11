@@ -256,6 +256,8 @@ export const validateRemoveCommand = async (
       command: string
       passedIndex: number | null
       poolItemTitle: string
+      contentTitle: string | null
+      contentYear: number | null
       contentType: "movie" | "series"
     }
 > => {
@@ -334,6 +336,8 @@ export const validateRemoveCommand = async (
       command,
       passedIndex: adjustedIndex + 1,
       poolItemTitle,
+      contentTitle: item.title,
+      contentYear: item.year,
       contentType: singular,
     }
   }
@@ -346,15 +350,17 @@ export const validateRemoveCommand = async (
     return `Which ${singular} would you like to remove?\n\n${canRemove}`
   }
 
-  const year = lastPart
-  const title = rest.slice(0, -1).join(" ")
-  const poolItemTitle = `${title.trim()} ${year}`
+  const year = parseInt(lastPart, 10)
+  const title = rest.slice(0, -1).join(" ").trim()
+  const poolItemTitle = `${title} ${year}`
 
   return {
     channel,
     command,
     passedIndex: null,
     poolItemTitle,
+    contentTitle: title,
+    contentYear: year,
     contentType: singular,
   }
 }

@@ -591,7 +591,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
   const parsed = await validateRemoveCommand(message, settings)
   if (typeof parsed === "string") return parsed
 
-  const { channel, poolItemTitle, contentType } = parsed
+  const { channel, poolItemTitle, contentTitle, contentYear, contentType } = parsed
 
   if (!("name" in channel) || !channel.name) {
     return "Wups! This command can only be used in a named server channel."
@@ -606,19 +606,41 @@ export const caseRemove = async (message: Message): Promise<string> => {
   let user = matchedUser(settings, username)
   if (!user) return `A Discord user by <@${guildMember.id}> does not exist in the database.`
 
+  const plural = contentType === "movie" ? "movies" : "series"
+
   // Remove from the user's pool
+  const originalPoolSize =
+    contentType === "movie" ? user.pool.movies.length : user.pool.series.length
+
   settings.general_bot.users = settings.general_bot.users.map((u) => {
     if (user && u._id !== user._id) return u
 
     const pool = u.pool
+    // Use robust comparison for title+year, fallback to string comparison for index-based removal
     const updatedMovies =
       channel.name === settings.discord_bot.movie_channel_name
-        ? pool.movies.filter((m) => `${m.title} ${m.year}` !== poolItemTitle)
+        ? pool.movies.filter((m) => {
+            if (contentTitle !== null && contentYear !== null) {
+              return !(
+                m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+                Number(m.year) === Number(contentYear)
+              )
+            }
+            return `${m.title} ${m.year}` !== poolItemTitle
+          })
         : pool.movies
 
     const updatedSeries =
       channel.name === settings.discord_bot.series_channel_name
-        ? pool.series.filter((s) => `${s.title} ${s.year}` !== poolItemTitle)
+        ? pool.series.filter((s) => {
+            if (contentTitle !== null && contentYear !== null) {
+              return !(
+                s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+                Number(s.year) === Number(contentYear)
+              )
+            }
+            return `${s.title} ${s.year}` !== poolItemTitle
+          })
         : pool.series
 
     const newUser = {
@@ -634,6 +656,13 @@ export const caseRemove = async (message: Message): Promise<string> => {
     return newUser
   })
 
+  // Check if anything was actually removed
+  const newPoolSize = contentType === "movie" ? user.pool.movies.length : user.pool.series.length
+
+  if (originalPoolSize === newPoolSize) {
+    return `I couldn't not find "${poolItemTitle}" in your ${plural} pool. Use \`!list ${plural}\` to see your current ${plural}.`
+  }
+
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseRemove"))) return noDBSave()
 
@@ -641,8 +670,6 @@ export const caseRemove = async (message: Message): Promise<string> => {
     contentType === "movie"
       ? checkUserMovieLimit(user, settings)
       : checkUserSeriesLimit(user, settings)
-
-  const plural = contentType === "movie" ? "movies" : "series"
 
   return discordReply(
     randomRemovalSuccessMessage(poolItemTitle, contentType),
