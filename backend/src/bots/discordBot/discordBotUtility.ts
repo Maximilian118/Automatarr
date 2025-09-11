@@ -5,6 +5,7 @@ import {
   GuildMember,
   GuildTextBasedChannel,
   Message,
+  EmbedBuilder,
 } from "discord.js"
 import Settings, { DiscordBotType, settingsDocType, BotUserType } from "../../models/settings"
 import logger from "../../logger"
@@ -45,6 +46,11 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
 
 // A function for type safty with message.channel.send()
 export const sendDiscordMessage = async (message: Message, content: string): Promise<void> => {
+  // Skip sending if content is empty or just whitespace
+  if (!content || content.trim() === "") {
+    return
+  }
+  
   if ("send" in message.channel && typeof message.channel.send === "function") {
     await message.channel.send(content)
   } else {
@@ -471,4 +477,68 @@ export const getQueueItemWithLongestTimeLeft = (
 
     return currentMs > maxMs ? current : max
   })
+}
+
+// Get poster image URL from movie/series, prioritizing poster type
+export const getPosterImageUrl = (images: any[]): string | null => {
+  if (!images || images.length === 0) return null
+  
+  // Priority: poster > banner > any other image
+  const poster = images.find(img => img.coverType === "poster")
+  if (poster?.remoteUrl || poster?.url) return poster.remoteUrl || poster.url
+  
+  const banner = images.find(img => img.coverType === "banner") 
+  if (banner?.remoteUrl || banner?.url) return banner.remoteUrl || banner.url
+  
+  // Fallback to first available image
+  const fallback = images.find(img => img.remoteUrl || img.url)
+  return fallback?.remoteUrl || fallback?.url || null
+}
+
+// Create embed for movie/series pool item
+export const createPoolItemEmbed = (
+  item: any,
+  index: number,
+  contentType: "movie" | "series",
+  color: number = 0x3498db
+): EmbedBuilder => {
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setTitle(`${index + 1}. ${item.title} (${item.year})`)
+  
+  let description = ""
+  
+  if (contentType === "movie") {
+    // Format runtime from minutes to hours and minutes
+    const runtimeMins = item.runtime || 0
+    const hours = Math.floor(runtimeMins / 60)
+    const minutes = runtimeMins % 60
+    const runtimeStr = hours > 0 
+      ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`
+      : `${minutes}m`
+    
+    const downloaded = item.hasFile ? "Yes" : "No"
+    
+    // Get Rotten Tomatoes rating from ratings object
+    const rtScore = item.ratings?.rottenTomatoes?.value 
+      ? `${item.ratings.rottenTomatoes.value}%`
+      : "N/A"
+    
+    description = `**Runtime:** ${runtimeStr}\n**Downloaded:** ${downloaded}\n🍅︎ **${rtScore}**`
+  } else {
+    // Series info
+    const seasons = item.seasons ? item.seasons.length : 0
+    const downloadedPercent = item.statistics?.percentOfEpisodes || 0
+    const totalEpisodes = item.statistics?.totalEpisodeCount || 0
+    description = `**Seasons:** ${seasons}\n**Episodes:** ${totalEpisodes}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%`
+  }
+  
+  embed.setDescription(description)
+  
+  const posterUrl = getPosterImageUrl(item.images)
+  if (posterUrl) {
+    embed.setThumbnail(posterUrl)
+  }
+  
+  return embed
 }

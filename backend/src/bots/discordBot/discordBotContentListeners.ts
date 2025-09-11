@@ -1,4 +1,4 @@
-import { Message } from "discord.js"
+import { Message, EmbedBuilder } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
 import {
   discordReply,
@@ -11,6 +11,7 @@ import {
   noDBPull,
   noDBSave,
   sendDiscordMessage,
+  createPoolItemEmbed,
 } from "./discordBotUtility"
 import {
   validateBlocklistCommand,
@@ -531,13 +532,17 @@ export const caseList = async (message: Message): Promise<string> => {
   const isSeriesChannel =
     channel.name.toLowerCase() === settings.discord_bot.series_channel_name.toLowerCase()
 
-  // Validate the request string: `!list <optional_contentType> <optional_discord_username>`
+  // Validate the request string: `!list <optional_contentType> <optional_discord_username> <optional_basic>`
   const msgArr = message.content.slice().trim().split(/\s+/)
   const validationError = validateListCommand(msgArr)
   if (validationError) return validationError
 
-  // Extract guildMember while checking if <discord_username> exists on the server
-  const targetUser = msgArr[2] ? msgArr[2] : message.author.username
+  // Check for "basic" flag in any position after !list
+  const isBasicMode = msgArr.includes("basic")
+
+  // Extract target user, filtering out "basic" keyword
+  const userParams = msgArr.slice(2).filter(param => param !== "basic")
+  const targetUser = userParams[0] ? userParams[0] : message.author.username
   const guildMember = await matchedDiscordUser(message, targetUser)
   if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
   const username = guildMember.user.username
@@ -557,47 +562,135 @@ export const caseList = async (message: Message): Promise<string> => {
   const { currentMovieMax } = checkUserMovieLimit(user, settings)
   const { currentSeriesMax } = checkUserSeriesLimit(user, settings)
 
-  const moviesList =
-    user.pool.movies.length === 0
-      ? `No Movies yet! ${
-          !msgArr[2]
-            ? `Use the !download command in the ${movieChannel} channel to download your first movie!`
-            : ""
-        }`
-      : user.pool.movies.map((movie, i) => `${i}. ${movie.title} ${movie.year}`).join("\n") +
-        `\n(Maximum: ${currentMovieMax})`
-
-  const movies = `Movies:\n` + moviesList + "\n"
-
-  const seriesList =
-    user.pool.series.length === 0
-      ? `No Series yet! ${
-          !msgArr[2]
-            ? `Use the !download command in the ${seriesChannel} channel to download your first series!`
-            : ""
-        }`
-      : user.pool.series.map((series, i) => `${i}. ${series.title} ${series.year}`).join("\n") +
-        `\n(Maximum: ${currentSeriesMax})`
-
-  const series = `Series:\n` + seriesList + "\n"
-
   // Determine what content to show based on explicit contentType or channel context
   const shouldShowMovies = (!contentType && isMovieChannel) || contentType?.includes("movie")
   const shouldShowSeries = (!contentType && isSeriesChannel) || contentType === "series"
   const shouldShowBoth =
     (!contentType && !isMovieChannel && !isSeriesChannel) || contentType === "pool"
 
-  return (
-    `🎞️ Content Pool for <@${guildMember.id}>\n` +
-    `\n` +
-    (shouldShowBoth
-      ? `${movies}\n` + series
-      : shouldShowMovies
-      ? movies
-      : shouldShowSeries
-      ? series
-      : "")!
-  )
+  // Handle basic mode - return old text-based format
+  if (isBasicMode) {
+    const moviesList =
+      user.pool.movies.length === 0
+        ? `No Movies yet! ${
+            !userParams[0]
+              ? `Use the !download command in the ${movieChannel} channel to download your first movie!`
+              : ""
+          }`
+        : user.pool.movies.map((movie, i) => `${i + 1}. ${movie.title} ${movie.year}`).join("\n") +
+          `\n(Maximum: ${currentMovieMax})`
+
+    const movies = `Movies:\n` + moviesList + "\n"
+
+    const seriesList =
+      user.pool.series.length === 0
+        ? `No Series yet! ${
+            !userParams[0]
+              ? `Use the !download command in the ${seriesChannel} channel to download your first series!`
+              : ""
+          }`
+        : user.pool.series.map((series, i) => `${i + 1}. ${series.title} ${series.year}`).join("\n") +
+          `\n(Maximum: ${currentSeriesMax})`
+
+    const series = `Series:\n` + seriesList + "\n"
+
+    return (
+      `🎞️ Content Pool for <@${guildMember.id}>\n` +
+      `\n` +
+      (shouldShowBoth
+        ? `${movies}\n` + series
+        : shouldShowMovies
+        ? movies
+        : shouldShowSeries
+        ? series
+        : "")!
+    )
+  }
+
+  const embeds = []
+  const movieColor = 0xff6b6b // Red for movies
+  const seriesColor = 0x4ecdc4 // Teal for series
+
+  // Create embeds for content
+  if (shouldShowBoth || shouldShowMovies) {
+    if (user.pool.movies.length === 0) {
+      // Empty movies embed
+      const emptyEmbed = new EmbedBuilder()
+        .setColor(movieColor)
+        .setTitle("🎬 Movies")
+        .setDescription(
+          `No Movies yet! ${
+            !msgArr[2] && movieChannel
+              ? `Use the !download command in ${movieChannel} to download your first movie!`
+              : "This user has no movies in their pool."
+          }`
+        )
+        .setFooter({ text: `Maximum: ${currentMovieMax}` })
+      embeds.push(emptyEmbed)
+    } else {
+      // Add movie embeds (max 10 per Discord message)
+      user.pool.movies.slice(0, 10).forEach((movie, i) => {
+        const embed = createPoolItemEmbed(movie, i, "movie", movieColor)
+        embeds.push(embed)
+      })
+    }
+  }
+
+  if (shouldShowBoth || shouldShowSeries) {
+    if (user.pool.series.length === 0) {
+      // Empty series embed
+      const emptyEmbed = new EmbedBuilder()
+        .setColor(seriesColor)
+        .setTitle("📺 Series")
+        .setDescription(
+          `No Series yet! ${
+            !msgArr[2] && seriesChannel
+              ? `Use the !download command in ${seriesChannel} to download your first series!`
+              : "This user has no series in their pool."
+          }`
+        )
+        .setFooter({ text: `Maximum: ${currentSeriesMax}` })
+      embeds.push(emptyEmbed)
+    } else {
+      // Add series embeds (respect Discord's 10 embed limit)
+      const remainingSlots = 10 - embeds.length
+      user.pool.series.slice(0, remainingSlots).forEach((series, i) => {
+        const embed = createPoolItemEmbed(series, i, "series", seriesColor)
+        embeds.push(embed)
+      })
+    }
+  }
+
+  // Add separate maximum limit embeds at the end
+  if ((shouldShowBoth || shouldShowMovies) && user.pool.movies.length > 0) {
+    const maxEmbed = new EmbedBuilder()
+      .setColor(movieColor)
+      .setTitle(`Movies Pool Limit:   ${currentMovieMax}`)
+    embeds.push(maxEmbed)
+  }
+
+  if ((shouldShowBoth || shouldShowSeries) && user.pool.series.length > 0) {
+    const maxEmbed = new EmbedBuilder()
+      .setColor(seriesColor)
+      .setTitle(`Series Pool Limit:   ${currentSeriesMax}`)
+    embeds.push(maxEmbed)
+  }
+
+  // Send embeds
+  if (embeds.length > 0) {
+    if ("send" in message.channel && typeof message.channel.send === "function") {
+      await message.channel.send({ 
+        content: `🎞️ **Content Pool for <@${guildMember.id}>**`,
+        embeds: embeds.slice(0, 10) // Discord max 10 embeds per message
+      })
+      return "" // Return empty to prevent additional message
+    } else {
+      logger.warn("caseList: Channel does not support sending embeds")
+      return "Unable to send rich content in this channel type."
+    }
+  }
+
+  return "No content found to display."
 }
 
 // Remove an item from the users pool
