@@ -9,7 +9,7 @@ import remove_failed from "./remove_failed"
 import remove_missing from "./remove_missing"
 import search_wanted_missing from "./search_wanted_missing"
 import tidy_directories from "./tidy_directories"
-import userPoolContentChecker from "./userPoolContentChecker"
+import user_pool_content_checker from "./user_pool_content_checker"
 
 // Start looping through all of the core loops
 // prettier-ignore
@@ -38,7 +38,7 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   }, skipFirst)
   // Check user pools and re-download missing content FIRST to ensure library is complete
   await dynamicLoop("user_pool_checker_loop", async (settings) => {
-    await userPoolContentChecker(settings)
+    await user_pool_content_checker(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_missing_loop", async (settings) => {
@@ -74,7 +74,7 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   }
   // Check user pools and re-download missing content FIRST to ensure library is complete
   if (settings.user_pool_checker) {
-    await userPoolContentChecker(settings._doc)
+    await user_pool_content_checker(settings._doc)
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {

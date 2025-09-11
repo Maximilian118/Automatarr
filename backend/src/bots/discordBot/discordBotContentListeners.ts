@@ -519,6 +519,18 @@ export const caseList = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
+  // Get the channel used
+  const channel = message.channel
+
+  if (!("name" in channel) || !channel.name) {
+    return "Wups! This command can only be used in a named server channel."
+  }
+
+  const isMovieChannel =
+    channel.name.toLowerCase() === settings.discord_bot.movie_channel_name.toLowerCase()
+  const isSeriesChannel =
+    channel.name.toLowerCase() === settings.discord_bot.series_channel_name.toLowerCase()
+
   // Validate the request string: `!list <optional_contentType> <optional_discord_username>`
   const msgArr = message.content.slice().trim().split(/\s+/)
   const validationError = validateListCommand(msgArr)
@@ -569,14 +581,20 @@ export const caseList = async (message: Message): Promise<string> => {
 
   const series = `Series:\n` + seriesList + "\n"
 
+  // Determine what content to show based on explicit contentType or channel context
+  const shouldShowMovies = (!contentType && isMovieChannel) || contentType?.includes("movie")
+  const shouldShowSeries = (!contentType && isSeriesChannel) || contentType === "series"
+  const shouldShowBoth =
+    (!contentType && !isMovieChannel && !isSeriesChannel) || contentType === "pool"
+
   return (
     `🎞️ Content Pool for <@${guildMember.id}>\n` +
     `\n` +
-    (!contentType || contentType === "pool"
+    (shouldShowBoth
       ? `${movies}\n` + series
-      : contentType.includes("movie")
+      : shouldShowMovies
       ? movies
-      : contentType === "series"
+      : shouldShowSeries
       ? series
       : "")!
   )

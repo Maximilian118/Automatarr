@@ -106,6 +106,8 @@ const settingsResolvers = {
     settings.backups = args.settingsInput.backups
     settings.backups_loop = args.settingsInput.backups_loop
     settings.backups_rotation_date = args.settingsInput.backups_rotation_date
+    settings.user_pool_checker = args.settingsInput.user_pool_checker
+    settings.user_pool_checker_loop = args.settingsInput.user_pool_checker_loop
     settings.updated_at = moment().format()
 
     // Update settings as needed with Bot data

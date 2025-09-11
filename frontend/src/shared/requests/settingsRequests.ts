@@ -119,6 +119,8 @@ export const updateSettings = async (
           $backups: Boolean
           $backups_loop: Int
           $backups_rotation_date: Int
+          $user_pool_checker: Boolean
+          $user_pool_checker_loop: Int
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -165,6 +167,8 @@ export const updateSettings = async (
             backups: $backups 
             backups_loop: $backups_loop
             backups_rotation_date: $backups_rotation_date
+            user_pool_checker: $user_pool_checker
+            user_pool_checker_loop: $user_pool_checker_loop
           }) {
             ${populateSettings}
           }

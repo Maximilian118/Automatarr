@@ -10,7 +10,7 @@ import { Series } from "../types/seriesTypes"
 import { saveWithRetry } from "../shared/database"
 import moment from "moment"
 
-const userPoolContentChecker = async (settings: settingsType): Promise<void> => {
+const user_pool_content_checker = async (settings: settingsType): Promise<void> => {
   logger.info("User Pool Content Checker | Starting content verification.")
 
   // Only get data for API's that have been checked and are active
@@ -293,4 +293,4 @@ const userPoolContentChecker = async (settings: settingsType): Promise<void> => 
   )
 }
 
-export default userPoolContentChecker
+export default user_pool_content_checker
