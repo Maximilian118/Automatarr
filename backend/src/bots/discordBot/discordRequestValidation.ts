@@ -98,33 +98,45 @@ export const validateMaxCommand = (msgArr: string[]): string => {
 
 // Validate the array data for the caseMax message
 export const validateListCommand = (msgArr: string[]): string => {
-  const contentTypes = ["pool", "movie", "movies", "series"]
+  const validContentTypes = ["pool", "movie", "movies", "series"]
   const unsupported = ["album", "albums", "book", "books"]
 
   if (msgArr.length > 3) {
     return "The !list command must contain no more than three parts: `!list <optional_contentType> <optional_discord_username>`."
   }
 
-  const [command, contentType] = msgArr
+  const [command, ...rest] = msgArr
 
   if (command.toLowerCase() !== "!list") {
     return `Invalid command \`${command}\`.`
   }
 
-  if (!contentType) {
-    return ""
-  }
-
-  const typeLower = contentType.toLowerCase()
-
-  if (unsupported.includes(typeLower)) {
-    return `I do apologise. My maker hasn't programmed me for ${
-      contentType.endsWith("s") ? contentType : contentType + "s"
-    } yet.`
-  }
-
-  if (!contentTypes.includes(typeLower)) {
-    return `Hmm.. I don't understand what you mean by ${contentType}. Try ${contentTypes.join(
+  // Parse arguments more intelligently
+  // Expected format: !list [contentType] [username] [basic]
+  // Where contentType and username can be in any order after the command
+  
+  for (const arg of rest) {
+    const argLower = arg.toLowerCase()
+    
+    // Skip "basic" flag and Discord usernames (both @username and <@id> formats)
+    if (argLower === "basic" || arg.startsWith("@") || arg.match(/^<@!?\d+>$/)) {
+      continue
+    }
+    
+    // Check for unsupported types
+    if (unsupported.includes(argLower)) {
+      return `I do apologise. My maker hasn't programmed me for ${
+        arg.endsWith("s") ? arg : arg + "s"
+      } yet.`
+    }
+    
+    // Check if it's a valid content type
+    if (validContentTypes.includes(argLower)) {
+      continue
+    }
+    
+    // If we get here, it's an unrecognized argument that's not basic, @username, or valid content type
+    return `Hmm.. I don't understand what you mean by ${arg}. Try ${validContentTypes.join(
       ", ",
     )}.`
   }
