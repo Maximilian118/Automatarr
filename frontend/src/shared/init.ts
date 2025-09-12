@@ -18,6 +18,7 @@ const initGeneralBot: GeneralBotType = {
   min_free_space: "21474836480", // Default 20gb // A number representing the minimum amount of free space that must be left available
   welcome_message: "", // A welcome message for new bot users
   auto_init: "", // Automatically initialise a user pool for every new bot user. Only available on one bot of the server owners choosing.
+  users: [], // An array of registered users
 }
 
 const initDiscordBot: DiscordBotType = {

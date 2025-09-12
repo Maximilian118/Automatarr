@@ -84,6 +84,36 @@ export const populateSettings = `
     min_free_space
     welcome_message
     auto_init
+    users {
+      _id
+      name
+      ids
+      admin
+      super_user
+      max_movies_overwrite
+      max_series_overwrite
+      pool {
+        movies {
+          id
+          title
+          year
+          sizeOnDisk
+        }
+        series {
+          id
+          title
+          year
+          seasons {
+            seasonNumber
+            statistics {
+              sizeOnDisk
+            }
+          }
+        }
+      }
+      created_at
+      updated_at
+    }
   }
   discord_bot {
     active

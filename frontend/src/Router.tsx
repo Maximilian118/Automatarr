@@ -6,6 +6,7 @@ import Connections from "./pages/Connections"
 import Loops from "./pages/Loops"
 import Bots from "./pages/Bots"
 import Logs from "./pages/Logs"
+import Users from "./pages/Users"
 import { UserType } from "./types/userType"
 import Login from "./pages/Login"
 import Forgot from "./pages/Forgot"
@@ -25,6 +26,7 @@ const Router: React.FC<routerType> = ({ user }) => user.token ? (
     <Route path="/loops" Component={Loops}/>
     <Route path="/bots" Component={Bots}/>
     <Route path="/logs" Component={Logs}/>
+    <Route path="/users" Component={Users}/>
     <Route path="/settings" Component={Settings}/>
     <Route path="/recoverykey" Component={RecoveryKey}/>
   </Routes>

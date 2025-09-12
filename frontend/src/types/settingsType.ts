@@ -18,6 +18,34 @@ export type tidyPaths = {
 
 export type AvailableBots = "Discord" | "Whatsapp" | ""
 
+export type PoolType = {
+  movies: { id?: number; title: string; year: number; sizeOnDisk?: number }[]
+  series: { 
+    id?: number; 
+    title: string; 
+    year: number; 
+    seasons?: { 
+      seasonNumber: number; 
+      statistics?: { 
+        sizeOnDisk?: number 
+      } 
+    }[] 
+  }[]
+}
+
+export type BotUserType = {
+  _id?: string
+  name: string
+  ids: string[]
+  admin: boolean
+  super_user: boolean
+  max_movies_overwrite: number | null
+  max_series_overwrite: number | null
+  pool: PoolType
+  created_at: string
+  updated_at: string
+}
+
 // General information for all Bots
 export type GeneralBotType = {
   max_movies: number | null // Maximum movies a user is allowed to have downloaded at the same time
@@ -29,6 +57,7 @@ export type GeneralBotType = {
   min_free_space: string // A number representing the minimum amount of free space that must be left available
   welcome_message: string // A welcome message for new bot users
   auto_init: AvailableBots // Automatically initialise a user pool for every new bot user. Only available on one bot of the server owners choosing.
+  users: BotUserType[] // An array of registered users
 }
 
 export type DiscordBotType = {

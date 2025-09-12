@@ -9,6 +9,19 @@ const settingsSchema = `
     series: [Series!]!
   }
 
+  type BotUser {
+    _id: ID
+    name: String!
+    ids: [String!]!
+    admin: Boolean!
+    super_user: Boolean!
+    max_movies_overwrite: Int
+    max_series_overwrite: Int
+    pool: Pool!
+    created_at: String!
+    updated_at: String!
+  }
+
   type GeneralBot {
     max_movies: Int
     movie_pool_expiry: Int
@@ -19,6 +32,7 @@ const settingsSchema = `
     min_free_space: String!
     welcome_message: String!
     auto_init: String!
+    users: [BotUser!]!
   }
 
   type DiscordBot {

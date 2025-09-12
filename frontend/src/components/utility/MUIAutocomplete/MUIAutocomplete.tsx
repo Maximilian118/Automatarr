@@ -22,6 +22,7 @@ type MUIAutocompleteType = {
   optionsEndAdornmentOnClick?: (option: string) => void
   noInteract?: boolean
   loading?: boolean
+  placeholder?: string
 }
 
 const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({ 
@@ -42,6 +43,7 @@ const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({
   optionsEndAdornmentOnClick,
   noInteract,
   loading,
+  placeholder,
 }) => {
   const [inputValue, setInputValue] = React.useState("")
   const id = `${label}-autocomplete`
@@ -82,6 +84,7 @@ const MUIAutocomplete: React.FC<MUIAutocompleteType> = ({
           {...params}
           name={name ? name : label.toLocaleLowerCase().replace(/\s+/g, '_')}
           label={label} 
+          placeholder={placeholder}
           size={size} 
           onBlur={e => onBlur && onBlur(e)}
           onChange={e => onChange && onChange(e)}

@@ -5,7 +5,7 @@ import { Loop as MuiLoop, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { checkChownValidity, inputLabel, updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
-import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
 import Loop from "../components/loop/Loop"
 import LoopTime from "../components/loop/looptime/Looptime"
@@ -31,7 +31,7 @@ const Loops: React.FC = () => {
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, user, setUser, setLocalLoading, navigate)
+      getSettingsWithState(setSettings, user, setUser, setLocalLoading, navigate)
     }
   }, [user, setUser, settings, setSettings, navigate])
 

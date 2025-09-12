@@ -6,7 +6,7 @@ import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
 import { useNavigate } from "react-router-dom"
-import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import { EventType, settingsErrorType, settingsType} from "../types/settingsType"
 import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
@@ -48,7 +48,7 @@ const Settings: React.FC = () => {
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, user, setUser, setLocalLoading, navigate)
+      getSettingsWithState(setSettings, user, setUser, setLocalLoading, navigate)
     }
   }, [user, setUser, settings, setSettings, navigate])
 

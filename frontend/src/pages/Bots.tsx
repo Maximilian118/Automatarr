@@ -2,7 +2,7 @@ import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { Send, SettingsSuggest } from "@mui/icons-material"
-import { getDiscordChannels, getQualityProfiles, getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getDiscordChannels, getQualityProfiles, getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
 import { BotModel } from "../components/model/botModel/BotModel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
@@ -31,7 +31,7 @@ const Bots: React.FC = () => {
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, user, setUser, setLocalLoading, navigate)
+      getSettingsWithState(setSettings, user, setUser, setLocalLoading, navigate)
     }
 
     if (settings.discord_bot.active) {

@@ -116,13 +116,36 @@ export const numberSelection = (endString?: string): string[] => {
   return endString ? base.concat(endString) : base
 }
 
-export const stringSelectionToNumber = (value: string): number | null => value === "Infinite" ? null : parseInt(value, 10)
+// Special number selection for user overwrites with "No Overwrite" placeholder
+export const userOverwriteSelection = (): string[] => {
+  const base = [...Array(99)].map((_, i) => (i + 1).toString())
+  return base.concat("Infinite")
+}
+
+export const stringSelectionToNumber = (value: string | null): number | null => {
+  if (value === "Infinite") return null
+  return value ? parseInt(value, 10) : null
+}
+
 export const toStringWithCap = (num: number | null, max: number, maxString: string): string =>
   num === null ? maxString : num > max ? maxString : num.toString()
 
+// New functions specifically for user overwrite handling
+export const userOverwriteToNumber = (value: string | null): number | null => {
+  if (value === null || value === "No Overwrite") return null
+  if (value === "Infinite") return 99999 // Large number to represent infinite
+  return parseInt(value, 10)
+}
+
+export const numberToUserOverwriteString = (num: number | null): string => {
+  if (num === null) return "No Overwrite"
+  if (num >= 99999) return "Infinite"
+  return num.toString()
+}
+
 // A function to convert bytes into an readable string
 export const formatBytes = (bytesInput: string | number, decimals = 2): string => {
-  if (!bytesInput) {
+  if (!bytesInput && bytesInput !== 0) {
     return ""
   }
 
@@ -132,7 +155,7 @@ export const formatBytes = (bytesInput: string | number, decimals = 2): string =
   // Convert input to BigInt for safety
   const bytes = typeof bytesInput === 'string' ? BigInt(bytesInput) : BigInt(Math.floor(bytesInput))
 
-  if (bytes === 0n) return '0B'
+  if (bytes === 0n) return '0'
 
   // Find appropriate unit index using logarithmic approximation with BigInt
   let i = 0

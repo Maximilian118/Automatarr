@@ -4,7 +4,7 @@ import AppContext from "../context"
 import { Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
-import { getSettings, updateSettings } from "../shared/requests/settingsRequests"
+import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import InputModel from "../components/model/inputModel/InputModel"
 import Footer from "../components/footer/Footer"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
@@ -21,7 +21,7 @@ const Connections: React.FC = () => {
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
-      getSettings(setSettings, user, setUser, setLocalLoading, navigate, true)
+      getSettingsWithState(setSettings, user, setUser, setLocalLoading, navigate, true)
     }
   }, [user, setUser, settings, setSettings, navigate])
 

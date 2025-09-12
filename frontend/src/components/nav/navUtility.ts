@@ -20,6 +20,10 @@ export const navItems = [
     url: "/logs",
   },
   {
+    text: "Users",
+    url: "/users",
+  },
+  {
     text: "Settings",
     url: "/settings",
   },

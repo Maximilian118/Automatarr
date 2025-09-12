@@ -1,0 +1,196 @@
+.user-card {
+  flex: 0 0 auto;
+  width: 300px;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  background-color: #0f0f0f;
+  border-radius: 4px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+
+  // Mobile: full width
+  @media (max-width: 700px) {
+    width: 100%;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 5px 5px -3px rgba(0,0,0,0.2), 0px 8px 10px 1px rgba(0,0,0,0.14), 0px 3px 14px 2px rgba(0,0,0,0.12);
+  }
+}
+
+.user-card-header {
+  padding: 16px 16px 0 16px;
+
+  .user-card-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .user-name {
+      flex-grow: 1;
+      margin: 0;
+      margin-right: 8px;
+      font-size: 1.25rem;
+      font-weight: 500;
+      color: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+    
+    .user-card-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+  }
+}
+
+.user-card-content {
+  flex-grow: 1;
+  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+
+  &.MuiCardContent-root {
+    padding: 16px 16px 12px;
+  }
+}
+
+.user-card-toggle {
+  display: flex;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  padding: 2px;
+  margin-bottom: 16px;
+
+  .toggle-button {
+    flex: 1;
+    min-height: 28px;
+    padding: 4px 0;
+    text-transform: none;
+
+    &.active {
+      background-color: #1976d2;
+      color: white;
+
+      &:hover {
+        background-color: #1565c0;
+      }
+    }
+
+    &.inactive {
+      background-color: transparent;
+      color: #ccc;
+
+      &:hover {
+        background-color: #3a3a3a;
+      }
+    }
+  }
+}
+
+.user-card-scroll-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 8px;
+  height: 0; // Flex basis 0, grows to fill available space
+}
+
+.user-card-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .item-title {
+    flex-grow: 1;
+    margin-right: 8px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0; // Important for flex child text truncation
+  }
+
+  .item-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .delete-button {
+      min-width: auto;
+      width: 28px;
+      height: 28px;
+    }
+
+    .confirm-button {
+      min-width: auto;
+      padding: 0 8px;
+    }
+  }
+}
+
+.empty-state {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
+.user-settings-container {
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  flex-grow: 1;
+
+  .user-settings-toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 8px;
+    
+    .toggle {
+      height: 40px;
+    }
+  }
+
+  .user-settings-autocompletes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+  }
+}
+
+.user-confirm-container {
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  flex-grow: 1;
+}
+
+.user-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 16px 12px 16px;
+  
+  span {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.875rem;
+  }
+}

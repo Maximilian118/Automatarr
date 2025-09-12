@@ -241,6 +241,253 @@ const settingsResolvers = {
       tokens: req.tokens,
     }
   },
+  removePoolItem: async (
+    args: { 
+      userId: string, 
+      itemType: "movies" | "series", 
+      itemIndex: number 
+    },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    // Find settings object
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("removePoolItem: No settings object was found.")
+      throw new Error("No settings object was found.")
+    }
+
+    // Find the user by ID
+    const userIndex = settings.general_bot.users.findIndex(u => u._id?.toString() === args.userId)
+    
+    if (userIndex === -1) {
+      logger.error(`removePoolItem: User with ID ${args.userId} not found.`)
+      throw new Error("User not found.")
+    }
+
+    const user = settings.general_bot.users[userIndex]
+    
+    // Validate the item index
+    const pool = args.itemType === "movies" ? user.pool.movies : user.pool.series
+    
+    if (args.itemIndex < 0 || args.itemIndex >= pool.length) {
+      logger.error(`removePoolItem: Invalid item index ${args.itemIndex} for ${args.itemType}.`)
+      throw new Error("Invalid item index.")
+    }
+
+    const removedItem = pool[args.itemIndex]
+    
+    // Remove the item from the pool
+    pool.splice(args.itemIndex, 1)
+    
+    // Mark the specific path as modified for MongoDB
+    settings.markModified(`general_bot.users.${userIndex}.pool.${args.itemType}`)
+    
+    // Update timestamp
+    settings.updated_at = moment().format()
+
+    // Save the updated settings
+    await saveWithRetry(settings, "removePoolItem")
+
+    const itemTypeDisplay = args.itemType === 'movies' ? 'movie' : 'series'
+    logger.info(`Removed ${itemTypeDisplay} "${removedItem.title} (${removedItem.year})" from ${user.name}'s pool`)
+
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
+  },
+
+  deleteUser: async (
+    args: { userId: string },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+    
+    // Find settings object
+    const settings = (await Settings.findOne()) as settingsDocType
+    if (!settings) {
+      logger.error("deleteUser: No settings object was found.")
+      throw new Error("No settings object was found.")
+    }
+    
+    // Find the user by ID
+    const userIndex = settings.general_bot.users.findIndex(u => u._id?.toString() === args.userId)
+    
+    if (userIndex === -1) {
+      logger.error(`deleteUser: User with ID ${args.userId} not found.`)
+      throw new Error("User not found.")
+    }
+    
+    const user = settings.general_bot.users[userIndex]
+    
+    // Remove the user from the users array
+    settings.general_bot.users.splice(userIndex, 1)
+    
+    // Mark the users array as modified for MongoDB
+    settings.markModified('general_bot.users')
+    
+    // Update timestamp
+    settings.updated_at = moment().format()
+    
+    // Save the updated settings
+    await saveWithRetry(settings, "deleteUser")
+    
+    logger.info(`Deleted user "${user.name}" (${user._id}) from the database`)
+    
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
+  },
+
+  updateUserStatus: async (
+    args: { 
+      userId: string, 
+      admin?: boolean, 
+      superUser?: boolean 
+    },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+    
+    // Find settings object
+    const settings = (await Settings.findOne()) as settingsDocType
+    if (!settings) {
+      logger.error("updateUserStatus: No settings object was found.")
+      throw new Error("No settings object was found.")
+    }
+    
+    // Find the user by ID
+    const userIndex = settings.general_bot.users.findIndex(u => u._id?.toString() === args.userId)
+    
+    if (userIndex === -1) {
+      logger.error(`updateUserStatus: User with ID ${args.userId} not found.`)
+      throw new Error("User not found.")
+    }
+    
+    const user = settings.general_bot.users[userIndex]
+    const originalAdmin = user.admin
+    const originalSuperUser = user.super_user
+    
+    // Update admin status if provided
+    if (args.admin !== undefined) {
+      user.admin = args.admin
+    }
+    
+    // Update super user status if provided
+    if (args.superUser !== undefined) {
+      user.super_user = args.superUser
+    }
+    
+    // Mark the user as modified for MongoDB
+    settings.markModified(`general_bot.users.${userIndex}`)
+    
+    // Update timestamp
+    settings.updated_at = moment().format()
+    
+    // Save the updated settings
+    await saveWithRetry(settings, "updateUserStatus")
+    
+    // Log the changes
+    const changes = []
+    if (args.admin !== undefined && args.admin !== originalAdmin) {
+      changes.push(`admin: ${originalAdmin} → ${args.admin}`)
+    }
+    if (args.superUser !== undefined && args.superUser !== originalSuperUser) {
+      changes.push(`super user: ${originalSuperUser} → ${args.superUser}`)
+    }
+    
+    if (changes.length > 0) {
+      logger.info(`Updated user "${user.name}" status: ${changes.join(', ')}`)
+    }
+    
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
+  },
+
+  updateUserOverwrites: async (
+    args: { 
+      userId: string, 
+      maxMoviesOverwrite?: number | null,
+      maxSeriesOverwrite?: number | null 
+    },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+    
+    // Find settings object
+    const settings = (await Settings.findOne()) as settingsDocType
+    if (!settings) {
+      logger.error("updateUserOverwrites: No settings object was found.")
+      throw new Error("No settings object was found.")
+    }
+    
+    // Find the user by ID
+    const userIndex = settings.general_bot.users.findIndex(u => u._id?.toString() === args.userId)
+    
+    if (userIndex === -1) {
+      logger.error(`updateUserOverwrites: User with ID ${args.userId} not found.`)
+      throw new Error("User not found.")
+    }
+    
+    const user = settings.general_bot.users[userIndex]
+    const originalMovies = user.max_movies_overwrite
+    const originalSeries = user.max_series_overwrite
+    
+    // Update max movies overwrite if provided
+    if (args.maxMoviesOverwrite !== undefined) {
+      user.max_movies_overwrite = args.maxMoviesOverwrite
+    }
+    
+    // Update max series overwrite if provided
+    if (args.maxSeriesOverwrite !== undefined) {
+      user.max_series_overwrite = args.maxSeriesOverwrite
+    }
+    
+    // Mark the user as modified for MongoDB
+    settings.markModified(`general_bot.users.${userIndex}`)
+    
+    // Update timestamp
+    settings.updated_at = moment().format()
+    
+    // Save the updated settings
+    await saveWithRetry(settings, "updateUserOverwrites")
+    
+    // Log the changes
+    const changes = []
+    if (args.maxMoviesOverwrite !== undefined && args.maxMoviesOverwrite !== originalMovies) {
+      const oldDisplay = originalMovies === null ? 'no overwrite' : originalMovies.toString()
+      const newDisplay = args.maxMoviesOverwrite === null ? 'no overwrite' : args.maxMoviesOverwrite.toString()
+      changes.push(`max movies: ${oldDisplay} → ${newDisplay}`)
+    }
+    if (args.maxSeriesOverwrite !== undefined && args.maxSeriesOverwrite !== originalSeries) {
+      const oldDisplay = originalSeries === null ? 'no overwrite' : originalSeries.toString()
+      const newDisplay = args.maxSeriesOverwrite === null ? 'no overwrite' : args.maxSeriesOverwrite.toString()
+      changes.push(`max series: ${oldDisplay} → ${newDisplay}`)
+    }
+    
+    if (changes.length > 0) {
+      logger.info(`Updated user "${user.name}" overwrites: ${changes.join(', ')}`)
+    }
+    
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
+  },
 }
 
 export default settingsResolvers

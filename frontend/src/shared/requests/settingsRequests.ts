@@ -8,7 +8,39 @@ import { authCheck, getAxiosErrorMessage, handleResponseTokens, headers } from "
 import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
 
-export const getSettings = async (
+// Simple version for Users page
+export const getSettings = async (): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem('token')
+    const res = await axios.post(
+      "",
+      {
+        query: `
+          query {
+            getSettings {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || '') },
+    )
+
+    if (res.data.errors) {
+      console.error(`getSettings Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`getSettings: Settings retrieved.`)
+      return res.data.data.getSettings
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
+  }
+}
+
+// Original version with state setters
+export const getSettingsWithState = async (
   setSettings: Dispatch<SetStateAction<settingsType>>,
   user: UserType,
   setUser: Dispatch<SetStateAction<UserType>>,
@@ -69,10 +101,15 @@ export const updateSettings = async (
   }
 
   try {
+    const checkedSettings = await checkAPIs(user, setUser, navigate, settings, true)
+    // Remove users from general_bot for the GraphQL mutation since users field is not in the input schema
+    const { users, ...general_bot_without_users } = checkedSettings.general_bot
+    const settingsForUpdate = { ...checkedSettings, general_bot: general_bot_without_users }
+    
     const res = await axios.post(
       "",
       {
-        variables: await checkAPIs(user, setUser, navigate, settings, true), // Check all API's with the latest credentials
+        variables: settingsForUpdate,
         query: `
         mutation UpdateSettings( 
           $_id: ID!
@@ -307,5 +344,155 @@ export const getQualityProfiles = async (
     console.error(getAxiosErrorMessage(err))
   } finally {
     setQPLoading(false)
+  }
+}
+
+export const removePoolItem = async (
+  userId: string,
+  itemType: "movies" | "series",
+  itemIndex: number
+): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem('token')
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          userId,
+          itemType,
+          itemIndex
+        },
+        query: `
+          mutation RemovePoolItem($userId: String!, $itemType: String!, $itemIndex: Int!) {
+            removePoolItem(userId: $userId, itemType: $itemType, itemIndex: $itemIndex) {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || '') },
+    )
+
+    if (res.data.errors) {
+      console.error(`removePoolItem Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`removePoolItem: Pool item removed successfully.`)
+      return res.data.data.removePoolItem
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
+  }
+}
+
+export const deleteUser = async (userId: string): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem('token')
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          userId
+        },
+        query: `
+          mutation DeleteUser($userId: String!) {
+            deleteUser(userId: $userId) {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || '') },
+    )
+
+    if (res.data.errors) {
+      console.error(`deleteUser Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`deleteUser: User deleted successfully.`)
+      return res.data.data.deleteUser
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
+  }
+}
+
+export const updateUserStatus = async (
+  userId: string, 
+  admin?: boolean, 
+  superUser?: boolean
+): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem('token')
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          userId,
+          admin,
+          superUser
+        },
+        query: `
+          mutation UpdateUserStatus($userId: String!, $admin: Boolean, $superUser: Boolean) {
+            updateUserStatus(userId: $userId, admin: $admin, superUser: $superUser) {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || '') },
+    )
+
+    if (res.data.errors) {
+      console.error(`updateUserStatus Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`updateUserStatus: User status updated successfully.`)
+      return res.data.data.updateUserStatus
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
+  }
+}
+
+export const updateUserOverwrites = async (
+  userId: string,
+  maxMoviesOverwrite?: number | null,
+  maxSeriesOverwrite?: number | null
+): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem('token')
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          userId,
+          maxMoviesOverwrite,
+          maxSeriesOverwrite
+        },
+        query: `
+          mutation UpdateUserOverwrites($userId: String!, $maxMoviesOverwrite: Int, $maxSeriesOverwrite: Int) {
+            updateUserOverwrites(userId: $userId, maxMoviesOverwrite: $maxMoviesOverwrite, maxSeriesOverwrite: $maxSeriesOverwrite) {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || '') },
+    )
+
+    if (res.data.errors) {
+      console.error(`updateUserOverwrites Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`updateUserOverwrites: User overwrites updated successfully.`)
+      return res.data.data.updateUserOverwrites
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
   }
 }
