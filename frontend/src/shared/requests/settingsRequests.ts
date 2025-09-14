@@ -11,7 +11,7 @@ import { NavigateFunction } from "react-router-dom"
 // Simple version for Users page
 export const getSettings = async (): Promise<settingsType> => {
   try {
-    const userToken = localStorage.getItem('token')
+    const userToken = localStorage.getItem("token")
     const res = await axios.post(
       "",
       {
@@ -23,7 +23,7 @@ export const getSettings = async (): Promise<settingsType> => {
           }
         `,
       },
-      { headers: headers(userToken || '') },
+      { headers: headers(userToken || "") },
     )
 
     if (res.data.errors) {
@@ -103,9 +103,10 @@ export const updateSettings = async (
   try {
     const checkedSettings = await checkAPIs(user, setUser, navigate, settings, true)
     // Remove users from general_bot for the GraphQL mutation since users field is not in the input schema
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { users, ...general_bot_without_users } = checkedSettings.general_bot
     const settingsForUpdate = { ...checkedSettings, general_bot: general_bot_without_users }
-    
+
     const res = await axios.post(
       "",
       {
@@ -158,6 +159,7 @@ export const updateSettings = async (
           $backups_rotation_date: Int
           $user_pool_checker: Boolean
           $user_pool_checker_loop: Int
+          $verbose_logging: Boolean
         ) {
           updateSettings(settingsInput: {  
             _id: $_id
@@ -206,6 +208,7 @@ export const updateSettings = async (
             backups_rotation_date: $backups_rotation_date
             user_pool_checker: $user_pool_checker
             user_pool_checker_loop: $user_pool_checker_loop
+            verbose_logging: $verbose_logging
           }) {
             ${populateSettings}
           }
@@ -350,17 +353,17 @@ export const getQualityProfiles = async (
 export const removePoolItem = async (
   userId: string,
   itemType: "movies" | "series",
-  itemIndex: number
+  itemIndex: number,
 ): Promise<settingsType> => {
   try {
-    const userToken = localStorage.getItem('token')
+    const userToken = localStorage.getItem("token")
     const res = await axios.post(
       "",
       {
         variables: {
           userId,
           itemType,
-          itemIndex
+          itemIndex,
         },
         query: `
           mutation RemovePoolItem($userId: String!, $itemType: String!, $itemIndex: Int!) {
@@ -370,7 +373,7 @@ export const removePoolItem = async (
           }
         `,
       },
-      { headers: headers(userToken || '') },
+      { headers: headers(userToken || "") },
     )
 
     if (res.data.errors) {
@@ -388,12 +391,12 @@ export const removePoolItem = async (
 
 export const deleteUser = async (userId: string): Promise<settingsType> => {
   try {
-    const userToken = localStorage.getItem('token')
+    const userToken = localStorage.getItem("token")
     const res = await axios.post(
       "",
       {
         variables: {
-          userId
+          userId,
         },
         query: `
           mutation DeleteUser($userId: String!) {
@@ -403,7 +406,7 @@ export const deleteUser = async (userId: string): Promise<settingsType> => {
           }
         `,
       },
-      { headers: headers(userToken || '') },
+      { headers: headers(userToken || "") },
     )
 
     if (res.data.errors) {
@@ -420,19 +423,19 @@ export const deleteUser = async (userId: string): Promise<settingsType> => {
 }
 
 export const updateUserStatus = async (
-  userId: string, 
-  admin?: boolean, 
-  superUser?: boolean
+  userId: string,
+  admin?: boolean,
+  superUser?: boolean,
 ): Promise<settingsType> => {
   try {
-    const userToken = localStorage.getItem('token')
+    const userToken = localStorage.getItem("token")
     const res = await axios.post(
       "",
       {
         variables: {
           userId,
           admin,
-          superUser
+          superUser,
         },
         query: `
           mutation UpdateUserStatus($userId: String!, $admin: Boolean, $superUser: Boolean) {
@@ -442,7 +445,7 @@ export const updateUserStatus = async (
           }
         `,
       },
-      { headers: headers(userToken || '') },
+      { headers: headers(userToken || "") },
     )
 
     if (res.data.errors) {
@@ -461,17 +464,17 @@ export const updateUserStatus = async (
 export const updateUserOverwrites = async (
   userId: string,
   maxMoviesOverwrite?: number | null,
-  maxSeriesOverwrite?: number | null
+  maxSeriesOverwrite?: number | null,
 ): Promise<settingsType> => {
   try {
-    const userToken = localStorage.getItem('token')
+    const userToken = localStorage.getItem("token")
     const res = await axios.post(
       "",
       {
         variables: {
           userId,
           maxMoviesOverwrite,
-          maxSeriesOverwrite
+          maxSeriesOverwrite,
         },
         query: `
           mutation UpdateUserOverwrites($userId: String!, $maxMoviesOverwrite: Int, $maxSeriesOverwrite: Int) {
@@ -481,7 +484,7 @@ export const updateUserOverwrites = async (
           }
         `,
       },
-      { headers: headers(userToken || '') },
+      { headers: headers(userToken || "") },
     )
 
     if (res.data.errors) {

@@ -139,6 +139,7 @@ export const populateSettings = `
   backups_rotation_date
   user_pool_checker
   user_pool_checker_loop
+  verbose_logging
   created_at
   updated_at
   tokens

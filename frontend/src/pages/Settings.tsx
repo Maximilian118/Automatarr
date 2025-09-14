@@ -363,13 +363,23 @@ const Settings: React.FC = () => {
           startIcon={<SettingsIcon/>}
           description={`Advanced system settings for experienced users. These settings control internal system behavior and should be used with caution.`}
         >
-          <Toggle 
+          <Toggle
             name="User Pool Content Checker:"
             checked={settings.user_pool_checker}
             onToggle={() =>
               setSettings(prevSettings => ({
                 ...prevSettings,
                 user_pool_checker: !prevSettings.user_pool_checker
+              }))
+            }
+          />
+          <Toggle
+            name="Verbose Logging:"
+            checked={settings.verbose_logging}
+            onToggle={() =>
+              setSettings(prevSettings => ({
+                ...prevSettings,
+                verbose_logging: !prevSettings.verbose_logging
               }))
             }
           />

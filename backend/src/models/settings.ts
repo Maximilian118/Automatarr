@@ -126,6 +126,7 @@ export interface settingsType {
   backups_rotation_date: number // The amount of time that determines when we start deleting log files
   user_pool_checker: boolean // Enable or disable user pool content checker
   user_pool_checker_loop: number // Loop timer for user pool checker. Unit = minutes
+  verbose_logging: boolean // Enable or disable verbose logging
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
   tokens: string[] // Tokens to be sent in resolver return for session data.
@@ -237,6 +238,7 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     backups_rotation_date: { type: Number, default: 525600 }, // 1 year
     user_pool_checker: { type: Boolean, default: true },
     user_pool_checker_loop: { type: Number, default: 60 }, // 1 hour
+    verbose_logging: { type: Boolean, default: false },
     created_at: { type: String, default: moment().format() },
     updated_at: { type: String, default: moment().format() },
   },

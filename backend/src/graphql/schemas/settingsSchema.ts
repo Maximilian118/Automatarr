@@ -97,6 +97,7 @@ const settingsSchema = `
     backups_rotation_date: Int!
     user_pool_checker: Boolean!
     user_pool_checker_loop: Int!
+    verbose_logging: Boolean!
     created_at: String!
     updated_at: String!
     tokens: [String!]!
@@ -178,6 +179,7 @@ const settingsSchema = `
     backups_rotation_date: Int
     user_pool_checker: Boolean
     user_pool_checker_loop: Int
+    verbose_logging: Boolean
     webhooks: Boolean
     webhooks_enabled: [String!]!
   }

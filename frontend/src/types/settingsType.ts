@@ -123,6 +123,7 @@ export interface settingsType {
   backups_rotation_date: number // The amount of time that determines when we start deleting log files
   user_pool_checker: boolean // Enable or disable user pool content checker
   user_pool_checker_loop: number // Loop timer for user pool checker. Unit = minutes
+  verbose_logging: boolean // Enable or disable verbose logging
   created_at: string // When Settings was created.
   updated_at: string // When Settings was updated.
 }
