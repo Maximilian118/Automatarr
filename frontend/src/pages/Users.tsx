@@ -2,7 +2,8 @@ import React, { useState, useEffect, useContext } from "react"
 import { Alert, CircularProgress } from "@mui/material"
 import { getSettings } from "../shared/requests/settingsRequests"
 import { settingsType } from "../types/settingsType"
-import UserCard from "../components/userCard/UserCard"
+import UserCards from "../components/UserCards/UserCards"
+import StorageChart from "../components/utility/StorageChart/StorageChart"
 import AppContext from "../context"
 
 const Users: React.FC = () => {
@@ -55,27 +56,18 @@ const Users: React.FC = () => {
   const users = settings.general_bot.users
 
   return (
-    <div style={{ padding: '24px' }}>
-      {users.length === 0 ? (
-        <Alert severity="info">No users found</Alert>
-      ) : (
-        <div style={{ 
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '24px',
-          justifyContent: 'center'
-        }}>
-          {users.map((user, index) => (
-            <UserCard
-              key={user._id}
-              user={user}
-              settings={settings}
-              onSettingsUpdate={handleSettingsUpdate}
-              isOwner={index === 0}
-            />
-          ))}
-        </div>
-      )}
+    <div style={{
+      position: 'relative',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <StorageChart users={users}/>
+      <UserCards 
+        users={users}
+        settings={settings}
+        onSettingsUpdate={handleSettingsUpdate}
+      />
     </div>
   )
 }

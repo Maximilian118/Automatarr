@@ -1,0 +1,28 @@
+.users-cards {
+  padding: 24px;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  // Mobile responsive
+  @media (max-width: 768px) {
+    padding: 20px 24px 24px;
+    align-items: flex-start;
+    margin-top: 48px;
+  }
+}
+
+.users-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+
+  // Mobile responsive
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+}

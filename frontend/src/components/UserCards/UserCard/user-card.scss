@@ -11,7 +11,7 @@
 
   // Mobile: full width
   @media (max-width: 700px) {
-    width: 100%;
+    width: calc(100vw - 40px);
   }
 
   &:hover {
@@ -121,6 +121,37 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0; // Important for flex child text truncation
+    position: relative;
+    height: 1.5em; // Set fixed height to prevent layout shift
+
+    .title-text,
+    .storage-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transition: opacity 0.1s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .title-text {
+      color: white;
+    }
+
+    .storage-text {
+      color: white;
+      font-weight: 500;
+    }
+
+    .fade-in {
+      opacity: 1;
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
   }
 
   .item-actions {

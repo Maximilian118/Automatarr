@@ -1,11 +1,11 @@
 import React, { useState } from "react"
 import { CardContent, Chip, IconButton, Button, Collapse, Typography } from "@mui/material"
 import { Clear, MovieRounded, TvRounded, CheckCircle, Settings } from "@mui/icons-material"
-import { BotUserType, settingsType } from "../../types/settingsType"
-import { removePoolItem, deleteUser, updateUserStatus, updateUserOverwrites } from "../../shared/requests/settingsRequests"
-import Toggle from "../utility/Toggle/Toggle"
-import MUIAutocomplete from "../utility/MUIAutocomplete/MUIAutocomplete"
-import { userOverwriteSelection, userOverwriteToNumber, numberToUserOverwriteString, formatBytes } from "../../shared/utility"
+import { BotUserType, settingsType } from "../../../types/settingsType"
+import { removePoolItem, deleteUser, updateUserStatus, updateUserOverwrites } from "../../../shared/requests/settingsRequests"
+import Toggle from "../../utility/Toggle/Toggle"
+import MUIAutocomplete from "../../utility/MUIAutocomplete/MUIAutocomplete"
+import { userOverwriteSelection, userOverwriteToNumber, numberToUserOverwriteString, formatBytes } from "../../../shared/utility"
 import "./user-card.scss"
 
 const calculateUserMovieLimit = (user: BotUserType, settings: settingsType): string => {
@@ -73,6 +73,24 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
   const [contentType, setContentType] = useState<'movies' | 'series'>('movies')
   const [settingsMode, setSettingsMode] = useState<'normal' | 'settings' | 'confirm'>('normal')
   const [deleting, setDeleting] = useState(false)
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null)
+
+  const getItemStorage = (item: any, itemType: 'movies' | 'series'): string => {
+    if (itemType === 'movies') {
+      return formatBytes(item.sizeOnDisk || 0)
+    } else {
+      // For series, calculate total size from all seasons
+      let totalBytes = 0
+      if (item.seasons) {
+        item.seasons.forEach((season: any) => {
+          if (season.statistics && season.statistics.sizeOnDisk) {
+            totalBytes += season.statistics.sizeOnDisk
+          }
+        })
+      }
+      return formatBytes(totalBytes)
+    }
+  }
 
   const handleRemoveClick = (itemType: 'movies' | 'series', itemIndex: number) => {
     setRemovalState({
@@ -230,9 +248,19 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
                 </Typography>
               ) : (
                 currentItems.map((item, index) => (
-                  <div key={index} className="user-card-item">
+                  <div 
+                    key={index} 
+                    className="user-card-item"
+                    onMouseEnter={() => setHoveredItem(index)}
+                    onMouseLeave={() => setHoveredItem(null)}
+                  >
                     <Typography variant="body2" className="item-title">
-                      {item.title} ({item.year})
+                      <span className={`title-text ${hoveredItem === index ? 'fade-out' : 'fade-in'}`}>
+                        {item.title} ({item.year})
+                      </span>
+                      <span className={`storage-text ${hoveredItem === index ? 'fade-in' : 'fade-out'}`}>
+                        {getItemStorage(item, contentType)}
+                      </span>
                     </Typography>
                     
                     <div className="item-actions">

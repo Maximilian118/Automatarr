@@ -1,0 +1,70 @@
+.nivo-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+
+  .nivo-legend-item {
+    display: flex;
+    align-items: center;
+    cursor: default;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+      opacity: 1 !important;
+    }
+
+    &.left-to-right {
+      flex-direction: row;
+
+      .nivo-legend-symbol {
+        margin-right: 6px;
+      }
+    }
+
+    &.right-to-left {
+      flex-direction: row-reverse;
+
+      .nivo-legend-symbol {
+        margin-left: 6px;
+      }
+    }
+
+    .nivo-legend-symbol {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      svg {
+        display: block;
+      }
+    }
+
+    .nivo-legend-text {
+      color: #ffffff;
+      font-weight: 400;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+// Direction variants
+.nivo-legend {
+  &[style*="flex-direction: column"] {
+    .nivo-legend-item {
+      margin-bottom: 4px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
