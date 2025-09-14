@@ -19,7 +19,7 @@ const seriesSchema = `
     episodeFileCount: Int!
     episodeCount: Int!
     totalEpisodeCount: Int!
-    sizeOnDisk: Float!
+    sizeOnDisk: Float
     releaseGroups: [String!]!
     percentOfEpisodes: Float!
   }

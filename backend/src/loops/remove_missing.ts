@@ -19,6 +19,85 @@ import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrent
 import { incrementMovieDeletions, incrementSeriesDeletions } from "../shared/statsCollector"
 import { matchesPoolItem } from "./loopUtility"
 
+// Helper function to generate lookup keys for efficient matching
+const generateLookupKeys = (item: Movie | Series): string[] => {
+  const keys: string[] = []
+
+  if (item.tmdbId) keys.push(`tmdb:${item.tmdbId}`)
+  if (item.imdbId) keys.push(`imdb:${item.imdbId}`)
+  if ("tvdbId" in item && item.tvdbId) keys.push(`tvdb:${item.tvdbId}`)
+
+  return keys
+}
+
+// Helper function to create efficient user pool lookup structure
+const createUserPoolLookup = (userPool: (Movie | Series)[]) => {
+  const lookup = new Map<string, Set<string>>()
+
+  for (const poolItem of userPool) {
+    const keys = generateLookupKeys(poolItem)
+    keys.forEach((key) => {
+      if (!lookup.has(key)) {
+        lookup.set(key, new Set())
+      }
+      lookup.get(key)!.add(poolItem.id?.toString() || poolItem.tmdbId?.toString() || "unknown")
+    })
+  }
+
+  return lookup
+}
+
+// Helper function to check if item is in user pool using lookup
+const isInUserPoolOptimized = (
+  libraryItem: Movie | Series,
+  userPoolLookup: Map<string, Set<string>>,
+  userPool: (Movie | Series)[],
+  apiName: string,
+): boolean => {
+  // First try fast lookup
+  const keys = generateLookupKeys(libraryItem)
+  const fastMatch = keys.some((key) => userPoolLookup.has(key))
+
+  if (fastMatch) {
+    // Confirm with original matching logic to ensure accuracy
+    return userPool.some((poolItem) => matchesPoolItem(poolItem, libraryItem, apiName))
+  }
+
+  return false
+}
+
+// Helper function to process deletions with controlled concurrency
+const processDeletionsInBatches = async <T>(
+  items: T[],
+  processor: (item: T) => Promise<boolean>,
+  batchSize: number = 5,
+): Promise<T[]> => {
+  const processedItems: T[] = []
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize)
+    const results = await Promise.allSettled(
+      batch.map(async (item) => {
+        try {
+          const processed = await processor(item)
+          return { item, processed }
+        } catch (error) {
+          logger.error(`Error processing item: ${error}`)
+          return { item, processed: false }
+        }
+      }),
+    )
+
+    results.forEach((result) => {
+      if (result.status === "fulfilled" && result.value.processed) {
+        processedItems.push(result.value.item)
+      }
+    })
+  }
+
+  return processedItems
+}
+
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
     logger.error("Remove Missing: qBittorrent is required for this loop.")
@@ -55,7 +134,10 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
   // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
   const reason = "Superseded"
   for (const torrent of unmatchedTorrents) {
-    if (torrentDownloadedCheck(torrent, reason) && torrentSeedCheck(torrent, reason)) {
+    const isDownloaded = torrentDownloadedCheck(torrent, reason)
+    const hasMetSeedRequirements = torrentSeedCheck(torrent, reason)
+
+    if (isDownloaded && hasMetSeedRequirements) {
       deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
       unmatchedDeleted++
     }
@@ -181,21 +263,33 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         userPool = settings.general_bot.users.flatMap((u) => u.pool.series)
       }
 
-      // Check if library item is in user pool using robust matching
+      // Create optimized lookup structure for user pool matching
+      const userPoolLookup = createUserPoolLookup(userPool)
+
+      // Check if library item is in user pool using optimized matching
       const isInUserPool = (libraryItem: Movie | Series): boolean =>
-        userPool.some((poolItem) => matchesPoolItem(poolItem, libraryItem, API.name))
+        isInUserPoolOptimized(libraryItem, userPoolLookup, userPool, API.name)
 
       const removedItems = itemsForDeletion.filter(isInUserPool)
 
-      // Group removed items by user
+      // Optimized: Group removed items by user - build user lookup maps first
+      const userPoolMaps = new Map<string, Map<string, Set<string>>>()
       const userSkippedMap: Record<string, string[]> = {}
 
+      // Pre-build lookup maps for each user
+      for (const user of settings.general_bot.users) {
+        const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
+        userPoolMaps.set(user.name, createUserPoolLookup(pool))
+      }
+
+      // Now efficiently check which user owns each removed item
       for (const item of removedItems) {
         for (const user of settings.general_bot.users) {
+          const userLookup = userPoolMaps.get(user.name)!
           const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
-          const isUserItem = pool.some((poolItem) => matchesPoolItem(poolItem, item, API.name))
 
-          if (isUserItem) {
+          // Use optimized lookup first, then confirm with original logic
+          if (isInUserPoolOptimized(item, userLookup, pool, API.name)) {
             if (!userSkippedMap[user.name]) {
               userSkippedMap[user.name] = []
             }
@@ -224,20 +318,18 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         // itemsForDeletion will obviously be different per API so needs to accumulate
         logging.markedForDeletion = logging.markedForDeletion + itemsForDeletion.length
 
-        // Loop through all of the updated library items that now has torrent data
-        for (const libraryItem of itemsForDeletion) {
-          const deleteFromLibraryHelper = async () => {
+        // Create deletion processor function with original logic preserved
+        const deleteItemProcessor = async (libraryItem: Movie | Series): Promise<boolean> => {
+          const deleteFromLibraryHelper = async (): Promise<boolean> => {
             if (!isDocker) {
               logger.info(
                 `Remove Missing | ${API.name} | ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
               )
-              return
+              return false
             }
 
             // Delete libraryItem from Starr app library as well as usenet downloader and storage
             if (await deleteFromLibrary(libraryItem, API)) {
-              // On request succes remove deleted library item from filteredLibrary
-              filteredLibrary = filteredLibrary.filter((item) => item.id !== libraryItem.id)
               // Log the deletions and update stats
               if (API.name === "Radarr") {
                 logging.radarrDeleted++
@@ -248,7 +340,9 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
                 const episodeCount = (libraryItem as Series).statistics?.episodeFileCount || 0
                 await incrementSeriesDeletions(1, episodeCount)
               }
+              return true
             }
+            return false
           }
 
           // Check if the Radarr or Sonarr libraryItem has been matched to any torrent
@@ -258,8 +352,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
           // If the libraryItem hasn't been matched to any torrent, it's a usenet download and is ok to delete.
           if (noTorrents) {
-            await deleteFromLibraryHelper()
-            continue
+            return await deleteFromLibraryHelper()
           }
 
           // Create an array of torrents associated with this libraryItem
@@ -270,15 +363,32 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
               )
 
           // Check if all torrents have met their seed criteria
-          const torrentsReady = torrentFiles.every((t) =>
-            t ? torrentSeedCheck(t, t.torrentType) : true,
-          )
+          const torrentsReady = torrentFiles.every((t) => {
+            if (!t) return true
+
+            const seedCheckResult = torrentSeedCheck(t, t.torrentType)
+
+            return seedCheckResult
+          })
 
           // If every torrent that belongs to the libraryItem is met its requirements, delete the libraryItem.
           if (torrentsReady) {
-            await deleteFromLibraryHelper()
+            return await deleteFromLibraryHelper()
           }
+
+          return false
         }
+
+        // Process deletions in batches with controlled concurrency
+        const deletedItems = await processDeletionsInBatches(
+          itemsForDeletion,
+          deleteItemProcessor,
+          3, // Process 3 deletions concurrently to avoid overwhelming the API
+        )
+
+        // Update filteredLibrary by removing successfully deleted items
+        const deletedItemIds = new Set(deletedItems.map((item) => item.id))
+        filteredLibrary = filteredLibrary.filter((item) => !deletedItemIds.has(item.id))
 
         // Update Library data in db with the removed library items.
         data.libraries = data.libraries.map((item) => {

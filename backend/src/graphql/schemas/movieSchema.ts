@@ -87,7 +87,7 @@ const movieSchema = `
     secondaryYear: Int
     secondaryYearSourceId: Int!
     sortTitle: String!
-    sizeOnDisk: Float!
+    sizeOnDisk: Float
     status: String!
     overview: String!
     inCinemas: String!

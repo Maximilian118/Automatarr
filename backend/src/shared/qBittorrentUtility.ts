@@ -150,6 +150,27 @@ const getEpisodesForSeason = (
     .sort((a, b) => a.episodeNumber - b.episodeNumber)
 }
 
+// Pre-processed library item with cached match data
+interface ProcessedLibraryItem {
+  item: Movie | Episode
+  matchStrings: string[]
+  relativePath: string
+  resolution?: number
+  releaseGroup?: string
+  year?: number
+  secondaryYear?: string
+  seasonEpisodeInfo?: { season: number; episode: number } | null
+  seasonInfo?: number | null
+}
+
+// Pre-processed torrent with cached match data
+interface ProcessedTorrent {
+  torrent: Torrent
+  processedName: string
+  seasonEpisodePatterns: Set<string> // Pre-computed season/episode patterns this torrent matches
+  seasonOnlyPatterns: Set<string> // Pre-computed season-only patterns this torrent matches
+}
+
 // Add Episode and Torrent data to Season fields in an array of Series
 const updatedSeriesItems = (seriesArr: Series[], episodes: Episode[]): Series[] => {
   const updatedSeries = seriesArr.map((series) => {
@@ -199,13 +220,9 @@ export const findLibraryTorrents = (
   // An Array of Movies and Episodes so we can easily loop through the files and find torrents
   const moviesAndEpisodes: (Movie | Episode)[] = [...movieItems, ...episodeItems]
 
-  // An Array of Movies with torrent data
-  const updatedMovieItems: Movie[] = []
+  // OPTIMIZATION 1: Pre-process all library items to cache string operations
+  const processedLibraryItems: ProcessedLibraryItem[] = []
 
-  // An Array of Episodes with torrent data
-  const updatedEpisodeItems: Episode[] = []
-
-  // Loop through starr app libraries
   for (const item of moviesAndEpisodes) {
     // If a movie or episode file exists. I.E if a file is attached to the library item.
     if (item.hasFile) {
@@ -218,84 +235,170 @@ export const findLibraryTorrents = (
       const releaseGroup = isMovie(item)
         ? item.movieFile.releaseGroup
         : item.episodeFile.releaseGroup
-      // Return the torrent type as well
-      let torrentType: "Movie" | "Episode" | "Series" = "Movie"
-      // Create an array of strings to find a torrent object with
+
+      // Pre-process match strings once
       const matchStrings = extractStringWords(relativePath).map((str) => str.toLowerCase())
       // Add resolution to the array
       resolution && matchStrings.push(resolution.toString().toLowerCase())
       // Add release group to the array
       releaseGroup && matchStrings.push(releaseGroup.toLowerCase())
-      // For each library item, find a matching torrent using the matchStrings
-      const torrentMatches = torrents.filter((torrent) => {
-        // Check if every string in matchStrings can be found in any torrent name
-        const stringsMatch = matchStrings.every((str) => torrent.processedName.includes(str))
-        // The secondary match criteria. Year for Radarr and S**E** for Sonarr
-        let secondaryMatch = false
 
-        if (isMovie(item)) {
-          // If a seconday year can be found for a file, use it
-          const secondaryYear = item.secondaryYear
-            ? item.secondaryYear.toString()
-            : "No Secondary Year"
-          // Check if either year or secondaryYear matches the year in the torrent name
-          secondaryMatch =
-            torrent.name.includes(item.year.toString()) || torrent.name.includes(secondaryYear)
-        }
+      // Pre-process season/episode data for episodes
+      let seasonEpisodeInfo = null
+      let seasonInfo = null
+      if (isEpisode(item)) {
+        seasonEpisodeInfo = extractSeasonEpisode(relativePath)
+        seasonInfo = extractSeason(relativePath)
+      }
 
-        if (isEpisode(item)) {
-          // Check if Season and Episode data matches any torrent
-          const episodeMatchExists = torrents.some((t) =>
-            matchSeasonEpisode(relativePath, t.processedName),
-          )
-
-          // If we know a torrent that matches by Season and Episode exists, check if it's this torrent.
-          if (episodeMatchExists) {
-            secondaryMatch = matchSeasonEpisode(relativePath, torrent.processedName)
-            torrentType = "Episode"
-          } else {
-            // If there is no episode match, check if a torrent for the whole Season exists
-            secondaryMatch = matchSeasonOnly(relativePath, torrent.processedName)
-            torrentType = "Series"
-          }
-        }
-
-        // If stringsMatch and yearsMatch is truthy then return this torrent
-        return stringsMatch && secondaryMatch
+      processedLibraryItems.push({
+        item,
+        matchStrings,
+        relativePath,
+        resolution,
+        releaseGroup,
+        year: isMovie(item) ? item.year : undefined,
+        secondaryYear: isMovie(item) ? item.secondaryYear?.toString() : undefined,
+        seasonEpisodeInfo,
+        seasonInfo,
       })
+    }
+  }
 
-      let torrentMatch = null
+  // Pre-process torrents and build lookup structures
+  const processedTorrents: ProcessedTorrent[] = []
+  const episodeMatchLookup = new Map<string, Set<Torrent>>() // season/episode pattern -> matching torrents
+  const seasonMatchLookup = new Map<string, Set<Torrent>>() // season pattern -> matching torrents
 
-      // If there's exactly one matching torrent, use it
-      if (torrentMatches.length === 1) {
-        torrentMatch = torrentMatches[0]
+  for (const torrent of torrents) {
+    const seasonEpisodePatterns = new Set<string>()
+    const seasonOnlyPatterns = new Set<string>()
+
+    // Pre-compute what season/episode patterns this torrent matches
+    for (const processed of processedLibraryItems) {
+      if (isEpisode(processed.item)) {
+        // Check if this torrent matches specific season/episode
+        if (
+          processed.seasonEpisodeInfo &&
+          matchSeasonEpisode(processed.relativePath, torrent.processedName)
+        ) {
+          const pattern = `s${processed.seasonEpisodeInfo.season
+            .toString()
+            .padStart(2, "0")}e${processed.seasonEpisodeInfo.episode.toString().padStart(2, "0")}`
+          seasonEpisodePatterns.add(pattern)
+
+          if (!episodeMatchLookup.has(pattern)) {
+            episodeMatchLookup.set(pattern, new Set())
+          }
+          episodeMatchLookup.get(pattern)!.add(torrent)
+        }
+
+        // Check if this torrent matches season-only
+        if (
+          processed.seasonInfo &&
+          matchSeasonOnly(processed.relativePath, torrent.processedName)
+        ) {
+          const pattern = `s${processed.seasonInfo.toString().padStart(2, "0")}`
+          seasonOnlyPatterns.add(pattern)
+
+          if (!seasonMatchLookup.has(pattern)) {
+            seasonMatchLookup.set(pattern, new Set())
+          }
+          seasonMatchLookup.get(pattern)!.add(torrent)
+        }
+      }
+    }
+
+    processedTorrents.push({
+      torrent,
+      processedName: torrent.processedName,
+      seasonEpisodePatterns,
+      seasonOnlyPatterns,
+    })
+  }
+
+  // An Array of Movies with torrent data
+  const updatedMovieItems: Movie[] = []
+  // An Array of Episodes with torrent data
+  const updatedEpisodeItems: Episode[] = []
+
+  // Use pre-processed data for matching
+  for (const processed of processedLibraryItems) {
+    const { item, matchStrings, relativePath } = processed
+    // Return the torrent type as well
+    let torrentType: "Movie" | "Episode" | "Series" = "Movie"
+    // OPTIMIZATION 4: Use efficient matching with pre-processed data
+    const torrentMatches = torrents.filter((torrent) => {
+      // Check if every string in matchStrings can be found in any torrent name
+      const stringsMatch = matchStrings.every((str) => torrent.processedName.includes(str))
+      // The secondary match criteria. Year for Radarr and S**E** for Sonarr
+      let secondaryMatch = false
+
+      if (isMovie(item)) {
+        // Use pre-processed year data
+        const secondaryYear = processed.secondaryYear || "No Secondary Year"
+        // Check if either year or secondaryYear matches the year in the torrent name
+        secondaryMatch =
+          torrent.name.includes(processed.year!.toString()) || torrent.name.includes(secondaryYear)
       }
 
-      // If there are two or more matching torrents, pick the most recently added one
-      if (torrentMatches.length > 1) {
-        torrentMatch = torrentMatches.reduce((latest, current) =>
-          current.added_on > latest.added_on ? current : latest,
-        )
+      if (isEpisode(item)) {
+        // OPTIMIZATION: Use lookup structures instead of scanning all torrents
+        let episodeMatchExists = false
+
+        if (processed.seasonEpisodeInfo) {
+          const pattern = `s${processed.seasonEpisodeInfo.season
+            .toString()
+            .padStart(2, "0")}e${processed.seasonEpisodeInfo.episode.toString().padStart(2, "0")}`
+          episodeMatchExists = episodeMatchLookup.has(pattern)
+        }
+
+        // If we know a torrent that matches by Season and Episode exists, check if it's this torrent.
+        if (episodeMatchExists) {
+          secondaryMatch = matchSeasonEpisode(relativePath, torrent.processedName)
+          torrentType = "Episode"
+        } else {
+          // If there is no episode match, check if a torrent for the whole Season exists
+          secondaryMatch = matchSeasonOnly(relativePath, torrent.processedName)
+          torrentType = "Series"
+        }
       }
 
-      // If there is a match, push it to the matches array
-      if (torrentMatch) {
-        const updatedItem = {
-          ...item,
-          torrent: true,
+      // If stringsMatch and yearsMatch is truthy then return this torrent
+      return stringsMatch && secondaryMatch
+    })
+
+    let torrentMatch = null
+
+    // If there's exactly one matching torrent, use it
+    if (torrentMatches.length === 1) {
+      torrentMatch = torrentMatches[0]
+    }
+
+    // If there are two or more matching torrents, pick the most recently added one
+    if (torrentMatches.length > 1) {
+      torrentMatch = torrentMatches.reduce((latest, current) =>
+        current.added_on > latest.added_on ? current : latest,
+      )
+    }
+
+    // If there is a match, push it to the matches array
+    if (torrentMatch) {
+      const updatedItem = {
+        ...item,
+        torrent: true,
+        torrentType,
+        torrentFile: {
+          ...torrentMatch,
           torrentType,
-          torrentFile: {
-            ...torrentMatch,
-            torrentType,
-            matchStrings,
-          },
-        }
+          matchStrings,
+        },
+      }
 
-        if (isMovie(item)) {
-          updatedMovieItems.push(updatedItem as Movie)
-        } else if (isEpisode(item)) {
-          updatedEpisodeItems.push(updatedItem as Episode)
-        }
+      if (isMovie(item)) {
+        updatedMovieItems.push(updatedItem as Movie)
+      } else if (isEpisode(item)) {
+        updatedEpisodeItems.push(updatedItem as Episode)
       }
     }
   }
