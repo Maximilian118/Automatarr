@@ -8,7 +8,7 @@ import { APIData } from "./activeAPIsArr"
 import { extractStringWords, secsToMins } from "./utility"
 
 // Check if a torrent has exceeded its seeding requirements
-export const torrentSeedCheck = (torrent: Torrent, type?: string): boolean => {
+export const torrentSeedCheck = (torrent: Torrent, type?: string, verboseLogging: boolean = true): boolean => {
   const { ratio, ratio_limit, seeding_time, seeding_time_limit, name } = torrent
   const seeding_time_mins = Number(secsToMins(seeding_time).toFixed(0))
 
@@ -19,17 +19,19 @@ export const torrentSeedCheck = (torrent: Torrent, type?: string): boolean => {
     return true
   }
 
-  const prefix = type ? `${type} torrent` : `Torrent`
-  const ratioInfo = `ratio: ${ratio.toFixed(2)}/${ratio_limit}`
-  const timeInfo = `time: ${seeding_time_mins}/${seeding_time_limit} mins`
+  if (verboseLogging) {
+    const prefix = type ? `${type} torrent` : `Torrent`
+    const ratioInfo = `ratio: ${ratio.toFixed(2)}/${ratio_limit}`
+    const timeInfo = `time: ${seeding_time_mins}/${seeding_time_limit} mins`
 
-  logger.info(`${prefix} has not met seeding requirements (${ratioInfo}, ${timeInfo}): ${name}`)
+    logger.info(`${prefix} has not met seeding requirements (${ratioInfo}, ${timeInfo}): ${name}`)
+  }
 
   return false
 }
 
 // Check if a torrent has downloaded and is seeding
-export const torrentDownloadedCheck = (torrent: Torrent, type?: string): boolean => {
+export const torrentDownloadedCheck = (torrent: Torrent, type?: string, verboseLogging: boolean = true): boolean => {
   const { state, name } = torrent
 
   const prefix = type ? `${type} t` : `T`
@@ -39,24 +41,26 @@ export const torrentDownloadedCheck = (torrent: Torrent, type?: string): boolean
     return true
   }
 
-  if (state === "downloading") {
-    logger.info(`Torrent is downloading: ${name}`)
-  }
+  if (verboseLogging) {
+    if (state === "downloading") {
+      logger.info(`Torrent is downloading: ${name}`)
+    }
 
-  if (state === "stalledDL") {
-    logger.warn(`${prefix}orrent has stalled: ${name}`)
-  }
+    if (state === "stalledDL") {
+      logger.warn(`${prefix}orrent has stalled: ${name}`)
+    }
 
-  if (state === "unknown") {
-    logger.warn(`${prefix}orrent has an unknown status: ${name}`)
-  }
+    if (state === "unknown") {
+      logger.warn(`${prefix}orrent has an unknown status: ${name}`)
+    }
 
-  if (state === "error") {
-    logger.warn(`${prefix}orrent has an error: ${name}`)
-  }
+    if (state === "error") {
+      logger.warn(`${prefix}orrent has an error: ${name}`)
+    }
 
-  if (state === "missingFiles") {
-    logger.warn(`${prefix}orrent has missing files: ${name}`)
+    if (state === "missingFiles") {
+      logger.warn(`${prefix}orrent has missing files: ${name}`)
+    }
   }
 
   return false

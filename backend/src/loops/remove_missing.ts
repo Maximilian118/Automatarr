@@ -19,7 +19,7 @@ import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrent
 import { incrementMovieDeletions, incrementSeriesDeletions } from "../shared/statsCollector"
 import { matchesPoolItem } from "./loopUtility"
 
-// Helper function to generate lookup keys for efficient matching
+// Generate lookup keys for matching items
 const generateLookupKeys = (item: Movie | Series): string[] => {
   const keys: string[] = []
 
@@ -30,7 +30,7 @@ const generateLookupKeys = (item: Movie | Series): string[] => {
   return keys
 }
 
-// Helper function to create efficient user pool lookup structure
+// Create user pool lookup structure
 const createUserPoolLookup = (userPool: (Movie | Series)[]) => {
   const lookup = new Map<string, Set<string>>()
 
@@ -47,26 +47,26 @@ const createUserPoolLookup = (userPool: (Movie | Series)[]) => {
   return lookup
 }
 
-// Helper function to check if item is in user pool using lookup
+// Check if item is in user pool
 const isInUserPoolOptimized = (
   libraryItem: Movie | Series,
   userPoolLookup: Map<string, Set<string>>,
   userPool: (Movie | Series)[],
   apiName: string,
 ): boolean => {
-  // First try fast lookup
+  // Check if item matches any pool items
   const keys = generateLookupKeys(libraryItem)
-  const fastMatch = keys.some((key) => userPoolLookup.has(key))
+  const hasMatch = keys.some((key) => userPoolLookup.has(key))
 
-  if (fastMatch) {
-    // Confirm with original matching logic to ensure accuracy
+  if (hasMatch) {
+    // Confirm with detailed matching logic
     return userPool.some((poolItem) => matchesPoolItem(poolItem, libraryItem, apiName))
   }
 
   return false
 }
 
-// Helper function to process deletions with controlled concurrency
+// Process deletions in batches
 const processDeletionsInBatches = async <T>(
   items: T[],
   processor: (item: T) => Promise<boolean>,
@@ -121,7 +121,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     data.qBittorrent.updated_at = moment().format()
   }
 
-  // Depending on the amount of library items, logs can hang here so give an indication of how long
+  // Log processing time estimate for large libraries
   processingTimeMessage(data, activeAPIs)
 
   // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
@@ -131,16 +131,52 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
   let unmatchedDeleted = 0
 
+  // Superseded torrent tracking for summary report
+  let supersededDownloading = 0
+  let supersededWaitingSeeding = 0
+  let supersededWaitingTime = 0
+  let supersededOtherStates = 0
+
   // Loop through unmatched torrents, if the torrent has met its seeding quota then delete it.
   const reason = "Superseded"
   for (const torrent of unmatchedTorrents) {
-    const isDownloaded = torrentDownloadedCheck(torrent, reason)
-    const hasMetSeedRequirements = torrentSeedCheck(torrent, reason)
+    const isDownloaded = torrentDownloadedCheck(torrent, reason, settings.verbose_logging)
+    const hasMetSeedRequirements = torrentSeedCheck(torrent, reason, settings.verbose_logging)
 
     if (isDownloaded && hasMetSeedRequirements) {
       deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
       unmatchedDeleted++
+    } else if (!settings.verbose_logging) {
+      // Track reasons for non-verbose summary
+      if (torrent.state === "downloading") {
+        supersededDownloading++
+      } else if (isDownloaded && !hasMetSeedRequirements) {
+        const { ratio, ratio_limit, seeding_time, seeding_time_limit } = torrent
+        const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
+
+        if (ratio < ratio_limit) {
+          supersededWaitingSeeding++
+        } else if (seeding_time_mins < seeding_time_limit) {
+          supersededWaitingTime++
+        }
+      } else {
+        supersededOtherStates++
+      }
     }
+  }
+
+  // Log superseded torrent summary if verbose logging is disabled
+  if (!settings.verbose_logging && unmatchedTorrents.length > 0) {
+    const summaryParts = []
+    if (supersededDownloading > 0) summaryParts.push(`${supersededDownloading} downloading`)
+    if (supersededWaitingSeeding > 0)
+      summaryParts.push(`${supersededWaitingSeeding} awaiting ratio`)
+    if (supersededWaitingTime > 0) summaryParts.push(`${supersededWaitingTime} awaiting time`)
+    if (supersededOtherStates > 0) summaryParts.push(`${supersededOtherStates} other states`)
+    if (unmatchedDeleted > 0) summaryParts.push(`${unmatchedDeleted} deleted`)
+
+    const summary = summaryParts.length > 0 ? ` (${summaryParts.join(", ")})` : ""
+    logger.info(`Superseded torrents: ${unmatchedTorrents.length} processed${summary}`)
   }
 
   // Init logging object
@@ -155,6 +191,25 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     markedForDeletion: 0,
     radarrDeleted: 0,
     sonarrDeleted: 0,
+    // Detailed tracking for summary reports
+    radarrTorrentStats: {
+      waitingRatio: 0,
+      waitingTime: 0,
+      downloading: 0,
+      otherStates: 0,
+      usenetDeleted: 0,
+      torrentDeleted: 0,
+      userProtected: 0,
+    },
+    sonarrTorrentStats: {
+      waitingRatio: 0,
+      waitingTime: 0,
+      downloading: 0,
+      otherStates: 0,
+      usenetDeleted: 0,
+      torrentDeleted: 0,
+      userProtected: 0,
+    },
   }
 
   // Loop through each active API
@@ -213,7 +268,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         )
       }
 
-      // Replace list items with new ones in databse
+      // Replace list items with new ones in database
       if (newListItems) {
         data.importLists = data.importLists.map((il) => {
           if (il.name === API.name) {
@@ -227,14 +282,14 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         })
       }
 
-      // Log the amount of import list items for each Starr app API
+      // Track import list item counts
       if (API.name === "Radarr") {
         logging.radarrILItems = importListItems.length
       } else if (API.name === "Sonarr") {
         logging.sonarrILItems = importListItems.length
       }
 
-      // Create a Set of all identifiers for quick lookups
+      // Create a Set of all identifiers for matching
       const tmdbSet = new Set(importListItems.map((item) => item.id))
       const imdbSet = new Set(importListItems.map((item) => item.imdb_id))
       const tvdbSet = new Set(importListItems.map((item) => item.tvdbid).filter(Boolean)) // Exclude null/undefined
@@ -251,7 +306,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         }
       }
 
-      // Init an array to filter deleted items from so we can update the db
+      // Track library items for database update
       let filteredLibrary = library
 
       // Ensure we don't remove any items that appear in bot user pools
@@ -263,32 +318,37 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         userPool = settings.general_bot.users.flatMap((u) => u.pool.series)
       }
 
-      // Create optimized lookup structure for user pool matching
+      // Create lookup structure for user pool matching
       const userPoolLookup = createUserPoolLookup(userPool)
 
-      // Check if library item is in user pool using optimized matching
+      // Check if library item is in user pool
       const isInUserPool = (libraryItem: Movie | Series): boolean =>
         isInUserPoolOptimized(libraryItem, userPoolLookup, userPool, API.name)
 
       const removedItems = itemsForDeletion.filter(isInUserPool)
 
-      // Optimized: Group removed items by user - build user lookup maps first
+      // Track user protected items for summary
+      const currentStats =
+        API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+      currentStats.userProtected = removedItems.length
+
+      // Group removed items by user
       const userPoolMaps = new Map<string, Map<string, Set<string>>>()
       const userSkippedMap: Record<string, string[]> = {}
 
-      // Pre-build lookup maps for each user
+      // Build lookup maps for each user
       for (const user of settings.general_bot.users) {
         const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
         userPoolMaps.set(user.name, createUserPoolLookup(pool))
       }
 
-      // Now efficiently check which user owns each removed item
+      // Check which user owns each removed item
       for (const item of removedItems) {
         for (const user of settings.general_bot.users) {
           const userLookup = userPoolMaps.get(user.name)!
           const pool = API.name === "Radarr" ? user.pool.movies : user.pool.series
 
-          // Use optimized lookup first, then confirm with original logic
+          // Check if item matches user's pool
           if (isInUserPoolOptimized(item, userLookup, pool, API.name)) {
             if (!userSkippedMap[user.name]) {
               userSkippedMap[user.name] = []
@@ -298,27 +358,29 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         }
       }
 
-      const singular = API.name === "Radarr" ? "movie" : "series"
-      const plural = API.name === "Radarr" ? "movies" : "series"
-
       // Log one message per user with their skipped titles
-      for (const [user, titles] of Object.entries(userSkippedMap)) {
-        logger.info(
-          `Remove Missing | ${API.name} | Skipping ${titles.length} ${
-            titles.length < 2 ? singular : plural
-          } in ${user}'s pool: [${titles.join(", ")}] 🔒`,
-        )
+      if (settings.verbose_logging) {
+        const singular = API.name === "Radarr" ? "movie" : "series"
+        const plural = API.name === "Radarr" ? "movies" : "series"
+
+        for (const [user, titles] of Object.entries(userSkippedMap)) {
+          logger.info(
+            `Remove Missing | ${API.name} | Skipping ${titles.length} ${
+              titles.length < 2 ? singular : plural
+            } in ${user}'s pool: [${titles.join(", ")}] 🔒`,
+          )
+        }
       }
 
-      // Filter user pool items out using the robust matching
+      // Filter user pool items out
       itemsForDeletion = itemsForDeletion.filter((item) => !isInUserPool(item))
 
-      // If some library items have been selected for deletion filter any that should not be deleted
+      // Process library items selected for deletion
       if (itemsForDeletion.length > 0) {
-        // itemsForDeletion will obviously be different per API so needs to accumulate
+        // Track total items marked for deletion across APIs
         logging.markedForDeletion = logging.markedForDeletion + itemsForDeletion.length
 
-        // Create deletion processor function with original logic preserved
+        // Create deletion processor function
         const deleteItemProcessor = async (libraryItem: Movie | Series): Promise<boolean> => {
           const deleteFromLibraryHelper = async (): Promise<boolean> => {
             if (!isDocker) {
@@ -330,7 +392,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
             // Delete libraryItem from Starr app library as well as usenet downloader and storage
             if (await deleteFromLibrary(libraryItem, API)) {
-              // Log the deletions and update stats
+              // Update stats - deleteFromLibrary already handles the deletion logging
               if (API.name === "Radarr") {
                 logging.radarrDeleted++
                 await incrementMovieDeletions(1)
@@ -352,7 +414,14 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
           // If the libraryItem hasn't been matched to any torrent, it's a usenet download and is ok to delete.
           if (noTorrents) {
-            return await deleteFromLibraryHelper()
+            const success = await deleteFromLibraryHelper()
+            if (success) {
+              // Track usenet deletions
+              const currentStats =
+                API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+              currentStats.usenetDeleted++
+            }
+            return success
           }
 
           // Create an array of torrents associated with this libraryItem
@@ -362,18 +431,50 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
                 (season) => season.episodes?.map((ep) => ep.torrentFile) || [],
               )
 
+          // Track torrent statistics for non-verbose mode
+          if (!settings.verbose_logging) {
+            const currentStats =
+              API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+
+            torrentFiles.forEach((t) => {
+              if (!t) return
+
+              const { state, ratio, ratio_limit, seeding_time, seeding_time_limit } = t
+              const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
+
+              if (state === "downloading") {
+                currentStats.downloading++
+              } else if (state === "stalledUP" || state === "uploading" || state === "pausedUP") {
+                if (ratio < ratio_limit) {
+                  currentStats.waitingRatio++
+                } else if (seeding_time_mins < seeding_time_limit) {
+                  currentStats.waitingTime++
+                }
+              } else {
+                currentStats.otherStates++
+              }
+            })
+          }
+
           // Check if all torrents have met their seed criteria
           const torrentsReady = torrentFiles.every((t) => {
             if (!t) return true
 
-            const seedCheckResult = torrentSeedCheck(t, t.torrentType)
+            const seedCheckResult = torrentSeedCheck(t, t.torrentType, settings.verbose_logging)
 
             return seedCheckResult
           })
 
           // If every torrent that belongs to the libraryItem is met its requirements, delete the libraryItem.
           if (torrentsReady) {
-            return await deleteFromLibraryHelper()
+            const success = await deleteFromLibraryHelper()
+            if (success) {
+              // Track torrent deletions
+              const currentStats =
+                API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+              currentStats.torrentDeleted++
+            }
+            return success
           }
 
           return false
@@ -405,7 +506,6 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
       }
 
       // If we've deleted some items from Starr app libraries, update libraries in db
-      // We are adding updatedLibrary to the db but we don't mind this
       if (itemsForDeletion.length > 0 && filteredLibrary.length < library.length) {
         data.updated_at = moment().format()
         await saveWithRetry(data, "remove_missing")
@@ -423,7 +523,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
       // Retrieve an array of paths for the root folder
       const rootChildrenPaths = getChildPaths(API.data.rootFolder.path)
 
-      // Create a Set of paths for all currnet library items
+      // Create a Set of paths for all current library items
       const libraryPaths = new Set(library.map((item) => item.path))
 
       // Loop through all of the paths
@@ -444,9 +544,32 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
     const deleted = API.name === "Radarr" ? logging.radarrDeleted : logging.sonarrDeleted
 
-    logger.success(
-      `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
-    )
+    if (settings.verbose_logging) {
+      logger.success(
+        `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
+      )
+    } else {
+      // Enhanced summary with detailed statistics
+      const stats = API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+      const importListItems = API.name === "Radarr" ? logging.radarrILItems : logging.sonarrILItems
+
+      const summaryParts = []
+      if (stats.usenetDeleted > 0) summaryParts.push(`${stats.usenetDeleted} usenet deletions`)
+      if (stats.torrentDeleted > 0) summaryParts.push(`${stats.torrentDeleted} torrent deletions`)
+      if (stats.downloading > 0) summaryParts.push(`${stats.downloading} downloading`)
+      if (stats.waitingRatio > 0) summaryParts.push(`${stats.waitingRatio} awaiting ratio`)
+      if (stats.waitingTime > 0) summaryParts.push(`${stats.waitingTime} awaiting time`)
+      if (stats.otherStates > 0) summaryParts.push(`${stats.otherStates} other states`)
+
+      const summary = summaryParts.length > 0 ? ` (${summaryParts.join(", ")})` : ""
+      const importListInfo = importListItems > 0 ? ` Import Lists: ${importListItems}.` : ""
+      const userProtectedInfo =
+        stats.userProtected > 0 ? ` User Protected: ${stats.userProtected}.` : ""
+
+      logger.success(
+        `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
+      )
+    }
   }
 
   // Save the changes to data to the database

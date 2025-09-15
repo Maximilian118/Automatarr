@@ -29,7 +29,11 @@ import { isDocker } from "./fileSystem"
 import { axiosErrorMessage } from "./requestError"
 
 // Create a downloadQueue object and retrieve the latest queue data
-export const getQueue = async (API: APIData, data: dataType): Promise<downloadQueue | void> => {
+export const getQueue = async (
+  API: APIData,
+  data: dataType,
+  verboseLogging: boolean = true,
+): Promise<downloadQueue | void> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -38,7 +42,9 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Queue.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Queue.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.downloadQueues),
@@ -58,8 +64,11 @@ export const getQueue = async (API: APIData, data: dataType): Promise<downloadQu
 export const getAllDownloadQueues = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<downloadQueue[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getQueue(API, data)))
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getQueue(API, data, verboseLogging)),
+  )
 
   // Filter out undefined values
   return results.filter((c): c is downloadQueue => c !== undefined)
@@ -69,6 +78,7 @@ export const getAllDownloadQueues = async (
 export const getRootFolder = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<rootFolder | undefined> => {
   try {
     const res = await axios.get(
@@ -76,7 +86,9 @@ export const getRootFolder = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Root Folder.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Root Folder.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.rootFolders),
@@ -96,6 +108,7 @@ export const getRootFolder = async (
 export const getCommands = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<commandsData | undefined> => {
   try {
     const res = await axios.get(
@@ -103,7 +116,9 @@ export const getCommands = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Commands.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Commands.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.commands),
@@ -123,8 +138,11 @@ export const getCommands = async (
 export const getAllCommands = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<commandsData[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getCommands(API, data)))
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getCommands(API, data, verboseLogging)),
+  )
 
   // Filter out undefined values
   return results.filter((c): c is commandsData => c !== undefined)
@@ -134,8 +152,11 @@ export const getAllCommands = async (
 export const getAllRootFolders = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<rootFolder[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getRootFolder(API, data)))
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getRootFolder(API, data, verboseLogging)),
+  )
 
   // Filter out undefined values to ensure results is of type rootFolder[]
   return results.filter((folder): folder is rootFolder => folder !== undefined)
@@ -145,6 +166,7 @@ export const getAllRootFolders = async (
 export const getDiskspace = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<diskspace | undefined> => {
   try {
     const res = await axios.get(
@@ -152,7 +174,9 @@ export const getDiskspace = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Disk Space.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Disk Space.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.diskspaces),
@@ -176,8 +200,11 @@ export const getDiskspace = async (
 export const getAllDiskspaces = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<diskspace[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getDiskspace(API, data)))
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getDiskspace(API, data, verboseLogging)),
+  )
 
   // Filter out undefined values
   return results.filter(
@@ -186,7 +213,11 @@ export const getAllDiskspaces = async (
 }
 
 // Retrieve the entire library of one of the Starr apps
-export const getLibrary = async (API: APIData, data: dataType): Promise<library | undefined> => {
+export const getLibrary = async (
+  API: APIData,
+  data: dataType,
+  verboseLogging: boolean = true,
+): Promise<library | undefined> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -195,7 +226,9 @@ export const getLibrary = async (API: APIData, data: dataType): Promise<library 
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving library.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving library.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.libraries),
@@ -219,6 +252,7 @@ export const getAllEpisodes = async (
   library: Series[] | undefined,
   API: APIData,
   episodeFiles: boolean = true,
+  verboseLogging: boolean = true,
 ): Promise<Episode[] | undefined> => {
   if (API.name !== "Sonarr") {
     logger.error(`getEpisodes: This function can only be ran for the Sonarr API.`)
@@ -292,7 +326,7 @@ export const getAllEpisodes = async (
     }),
   )
 
-  if (episodes.length > 0) {
+  if (episodes.length > 0 && verboseLogging) {
     logger.success(`${API.name} | Retrieving episodes.`)
   }
 
@@ -339,13 +373,14 @@ export const getEpisodeFiles = async (API: APIData, seriesID: number): Promise<E
 export const getAllLibraries = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<library[]> => {
   const results = await Promise.all(
     activeAPIs.map(async (API) => {
       const library = data.libraries.find((l) => API.name === l.name)
 
       // Try to fetch new library data
-      const updatedLibrary = await getLibrary(API, data)
+      const updatedLibrary = await getLibrary(API, data, verboseLogging)
 
       // If it failed, log and fall back to existing
       if (!updatedLibrary) {
@@ -362,7 +397,12 @@ export const getAllLibraries = async (
       if (API.name === "Sonarr") {
         return {
           ...baseLibrary,
-          episodes: await getAllEpisodes(updatedLibrary.data as Series[], API),
+          episodes: await getAllEpisodes(
+            updatedLibrary.data as Series[],
+            API,
+            true,
+            verboseLogging,
+          ),
         }
       }
 
@@ -400,6 +440,7 @@ export const existsInLibrary = async (
 export const getMissingwanted = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<library | undefined> => {
   try {
     const res = await axios.get(
@@ -410,7 +451,9 @@ export const getMissingwanted = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Missing Wanted content.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Missing Wanted content.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.missingWanteds),
@@ -432,9 +475,10 @@ export const getMissingwanted = async (
 export const getAllMissingwanted = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<library[]> => {
   const results = await Promise.all(
-    activeAPIs.map(async (API) => await getMissingwanted(API, data)),
+    activeAPIs.map(async (API) => await getMissingwanted(API, data, verboseLogging)),
   )
 
   // Filter out undefined values
@@ -657,6 +701,7 @@ export const importCommand = async (
 export const getImportLists = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<importList | undefined> => {
   try {
     const res = await axios.get(
@@ -664,7 +709,9 @@ export const getImportLists = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Import Lists.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Import Lists.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.importLists),
@@ -684,8 +731,11 @@ export const getImportLists = async (
 export const getAllImportLists = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<importList[]> => {
-  const results = await Promise.all(activeAPIs.map(async (API) => await getImportLists(API, data)))
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getImportLists(API, data, verboseLogging)),
+  )
 
   // Filter out undefined values
   return results.filter((c): c is importList => c !== undefined)
@@ -695,6 +745,7 @@ export const getAllImportLists = async (
 export const getQualityProfiles = async (
   API: APIData,
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<qualityProfile | undefined> => {
   try {
     const res = await axios.get(
@@ -702,7 +753,9 @@ export const getQualityProfiles = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`${API.name} | Retrieving Quality Profiles.`)
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Quality Profiles.`)
+      }
 
       return {
         ...dataBoilerplate(API, data.importLists),
@@ -722,9 +775,10 @@ export const getQualityProfiles = async (
 export const getAllQualityProfiles = async (
   activeAPIs: APIData[],
   data: dataType,
+  verboseLogging: boolean = true,
 ): Promise<qualityProfile[]> => {
   const results = await Promise.all(
-    activeAPIs.map(async (API) => await getQualityProfiles(API, data)),
+    activeAPIs.map(async (API) => await getQualityProfiles(API, data, verboseLogging)),
   )
 
   // Filter out undefined values

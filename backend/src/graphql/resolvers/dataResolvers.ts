@@ -61,20 +61,23 @@ const dataResolvers = {
       return
     }
 
+    const verboseLogging = settings.verbose_logging
+
+    logger.info(`getData | Starting data retrieval.`)
     // Loop through all of the activeAPIs and return all of the possible commands for the Starr apps command endpoint
     const commandList = await getCommandLists(activeAPIs, data)
     // Starr Apps
-    data.commands = await getAllCommands(activeAPIs, data)
+    data.commands = await getAllCommands(activeAPIs, data, verboseLogging)
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
-    data.downloadQueues = await getAllDownloadQueues(activeAPIs, data)
-    data.importLists = await getAllImportLists(activeAPIs, data)
-    data.rootFolders = await getAllRootFolders(activeAPIs, data)
-    data.diskspaces = await getAllDiskspaces(activeAPIs, data)
-    data.qualityProfiles = await getAllQualityProfiles(activeAPIs, data)
-    data.missingWanteds = await getAllMissingwanted(activeAPIs, data)
-    data.libraries = await getAllLibraries(activeAPIs, data) // Only makes requests one per hour per API
+    data.downloadQueues = await getAllDownloadQueues(activeAPIs, data, verboseLogging)
+    data.importLists = await getAllImportLists(activeAPIs, data, verboseLogging)
+    data.rootFolders = await getAllRootFolders(activeAPIs, data, verboseLogging)
+    data.diskspaces = await getAllDiskspaces(activeAPIs, data, verboseLogging)
+    data.qualityProfiles = await getAllQualityProfiles(activeAPIs, data, verboseLogging)
+    data.missingWanteds = await getAllMissingwanted(activeAPIs, data, verboseLogging)
+    data.libraries = await getAllLibraries(activeAPIs, data, verboseLogging) // Only makes requests one per hour per API
     // qBittorrent
-    data.qBittorrent = await getqBittorrentData(settings._doc, data)
+    data.qBittorrent = await getqBittorrentData(settings._doc, data, verboseLogging)
 
     data.updated_at = moment().format()
     return (await saveWithRetry(data, "getData")) as dataDocType

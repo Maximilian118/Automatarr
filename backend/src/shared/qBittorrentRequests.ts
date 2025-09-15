@@ -128,6 +128,7 @@ export const getqBittorrentTorrents = async (
   settings: settingsType,
   data: dataDocType,
   ident?: string,
+  verboseLogging: boolean = true,
 ): Promise<{
   torrents: Torrent[]
   cookieRenewed: boolean
@@ -183,7 +184,9 @@ export const getqBittorrentTorrents = async (
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`qBittorrent | ${ident ? `${ident} | ` : ""}Retrieving torrents`)
+      if (verboseLogging) {
+        logger.success(`qBittorrent | ${ident ? `${ident} | ` : ""}Retrieving torrents`)
+      }
 
       // Return all torrents and process the name to something that can be more easily matched with
       torrents = res.data.map((torrent: Torrent) => {
@@ -274,6 +277,7 @@ export const getqBittorrentPreferences = async (
 export const getqBittorrentData = async (
   settings: settingsType,
   data: dataDocType,
+  verboseLogging: boolean = true,
 ): Promise<qBittorrent> => {
   // If qBittorent is not active, do not make any requests.
   if (!settings.qBittorrent_active) {
@@ -297,7 +301,7 @@ export const getqBittorrentData = async (
     return data.qBittorrent
   }
 
-  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(settings, data)
+  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(settings, data, undefined, verboseLogging)
 
   const currentCookie = cookie ? cookie : data.qBittorrent.cookie
   const currentCookieExpiry = cookie_expiry ? cookie_expiry : data.qBittorrent.cookie_expiry
