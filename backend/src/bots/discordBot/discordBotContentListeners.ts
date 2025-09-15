@@ -1160,8 +1160,16 @@ export const caseStay = async (message: Message): Promise<string> => {
     // Grab the first movie in the search array
     const foundMovie = sortedMoviesArr[0]
 
+    const movieLibrary = data.libraries.find((API) => API.name === "Radarr")?.data as
+      | Movie[]
+      | undefined
+    if (!movieLibrary) return "There is no movie data in the database... this is bad."
+
+    const movieInDB = movieLibrary.find((m) => m.tmdbId === foundMovie.tmdbId)
+    if (!movieInDB) return randomNotFoundMessage()
+
     // Ensure the movie is downloaded
-    if (!foundMovie.movieFile) {
+    if (!movieInDB.movieFile) {
       return randomInLibraryNotDownloadedMessage()
     }
 
@@ -1176,7 +1184,7 @@ export const caseStay = async (message: Message): Promise<string> => {
           ...u,
           pool: {
             ...u.pool,
-            movies: [...u.pool.movies, foundMovie],
+            movies: [...u.pool.movies, movieInDB],
           },
         }
       } else {
@@ -1187,7 +1195,7 @@ export const caseStay = async (message: Message): Promise<string> => {
     // Save to the database
     await saveWithRetry(settings, "caseStay")
 
-    return randomAddedToPoolMessage("Movie", foundMovie.title)
+    return randomAddedToPoolMessage("Movie", movieInDB.title)
   }
 
   // If user is in series channel
