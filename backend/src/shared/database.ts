@@ -27,11 +27,7 @@ export const saveWithRetry = async (
     } catch (err: any) {
       attempts++
 
-      logger.error(
-        `${identifier} | Save attempt ${attempts} failed.\n` +
-          `Error: ${err.name} - ${err.message}\n` +
-          (err.stack ? `Stack Trace:\n${err.stack}` : ""),
-      )
+      logger.error(`${identifier} | Save attempt ${attempts} failed: ${err.name} - ${err.message}`)
 
       if (attempts >= maxRetries) {
         logger.error(`${identifier} | Max database save retries reached. Final failure.`)
