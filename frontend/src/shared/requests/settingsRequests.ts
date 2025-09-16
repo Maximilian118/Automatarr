@@ -131,6 +131,7 @@ export const updateSettings = async (
           $remove_failed: Boolean
           $remove_missing: Boolean
           $permissions_change: Boolean
+          $storage_cleaner: Boolean
           $tidy_directories: Boolean
           $remove_blocked_loop: Int
           $wanted_missing_loop: Int
@@ -140,6 +141,7 @@ export const updateSettings = async (
           $permissions_change_loop: Int
           $permissions_change_chown: String
           $permissions_change_chmod: String
+          $storage_cleaner_loop: Int
           $tidy_directories_loop: Int
           $tidy_directories_paths: [tidyPaths!]!
           $qBittorrent_URL: String
@@ -180,6 +182,7 @@ export const updateSettings = async (
             remove_failed: $remove_failed
             remove_missing: $remove_missing
             permissions_change: $permissions_change
+            storage_cleaner: $storage_cleaner
             tidy_directories: $tidy_directories
             remove_blocked_loop: $remove_blocked_loop
             wanted_missing_loop: $wanted_missing_loop
@@ -189,6 +192,7 @@ export const updateSettings = async (
             permissions_change_loop: $permissions_change_loop
             permissions_change_chown: $permissions_change_chown
             permissions_change_chmod: $permissions_change_chmod
+            storage_cleaner_loop: $storage_cleaner_loop
             tidy_directories_loop: $tidy_directories_loop
             tidy_directories_paths: $tidy_directories_paths
             qBittorrent_URL: $qBittorrent_URL

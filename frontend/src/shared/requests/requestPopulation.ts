@@ -55,6 +55,7 @@ export const populateSettings = `
   remove_failed
   remove_missing
   permissions_change
+  storage_cleaner
   tidy_directories
   remove_blocked_loop
   wanted_missing_loop
@@ -64,6 +65,7 @@ export const populateSettings = `
   permissions_change_loop
   permissions_change_chown
   permissions_change_chmod
+  storage_cleaner_loop
   tidy_directories_loop
   tidy_directories_paths {
     path

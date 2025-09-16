@@ -94,6 +94,7 @@ export interface settingsType {
   remove_failed: boolean // Enable or disable automation of removing failed downloads
   remove_missing: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: boolean // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
+  storage_cleaner: boolean // Enable or disable automation of scanning for orphaned content on disk
   tidy_directories: boolean // Enable or disable automation of removing unwanted files in specified directories
   remove_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
   wanted_missing_loop: number // Loop timer for wanted missing search. Unit = minutes
@@ -103,6 +104,7 @@ export interface settingsType {
   permissions_change_loop: number // Loop timer for permissions_change. Unit = minutes
   permissions_change_chown: string // Intended ownership of all content inside Starr app root folders
   permissions_change_chmod: string // Intended permissions of all content inside Starr app root folders
+  storage_cleaner_loop: number // Loop timer for storage_cleaner. Unit = minutes
   tidy_directories_loop: number // Loop timer for tidy_directories. Unit = minutes
   tidy_directories_paths: tidyPaths[] // An Array of paths to loop through removing all children that are not allowed. Allowed children are specified in the allowedDirs array.
   qBittorrent_URL: string // URL including port to reach qBittorrent API

@@ -85,6 +85,7 @@ export interface Loops {
   remove_failed: LoopData | null
   remove_missing: LoopData | null
   search_wanted_missing: LoopData | null
+  storage_cleaner: LoopData | null
   tidy_directories: LoopData | null
   user_pool_checker: LoopData | null
 }
@@ -185,6 +186,7 @@ const loopSchema = new mongoose.Schema<Loops>({
   remove_failed: { type: loopDataSchema, default: null },
   remove_missing: { type: loopDataSchema, default: null },
   search_wanted_missing: { type: loopDataSchema, default: null },
+  storage_cleaner: { type: loopDataSchema, default: null },
   tidy_directories: { type: loopDataSchema, default: null },
   user_pool_checker: { type: loopDataSchema, default: null },
 })

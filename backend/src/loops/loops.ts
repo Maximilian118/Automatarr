@@ -8,6 +8,7 @@ import remove_blocked from "./remove_blocked"
 import remove_failed from "./remove_failed"
 import remove_missing from "./remove_missing"
 import search_wanted_missing from "./search_wanted_missing"
+import storage_cleaner from "./storage_cleaner"
 import tidy_directories from "./tidy_directories"
 import user_pool_content_checker from "./user_pool_content_checker"
 
@@ -44,6 +45,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("remove_missing_loop", async (settings) => {
     await remove_missing(settings)
   }, skipFirst)
+  // Scan storage for orphaned content not in libraries
+  await dynamicLoop("storage_cleaner_loop", async (settings) => {
+    await storage_cleaner(settings)
+  }, skipFirst)
   // Remove all unwanted files and directories in the provided paths.
   await dynamicLoop("tidy_directories_loop", async (settings) => {
     await tidy_directories(settings)
@@ -79,6 +84,10 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {
     await remove_missing(settings._doc)
+  }
+  // Scan storage for orphaned content not in libraries
+  if (settings.storage_cleaner) {
+    await storage_cleaner(settings._doc)
   }
   // Remove all unwanted files and directories in the provided paths.
   if (settings.tidy_directories) {

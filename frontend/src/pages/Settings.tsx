@@ -383,6 +383,16 @@ const Settings: React.FC = () => {
               }))
             }
           />
+          <Toggle
+            name="Storage Cleaner:"
+            checked={settings.storage_cleaner}
+            onToggle={() =>
+              setSettings(prevSettings => ({
+                ...prevSettings,
+                storage_cleaner: !prevSettings.storage_cleaner
+              }))
+            }
+          />
         </InputModel>
         <Button 
           type="submit"

@@ -68,6 +68,7 @@ const settingsSchema = `
     remove_failed: Boolean!
     remove_missing: Boolean!
     permissions_change: Boolean!
+    storage_cleaner: Boolean!
     tidy_directories: Boolean!
     remove_blocked_loop: Int!
     wanted_missing_loop: Int!
@@ -77,6 +78,7 @@ const settingsSchema = `
     permissions_change_loop: Int!
     permissions_change_chown: String!
     permissions_change_chmod: String!
+    storage_cleaner_loop: Int!
     tidy_directories_loop: Int!
     tidy_directories_paths: [TidyPaths!]!
     qBittorrent_URL: String!
@@ -153,6 +155,7 @@ const settingsSchema = `
     remove_failed: Boolean
     remove_missing: Boolean
     permissions_change: Boolean
+    storage_cleaner: Boolean
     tidy_directories: Boolean
     remove_blocked_loop: Int
     wanted_missing_loop: Int
@@ -162,6 +165,7 @@ const settingsSchema = `
     permissions_change_loop: Int
     permissions_change_chown: String
     permissions_change_chmod: String
+    storage_cleaner_loop: Int
     tidy_directories_loop: Int
     tidy_directories_paths: [tidyPaths!]!
     qBittorrent_URL: String
