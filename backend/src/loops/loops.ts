@@ -25,6 +25,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
       console.error("ERROR in collectStats():", error)
     }
   }, true, 60)
+  // Scan storage for orphaned content not in libraries BEFORE removing from databases
+  await dynamicLoop("storage_cleaner_loop", async (settings) => {
+    await storage_cleaner(settings)
+  }, skipFirst)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)
@@ -44,10 +48,6 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_missing_loop", async (settings) => {
     await remove_missing(settings)
-  }, skipFirst)
-  // Scan storage for orphaned content not in libraries
-  await dynamicLoop("storage_cleaner_loop", async (settings) => {
-    await storage_cleaner(settings)
   }, skipFirst)
   // Remove all unwanted files and directories in the provided paths.
   await dynamicLoop("tidy_directories_loop", async (settings) => {
@@ -81,13 +81,13 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   if (settings.user_pool_checker) {
     await user_pool_content_checker(settings._doc)
   }
+  // Scan storage for orphaned content not in libraries BEFORE removing from databases
+  if (settings.storage_cleaner) {
+    await storage_cleaner(settings._doc)
+  }
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {
     await remove_missing(settings._doc)
-  }
-  // Scan storage for orphaned content not in libraries
-  if (settings.storage_cleaner) {
-    await storage_cleaner(settings._doc)
   }
   // Remove all unwanted files and directories in the provided paths.
   if (settings.tidy_directories) {
