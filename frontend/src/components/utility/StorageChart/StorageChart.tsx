@@ -218,7 +218,7 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
             return (
               <div className="nivo-tooltip">
                 <div style={{ color: color, fontWeight: 'bold', marginBottom: '4px' }}>
-                  Other Storage
+                  Other
                 </div>
                 <div>
                   Storage: {formatBytes(otherStorageGB * (1024 ** 3))}
