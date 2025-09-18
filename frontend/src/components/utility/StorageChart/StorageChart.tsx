@@ -37,7 +37,7 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
     fetchStatsData()
   }, [user, setUser, setLoading, navigate])
 
-  const { storageData, userKeys, colors, legendData, usersWithStorage } = useMemo(() => {
+  const { storageData, userKeys, colors, legendData, usersWithStorage, otherStorageGB } = useMemo(() => {
     const data: StorageData[] = []
     const userKeys: string[] = []
     
@@ -107,6 +107,20 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
       userKeys.push(userKey)
     })
 
+    // Calculate total user storage
+    const totalUserStorageGB = usersWithStorage.reduce((sum, user) => sum + user.storage, 0)
+
+    // Calculate "Other" storage (storage used by content not requested by users)
+    const totalDriveSpaceGB = totalDriveSpaceBytes / (1024 ** 3)
+    const otherStorageGB = Math.max(totalDriveSpaceGB - freeDriveSpaceGB - totalUserStorageGB, 0)
+
+    // Add other space before available space
+    if (otherStorageGB > 0.01) { // Only show if significant amount
+      const otherKey = 'other'
+      userKeys.push(otherKey)
+      chartData[otherKey] = otherStorageGB
+    }
+
     // Add available space
     const availableKey = 'available'
     userKeys.push(availableKey)
@@ -117,13 +131,14 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
       ...chartData
     })
 
-    // Colors for users + gray for available - cycle through colors if we have more users than colors
-    const userColors = usersWithStorage.map((_, index) => 
+    // Colors for users + brown for other + gray for available - cycle through colors if we have more users than colors
+    const userColors = usersWithStorage.map((_, index) =>
       baseColors[index % baseColors.length]
     )
     const chartColors = [
       ...userColors,
-      '#6b7280' // Gray for available space
+      ...(otherStorageGB > 0.01 ? ['#8b8f98'] : []), // Neutral gray for other storage
+      '#64686f' // Neutral gray for available space
     ]
 
     // Calculate how many legend items can fit in two rows
@@ -132,20 +147,25 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
     const itemSpacing = 14 // px
     const maxItemsPerRow = Math.floor(chartWidth / (itemWidth + itemSpacing))
     const maxTotalItems = maxItemsPerRow * 2 // Two rows maximum
-    const reservedSlots = 2 // Reserve slots for "Available" and "Total"
+    const reservedSlots = 2 + (otherStorageGB > 0.01 ? 1 : 0) // Reserve slots for "Other" (if exists), "Available" and "Total"
     const availableUserSlots = maxTotalItems - reservedSlots
     
     // Sort users by storage (highest first) and take only what fits
     const sortedUsers = [...usersWithStorage].sort((a, b) => b.storage - a.storage)
     const visibleUsers = sortedUsers.slice(0, availableUserSlots)
     
-    // Create legend data - users + available + total
+    // Create legend data - users + other + available + total
     const legendData = [
       ...visibleUsers.map((userStorage, sortedIndex) => ({
         id: `user_${sortedIndex}`,
         label: `${userStorage.name}: ${formatBytes(userStorage.storageBytes)}`,
         color: chartColors[sortedIndex]
       })),
+      ...(otherStorageGB > 0.01 ? [{
+        id: 'other',
+        label: `Other: ${formatBytes(otherStorageGB * (1024 ** 3))}`,
+        color: '#8b8f98'
+      }] : []),
       {
         id: 'available',
         label: `Available: ${formatBytes(freeDriveSpaceBytes || 0)}`,
@@ -154,18 +174,19 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
       {
         id: 'total',
         label: `Total: ${formatBytes(totalDriveSpaceBytes || 0)}`,
-        color: '#374151'
+        color: '#475569'
       }
     ]
 
-    return { 
-      storageData: data, 
+    return {
+      storageData: data,
       userKeys,
       colors: chartColors,
       usersWithStorage,
       totalDriveSpaceBytes,
       freeDriveSpaceBytes,
-      legendData
+      legendData,
+      otherStorageGB
     }
   }, [users, stats])
 
@@ -192,23 +213,50 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
         isInteractive={true}
         animate={true}
         tooltip={({ id, color }) => {
+          // Handle "other" storage tooltip
+          if (id === 'other') {
+            return (
+              <div className="nivo-tooltip">
+                <div style={{ color: color, fontWeight: 'bold', marginBottom: '4px' }}>
+                  Other Storage
+                </div>
+                <div>
+                  Storage: {formatBytes(otherStorageGB * (1024 ** 3))}
+                </div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
+                  Content not requested by users
+                </div>
+              </div>
+            )
+          }
+
+          // Handle "available" storage tooltip
+          if (id === 'available') {
+            const currentStats = stats?.data_points?.[stats.data_points.length - 1]
+            const freeDriveSpaceBytes = currentStats?.storage.free_storage || 0
+
+            return (
+              <div className="nivo-tooltip">
+                <div style={{ color: color, fontWeight: 'bold', marginBottom: '4px' }}>
+                  Available Space
+                </div>
+                <div>
+                  Storage: {formatBytes(freeDriveSpaceBytes)}
+                </div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginTop: '2px' }}>
+                  Free disk space
+                </div>
+              </div>
+            )
+          }
+
           // Find the user for this segment
           const userIndex = parseInt(id.toString().replace('user_', ''))
           const user = usersWithStorage[userIndex]
-          
+
           if (user) {
             return (
-              <div
-                style={{
-                  background: '#0f0f0f',
-                  padding: '8px 12px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                  color: '#ffffff',
-                  fontSize: '12px'
-                }}
-              >
+              <div className="nivo-tooltip">
                 <div style={{ color: color, fontWeight: 'bold', marginBottom: '4px' }}>
                   {user.name}
                 </div>
@@ -218,7 +266,7 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
               </div>
             )
           }
-          
+
           return null
         }}
         motionConfig="gentle"

@@ -15,6 +15,7 @@
   height: 120px;
   margin: 0 auto 24px;
   position: relative;
+  z-index: 1000;
 
   .storage-chart-legend {
     position: absolute;
@@ -25,4 +26,16 @@
     width: 80vw; // Match the chart width
     margin: 0 auto; // Center the legend container
   }
+}
+
+.nivo-tooltip {
+  background: #0f0f0f;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  color: #ffffff;
+  font-size: 12px;
+  position: relative;
+  z-index: 1000;
 }
