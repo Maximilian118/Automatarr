@@ -18,6 +18,7 @@ import {
   caseStay,
   caseWaitTime,
 } from "./discordBotContentListeners"
+import { caseSearch } from "./discordBotSearch"
 import { handleDiscordCase } from "./discordBotCaseHandler"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
@@ -93,6 +94,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "stay": // Ensure some content isn't deleted by adding it to your user pool
         await handleDiscordCase(message, caseStay)
+        break
+      case "search": // Search for content across user pools
+        await handleDiscordCase(message, caseSearch)
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -265,6 +269,14 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "Keep content downloaded",
     description: "Ensure some content isn't deleted by adding it to your user pool.",
     usage: "!stay <movieTitle + Year / seriesTitle + Year>",
+    adminRequired: false,
+  },
+  {
+    name: "!search",
+    category: "Content",
+    shortDescription: "Search user pools for content",
+    description: "Find which users have specific content in their pools. Use with or without year.",
+    usage: "!search <movieTitle + optional Year / seriesTitle + optional Year>",
     adminRequired: false,
   },
 ]
