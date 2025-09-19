@@ -25,13 +25,13 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
       console.error("ERROR in collectStats():", error)
     }
   }, true, 60)
-  // Scan storage for orphaned content not in libraries BEFORE removing from databases
-  await dynamicLoop("storage_cleaner_loop", async (settings) => {
-    await storage_cleaner(settings)
-  }, skipFirst)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)
+  }, skipFirst)
+  // Scan storage for orphaned content not in libraries BEFORE removing from databases
+  await dynamicLoop("storage_cleaner_loop", async (settings) => {
+    await storage_cleaner(settings)
   }, skipFirst)
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
   await dynamicLoop("remove_blocked_loop", async (settings) => {

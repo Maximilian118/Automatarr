@@ -16,6 +16,7 @@ import {
   caseList,
   caseRemove,
   caseStay,
+  caseTest,
   caseWaitTime,
 } from "./discordBotContentListeners"
 import { caseSearch } from "./discordBotSearch"
@@ -97,6 +98,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "search": // Search for content across user pools
         await handleDiscordCase(message, caseSearch)
+        break
+      case "test": // Test webhook notifications
+        await handleDiscordCase(message, caseTest)
         break
       default:
         await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
@@ -278,6 +282,14 @@ const commandRegistry: CommandEntry[] = [
     description: "Find which users have specific content in their pools. Use with or without year.",
     usage: "!search <movieTitle + optional Year / seriesTitle + optional Year>",
     adminRequired: false,
+  },
+  {
+    name: "!test",
+    category: "User Management",
+    shortDescription: "Test webhook notifications",
+    description: "Generate fake webhook notifications for testing purposes. Uses random content from database.",
+    usage: "!test <grab|import|upgrade|expired>",
+    adminRequired: true,
   },
 ]
 

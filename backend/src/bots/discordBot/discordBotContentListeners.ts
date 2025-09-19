@@ -12,6 +12,7 @@ import {
   noDBSave,
   sendDiscordMessage,
   createPoolItemEmbed,
+  createWebhookEmbed,
 } from "./discordBotUtility"
 import {
   validateBlocklistCommand,
@@ -77,6 +78,8 @@ import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./discordBotRequestValidationUtility"
 import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
+import { WebHookWaitingType } from "../../models/webhook"
+import { isMovie, isSeries } from "../../types/typeGuards"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -1249,4 +1252,150 @@ export const caseStay = async (message: Message): Promise<string> => {
 
   // If we can't find the item in library or queue, just return a not found message.
   return randomNotFoundMessage()
+}
+
+// Test webhook notifications with fake data
+export const caseTest = async (message: Message): Promise<string> => {
+  const args = message.content.trim().split(/\s+/)
+  const [, eventType] = args
+
+  if (!eventType) {
+    return "Usage: `!test <eventType>` where eventType is: grab, import, upgrade, expired"
+  }
+
+  const validEvents = ["grab", "import", "upgrade", "expired"]
+  const lowerEventType = eventType.toLowerCase()
+
+  if (!validEvents.includes(lowerEventType)) {
+    return `Invalid event type. Use one of: ${validEvents.join(", ")}`
+  }
+
+  try {
+    // Get settings to check channel restrictions
+    const settings = (await Settings.findOne()) as settingsDocType
+    if (!settings) return noDBPull()
+
+    // Check which channel we're in to determine content type
+    const channel = message.channel
+    if (!("name" in channel) || !channel.name) {
+      return "This command can only be used in a named server channel."
+    }
+
+    // Get random content from database
+    const data = (await Data.findOne()) as dataDocType
+    if (!data) return noDBPull()
+
+    const movieLibrary = data.libraries.find((API) => API.name === "Radarr")?.data as Movie[] | undefined
+    const seriesLibrary = data.libraries.find((API) => API.name === "Sonarr")?.data as Series[] | undefined
+
+    let randomContent: Movie | Series | null = null
+
+    // Respect channel type - only movies in movie channel, only series in series channel
+    if (channel.name.toLowerCase() === settings.discord_bot.movie_channel_name.toLowerCase()) {
+      // Movie channel - only return movies
+      if (movieLibrary && movieLibrary.length > 0) {
+        randomContent = movieLibrary[Math.floor(Math.random() * movieLibrary.length)]
+      } else {
+        return "No movies found in database to test with. Try adding some movies first!"
+      }
+    } else if (channel.name.toLowerCase() === settings.discord_bot.series_channel_name.toLowerCase()) {
+      // Series channel - only return series
+      if (seriesLibrary && seriesLibrary.length > 0) {
+        randomContent = seriesLibrary[Math.floor(Math.random() * seriesLibrary.length)]
+      } else {
+        return "No series found in database to test with. Try adding some series first!"
+      }
+    } else {
+      // Other channels - allow both but prefer based on availability
+      if (movieLibrary && movieLibrary.length > 0 && seriesLibrary && seriesLibrary.length > 0) {
+        const useMovie = Math.random() > 0.5
+        if (useMovie) {
+          randomContent = movieLibrary[Math.floor(Math.random() * movieLibrary.length)]
+        } else {
+          randomContent = seriesLibrary[Math.floor(Math.random() * seriesLibrary.length)]
+        }
+      } else if (movieLibrary && movieLibrary.length > 0) {
+        randomContent = movieLibrary[Math.floor(Math.random() * movieLibrary.length)]
+      } else if (seriesLibrary && seriesLibrary.length > 0) {
+        randomContent = seriesLibrary[Math.floor(Math.random() * seriesLibrary.length)]
+      }
+    }
+
+    if (!randomContent) {
+      return "No content found in database to test with. Try adding some movies or series first!"
+    }
+
+    // Generate appropriate message using existing random functions
+    let testMessage: string
+    if (lowerEventType === "grab") {
+      testMessage = randomGrabbedMessage(randomContent.title)
+    } else if (lowerEventType === "import") {
+      if (isMovie(randomContent)) {
+        testMessage = randomMovieReadyMessage(message.author.toString(), randomContent.title)
+      } else if (isSeries(randomContent)) {
+        testMessage = randomSeriesReadyMessage(message.author.toString(), randomContent.title)
+      } else {
+        testMessage = "Test import message"
+      }
+    } else if (lowerEventType === "upgrade") {
+      if (isMovie(randomContent)) {
+        testMessage = randomMovieReplacementMessage(randomContent.title)
+      } else if (isSeries(randomContent)) {
+        testMessage = randomEpisodeReplacementMessage(randomContent.title, 1, 1) // placeholder season/episode
+      } else {
+        testMessage = "Test upgrade message"
+      }
+    } else {
+      testMessage = "Test notification message"
+    }
+
+    // Create fake webhook data
+    const fakeWebhookMatch: WebHookWaitingType = {
+      APIName: 'runtime' in randomContent ? "Radarr" : "Sonarr",
+      bots: ["Discord"],
+      discordData: {
+        guildId: message.guild?.id ?? "",
+        channelId: message.channel.id,
+        authorId: message.author.id,
+        authorUsername: message.author.username,
+        authorMention: message.author.toString(),
+        messageId: message.id,
+      },
+      whatsappData: null,
+      content: randomContent,
+      seasons: [],
+      episodes: [],
+      waitForStatus: lowerEventType === "grab" ? "Grab" :
+                    lowerEventType === "import" ? "Import" :
+                    lowerEventType === "upgrade" ? "Upgrade" : "Import",
+      message: testMessage,
+      created_at: new Date(),
+    }
+
+    // Generate test webhook notification
+    const isExpired = lowerEventType === "expired"
+    let finalMessage = fakeWebhookMatch.message
+
+    if (isExpired) {
+      // Use randomGrabNotFoundMessage for expired notifications
+      finalMessage = randomGrabNotFoundMessage(randomContent.title)
+    }
+
+    const embed = createWebhookEmbed(
+      fakeWebhookMatch,
+      finalMessage,
+      isExpired
+    )
+
+    // Send the test embed
+    if ("send" in message.channel && typeof message.channel.send === "function") {
+      await message.channel.send({ embeds: [embed] })
+      return "" // Return empty string to avoid double-sending
+    }
+
+    return "Could not send test notification - channel type not supported"
+  } catch (err) {
+    logger.error(`caseTest error: ${err}`)
+    return "Error generating test notification"
+  }
 }

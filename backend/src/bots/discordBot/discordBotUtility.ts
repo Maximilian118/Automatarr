@@ -17,6 +17,7 @@ import moment from "moment"
 import { getDiscordClient } from "./discordBot"
 import { WebHookWaitingType } from "../../models/webhook"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
+import { isMovie, isSeries } from "../../types/typeGuards"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -105,7 +106,10 @@ export const sendDiscordNotification = async (
           "dddd, MMMM Do YYYY, h:mm A",
         )}.`
 
-    const sentMessage = await textBasedChannel.send(expired ? expiredMessage : webhookMatch.message)
+    const message = expired ? expiredMessage : webhookMatch.message
+    const embed = createWebhookEmbed(webhookMatch, message, expired)
+
+    const sentMessage = await textBasedChannel.send({ embeds: [embed] })
 
     if (sentMessage) {
       logger.bot(
@@ -482,17 +486,34 @@ export const getQueueItemWithLongestTimeLeft = (
 // Get poster image URL from movie/series, prioritizing poster type
 export const getPosterImageUrl = (images: any[]): string | null => {
   if (!images || images.length === 0) return null
-  
+
   // Priority: poster > banner > any other image
   const poster = images.find(img => img.coverType === "poster")
   if (poster?.remoteUrl || poster?.url) return poster.remoteUrl || poster.url
-  
-  const banner = images.find(img => img.coverType === "banner") 
+
+  const banner = images.find(img => img.coverType === "banner")
   if (banner?.remoteUrl || banner?.url) return banner.remoteUrl || banner.url
-  
+
   // Fallback to first available image
   const fallback = images.find(img => img.remoteUrl || img.url)
   return fallback?.remoteUrl || fallback?.url || null
+}
+
+// Get backdrop/fanart image URL from movie/series for large bottom image
+export const getBackdropImageUrl = (images: any[]): string | null => {
+  if (!images || images.length === 0) return null
+
+  // Priority: fanart > backdrop > banner (for wide landscape images)
+  const fanart = images.find(img => img.coverType === "fanart")
+  if (fanart?.remoteUrl || fanart?.url) return fanart.remoteUrl || fanart.url
+
+  const backdrop = images.find(img => img.coverType === "backdrop")
+  if (backdrop?.remoteUrl || backdrop?.url) return backdrop.remoteUrl || backdrop.url
+
+  const banner = images.find(img => img.coverType === "banner")
+  if (banner?.remoteUrl || banner?.url) return banner.remoteUrl || banner.url
+
+  return null
 }
 
 // Create embed for movie/series pool item
@@ -540,5 +561,132 @@ export const createPoolItemEmbed = (
     embed.setThumbnail(posterUrl)
   }
   
+  return embed
+}
+
+// Create embed for webhook notifications
+export const createWebhookEmbed = (
+  webhookMatch: WebHookWaitingType,
+  message: string,
+  expired?: boolean
+): EmbedBuilder => {
+  const { content, waitForStatus } = webhookMatch
+
+  // Determine embed color based on content type (same as !list command)
+  let color: number
+  if (expired) {
+    color = 0x95a5a6 // Gray for expired/failed
+  } else {
+    // Use same colors as !list command
+    if ('runtime' in content) {
+      color = 0xff6b6b // Red for movies
+    } else if ('seasons' in content) {
+      color = 0x4ecdc4 // Teal for series
+    } else {
+      color = 0x95a5a6 // Gray for other content types
+    }
+  }
+
+  // Format event status for display
+  const statusText = expired ? `${waitForStatus} - Expired` :
+                    waitForStatus === "Grab" ? "Grabbed" :
+                    waitForStatus === "Import" ? "Imported" :
+                    waitForStatus === "Upgrade" ? "Upgraded" : waitForStatus
+
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setDescription(`**${statusText}**\n\n**${content.title}${
+      'year' in content ? ` (${content.year})` :
+      'firstAired' in content && content.firstAired ? ` (${new Date(content.firstAired as string).getFullYear()})` : ''
+    }**\n${message}`)
+
+  // Add poster image as thumbnail (small, top right)
+  if ('images' in content && content.images) {
+    const posterUrl = getPosterImageUrl(content.images)
+    if (posterUrl) {
+      embed.setThumbnail(posterUrl)
+    }
+
+    // Add backdrop/fanart as large bottom image
+    const backdropUrl = getBackdropImageUrl(content.images)
+    if (backdropUrl) {
+      embed.setImage(backdropUrl)
+    }
+  }
+
+  // Add detailed metadata fields
+  let fieldData = []
+
+  if (isMovie(content)) {
+    // Movie metadata
+    const runtimeMins = content.runtime || 0
+    const hours = Math.floor(runtimeMins / 60)
+    const minutes = runtimeMins % 60
+    const runtimeStr = hours > 0
+      ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`
+      : `${minutes}m`
+
+    // First row: Quality, Runtime, Size (inline=true for 3 columns)
+    fieldData.push(`**Quality**\nBluray-1080p`)
+    fieldData.push(`**Runtime**\n${runtimeStr}`)
+    fieldData.push(`**Size**\n12.34 GiB`)
+
+    // Everything else in single column (inline=false) - Rating removed
+
+    if (content.overview) {
+      fieldData.push(`**Synopsis**\n${content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview}`)
+    }
+
+    // Ratings
+    let ratingsText = ''
+    if (content.ratings) {
+      const ratings = content.ratings
+      if (ratings.tmdb?.value) {
+        ratingsText += `TMDb: ${ratings.tmdb.value.toFixed(1)}`
+      }
+      if (ratings.imdb?.value) {
+        ratingsText += `${ratingsText ? ' ∙ ' : ''}IMDb: ${ratings.imdb.value.toFixed(1)}/10`
+      }
+      if (ratings.rottenTomatoes?.value) {
+        ratingsText += `${ratingsText ? ' ∙ ' : ''}🍅 ${ratings.rottenTomatoes.value}%`
+      }
+      if (ratingsText) {
+        fieldData.push(`**Ratings**\n${ratingsText}`)
+      }
+    }
+
+  } else if (isSeries(content)) {
+    // Series metadata
+    const seasons = content.seasons ? content.seasons.length : 0
+
+    // First row: Quality, Seasons, Episodes (inline=true for 3 columns)
+    fieldData.push(`**Quality**\nBluray-1080p`)
+    fieldData.push(`**Seasons**\n${seasons}`)
+
+    if (content.statistics?.totalEpisodeCount) {
+      fieldData.push(`**Episodes**\n${content.statistics.totalEpisodeCount}`)
+    } else {
+      fieldData.push(`**Episodes**\nUnknown`)
+    }
+
+    // Everything else in single column (inline=false) - Rating removed
+
+    if (content.overview) {
+      fieldData.push(`**Synopsis**\n${content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview}`)
+    }
+
+    // Ratings - Series use a different rating structure
+    if (content.ratings && content.ratings.value) {
+      fieldData.push(`**Ratings**\nIMDb: ${content.ratings.value.toFixed(1)}/10`)
+    }
+  }
+
+  // Add fields with optimized layout for narrower appearance
+  fieldData.forEach((field, index) => {
+    const [name, value] = field.split('\n', 2)
+    const isInlineField = index < 3 // First 3 fields are inline
+    embed.addFields({ name: name.replace(/\*\*/g, ''), value: value, inline: isInlineField })
+  })
+
   return embed
 }
