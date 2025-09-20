@@ -77,7 +77,7 @@ import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./discordBotRequestValidationUtility"
-import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
+import { QueueNotificationType, waitForWebhooks, cancelWebhooksForContent } from "../../webhooks/webhookUtility"
 import { WebHookWaitingType } from "../../models/webhook"
 import { isMovie, isSeries } from "../../types/typeGuards"
 
@@ -771,6 +771,31 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
   const plural = contentType === "movie" ? "movies" : "series"
 
+  // Find the content to be removed for webhook cancellation
+  let removedContent: Movie | Series | null = null
+
+  if (channel.name === settings.discord_bot.movie_channel_name) {
+    removedContent = user.pool.movies.find((m) => {
+      if (contentTitle !== null && contentYear !== null) {
+        return (
+          m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+          Number(m.year) === Number(contentYear)
+        )
+      }
+      return `${m.title} ${m.year}` === poolItemTitle
+    }) || null
+  } else if (channel.name === settings.discord_bot.series_channel_name) {
+    removedContent = user.pool.series.find((s) => {
+      if (contentTitle !== null && contentYear !== null) {
+        return (
+          s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+          Number(s.year) === Number(contentYear)
+        )
+      }
+      return `${s.title} ${s.year}` === poolItemTitle
+    }) || null
+  }
+
   // Remove from the user's pool
   const originalPoolSize =
     contentType === "movie" ? user.pool.movies.length : user.pool.series.length
@@ -824,6 +849,11 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
   if (originalPoolSize === newPoolSize) {
     return `I couldn't not find "${poolItemTitle}" in your ${plural} pool. Use \`!list ${plural}\` to see your current ${plural}.`
+  }
+
+  // Cancel any pending webhooks for the removed content
+  if (removedContent) {
+    await cancelWebhooksForContent(removedContent)
   }
 
   // Save the new pool data to the database

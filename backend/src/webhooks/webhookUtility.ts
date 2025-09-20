@@ -322,3 +322,43 @@ export const startWebhookExpiryWatcher = () => {
 
   logger.info("Webhook | Expiry | Started expiry watcher.")
 }
+
+// Cancel pending webhooks for specific content when removed from user pools
+export const cancelWebhooksForContent = async (content: Movie | Series): Promise<void> => {
+  try {
+    const webhookDoc = (await WebHook.findOne()) as WebHookDocType
+
+    if (!webhookDoc) {
+      logger.warn("Webhook | Cancel | No webhook document found in database")
+      return
+    }
+
+    const originalLength = webhookDoc.waiting.length
+
+    // Remove webhooks matching the content
+    webhookDoc.waiting = webhookDoc.waiting.filter((w) => {
+      const isSameMovie =
+        isMovie(w.content) &&
+        isMovie(content) &&
+        w.content.tmdbId === content.tmdbId
+      const isSameSeries =
+        isSeries(w.content) &&
+        isSeries(content) &&
+        w.content.tvdbId === content.tvdbId
+
+      // Keep webhooks that don't match this content
+      return !(isSameMovie || isSameSeries)
+    })
+
+    const removedCount = originalLength - webhookDoc.waiting.length
+
+    if (removedCount > 0) {
+      await saveWithRetry(webhookDoc, "cancelWebhooksForContent")
+      logger.info(
+        `Webhook | Cancel | Removed ${removedCount} pending webhook(s) for content: ${content.title}`
+      )
+    }
+  } catch (err) {
+    logger.error(`Webhook | Cancel | Failed to cancel webhooks for content: ${err instanceof Error ? err.message : err}`)
+  }
+}
