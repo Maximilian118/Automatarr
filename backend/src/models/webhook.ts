@@ -17,6 +17,7 @@ export type EventType =
   | "EpisodeFileDelete"
   | "Import" // Not actually an eventType from Starr apps. Returned from starrWebhookEventType()
   | "Upgrade" // Not actually an eventType from Starr apps. Returned from starrWebhookEventType()
+  | "Expired" // Internal status when webhook expires but kept for potential future edits
 
 export interface DiscordDataType {
   _id?: string
@@ -45,8 +46,10 @@ export interface WebHookWaitingType {
   episodes: BasicEpisodeDataType[] // An array of all the episodes in the series with data to check if they've been imported
   waitForStatus: EventType // Status are we waiting for
   message: string // Message for the user
+  sentMessageId?: string // Discord message ID for editing existing messages
   expiry?: Date | null // Time that we stop waiting for a webhook that matches
   expired_message?: string // Message to send if we stop waiting for a webhook that matches
+  expiredCount?: number // Track how many times this webhook has been expired (prevent infinite re-expiry)
   created_at: Date
 }
 
@@ -81,8 +84,10 @@ const WebHookWaitingSchema = new mongoose.Schema<WebHookWaitingType>({
   episodes: { type: mongoose.Schema.Types.Mixed, default: [] },
   waitForStatus: { type: String, required: true },
   message: { type: String, required: true },
+  sentMessageId: { type: String, required: false },
   expiry: { type: Date, default: null },
   expired_message: { type: String, default: "" },
+  expiredCount: { type: Number, default: 0 },
   created_at: { type: Date, default: Date.now },
 })
 

@@ -169,7 +169,7 @@ export const randomAlreadyAddedMessage = () => {
     "That one's been downloaded already, champ.",
     "Check your collection, genius!",
     "You've added that before. Memory like a goldfish?",
-    "Old news! You've already grabbed that.",
+    "Old news! You've already added that.",
     "Yep, you've got that one. Impressive attention to detail... not.",
   ]
   return messages[Math.floor(Math.random() * messages.length)]
@@ -316,7 +316,7 @@ const randomCompletedMessage = () => {
     "Download's done, but something's holding it back. Time to alert the server deity.",
     "It finished downloading, but hasn't moved forward. The server overlord must intervene.",
     "Complete, yet unmoved — like a warrior waiting for orders. Summon the server god to finish the job.",
-    "It's downloaded but not imported. Only the great server owner can descend from the clouds and fix this.",
+    "It's downloaded but not ready yet. Only the great server owner can descend from the clouds and fix this.",
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
@@ -324,7 +324,7 @@ const randomCompletedMessage = () => {
 const randomImportedMessage = () => {
   const messages = [
     "All done. It's downloaded and added to your library.",
-    "Finished and imported — it should be ready to watch.",
+    "Finished and ready — it should be available to watch.",
     "Successfully added to your collection.",
     "That one's now part of your library. Enjoy.",
     "It's in — check your collection. You're good to go.",
@@ -471,7 +471,7 @@ export const randomEpisodesDownloadingMessage = (count: number, timeleft?: strin
     } are currently downloading.${eta}${longWaitNote}`,
     `This series is already in the library. ${count} episode${
       count > 1 ? "s" : ""
-    } are being grabbed now.${eta}${longWaitNote}`,
+    } are being downloaded now.${eta}${longWaitNote}`,
     `Already added! ${count} episode${
       count > 1 ? "s" : ""
     } are coming your way.${eta}${longWaitNote}`,

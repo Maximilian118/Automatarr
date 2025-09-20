@@ -264,7 +264,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       queueNotifications.push({
         waitForStatus: "Grab",
         message: randomGrabbedMessage(movie.title),
-        expiry: new Date(Date.now() + 5 * 60 * 1000),
+        expiry: new Date(Date.now() + 10 * 60 * 1000),
         expired_message: randomGrabNotFoundMessage(movie.title),
       })
     }
@@ -496,7 +496,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
       queueNotifications.push({
         waitForStatus: "Grab",
         message: randomGrabbedMessage(series.title),
-        expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 Mins
+        expiry: new Date(Date.now() + 10 * 60 * 1000), // 10 Mins
         expired_message: randomGrabNotFoundMessage(series.title),
       })
     }
@@ -634,9 +634,19 @@ export const caseList = async (message: Message): Promise<string> => {
     )
   }
 
+  // Helper function to determine pool limit color based on usage
+  const getPoolLimitColor = (currentCount: number, maxLimit: number): number => {
+    if (maxLimit === 0) return 0x95a5a6 // Gray for unlimited
+
+    const usagePercent = (currentCount / maxLimit) * 100
+
+    if (usagePercent >= 100) return 0xff4444      // Red - at/over limit
+    if (usagePercent >= 76) return 0xff8c00       // Orange - close to limit
+    return 0x32cd32                               // Green - plenty of space
+  }
+
   // Rich embed mode - split into multiple messages if needed
-  const movieColor = 0xff6b6b // Red for movies
-  const seriesColor = 0x4ecdc4 // Teal for series
+  const headerColor = 0x3498db // Blue for headers and limits
 
   if ("send" in message.channel && typeof message.channel.send === "function") {
     let messageCount = 0
@@ -655,7 +665,7 @@ export const caseList = async (message: Message): Promise<string> => {
       if (user.pool.movies.length === 0) {
         // Empty movies embed
         const emptyEmbed = new EmbedBuilder()
-          .setColor(movieColor)
+          .setColor(headerColor)
           .setTitle("🎬 Movies")
           .setDescription(
             `No Movies yet! ${
@@ -675,15 +685,16 @@ export const caseList = async (message: Message): Promise<string> => {
         for (let chunkIndex = 0; chunkIndex < movieChunks.length; chunkIndex++) {
           const chunk = movieChunks[chunkIndex]
           const movieEmbeds = chunk.map((movie, i) =>
-            createPoolItemEmbed(movie, i + chunkIndex * 8, "movie", movieColor),
+            createPoolItemEmbed(movie, i + chunkIndex * 8, "movie"),
           )
           await sendEmbedMessage(movieEmbeds, messageCount === 0)
         }
 
-        // Add movie pool limit as separate message
+        // Add movie pool limit as separate message with dynamic color
+        const movieLimitColor = getPoolLimitColor(user.pool.movies.length, Number(currentMovieMax))
         const movieLimitEmbed = new EmbedBuilder()
-          .setColor(movieColor)
-          .setTitle(`Movies Pool Limit:   ${currentMovieMax}`)
+          .setColor(movieLimitColor)
+          .setTitle(`Movies Pool Limit: ${user.pool.movies.length}/${currentMovieMax}`)
         await sendEmbedMessage([movieLimitEmbed], messageCount === 0)
       }
     }
@@ -693,7 +704,7 @@ export const caseList = async (message: Message): Promise<string> => {
       if (user.pool.series.length === 0) {
         // Empty series embed
         const emptyEmbed = new EmbedBuilder()
-          .setColor(seriesColor)
+          .setColor(headerColor)
           .setTitle("📺 Series")
           .setDescription(
             `No Series yet! ${
@@ -713,15 +724,16 @@ export const caseList = async (message: Message): Promise<string> => {
         for (let chunkIndex = 0; chunkIndex < seriesChunks.length; chunkIndex++) {
           const chunk = seriesChunks[chunkIndex]
           const seriesEmbeds = chunk.map((series, i) =>
-            createPoolItemEmbed(series, i + chunkIndex * 8, "series", seriesColor),
+            createPoolItemEmbed(series, i + chunkIndex * 8, "series"),
           )
           await sendEmbedMessage(seriesEmbeds, messageCount === 0)
         }
 
-        // Add series pool limit as separate message
+        // Add series pool limit as separate message with dynamic color
+        const seriesLimitColor = getPoolLimitColor(user.pool.series.length, Number(currentSeriesMax))
         const seriesLimitEmbed = new EmbedBuilder()
-          .setColor(seriesColor)
-          .setTitle(`Series Pool Limit:   ${currentSeriesMax}`)
+          .setColor(seriesLimitColor)
+          .setTitle(`Series Pool Limit: ${user.pool.series.length}/${currentSeriesMax}`)
         await sendEmbedMessage([seriesLimitEmbed], messageCount === 0)
       }
     }
@@ -911,7 +923,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
         queueNotifications.push({
           waitForStatus: "Grab",
           message: randomGrabbedMessage(movieInDB.title),
-          expiry: new Date(Date.now() + 5 * 60 * 1000),
+          expiry: new Date(Date.now() + 10 * 60 * 1000),
           expired_message: randomGrabNotFoundMessage(movieInDB.title),
         })
       }
@@ -991,7 +1003,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
         queueNotifications.push({
           waitForStatus: "Grab",
           message: randomGrabbedMessage(seriesInDB.title),
-          expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 mins
+          expiry: new Date(Date.now() + 10 * 60 * 1000), // 10 mins
           expired_message: randomGrabNotFoundMessage(seriesInDB.title),
         })
       }
@@ -1260,14 +1272,24 @@ export const caseTest = async (message: Message): Promise<string> => {
   const [, eventType] = args
 
   if (!eventType) {
-    return "Usage: `!test <eventType>` where eventType is: grab, import, upgrade, expired"
+    return "Usage: `!test <eventType>` where eventType is: downloading, ready, upgrade, expired"
   }
 
-  const validEvents = ["grab", "import", "upgrade", "expired"]
-  const lowerEventType = eventType.toLowerCase()
+  // Accept both old technical terms and new friendly terms for compatibility
+  const eventMapping: Record<string, string> = {
+    "grab": "grab",
+    "downloading": "grab",
+    "import": "import",
+    "ready": "import",
+    "upgrade": "upgrade",
+    "expired": "expired"
+  }
 
-  if (!validEvents.includes(lowerEventType)) {
-    return `Invalid event type. Use one of: ${validEvents.join(", ")}`
+  const lowerEventType = eventType.toLowerCase()
+  const mappedEventType = eventMapping[lowerEventType]
+
+  if (!mappedEventType) {
+    return `Invalid event type. Use one of: downloading, ready, upgrade, expired`
   }
 
   try {
@@ -1327,9 +1349,9 @@ export const caseTest = async (message: Message): Promise<string> => {
 
     // Generate appropriate message using existing random functions
     let testMessage: string
-    if (lowerEventType === "grab") {
+    if (mappedEventType === "grab") {
       testMessage = randomGrabbedMessage(randomContent.title)
-    } else if (lowerEventType === "import") {
+    } else if (mappedEventType === "import") {
       if (isMovie(randomContent)) {
         testMessage = randomMovieReadyMessage(message.author.toString(), randomContent.title)
       } else if (isSeries(randomContent)) {
@@ -1337,7 +1359,7 @@ export const caseTest = async (message: Message): Promise<string> => {
       } else {
         testMessage = "Test import message"
       }
-    } else if (lowerEventType === "upgrade") {
+    } else if (mappedEventType === "upgrade") {
       if (isMovie(randomContent)) {
         testMessage = randomMovieReplacementMessage(randomContent.title)
       } else if (isSeries(randomContent)) {
@@ -1365,15 +1387,15 @@ export const caseTest = async (message: Message): Promise<string> => {
       content: randomContent,
       seasons: [],
       episodes: [],
-      waitForStatus: lowerEventType === "grab" ? "Grab" :
-                    lowerEventType === "import" ? "Import" :
-                    lowerEventType === "upgrade" ? "Upgrade" : "Import",
+      waitForStatus: mappedEventType === "grab" ? "Grab" :
+                    mappedEventType === "import" ? "Import" :
+                    mappedEventType === "upgrade" ? "Upgrade" : "Import",
       message: testMessage,
       created_at: new Date(),
     }
 
     // Generate test webhook notification
-    const isExpired = lowerEventType === "expired"
+    const isExpired = mappedEventType === "expired"
     let finalMessage = fakeWebhookMatch.message
 
     if (isExpired) {

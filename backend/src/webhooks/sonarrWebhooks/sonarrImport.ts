@@ -98,6 +98,8 @@ export const sonarrImport = async (
     }
 
     // Find and mark as imported
+    let anyEpisodeUpdated = false
+
     for (const importedEpisode of webhook.episodes) {
       let episodeUpdated = false
 
@@ -108,6 +110,7 @@ export const sonarrImport = async (
           !ep.imported // only update if not already true
         ) {
           episodeUpdated = true
+          anyEpisodeUpdated = true
           return { ...ep, imported: true }
         }
         return ep
@@ -122,17 +125,25 @@ export const sonarrImport = async (
       webhookMatch.episodes.every((ep) => ep.imported) ||
       series.statistics.percentOfEpisodes === 100
 
-    if (allImported) {
-      // All the episodes are imported. Hazah! Send notifications about it.
+    // Send notification and edit existing message if episodes were updated
+    if (anyEpisodeUpdated || allImported) {
       if (webhookMatch.bots.includes("Discord") && webhookMatch.discordData) {
-        await sendDiscordNotification(webhookMatch)
+        const result = await sendDiscordNotification(webhookMatch)
+
+        // Store the message ID for future edits if this is the first notification
+        if (result.success && result.messageId && !webhookMatch.sentMessageId) {
+          webhookMatch.sentMessageId = result.messageId
+          shouldSave = true
+        }
       }
 
       if (webhookMatch.bots.includes("Whatsapp") && webhookMatch.whatsappData) {
         // Do something here when we support whatsapp
       }
+    }
 
-      // Remove from waiting list
+    if (allImported) {
+      // Remove from waiting list only when fully imported
       waitingWebhooks.waiting = waitingWebhooks.waiting.filter(
         (w) => !w._id!.equals(webhookMatch._id),
       )

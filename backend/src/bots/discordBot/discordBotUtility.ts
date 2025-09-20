@@ -62,17 +62,17 @@ export const sendDiscordMessage = async (message: Message, content: string): Pro
 export const sendDiscordNotification = async (
   webhookMatch: WebHookWaitingType,
   expired?: boolean,
-): Promise<boolean> => {
+): Promise<{ success: boolean; messageId?: string }> => {
   const client = getDiscordClient()
 
   if (!client) {
     logger.error("sendDiscordNotification: Could not get Discord Client")
-    return false
+    return { success: false }
   }
 
   if (!webhookMatch.discordData) {
     logger.error("sendDiscordNotification: No discordData.")
-    return false
+    return { success: false }
   }
 
   let channel
@@ -85,7 +85,7 @@ export const sendDiscordNotification = async (
         webhookMatch.discordData.channelId
       }: ${String(err)}`,
     )
-    return false
+    return { success: false }
   }
 
   const textBasedChannel = isTextBasedChannel(channel)
@@ -94,7 +94,7 @@ export const sendDiscordNotification = async (
     logger.error(
       `sendDiscordNotification: Channel is not text-based: ${webhookMatch.discordData.channelId}`,
     )
-    return false
+    return { success: false }
   }
 
   try {
@@ -109,6 +109,31 @@ export const sendDiscordNotification = async (
     const message = expired ? expiredMessage : webhookMatch.message
     const embed = createWebhookEmbed(webhookMatch, message, expired)
 
+    // Check if we should edit an existing message or send a new one
+    if (webhookMatch.sentMessageId) {
+      try {
+        // Try to edit existing message
+        const existingMessage = await textBasedChannel.messages.fetch(webhookMatch.sentMessageId)
+        await existingMessage.edit({ embeds: [embed] })
+
+        logger.bot(
+          `Webhook | ${expired ? "Expiry | " : ""}Discord Message Edited | ${
+            webhookMatch.waitForStatus
+          } | ${webhookMatch.discordData.authorUsername} | ${
+            webhookMatch.content.title
+          } | ${webhookMatch.sentMessageId}`,
+        )
+
+        return { success: true, messageId: webhookMatch.sentMessageId }
+      } catch (editErr) {
+        logger.warn(
+          `sendDiscordNotification: Failed to edit message ${webhookMatch.sentMessageId}, sending new message instead: ${String(editErr)}`,
+        )
+        // Fall through to send new message
+      }
+    }
+
+    // Send new message (either first time or fallback from edit failure)
     const sentMessage = await textBasedChannel.send({ embeds: [embed] })
 
     if (sentMessage) {
@@ -117,10 +142,10 @@ export const sendDiscordNotification = async (
           webhookMatch.waitForStatus
         } | ${webhookMatch.discordData.authorUsername} | ${
           webhookMatch.content.title
-        } | ${sentMessage}`,
+        } | ${sentMessage.id}`,
       )
 
-      return true
+      return { success: true, messageId: sentMessage.id }
     }
   } catch (err) {
     logger.error(
@@ -130,7 +155,7 @@ export const sendDiscordNotification = async (
     )
   }
 
-  return false
+  return { success: false }
 }
 
 // A basic function that returns the passed string and logs it in the backend
@@ -517,14 +542,35 @@ export const getBackdropImageUrl = (images: any[]): string | null => {
 }
 
 // Create embed for movie/series pool item
+// Determine color based on download status for list command
+const getListItemStatusColor = (item: any, contentType: "movie" | "series"): number => {
+  if (contentType === "movie") {
+    // Movies: Green if downloaded, Red if not downloaded
+    return item.hasFile ? 0x32cd32 : 0xff4444  // Green : Red
+  } else {
+    // Series: Green if 100%, Orange if partial, Red if 0%
+    const downloadedPercent = item.statistics?.percentOfEpisodes || 0
+    if (downloadedPercent >= 100) {
+      return 0x32cd32 // Green for complete
+    } else if (downloadedPercent > 0) {
+      return 0xff8c00 // Orange for partial
+    } else {
+      return 0xff4444 // Red for not downloaded
+    }
+  }
+}
+
 export const createPoolItemEmbed = (
   item: any,
   index: number,
   contentType: "movie" | "series",
-  color: number = 0x3498db
+  color?: number // Made optional since we'll calculate it based on status
 ): EmbedBuilder => {
+  // Use provided color or calculate based on download status
+  const embedColor = color ?? getListItemStatusColor(item, contentType)
+
   const embed = new EmbedBuilder()
-    .setColor(color)
+    .setColor(embedColor)
     .setTitle(`${index + 1}. ${item.title} (${item.year})`)
   
   let description = ""
@@ -572,26 +618,26 @@ export const createWebhookEmbed = (
 ): EmbedBuilder => {
   const { content, waitForStatus } = webhookMatch
 
-  // Determine embed color based on content type (same as !list command)
+  // Determine embed color based on status for clear visual feedback
   let color: number
-  if (expired) {
-    color = 0x95a5a6 // Gray for expired/failed
+  if (expired || waitForStatus === "Expired") {
+    color = 0x95a5a6 // Gray for expired/not found
+  } else if (waitForStatus === "Grab") {
+    color = 0xff8c00 // Orange for downloading
+  } else if (waitForStatus === "Import") {
+    color = 0x32cd32 // Green for ready
+  } else if (waitForStatus === "Upgrade") {
+    color = 0x4169e1 // Blue for better quality
   } else {
-    // Use same colors as !list command
-    if ('runtime' in content) {
-      color = 0xff6b6b // Red for movies
-    } else if ('seasons' in content) {
-      color = 0x4ecdc4 // Teal for series
-    } else {
-      color = 0x95a5a6 // Gray for other content types
-    }
+    color = 0x95a5a6 // Gray for unknown status
   }
 
-  // Format event status for display
-  const statusText = expired ? `${waitForStatus} - Expired` :
-                    waitForStatus === "Grab" ? "Grabbed" :
-                    waitForStatus === "Import" ? "Imported" :
-                    waitForStatus === "Upgrade" ? "Upgraded" : waitForStatus
+  // Format event status for display with user-friendly terms
+  const statusText = expired ? "Not Found" :
+                    waitForStatus === "Grab" ? "Downloading" :
+                    waitForStatus === "Import" ? "Ready" :
+                    waitForStatus === "Upgrade" ? "Better Quality" :
+                    waitForStatus === "Expired" ? "Not Found" : waitForStatus
 
   const embed = new EmbedBuilder()
     .setColor(color)

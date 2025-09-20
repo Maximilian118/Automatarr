@@ -160,7 +160,10 @@ const waitForWebhook = async (
   waitingWebhooks.waiting.push(waiting)
 }
 
-// Cleanup webhooks that are waiting for more than 1 day
+// Cleanup webhooks with multi-layered safeguards:
+// 1. ABSOLUTE SAFEGUARD: Remove ANY webhook older than 48 hours (prevents indefinite accumulation)
+// 2. Remove webhooks older than 24 hours (normal cleanup)
+// 3. Keep "Expired" webhooks for 24h grace period for potential Import/Upgrade edits
 export const webhookCleanup = async (): Promise<void> => {
   const waitingWebhooks = (await WebHook.findOne()) as WebHookDocType
 
@@ -174,10 +177,37 @@ export const webhookCleanup = async (): Promise<void> => {
 
   const originalLength = waitingWebhooks.waiting.length
 
-  // Filter only webhooks created within the last 24 hours
+  // Filter webhooks with absolute maximum age safeguard
+  const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000) // 48 hours ago
+  let removedForAge = 0
+
   waitingWebhooks.waiting = waitingWebhooks.waiting.filter((w) => {
-    return w.created_at && new Date(w.created_at) > oneDayAgo
+    // ABSOLUTE SAFEGUARD: Remove ANY webhook older than 48 hours regardless of status
+    if (w.created_at && new Date(w.created_at) <= twoDaysAgo) {
+      removedForAge++
+      logger.warn(
+        `Webhook | Removing webhook older than 48h | ${w.content.title} = ${w.waitForStatus} | Created: ${w.created_at}`,
+      )
+      return false
+    }
+
+    // Keep recent webhooks (created within 24 hours)
+    if (w.created_at && new Date(w.created_at) > oneDayAgo) {
+      return true
+    }
+
+    // Keep expired webhooks that are still within 24 hours of their expiry date
+    if (w.waitForStatus === "Expired" && w.expiry && new Date(w.expiry) > now) {
+      return true
+    }
+
+    // Remove everything else (old webhooks and old expired webhooks)
+    return false
   })
+
+  if (removedForAge > 0) {
+    logger.info(`Webhook | Cleanup | Removed ${removedForAge} webhook(s) for exceeding 48h maximum age`)
+  }
 
   if (waitingWebhooks.waiting.length < originalLength) {
     await saveWithRetry(waitingWebhooks, "WebhookCleanup")
@@ -189,6 +219,9 @@ export const webhookCleanup = async (): Promise<void> => {
   }
 }
 
+// Handle webhook expiry with smart retention:
+// 1. First expiry: Mark as "Expired" and keep for 24h grace period (expiredCount = 1)
+// 2. Second expiry: Permanently remove (prevents infinite re-expiry loops)
 export const cleanupExpiredWebhooks = async (): Promise<void> => {
   const webhookDoc = (await WebHook.findOne()) as WebHookDocType
 
@@ -213,16 +246,62 @@ export const cleanupExpiredWebhooks = async (): Promise<void> => {
       }
     }
 
-    // Always remove expired webhook
-    webhookDoc.waiting = webhookDoc.waiting.filter((w) => !w._id!.equals(expired._id!))
+    // Keep expired webhook in queue for potential future Import/Upgrade edits
+    // But only allow one re-expiry to prevent infinite loops
+    const expiredIndex = webhookDoc.waiting.findIndex((w) => w._id!.equals(expired._id!))
+    if (expiredIndex !== -1) {
+      const currentExpiredCount = webhookDoc.waiting[expiredIndex].expiredCount || 0
+
+      // Only re-expire once (expiredCount 0 -> 1), then remove permanently
+      if (currentExpiredCount === 0) {
+        webhookDoc.waiting[expiredIndex].waitForStatus = "Expired"
+        webhookDoc.waiting[expiredIndex].expiredCount = 1
+        // Keep the webhook for 24 hours after expiry for potential edits
+        webhookDoc.waiting[expiredIndex].expiry = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+        logger.info(
+          `Webhook | Keeping expired webhook for 24h grace period | ${expired.content.title} = ${expired.waitForStatus}`,
+        )
+      } else {
+        // Already been expired once, remove permanently
+        webhookDoc.waiting = webhookDoc.waiting.filter((w) => !w._id!.equals(expired._id!))
+
+        logger.info(
+          `Webhook | Permanently removing re-expired webhook | ${expired.content.title} = ${expired.waitForStatus}`,
+        )
+      }
+    }
   }
 
   if (expiredArr.length > 0) {
+    const keptCount = expiredArr.filter((w) => {
+      const expiredCount = w.expiredCount || 0
+      return expiredCount === 0 // Those kept for grace period
+    }).length
+    const removedCount = expiredArr.length - keptCount
+
     logger.info(
-      `Webhook | Expired and Notified | [${expiredArr
-        .map((w) => `${w.content.title} = ${w.waitForStatus}`)
-        .join(", ")}]`,
+      `Webhook | Expiry Processed | Total: ${expiredArr.length} | Kept for grace period: ${keptCount} | Permanently removed: ${removedCount}`,
     )
+
+    if (keptCount > 0) {
+      logger.info(
+        `Webhook | Grace Period | [${expiredArr
+          .filter((w) => (w.expiredCount || 0) === 0)
+          .map((w) => `${w.content.title} = ${w.waitForStatus}`)
+          .join(", ")}]`,
+      )
+    }
+
+    if (removedCount > 0) {
+      logger.info(
+        `Webhook | Permanently Removed | [${expiredArr
+          .filter((w) => (w.expiredCount || 0) > 0)
+          .map((w) => `${w.content.title} = ${w.waitForStatus}`)
+          .join(", ")}]`,
+      )
+    }
+
     await saveWithRetry(webhookDoc, "cleanupExpiredWebhooks")
   }
 }

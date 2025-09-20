@@ -286,9 +286,9 @@ const commandRegistry: CommandEntry[] = [
   {
     name: "!test",
     category: "User Management",
-    shortDescription: "Test webhook notifications",
-    description: "Generate fake webhook notifications for testing purposes. Uses random content from database.",
-    usage: "!test <grab|import|upgrade|expired>",
+    shortDescription: "Test download notifications",
+    description: "Generate test download notifications for testing purposes. Uses random content from database.",
+    usage: "!test <downloading|ready|upgrade|expired>",
     adminRequired: true,
   },
 ]
