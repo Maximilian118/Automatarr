@@ -130,6 +130,7 @@ const waitForWebhook = async (
     seasons: [],
     episodes: [],
     waitForStatus,
+    status: "waiting",
     message,
     expiry,
     expired_message,
@@ -219,9 +220,7 @@ export const webhookCleanup = async (): Promise<void> => {
   }
 }
 
-// Handle webhook expiry with smart retention:
-// 1. First expiry: Mark as "Expired" and keep for 24h grace period (expiredCount = 1)
-// 2. Second expiry: Permanently remove (prevents infinite re-expiry loops)
+// Simplified expiry logic - send "Not Found" message and remove expired webhooks
 export const cleanupExpiredWebhooks = async (): Promise<void> => {
   const webhookDoc = (await WebHook.findOne()) as WebHookDocType
 
@@ -231,79 +230,66 @@ export const cleanupExpiredWebhooks = async (): Promise<void> => {
   }
 
   const now = new Date()
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const expiredWebhooks = webhookDoc.waiting.filter((w) => w.expiry && w.expiry <= now)
 
-  const expiredArr = webhookDoc.waiting.filter((w) => w.expiry && w.expiry <= now)
+  if (expiredWebhooks.length === 0) return
 
-  for (const expired of expiredArr) {
-    if (expired.expiry && new Date(expired.expiry) >= oneDayAgo) {
-      if (expired.bots.includes("Discord") && expired.discordData) {
-        sendDiscordNotification(expired, true)
-      }
+  const removedWebhooks: string[] = []
 
-      if (expired.bots.includes("Whatsapp") && expired.whatsappData) {
-        // Placeholder for future WhatsApp logic
-      }
-    }
+  for (const webhook of expiredWebhooks) {
+    // Send "Not Found" message for Grab webhooks that have expired_message
+    if (webhook.waitForStatus === "Grab" && webhook.expired_message) {
+      if (webhook.bots.includes("Discord") && webhook.discordData) {
+        // Create a temporary webhook object for sending the notification
+        const notificationWebhook: WebHookWaitingType = {
+          ...webhook,
+          message: webhook.expired_message,
+          expired_message: webhook.expired_message, // Ensure expired_message is properly set
+          discordData: webhook.discordData, // Explicitly ensure discordData is included
+          content: webhook.content // Explicitly ensure content is included
+        }
 
-    // Keep expired webhook in queue for potential future Import/Upgrade edits
-    // But only allow one re-expiry to prevent infinite loops
-    const expiredIndex = webhookDoc.waiting.findIndex((w) => w._id!.equals(expired._id!))
-    if (expiredIndex !== -1) {
-      const currentExpiredCount = webhookDoc.waiting[expiredIndex].expiredCount || 0
+        // If we previously sent a "Downloading" message, edit it to "Not Found"
+        // If we never got a Grab webhook, send a new "Not Found" message
+        if (webhook.sentMessageId) {
+          notificationWebhook.sentMessageId = webhook.sentMessageId
+        }
 
-      // Only re-expire once (expiredCount 0 -> 1), then remove permanently
-      if (currentExpiredCount === 0) {
-        webhookDoc.waiting[expiredIndex].waitForStatus = "Expired"
-        webhookDoc.waiting[expiredIndex].expiredCount = 1
-        // Keep the webhook for 24 hours after expiry for potential edits
-        webhookDoc.waiting[expiredIndex].expiry = new Date(Date.now() + 24 * 60 * 60 * 1000)
-
-        logger.info(
-          `Webhook | Keeping expired webhook for 24h grace period | ${expired.content.title} = ${expired.waitForStatus}`,
-        )
+        await sendDiscordNotification(notificationWebhook, true)
       } else {
-        // Already been expired once, remove permanently
-        webhookDoc.waiting = webhookDoc.waiting.filter((w) => !w._id!.equals(expired._id!))
+        logger.warn(`Webhook | Expiry | Skipping Discord notification for ${webhook.content.title} - discordData missing: ${!webhook.discordData}`)
+      }
 
-        logger.info(
-          `Webhook | Permanently removing re-expired webhook | ${expired.content.title} = ${expired.waitForStatus}`,
-        )
+      // Find and remove corresponding Import webhook since the download failed
+      const importWebhook = webhookDoc.waiting.find(
+        (w) => {
+          const isSameMovie = isMovie(w.content) && isMovie(webhook.content) &&
+                              w.content.tmdbId === webhook.content.tmdbId &&
+                              w.waitForStatus === "Import"
+          const isSameSeries = isSeries(w.content) && isSeries(webhook.content) &&
+                               w.content.tvdbId === webhook.content.tvdbId &&
+                               w.waitForStatus === "Import"
+          return isSameMovie || isSameSeries
+        }
+      )
+
+      if (importWebhook) {
+        // Remove the orphaned Import webhook since the download failed
+        webhookDoc.waiting = webhookDoc.waiting.filter((w) => !w._id!.equals(importWebhook._id))
+        removedWebhooks.push(`${webhook.content.title} = Import (orphaned)`)
       }
     }
+
+    removedWebhooks.push(`${webhook.content.title} = ${webhook.waitForStatus}`)
   }
 
-  if (expiredArr.length > 0) {
-    const keptCount = expiredArr.filter((w) => {
-      const expiredCount = w.expiredCount || 0
-      return expiredCount === 0 // Those kept for grace period
-    }).length
-    const removedCount = expiredArr.length - keptCount
+  // Remove all expired webhooks
+  webhookDoc.waiting = webhookDoc.waiting.filter((w) =>
+    !expiredWebhooks.some(expired => w._id!.equals(expired._id!))
+  )
 
-    logger.info(
-      `Webhook | Expiry Processed | Total: ${expiredArr.length} | Kept for grace period: ${keptCount} | Permanently removed: ${removedCount}`,
-    )
+  await saveWithRetry(webhookDoc, "cleanupExpiredWebhooks")
 
-    if (keptCount > 0) {
-      logger.info(
-        `Webhook | Grace Period | [${expiredArr
-          .filter((w) => (w.expiredCount || 0) === 0)
-          .map((w) => `${w.content.title} = ${w.waitForStatus}`)
-          .join(", ")}]`,
-      )
-    }
-
-    if (removedCount > 0) {
-      logger.info(
-        `Webhook | Permanently Removed | [${expiredArr
-          .filter((w) => (w.expiredCount || 0) > 0)
-          .map((w) => `${w.content.title} = ${w.waitForStatus}`)
-          .join(", ")}]`,
-      )
-    }
-
-    await saveWithRetry(webhookDoc, "cleanupExpiredWebhooks")
-  }
 }
 
 let expiryWatcherStarted = false

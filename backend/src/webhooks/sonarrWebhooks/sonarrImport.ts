@@ -5,6 +5,7 @@ import { getSonarrSeries } from "../../shared/SonarrStarrRequests"
 import { saveWithRetry } from "../../shared/database"
 import { StarrWebhookType } from "../../types/webhookType"
 import { sendDiscordNotification } from "../../bots/discordBot/discordBotUtility"
+import { isSeries } from "../../types/typeGuards"
 
 const saveWebhookMatch = async (
   waitingWebhooks: WebHookDocType,
@@ -26,6 +27,16 @@ export const sonarrImport = async (
     if (!webhook.series) {
       logger.error("Webhook | sonarrImport | No series found in the webhook.")
       return
+    }
+
+    // Look for existing Discord message to edit
+    const existingWebhook = waitingWebhooks.waiting.find(
+      (w) => (w.content.id === webhook.series?.id ||
+              (isSeries(w.content) && webhook.series && w.content.tvdbId === webhook.series.tvdbId)) &&
+              w.sentMessageId
+    )
+    if (existingWebhook && existingWebhook.sentMessageId) {
+      webhookMatch.sentMessageId = existingWebhook.sentMessageId
     }
 
     let shouldSave = false

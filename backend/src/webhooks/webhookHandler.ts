@@ -8,6 +8,8 @@ import {
   randomMovieReadyMessage,
   randomSeriesReadyMessage
 } from "../bots/discordBot/discordBotRandomReply"
+import { sendDiscordNotification } from "../bots/discordBot/discordBotUtility"
+import { saveWithRetry } from "../shared/database"
 
 // Helper funtion that translates webhook.eventType into something more specific
 export const starrWebhookEventType = (webhook: StarrWebhookType): StarrWebhookType => {
@@ -63,44 +65,62 @@ export const handleRadarrWebhook = async (webhook: StarrWebhookType): Promise<vo
 
   // Find the webhookWaiting that matches the webhook content and the eventType for that content
   let webhookMatch = waitingWebhooks.waiting.find(
-    (w) => w.content.id === webhook.movie?.id && w.waitForStatus === webhook.eventType,
+    (w) => (w.content.id === webhook.movie?.id ||
+            (isMovie(w.content) && webhook.movie && w.content.tmdbId === webhook.movie.tmdbId)) &&
+            w.waitForStatus === webhook.eventType,
   )
-
-  // If no exact match found for Import/Upgrade, try to find a Grab or Expired entry to edit
-  if (!webhookMatch && (webhook.eventType === "Import" || webhook.eventType === "Upgrade")) {
-    webhookMatch = waitingWebhooks.waiting.find(
-      (w) => w.content.id === webhook.movie?.id && (w.waitForStatus === "Grab" || w.waitForStatus === "Expired"),
-    )
-
-    // Update the webhook match to reflect the new status for editing
-    if (webhookMatch) {
-      webhookMatch.waitForStatus = webhook.eventType
-
-      // Regenerate proper random message for the new status
-      if (webhook.eventType === "Import" && webhookMatch.discordData) {
-        const userMention = webhookMatch.discordData.authorMention
-
-        if (isMovie(webhookMatch.content)) {
-          webhookMatch.message = randomMovieReadyMessage(userMention, webhookMatch.content.title)
-        } else if (isSeries(webhookMatch.content)) {
-          webhookMatch.message = randomSeriesReadyMessage(userMention, webhookMatch.content.title)
-        }
-      }
-      // For Upgrade events, we could add similar logic with upgrade-specific messages
-      // For now, keeping the existing behavior as fallback
-      else if (webhook.eventType === "Upgrade") {
-        webhookMatch.message = webhookMatch.message.replace("grabbed", "upgraded")
-      }
-    }
-  }
 
   // Silently return as we don't want notifications for every webhook we don't care about
   if (!webhookMatch) return
 
-  // Then decide what to do with the webhook that matches a webhookWaiting item
-  const generallyNotify = ["Import", "Grab", "Upgrade"] // Catagory of cases that we just send a general notification out for
+  // Generate appropriate message for the event
+  if (webhook.eventType === "Import" || webhook.eventType === "Upgrade") {
+    if (webhookMatch.discordData) {
+      const userMention = webhookMatch.discordData.authorMention
+      webhookMatch.message = randomMovieReadyMessage(userMention, webhookMatch.content.title)
+    }
+  }
 
-  if (generallyNotify.includes(webhook.eventType)) {
+  logger.info(`Webhook | Radarr | ${title} | ${webhook.eventType} event processed`)
+
+  // Handle different event types
+  if (webhook.eventType === "Grab") {
+    // For Grab events, send notification but keep webhook in waiting list for potential Import edits
+    if (webhookMatch.bots.includes("Discord") && webhookMatch.discordData) {
+      const result = await sendDiscordNotification(webhookMatch)
+
+      // Store the message ID for future edits
+      if (result.success && result.messageId) {
+        webhookMatch.sentMessageId = result.messageId
+
+        // Find corresponding Import webhook for the same movie and share the message ID
+        const importWebhook = waitingWebhooks.waiting.find(
+          (w) => (w.content.id === webhook.movie?.id ||
+                  (isMovie(w.content) && webhook.movie && w.content.tmdbId === webhook.movie.tmdbId)) &&
+                  w.waitForStatus === "Import"
+        )
+
+        // Remove the Grab webhook (it's done its job) and update Import webhook with message ID
+        waitingWebhooks.waiting = waitingWebhooks.waiting.filter((w) => {
+          if (w._id!.equals(webhookMatch._id)) {
+            return false // Remove Grab webhook
+          }
+          return true
+        }).map((w) => {
+          if (importWebhook && w._id!.equals(importWebhook._id)) {
+            return { ...w, sentMessageId: result.messageId } // Share message ID with Import webhook
+          }
+          return w
+        })
+
+        await saveWithRetry(waitingWebhooks, "handleRadarrWebhook")
+      }
+    }
+    return
+  }
+
+  // For Import/Upgrade events, send notification and remove from waiting list (final status)
+  if (webhook.eventType === "Import" || webhook.eventType === "Upgrade") {
     await webhookNotify(waitingWebhooks, webhookMatch)
     return
   }
@@ -141,53 +161,53 @@ export const handleSonarrWebhook = async (webhook: StarrWebhookType): Promise<vo
 
   // Find the webhookWaiting that matches the webhook content and the eventType for that content
   let webhookMatch = waitingWebhooks.waiting.find(
-    (w) => w.content.id === webhook.series?.id && w.waitForStatus === webhook.eventType,
+    (w) => (w.content.id === webhook.series?.id ||
+            (isSeries(w.content) && webhook.series && w.content.tvdbId === webhook.series.tvdbId)) &&
+            w.waitForStatus === webhook.eventType,
   )
-
-  // If no exact match found for Import/Upgrade, try to find a Grab or Expired entry to edit
-  if (!webhookMatch && (webhook.eventType === "Import" || webhook.eventType === "Upgrade")) {
-    webhookMatch = waitingWebhooks.waiting.find(
-      (w) => w.content.id === webhook.series?.id && (w.waitForStatus === "Grab" || w.waitForStatus === "Expired"),
-    )
-
-    // Update the webhook match to reflect the new status for editing
-    if (webhookMatch) {
-      webhookMatch.waitForStatus = webhook.eventType
-
-      // Regenerate proper random message for the new status
-      if (webhook.eventType === "Import" && webhookMatch.discordData) {
-        const userMention = webhookMatch.discordData.authorMention
-
-        if (isMovie(webhookMatch.content)) {
-          webhookMatch.message = randomMovieReadyMessage(userMention, webhookMatch.content.title)
-        } else if (isSeries(webhookMatch.content)) {
-          webhookMatch.message = randomSeriesReadyMessage(userMention, webhookMatch.content.title)
-        }
-      }
-      // For Upgrade events, we could add similar logic with upgrade-specific messages
-      // For now, keeping the existing behavior as fallback
-      else if (webhook.eventType === "Upgrade") {
-        webhookMatch.message = webhookMatch.message.replace("grabbed", "upgraded")
-      }
-    }
-  }
 
   // Silently return as we don't want notifications for every webhook we don't care about
   if (!webhookMatch) return
 
-  // Then decide what to do with the webhook that matches a webhookWaiting item
-  const generallyNotify = ["Grab", "Upgrade"] // Catagory of cases that we just send a general notification out for
+  // For Import/Upgrade events, also look for existing Discord messages to edit
+  let existingMessageId: string | undefined = undefined
+  if (webhook.eventType === "Import" || webhook.eventType === "Upgrade") {
+    // Look for any previous webhook for this content that might have a sentMessageId
+    const existingWebhook = waitingWebhooks.waiting.find(
+      (w) => (w.content.id === webhook.series?.id ||
+              (isSeries(w.content) && webhook.series && w.content.tvdbId === webhook.series.tvdbId)) &&
+              w.sentMessageId
+    )
+    if (existingWebhook) {
+      existingMessageId = existingWebhook.sentMessageId
+    }
+  }
 
-  if (generallyNotify.includes(webhook.eventType)) {
+  // Generate appropriate message for Import/Upgrade events
+  if (webhook.eventType === "Import" || webhook.eventType === "Upgrade") {
+    if (webhookMatch.discordData) {
+      const userMention = webhookMatch.discordData.authorMention
+      webhookMatch.message = randomSeriesReadyMessage(userMention, webhookMatch.content.title)
+    }
+  }
+
+  // Use existing message ID if found for editing
+  if (existingMessageId) {
+    webhookMatch.sentMessageId = existingMessageId
+  }
+
+  logger.info(`Webhook | Sonarr | ${title} | ${webhook.eventType} event processed`)
+
+  // Handle different event types
+  if (webhook.eventType === "Grab" || webhook.eventType === "Upgrade") {
+    // Send notification and delete the webhook (no more editing)
     await webhookNotify(waitingWebhooks, webhookMatch)
     return
   }
 
-  // When we need to handle the webhook in a specific way, we'll include a switch and handle each
-  // case with its own function.
-  switch (webhook.eventType) {
-    case "Import":
-      await sonarrImport(webhook, waitingWebhooks, webhookMatch)
-      return
+  // Import events for series need special handling for episode tracking
+  if (webhook.eventType === "Import") {
+    await sonarrImport(webhook, waitingWebhooks, webhookMatch)
+    return
   }
 }
