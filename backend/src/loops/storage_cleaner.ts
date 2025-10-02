@@ -5,17 +5,17 @@ import { settingsType } from "../models/settings"
 import { isDocker, deleteFromMachine } from "../shared/fileSystem"
 import { updateLoopData } from "./loopUtility"
 import { checkPermissions } from "../shared/permissions"
-import Data from "../models/data"
+import Data, { dataType } from "../models/data"
 
-const storage_cleaner = async (_settings: settingsType): Promise<void> => {
+const storage_cleaner = async (_settings: settingsType, passedData?: dataType): Promise<void> => {
   if (process.env.NODE_ENV === "development") {
     logger.info("storage_cleaner bypassed. In Development mode. 🔧")
     return
   }
 
   try {
-    // Get the latest data from the database
-    const data = await Data.findOne()
+    // Use passed data if available (ensures fresh data), otherwise fetch from database
+    const data = passedData || await Data.findOne()
 
     if (!data) {
       logger.error("storage_cleaner: No data object found in database.")
@@ -74,32 +74,40 @@ const storage_cleaner = async (_settings: settingsType): Promise<void> => {
         })
       }
 
-      // Extract series directory names from episode files
-      if (library.name === "Sonarr" && library.episodes) {
-        library.episodes.forEach((episode: any) => {
-          if (episode.episodeFile?.path) {
-            // Extract the series directory from the episode file path
-            // e.g., "/mnt/plex/media/tv/Alien - Earth (2025) {tvdb-458912}/Season 01/..."
-            // -> "Alien - Earth (2025) {tvdb-458912}"
-            const episodePath = episode.episodeFile.path
-            const pathParts = episodePath.split(path.sep)
-
-            // Find the series directory (usually 2-3 levels up from the episode file)
-            let seriesDir = ""
-            for (let i = pathParts.length - 1; i >= 0; i--) {
-              const part = pathParts[i]
-              // Look for directory with series pattern (contains year and id in braces)
-              if (part.includes("{") && part.includes("}") && part.match(/\(\d{4}\)/)) {
-                seriesDir = part
-                break
-              }
-            }
-
-            if (seriesDir) {
-              knownSeriesDirectories.add(seriesDir)
-            }
+      // Extract series directory names from Sonarr library
+      if (library.name === "Sonarr" && library.data) {
+        // Primary method: Extract from series.path directly (like Radarr movies)
+        library.data.forEach((series: any) => {
+          if (series.path) {
+            const dirName = path.basename(series.path)
+            knownSeriesDirectories.add(dirName)
           }
         })
+
+        // Fallback method: Extract from episode file paths for any series that might have been missed
+        if (library.episodes) {
+          library.episodes.forEach((episode: any) => {
+            if (episode.episodeFile?.path) {
+              const episodePath = episode.episodeFile.path
+              const pathParts = episodePath.split(path.sep)
+
+              // Find the series directory (usually 2-3 levels up from the episode file)
+              let seriesDir = ""
+              for (let i = pathParts.length - 1; i >= 0; i--) {
+                const part = pathParts[i]
+                // Look for directory with series pattern (contains year and id in braces)
+                if (part.includes("{") && part.includes("}") && part.match(/\(\d{4}\)/)) {
+                  seriesDir = part
+                  break
+                }
+              }
+
+              if (seriesDir) {
+                knownSeriesDirectories.add(seriesDir)
+              }
+            }
+          })
+        }
       }
     })
 

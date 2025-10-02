@@ -8,9 +8,7 @@ import remove_blocked from "./remove_blocked"
 import remove_failed from "./remove_failed"
 import remove_missing from "./remove_missing"
 import search_wanted_missing from "./search_wanted_missing"
-import storage_cleaner from "./storage_cleaner"
 import tidy_directories from "./tidy_directories"
-import user_pool_content_checker from "./user_pool_content_checker"
 
 // Start looping through all of the core loops
 // prettier-ignore
@@ -29,10 +27,6 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("wanted_missing_loop", async (settings) => {
     await search_wanted_missing(settings)
   }, skipFirst)
-  // Scan storage for orphaned content not in libraries BEFORE removing from databases
-  await dynamicLoop("storage_cleaner_loop", async (settings) => {
-    await storage_cleaner(settings)
-  }, skipFirst)
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
   await dynamicLoop("remove_blocked_loop", async (settings) => {
     await remove_blocked(settings)
@@ -41,10 +35,7 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("remove_failed_loop", async (settings) => {
     await remove_failed(settings)
   }, skipFirst)
-  // Check user pools and re-download missing content FIRST to ensure library is complete
-  await dynamicLoop("user_pool_checker_loop", async (settings) => {
-    await user_pool_content_checker(settings)
-  }, skipFirst)
+  // Note: user_pool_content_checker now runs at the end of getData to ensure fresh library data
   // Check for any failed downloads and delete them from the file system.
   await dynamicLoop("remove_missing_loop", async (settings) => {
     await remove_missing(settings)
@@ -77,14 +68,8 @@ export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> =>
   if (settings.remove_failed) {
     await remove_failed(settings._doc)
   }
-  // Check user pools and re-download missing content FIRST to ensure library is complete
-  if (settings.user_pool_checker) {
-    await user_pool_content_checker(settings._doc)
-  }
-  // Scan storage for orphaned content not in libraries BEFORE removing from databases
-  if (settings.storage_cleaner) {
-    await storage_cleaner(settings._doc)
-  }
+  // Note: user_pool_content_checker now runs at the end of getData to ensure fresh library data
+  // Note: storage_cleaner now runs at the end of getData to ensure fresh library data
   // Check for any failed downloads and delete them from the file system.
   if (settings.remove_missing) {
     await remove_missing(settings._doc)

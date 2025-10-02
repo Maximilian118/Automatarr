@@ -104,6 +104,7 @@ const remove_blocked = async (settings: settingsType): Promise<void> => {
         "sample",
         "might need to be extracted",
         "download has failed",
+        "was not found in the grabbed release",
       ])
 
       const stalledCase = msgCheck(blockedFile, ["stalled"])

@@ -80,7 +80,23 @@ const dataResolvers = {
     data.qBittorrent = await getqBittorrentData(settings._doc, data, verboseLogging)
 
     data.updated_at = moment().format()
-    return (await saveWithRetry(data, "getData")) as dataDocType
+    const savedData = (await saveWithRetry(data, "getData")) as dataDocType
+
+    // Run user_pool_content_checker to sync user pools with fresh library data
+    // This ensures user pools are updated before storage_cleaner runs
+    if (savedData && settings.user_pool_checker) {
+      const { default: user_pool_content_checker } = await import("../../loops/user_pool_content_checker")
+      await user_pool_content_checker(settings._doc)
+    }
+
+    // Run storage_cleaner immediately after user pool sync
+    // Pass the fresh data directly to avoid race conditions with database reads
+    if (savedData && settings.storage_cleaner) {
+      const { default: storage_cleaner } = await import("../../loops/storage_cleaner")
+      await storage_cleaner(settings._doc, savedData)
+    }
+
+    return savedData
   },
 }
 
