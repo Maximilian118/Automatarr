@@ -16,7 +16,7 @@ import moment from "moment"
 import { saveWithRetry } from "../shared/database"
 import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem"
 import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
-import { incrementMovieDeletions, incrementSeriesDeletions } from "../shared/statsCollector"
+import { incrementDeletions } from "../shared/statsCollector"
 import { matchesPoolItem } from "./loopUtility"
 
 // Generate lookup keys for matching items
@@ -212,6 +212,11 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     },
   }
 
+  // Track deletion counts for batch stats update
+  let totalMovieDeletions = 0
+  let totalSeriesDeletions = 0
+  let totalEpisodeDeletions = 0
+
   // Loop through each active API
   for (const API of updatedActiveAPIs) {
     // Skip Lidarr... might add later
@@ -395,12 +400,13 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
               // Update stats - deleteFromLibrary already handles the deletion logging
               if (API.name === "Radarr") {
                 logging.radarrDeleted++
-                await incrementMovieDeletions(1)
+                totalMovieDeletions++
               } else if (API.name === "Sonarr") {
                 logging.sonarrDeleted++
                 // For series, we need to count episodes if available
                 const episodeCount = (libraryItem as Series).statistics?.episodeFileCount || 0
-                await incrementSeriesDeletions(1, episodeCount)
+                totalSeriesDeletions++
+                totalEpisodeDeletions += episodeCount
               }
               return true
             }
@@ -570,6 +576,11 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
       )
     }
+  }
+
+  // Batch update deletion statistics - single save operation to avoid version conflicts
+  if (totalMovieDeletions > 0 || totalSeriesDeletions > 0) {
+    await incrementDeletions(totalMovieDeletions, totalSeriesDeletions, totalEpisodeDeletions)
   }
 
   // Save the changes to data to the database

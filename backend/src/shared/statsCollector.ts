@@ -293,3 +293,37 @@ export const incrementSeriesDeletions = async (seriesCount: number = 1, episodeC
     logger.error(`statsCollector | Error incrementing series deletions: ${error}`)
   }
 }
+
+// Batch increment both movie and series deletions in a single save operation
+export const incrementDeletions = async (movieCount: number = 0, seriesCount: number = 0, episodeCount: number = 0): Promise<void> => {
+  try {
+    // Skip if no deletions to record
+    if (movieCount === 0 && seriesCount === 0) {
+      return
+    }
+
+    const stats = await Stats.findOne()
+    if (stats && stats.data_points.length > 0) {
+      const latestPoint = stats.data_points[stats.data_points.length - 1]
+
+      if (movieCount > 0) {
+        latestPoint.movies.deleted += movieCount
+      }
+
+      if (seriesCount > 0) {
+        latestPoint.series.deleted += seriesCount
+        latestPoint.series.episodes_deleted += episodeCount
+      }
+
+      await saveWithRetry(stats as any, "increment deletions")
+
+      const logParts: string[] = []
+      if (movieCount > 0) logParts.push(`${movieCount} movie${movieCount !== 1 ? 's' : ''}`)
+      if (seriesCount > 0) logParts.push(`${seriesCount} series (${episodeCount} episodes)`)
+
+      logger.info(`statsCollector | Incremented deletions: ${logParts.join(', ')}`)
+    }
+  } catch (error) {
+    logger.error(`statsCollector | Error incrementing deletions: ${error}`)
+  }
+}

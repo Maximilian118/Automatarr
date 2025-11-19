@@ -2,6 +2,7 @@ import { dataDocType } from "../models/data"
 import { settingsDocType } from "../models/settings"
 import { UserDocType } from "../models/user"
 import { WebHookDocType } from "../models/webhook"
+import { StatsDocType } from "../models/stats"
 import { Artist } from "./artistTypes"
 import { Episode } from "./episodeTypes"
 import { Movie } from "./movieTypes"
@@ -52,4 +53,9 @@ export const isUserDoc = (obj: any): obj is UserDocType => {
 // Type Guard to check if type is WebHookDocType
 export const isWebHookDoc = (obj: any): obj is WebHookDocType => {
   return obj?.waiting !== undefined && Array.isArray(obj.waiting)
+}
+
+// Type Guard to check if type is StatsDocType
+export const isStatsDoc = (obj: any): obj is StatsDocType => {
+  return obj?.data_points !== undefined && Array.isArray(obj.data_points)
 }

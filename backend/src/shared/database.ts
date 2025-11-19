@@ -4,11 +4,12 @@ import Data, { dataDocType } from "../models/data"
 import Settings, { settingsDocType } from "../models/settings"
 import User, { UserDocType } from "../models/user"
 import WebHook, { WebHookDocType } from "../models/webhook"
-import { isDataDoc, isSettingsDoc, isUserDoc, isWebHookDoc } from "../types/typeGuards"
+import Stats, { StatsDocType } from "../models/stats"
+import { isDataDoc, isSettingsDoc, isUserDoc, isWebHookDoc, isStatsDoc } from "../types/typeGuards"
 import { removeMongoIds } from "../loops/backups"
 
 export const saveWithRetry = async (
-  dbObject: dataDocType | settingsDocType | UserDocType | WebHookDocType,
+  dbObject: dataDocType | settingsDocType | UserDocType | WebHookDocType | StatsDocType,
   identifier: string,
   maxRetries: number = 3,
   delay: number = 3000,
@@ -48,6 +49,8 @@ export const saveWithRetry = async (
           latest = await User.findOne()
         } else if (isWebHookDoc(dbObject)) {
           latest = await WebHook.findOne()
+        } else if (isStatsDoc(dbObject)) {
+          latest = await Stats.findOne()
         } else {
           logger.error(`${identifier} | Object doesn't match any type guards.`)
         }

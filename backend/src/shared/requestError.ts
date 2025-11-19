@@ -37,6 +37,18 @@ export const axiosErrorMessage = (err: unknown): string => {
       .join(": ")
   }
 
+  // qBittorrent-style plain text response
+  if (typeof data === "string" && data.trim().length > 0) {
+    // Strip HTML tags if present (qBittorrent sometimes returns HTML error pages)
+    const cleanData = data.replace(/<[^>]*>/g, "").trim()
+    // Only use if reasonable length (avoid logging entire HTML pages)
+    if (cleanData.length > 0 && cleanData.length < 500) {
+      return [status ? `Error ${status}${statusText ? ` ${statusText}` : ""}` : null, cleanData]
+        .filter(Boolean)
+        .join(": ")
+    }
+  }
+
   // Axios-level message
   return [status ? `Error ${status}${statusText ? ` ${statusText}` : ""}` : null, message]
     .filter(Boolean)

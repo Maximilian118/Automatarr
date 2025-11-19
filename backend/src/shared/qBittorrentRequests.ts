@@ -342,8 +342,7 @@ export const deleteqBittorrent = async (
       logger.error(`deleteqBittorrent: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    console.log(torrent)
-    logger.error(`deleteqBittorrent: Error: ${axiosErrorMessage(err)}`)
+    logger.error(`deleteqBittorrent: Could not delete torrent "${torrent.name}": ${axiosErrorMessage(err)}`)
   }
 
   return false
