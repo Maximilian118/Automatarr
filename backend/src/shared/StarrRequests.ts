@@ -491,10 +491,19 @@ export const deleteFromQueue = async (
   API: APIData,
   reason?: string,
 ): Promise<DownloadStatus | undefined> => {
+  // A conditional check to ensure we don't delete torrents from qBit here which would bypass seed checks.
+  // By setting removeFromClient=false for torrents we let remove_missing handle the torrent removal from qBit.
+  // If it's a usenet download then we do want to remove it from the usenet downloader
+  const isTorrent =
+    download.protocol.toLowerCase().includes("torrent") ||
+    download.downloadClient.toLowerCase().includes("torrent")
+
   try {
     const res = await axios.delete(
       cleanUrl(
-        `${API.data.URL}/api/${API.data.API_version}/queue/${download.id}?removeFromClient=true&apikey=${API.data.KEY}`,
+        `${API.data.URL}/api/${API.data.API_version}/queue/${
+          download.id
+        }?removeFromClient=${!isTorrent}&apikey=${API.data.KEY}`,
       ),
     )
 
