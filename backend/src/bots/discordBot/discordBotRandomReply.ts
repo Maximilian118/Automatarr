@@ -4,7 +4,7 @@ import moment from "moment"
 import { formatTimeLeft } from "../../shared/utility"
 import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
-import { Series } from "../../types/seriesTypes"
+import { MonitorOptions, Series } from "../../types/seriesTypes"
 
 const longWaitComments = [
   "Sheesh, that's a long wait!",
@@ -391,46 +391,99 @@ export const randomMovieDownloadStartMessage = (movie: Movie) => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomSeriesDownloadStartMessage = (series: Series) => {
+export const randomSeriesDownloadStartMessage = (series: Series, monitor: MonitorOptions) => {
+  // Monitor-specific messages explaining what will be downloaded
+  const monitorMessages: Record<MonitorOptions, string[]> = {
+    all: [],
+    future: [
+      "Only future episodes will be grabbed — no backlog binges here!",
+      "I'll snag episodes as they air, but the past stays in the past.",
+      "Future episodes only — time to catch up on other shows while you wait!",
+      "You're living in the now! Only new episodes coming your way.",
+    ],
+    missing: [
+      "I'll grab missing episodes and future releases — filling in those gaps!",
+      "Missing episodes detected — time for some digital archaeology!",
+      "Tracking down what you're missing, plus keeping up with new episodes.",
+      "Past gaps and future releases — I'm on both cases!",
+    ],
+    existing: [
+      "Only monitoring episodes with files or future releases — keeping what you've got!",
+      "I'll watch the episodes you have, plus grab new ones as they air.",
+      "Existing episodes stay monitored, and future ones will join the party.",
+      "Maintaining your current collection and tracking future releases!",
+    ],
+    recent: [
+      "Last 90 days plus future episodes — no ancient history here!",
+      "Recent episodes and future releases only — keeping it fresh!",
+      "Grabbing the last 90 days worth, plus anything new that drops.",
+      "You're in the modern era — recent and future episodes incoming!",
+    ],
+    pilot: [
+      "Just the pilot episode — testing the waters before diving in!",
+      "First episode only — gotta see if it's worth the commitment!",
+      "Starting with episode one — your toe is officially in the water.",
+      "Pilot episode inbound — let's see if this show's got wings!",
+    ],
+    firstSeason: [
+      "Season 1 only — keeping it simple and focused!",
+      "Just the first season — a controlled binge situation.",
+      "Starting with season one — the rest can wait!",
+      "First season on the way — baby steps into the series!",
+    ],
+    lastSeason: [
+      "Latest season only — jumping straight to the good stuff!",
+      "Just the most recent season — you're cutting to the chase!",
+      "Last season incoming — no time for backstory!",
+      "Most recent season only — living on the edge of the plot!",
+    ],
+    monitorSpecials: [
+      "Monitoring special episodes — because bonus content matters!",
+      "Specials are coming too — extra goodies included!",
+      "Regular episodes plus specials — the full experience!",
+      "Special episodes tracked — no director's cuts left behind!",
+    ],
+    unmonitorSpecials: [
+      "Skipping special episodes — just the main storyline for you!",
+      "No specials in this batch — keeping it to the core narrative!",
+      "Special episodes ignored — mainline content only!",
+      "Regular episodes only — specials need not apply!",
+    ],
+    none: [],
+  }
+
+  // Get monitor-specific comment
+  const monitorComments = monitorMessages[monitor] || []
+  const monitorSpecificComment =
+    monitorComments.length > 0
+      ? monitorComments[Math.floor(Math.random() * monitorComments.length)]
+      : ""
+
   const messages = [
-    `Binge mode: activated! '${series.title}' is on the way. 📺`,
-    `Here we go — '${series.title}' is starting to download! 🍿`,
-    `'${series.title}' is joining the library. Get comfy! 🛋️`,
-    `Episodes inbound! '${series.title}' is downloading now. 🚚`,
-    `Get ready for a wild ride — '${series.title}' is coming in hot! 🔥`,
-    `One episode at a time... '${series.title}' is on the move! 🎬`,
-    `'${series.title}' is headed your way. It's series time! 📦`,
-    `Cue the theme song — '${series.title}' is downloading. 🎵`,
-    `'${series.title}' is loading up. Snacks not included. 🍪`,
-    `📡 Incoming transmission: '${series.title}' has entered the download zone.`,
+    `Binge mode: activated! '${series.title}' is on the way. ${monitorSpecificComment} 📺`,
+    `Here we go — '${series.title}' is starting to download! ${monitorSpecificComment} 🍿`,
+    `'${series.title}' is joining the library. Get comfy! ${monitorSpecificComment} 🛋️`,
+    `Episodes inbound! '${series.title}' is downloading now. ${monitorSpecificComment} 🚚`,
+    `Get ready for a wild ride — '${series.title}' is coming in hot! ${monitorSpecificComment} 🔥`,
+    `One episode at a time... '${series.title}' is on the move! ${monitorSpecificComment} 🎬`,
+    `'${series.title}' is headed your way. It's series time! ${monitorSpecificComment} 📦`,
+    `Cue the theme song — '${series.title}' is downloading. ${monitorSpecificComment} 🎵`,
+    `'${series.title}' is loading up. Snacks not included. ${monitorSpecificComment} 🍪`,
+    `📡 Incoming transmission: '${series.title}' has entered the download zone. ${monitorSpecificComment}`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomAlreadyAddedWithMissingMessage = () => {
+export const randomSeriesMonitorChangeToAllMessage = (seriesTitle: string) => {
   const messages = [
-    "The series is in the library, but a few episodes wandered off — I'm tracking them down now.",
-    "Found it in the library! Some episodes are missing, but I've kicked off a search.",
-    "That one's already here, but incomplete — fetching the missing pieces!",
-    "The show's in your library, but it's got holes. I'm working on patching it up.",
-    "Library hit confirmed! Some episodes are MIA, initiating recovery mission.",
-    "It's already in the collection, just not all there — starting a search for the missing bits.",
-    "That series made it in, but a few episodes didn't — I'm on the case!",
-    "It's here, but not whole. Missing episodes detected — search engaged!",
-  ]
-  return messages[Math.floor(Math.random() * messages.length)]
-}
-
-export const randomMissingEpisodesSearchInProgress = () => {
-  const messages = [
-    "The series is in the library, but a few episodes are missing. Already on the case!",
-    "Some episodes are MIA, but don't worry—I'm chasing them down as we speak.",
-    "It's in your collection, just a bit incomplete. I've already started fetching the missing bits!",
-    "The show's here, but not whole. Retrieval in progress!",
-    "Found the series with a few holes. Don't panic—I'm filling in the gaps!",
-    "The library's got it, but it's not all there. I'm working on getting the rest!",
-    "Looks like the series is here but patchy. Already started a recovery mission!",
-    "It's on the shelf, minus a few chapters. I'm hunting them down for you!",
+    `You're not the first to request ${seriesTitle}! Upgrading to monitor all seasons now. 📈`,
+    `${seriesTitle} is already here with selective monitoring. As it's so popular I'll download everything! 🌟`,
+    `Found ${seriesTitle} with limited monitoring. Since more than one person wants it, I'm grabbing all seasons now. 🎯`,
+    `${seriesTitle} was on a restricted diet, but popular demand says otherwise. Downloading all seasons now! 🔥`,
+    `${seriesTitle} exists with partial monitoring. Multiple people want it, so I'm upgrading to the full series! 🚀`,
+    `${seriesTitle} was already added but not completely. Due to multiple requests, downloading all seasons now. 📺`,
+    `${seriesTitle} is in the library with selective monitoring. Expanding to all seasons based on demand! 💯`,
+    `${seriesTitle} was partially monitored, but it's clearly popular. Switching to monitor and download everything! 🎉`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }

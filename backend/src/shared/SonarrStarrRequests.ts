@@ -1,6 +1,6 @@
 import axios from "axios"
 import { settingsDocType, settingsType } from "../models/settings"
-import { Series } from "../types/seriesTypes"
+import { MonitorOptions, Series } from "../types/seriesTypes"
 import { cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
 import { DownloadStatus } from "../types/types"
@@ -108,27 +108,13 @@ export const searchSonarr = async (
   return
 }
 
-type SonarrMonitorOptions =
-  | "all"
-  | "future"
-  | "missing"
-  | "existing"
-  | "firstSeason"
-  | "lastSeason"
-  | "pilot"
-  | "recent"
-  | "monitorSpecials"
-  | "unmonitorSpecials"
-  | "none"
-  | "skip"
-
 // Download a series in sonarr
 export const downloadSeries = async (
   settings: settingsDocType,
   foundSeries: Series,
   qualityProfileId: number,
   rootFolderPath: string,
-  monitor: SonarrMonitorOptions = "all",
+  monitor: MonitorOptions,
 ): Promise<Series | undefined> => {
   const formattedSeries = {
     ...foundSeries,
@@ -399,4 +385,73 @@ export const blocklistAndSearchEpisode = async (
       `blocklistAndSearchEpisode: Failed to mark ${latestGrabbed.sourceTitle} as failed.`,
     )
   }
+}
+
+// Update the monitoring of a series
+export const updateSeriesMonitor = async (
+  settings: settingsDocType,
+  seriesID: number,
+  monitor: MonitorOptions,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(`${settings.sonarr_URL}/api/${settings.sonarr_API_version}/seasonPass`),
+      {
+        series: [{ id: seriesID }],
+        monitoringOptions: { monitor },
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `updateSeriesMonitor: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`updateSeriesMonitor Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
+}
+
+// Start a search for all monitored seasons of a series
+export const searchMonitoredSeries = async (
+  settings: settingsDocType,
+  seriesID: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(`${settings.sonarr_URL}/api/${settings.sonarr_API_version}/command`),
+      {
+        name: "SeriesSearch",
+        seriesId: seriesID,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) {
+      return true
+    }
+
+    logger.error(
+      `updateSeriesMonitor: Unexpected response from Sonarr. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`updateSeriesMonitor Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
 }

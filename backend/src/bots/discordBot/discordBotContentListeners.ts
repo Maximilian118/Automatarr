@@ -23,16 +23,14 @@ import {
   validateWaitCommand,
 } from "./discordRequestValidation"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
-import { searchMissing } from "../../shared/StarrRequests"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
-  randomAlreadyAddedWithMissingMessage,
-  randomMissingEpisodesSearchInProgress,
   getMovieStatusMessage,
   randomEpisodesDownloadingMessage,
   randomMovieDownloadStartMessage,
   randomSeriesDownloadStartMessage,
+  randomSeriesMonitorChangeToAllMessage,
   randomProcessingMessage,
   randomRemovalSuccessMessage,
   randomMovieReplacementMessage,
@@ -66,6 +64,8 @@ import {
   getSonarrQueue,
   markEpisodeAsFailed,
   searchSonarr,
+  updateSeriesMonitor,
+  searchMonitoredSeries,
 } from "../../shared/SonarrStarrRequests"
 import logger from "../../logger"
 import {
@@ -77,7 +77,11 @@ import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./discordBotRequestValidationUtility"
-import { QueueNotificationType, waitForWebhooks, cancelWebhooksForContent } from "../../webhooks/webhookUtility"
+import {
+  QueueNotificationType,
+  waitForWebhooks,
+  cancelWebhooksForContent,
+} from "../../webhooks/webhookUtility"
 import { WebHookWaitingType } from "../../models/webhook"
 import { isMovie, isSeries } from "../../types/typeGuards"
 
@@ -288,8 +292,6 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   )
 }
 
-const lastSearchTimestamps: Map<string, number> = new Map()
-
 // Download a series and add it to the users pool
 const caseDownloadSeries = async (message: Message, settings: settingsDocType): Promise<string> => {
   await sendDiscordMessage(message, randomProcessingMessage())
@@ -308,7 +310,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   // If message is valid, give me the juicy data
-  const { searchString, year } = parsed
+  const { searchString, year, monitor } = parsed
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -372,58 +374,96 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
   // Check if the series is already in the Sonarr library
   if (matchedSeries) {
-    if (matchedSeries.statistics.percentOfEpisodes === 100) {
+    // Get the current monitor setting from the matched series (default to "all" if not set)
+    const currentMonitor = matchedSeries.monitor || "all"
+
+    // Scenario 1: Monitor matches or is "all" - return early
+    if (currentMonitor === "all" || currentMonitor === monitor) {
+      // Series is already being monitored the way the user requested (or is set to "all")
+      // Just return the already added message, don't add to user pool
+      if (matchedSeries.statistics.percentOfEpisodes === 100) {
+        return randomAlreadyAddedMessage()
+      }
+
+      // Series incomplete - check if already downloading
+      const queue = await getSonarrQueue(settings)
+      const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
+
+      if (episodesInQueue.length > 0) {
+        const lastEpisode = episodesInQueue.at(-1)
+        return randomEpisodesDownloadingMessage(episodesInQueue.length, lastEpisode?.timeleft)
+      }
+
+      // Series exists and monitoring matches - just return already added message
       return randomAlreadyAddedMessage()
     }
 
-    // Set up for the search missing rate limiting
-    const now = Date.now()
-    const lastSearchTime = lastSearchTimestamps.get("Sonarr") || 0
-    const tenMinutes = 10 * 60 * 1000
-    const errMsgIdent = `${user.name} | ${message.author.username} searched for the series ${searchString}.`
+    // Scenario 2: Series has specific monitor that differs from user's request
+    // Update series to monitor "all" and add to user's pool with their preference
 
-    // Check download Queue and see if any episodes for this series are currently being downloaded
-    const queue = await getSonarrQueue(settings)
-    const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
-    const lastEpisode = episodesInQueue.at(-1)
+    // Update series monitoring to "all" in Sonarr
+    const updateSuccess = await updateSeriesMonitor(settings, matchedSeries.id, "all")
 
-    if (episodesInQueue.length > 0) {
-      return randomEpisodesDownloadingMessage(episodesInQueue.length, lastEpisode?.timeleft)
-    }
-
-    if (now - lastSearchTime < tenMinutes) {
+    if (!updateSuccess) {
       return discordReply(
-        randomMissingEpisodesSearchInProgress(),
-        "info",
-        `${errMsgIdent} Missing episodes but search skipped due to cooldown.`,
-      )
-    }
-
-    // Start a Sonarr wide wanted missing search - because yolo
-    const commandList = data.commandList.find((cl) => cl.name === "Sonarr")?.data
-    const searched = await searchMissing(
-      commandList,
-      "Sonarr",
-      settings.sonarr_URL,
-      settings.sonarr_API_version,
-      settings.sonarr_KEY,
-    )
-
-    if (!searched) {
-      return discordReply(
-        `That series is already in the library, but some episodes are missing and I can't search for them. Please contact the server owner.`,
+        `Failed to update monitoring settings for ${foundSeries.title}. Please contact the server owner.`,
         "error",
-        `${errMsgIdent} Series found with missing episodes, but search failed.`,
+        `Failed to update series monitoring for ${foundSeries.title} (ID: ${matchedSeries.id})`,
       )
     }
 
-    // Update timestamp after successful search
-    lastSearchTimestamps.set("Sonarr", now)
+    // Wait 5 seconds to ensure Sonarr has processed the update
+    await new Promise((resolve) => setTimeout(resolve, 5000))
+
+    // Trigger search for newly monitored content
+    const searchSuccess = await searchMonitoredSeries(settings, matchedSeries.id)
+
+    if (!searchSuccess) {
+      logger.error(
+        `Failed to trigger search for ${foundSeries.title} after monitoring update, but monitoring was changed successfully.`,
+      )
+    }
+
+    // Update the series in the database libraries to reflect "all"
+    const sonarrLibrary = data.libraries.find((lib) => lib.name === "Sonarr")
+    if (sonarrLibrary) {
+      const librarySeriesIndex = (sonarrLibrary.data as Series[]).findIndex(
+        (s) =>
+          s.tvdbId === matchedSeries.tvdbId ||
+          (s.title === matchedSeries.title && s.year === matchedSeries.year),
+      )
+      if (librarySeriesIndex !== -1) {
+        ;(sonarrLibrary.data as Series[])[librarySeriesIndex] = {
+          ...matchedSeries,
+          monitor: "all",
+        }
+      }
+    }
+
+    // Save the updated data object
+    if (!(await saveWithRetry(data, "caseDownloadSeries - update monitor"))) return noDBSave()
+
+    // Add series to user's pool with their requested monitor value
+    settings.general_bot.users = settings.general_bot.users.map((u) => {
+      if (u._id === user._id) {
+        return {
+          ...u,
+          pool: {
+            ...u.pool,
+            series: [...(u.pool.series || []), { ...matchedSeries, monitor }],
+          },
+        }
+      }
+      return u
+    })
+
+    // Save the updated settings
+    if (!(await saveWithRetry(settings, "caseDownloadSeries - add to pool"))) return noDBSave()
 
     return discordReply(
-      randomAlreadyAddedWithMissingMessage(),
-      "info",
-      `${errMsgIdent} It has some missing episodes. Search started.`,
+      randomSeriesMonitorChangeToAllMessage(foundSeries.title),
+      "success",
+      `${user.name} requested ${foundSeries.title} with ${monitor}, updated to "all"`,
     )
   }
 
@@ -457,7 +497,13 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   if (freeSpaceErr) return discordReply(freeSpaceErr, "error")
 
   // Download the Series
-  const series = await downloadSeries(settings, foundSeries, qualityProfile.id, rootFolder.path)
+  const series = await downloadSeries(
+    settings,
+    foundSeries,
+    qualityProfile.id,
+    rootFolder.path,
+    monitor,
+  )
 
   if (!series) {
     return discordReply(
@@ -473,7 +519,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
         ...u,
         pool: {
           ...u.pool,
-          series: [...(u.pool.series || []), series],
+          series: [...(u.pool.series || []), { ...series, monitor }],
         },
       }
     }
@@ -514,7 +560,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   return discordReply(
-    randomSeriesDownloadStartMessage(series),
+    randomSeriesDownloadStartMessage(series, monitor),
     "success",
     `${user.name} | Started Series Download | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
   )
@@ -544,14 +590,14 @@ export const caseList = async (message: Message): Promise<string> => {
 
   // Check for "basic" flag in any position after !list
   const isBasicMode = msgArr.includes("basic")
-  
+
   // Define valid content types for parsing
   const validContentTypes = ["pool", "movie", "movies", "series"]
 
   // Extract target user from anywhere in the arguments (excluding "basic" and content types)
   const userParam = msgArr
     .slice(1) // Skip the command
-    .find(arg => {
+    .find((arg) => {
       const argLower = arg.toLowerCase()
       return !validContentTypes.includes(argLower) && argLower !== "basic"
     })
@@ -567,11 +613,16 @@ export const caseList = async (message: Message): Promise<string> => {
   // Extract contentType from anywhere in the arguments (excluding "basic" and "@usernames")
   const contentTypeParam = msgArr
     .slice(1) // Skip the command
-    .find(arg => {
+    .find((arg) => {
       const argLower = arg.toLowerCase()
       return validContentTypes.includes(argLower)
     })
-  const contentType = contentTypeParam?.toLowerCase() as "pool" | "movie" | "movies" | "series" | undefined
+  const contentType = contentTypeParam?.toLowerCase() as
+    | "pool"
+    | "movie"
+    | "movies"
+    | "series"
+    | undefined
 
   // If channels exist extreact mentions for better discord UX
   const { mention: movieChannel } = findChannelByName(settings.discord_bot.movie_channel_name)
@@ -642,9 +693,9 @@ export const caseList = async (message: Message): Promise<string> => {
 
     const usagePercent = (currentCount / maxLimit) * 100
 
-    if (usagePercent >= 100) return 0xff4444      // Red - at/over limit
-    if (usagePercent >= 76) return 0xff8c00       // Orange - close to limit
-    return 0x32cd32                               // Green - plenty of space
+    if (usagePercent >= 100) return 0xff4444 // Red - at/over limit
+    if (usagePercent >= 76) return 0xff8c00 // Orange - close to limit
+    return 0x32cd32 // Green - plenty of space
   }
 
   // Rich embed mode - split into multiple messages if needed
@@ -732,7 +783,10 @@ export const caseList = async (message: Message): Promise<string> => {
         }
 
         // Add series pool limit as separate message with dynamic color
-        const seriesLimitColor = getPoolLimitColor(user.pool.series.length, Number(currentSeriesMax))
+        const seriesLimitColor = getPoolLimitColor(
+          user.pool.series.length,
+          Number(currentSeriesMax),
+        )
         const seriesLimitEmbed = new EmbedBuilder()
           .setColor(seriesLimitColor)
           .setTitle(`Series Pool Limit: ${user.pool.series.length}/${currentSeriesMax}`)
@@ -777,25 +831,27 @@ export const caseRemove = async (message: Message): Promise<string> => {
   let removedContent: Movie | Series | null = null
 
   if (channel.name === settings.discord_bot.movie_channel_name) {
-    removedContent = user.pool.movies.find((m) => {
-      if (contentTitle !== null && contentYear !== null) {
-        return (
-          m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
-          Number(m.year) === Number(contentYear)
-        )
-      }
-      return `${m.title} ${m.year}` === poolItemTitle
-    }) || null
+    removedContent =
+      user.pool.movies.find((m) => {
+        if (contentTitle !== null && contentYear !== null) {
+          return (
+            m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+            Number(m.year) === Number(contentYear)
+          )
+        }
+        return `${m.title} ${m.year}` === poolItemTitle
+      }) || null
   } else if (channel.name === settings.discord_bot.series_channel_name) {
-    removedContent = user.pool.series.find((s) => {
-      if (contentTitle !== null && contentYear !== null) {
-        return (
-          s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
-          Number(s.year) === Number(contentYear)
-        )
-      }
-      return `${s.title} ${s.year}` === poolItemTitle
-    }) || null
+    removedContent =
+      user.pool.series.find((s) => {
+        if (contentTitle !== null && contentYear !== null) {
+          return (
+            s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+            Number(s.year) === Number(contentYear)
+          )
+        }
+        return `${s.title} ${s.year}` === poolItemTitle
+      }) || null
   }
 
   // Remove from the user's pool
@@ -1310,12 +1366,12 @@ export const caseTest = async (message: Message): Promise<string> => {
 
   // Accept both old technical terms and new friendly terms for compatibility
   const eventMapping: Record<string, string> = {
-    "grab": "grab",
-    "downloading": "grab",
-    "import": "import",
-    "ready": "import",
-    "upgrade": "upgrade",
-    "expired": "expired"
+    grab: "grab",
+    downloading: "grab",
+    import: "import",
+    ready: "import",
+    upgrade: "upgrade",
+    expired: "expired",
   }
 
   const lowerEventType = eventType.toLowerCase()
@@ -1340,8 +1396,12 @@ export const caseTest = async (message: Message): Promise<string> => {
     const data = (await Data.findOne()) as dataDocType
     if (!data) return noDBPull()
 
-    const movieLibrary = data.libraries.find((API) => API.name === "Radarr")?.data as Movie[] | undefined
-    const seriesLibrary = data.libraries.find((API) => API.name === "Sonarr")?.data as Series[] | undefined
+    const movieLibrary = data.libraries.find((API) => API.name === "Radarr")?.data as
+      | Movie[]
+      | undefined
+    const seriesLibrary = data.libraries.find((API) => API.name === "Sonarr")?.data as
+      | Series[]
+      | undefined
 
     let randomContent: Movie | Series | null = null
 
@@ -1353,7 +1413,9 @@ export const caseTest = async (message: Message): Promise<string> => {
       } else {
         return "No movies found in database to test with. Try adding some movies first!"
       }
-    } else if (channel.name.toLowerCase() === settings.discord_bot.series_channel_name.toLowerCase()) {
+    } else if (
+      channel.name.toLowerCase() === settings.discord_bot.series_channel_name.toLowerCase()
+    ) {
       // Series channel - only return series
       if (seriesLibrary && seriesLibrary.length > 0) {
         randomContent = seriesLibrary[Math.floor(Math.random() * seriesLibrary.length)]
@@ -1406,7 +1468,7 @@ export const caseTest = async (message: Message): Promise<string> => {
 
     // Create fake webhook data
     const fakeWebhookMatch: WebHookWaitingType = {
-      APIName: 'runtime' in randomContent ? "Radarr" : "Sonarr",
+      APIName: "runtime" in randomContent ? "Radarr" : "Sonarr",
       bots: ["Discord"],
       discordData: {
         guildId: message.guild?.id ?? "",
@@ -1420,11 +1482,20 @@ export const caseTest = async (message: Message): Promise<string> => {
       content: randomContent,
       seasons: [],
       episodes: [],
-      waitForStatus: mappedEventType === "grab" ? "Grab" :
-                    mappedEventType === "import" ? "Import" :
-                    mappedEventType === "upgrade" ? "Upgrade" : "Import",
-      status: mappedEventType === "grab" ? "downloading" :
-              mappedEventType === "expired" ? "not_found" : "ready",
+      waitForStatus:
+        mappedEventType === "grab"
+          ? "Grab"
+          : mappedEventType === "import"
+          ? "Import"
+          : mappedEventType === "upgrade"
+          ? "Upgrade"
+          : "Import",
+      status:
+        mappedEventType === "grab"
+          ? "downloading"
+          : mappedEventType === "expired"
+          ? "not_found"
+          : "ready",
       message: testMessage,
       created_at: new Date(),
     }
@@ -1438,11 +1509,7 @@ export const caseTest = async (message: Message): Promise<string> => {
       finalMessage = randomGrabNotFoundMessage(randomContent.title)
     }
 
-    const embed = createWebhookEmbed(
-      fakeWebhookMatch,
-      finalMessage,
-      isExpired
-    )
+    const embed = createWebhookEmbed(fakeWebhookMatch, finalMessage, isExpired)
 
     // Send the test embed
     if ("send" in message.channel && typeof message.channel.send === "function") {

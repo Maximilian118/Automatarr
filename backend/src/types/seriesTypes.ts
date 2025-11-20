@@ -2,6 +2,19 @@ import { Episode } from "./episodeTypes"
 import { Torrent } from "./qBittorrentTypes"
 import { Language } from "./types"
 
+export type MonitorOptions =
+  | "all"
+  | "future"
+  | "missing"
+  | "existing"
+  | "recent"
+  | "pilot"
+  | "firstSeason"
+  | "lastSeason"
+  | "monitorSpecials"
+  | "unmonitorSpecials"
+  | "none"
+
 export type SeriesImage = {
   coverType: string
   url: string
@@ -40,7 +53,7 @@ export type Season = {
 type AddOptions = {
   ignoreEpisodesWithFiles: boolean
   ignoreEpisodesWithoutFiles: boolean
-  monitor: string
+  monitor: MonitorOptions
   searchForMissingEpisodes: boolean
   searchForCutoffUnmetEpisodes: boolean
 }
@@ -105,5 +118,6 @@ export type Series = {
   ratings: SeriesRatings
   statistics: SeriesStatistics
   episodesChanged: boolean
+  monitor?: MonitorOptions
   torrentsPresent?: boolean
 }

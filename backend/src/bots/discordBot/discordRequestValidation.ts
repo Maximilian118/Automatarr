@@ -4,7 +4,7 @@ import { matchedUser } from "./discordBotUtility"
 import { extractSeasonEpisode } from "../../shared/qBittorrentUtility"
 import { dataDocType } from "../../models/data"
 import { Movie } from "../../types/movieTypes"
-import { Series } from "../../types/seriesTypes"
+import { MonitorOptions, Series } from "../../types/seriesTypes"
 import { channelValid, validateTitleAndYear } from "./discordBotRequestValidationUtility"
 
 // Validate the array data for the caseOwner message
@@ -114,31 +114,29 @@ export const validateListCommand = (msgArr: string[]): string => {
   // Parse arguments more intelligently
   // Expected format: !list [contentType] [username] [basic]
   // Where contentType and username can be in any order after the command
-  
+
   for (const arg of rest) {
     const argLower = arg.toLowerCase()
-    
+
     // Skip "basic" flag and Discord usernames (both @username and <@id> formats)
     if (argLower === "basic" || arg.startsWith("@") || arg.match(/^<@!?\d+>$/)) {
       continue
     }
-    
+
     // Check for unsupported types
     if (unsupported.includes(argLower)) {
       return `I do apologise. My maker hasn't programmed me for ${
         arg.endsWith("s") ? arg : arg + "s"
       } yet.`
     }
-    
+
     // Check if it's a valid content type
     if (validContentTypes.includes(argLower)) {
       continue
     }
-    
+
     // If we get here, it's an unrecognized argument that's not basic, @username, or valid content type
-    return `Hmm.. I don't understand what you mean by ${arg}. Try ${validContentTypes.join(
-      ", ",
-    )}.`
+    return `Hmm.. I don't understand what you mean by ${arg}. Try ${validContentTypes.join(", ")}.`
   }
 
   return ""
@@ -224,6 +222,7 @@ export const validateDownload = async (
       title: string
       year: string
       searchString: string
+      monitor: MonitorOptions
     }
 > => {
   // Check if an accepted channel has been used

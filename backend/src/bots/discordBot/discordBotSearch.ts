@@ -74,15 +74,17 @@ export const caseSearch = async (message: Message): Promise<string> => {
       if (isMovieChannel) {
         // Get intelligent suggestions from Radarr API
         const apiResults = await searchRadarr(settings, searchTerm)
-        const movieDBList = (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
+        const movieDBList =
+          (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
 
         // Filter API results to only include items that exist in our library
         if (apiResults) {
           suggestions = apiResults
             .map((apiMovie) => {
-              return movieDBList.find((libraryMovie) =>
-                libraryMovie.tmdbId === apiMovie.tmdbId ||
-                libraryMovie.imdbId === apiMovie.imdbId
+              return movieDBList.find(
+                (libraryMovie) =>
+                  libraryMovie.tmdbId === apiMovie.tmdbId ||
+                  libraryMovie.imdbId === apiMovie.imdbId,
               )
             })
             .filter((movie): movie is Movie => movie !== undefined)
@@ -90,22 +92,26 @@ export const caseSearch = async (message: Message): Promise<string> => {
               // Don't suggest exact matches of what was searched
               const movieTitleYear = `${movie.title.toLowerCase()} ${movie.year}`
               const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-              return movieTitleYear !== searchTermWithYear && movie.title.toLowerCase() !== searchTerm
+              return (
+                movieTitleYear !== searchTermWithYear && movie.title.toLowerCase() !== searchTerm
+              )
             })
             .slice(0, 5)
         }
       } else if (isSeriesChannel) {
         // Get intelligent suggestions from Sonarr API
         const apiResults = await searchSonarr(settings, searchTerm)
-        const seriesDBList = (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
+        const seriesDBList =
+          (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
 
         // Filter API results to only include items that exist in our library
         if (apiResults) {
           suggestions = apiResults
             .map((apiSeries) => {
-              return seriesDBList.find((librarySeries) =>
-                librarySeries.tvdbId === apiSeries.tvdbId ||
-                librarySeries.imdbId === apiSeries.imdbId
+              return seriesDBList.find(
+                (librarySeries) =>
+                  librarySeries.tvdbId === apiSeries.tvdbId ||
+                  librarySeries.imdbId === apiSeries.imdbId,
               )
             })
             .filter((series): series is Series => series !== undefined)
@@ -113,7 +119,9 @@ export const caseSearch = async (message: Message): Promise<string> => {
               // Don't suggest exact matches of what was searched
               const seriesTitleYear = `${series.title.toLowerCase()} ${series.year}`
               const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-              return seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
+              return (
+                seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
+              )
             })
             .slice(0, 5)
         }
@@ -122,7 +130,8 @@ export const caseSearch = async (message: Message): Promise<string> => {
       logger.error("Error fetching API suggestions:", error)
       // Fallback to simple library search
       if (isMovieChannel) {
-        const movieDBList = (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
+        const movieDBList =
+          (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
         suggestions = movieDBList
           .filter((m) => m.title.toLowerCase().includes(searchTerm))
           .filter((movie) => {
@@ -133,24 +142,26 @@ export const caseSearch = async (message: Message): Promise<string> => {
           })
           .slice(0, 5)
       } else if (isSeriesChannel) {
-        const seriesDBList = (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
+        const seriesDBList =
+          (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
         suggestions = seriesDBList
           .filter((s) => s.title.toLowerCase().includes(searchTerm))
           .filter((series) => {
             // Don't suggest exact matches of what was searched
             const seriesTitleYear = `${series.title.toLowerCase()} ${series.year}`
             const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-            return seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
+            return (
+              seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
+            )
           })
           .slice(0, 5)
       }
     }
 
-    const suggestionStrings = suggestions.length > 0
-      ? suggestions
-          .map((item, i) => `${i + 1}. ${item.title} ${item.year}`)
-          .join('\n')
-      : ""
+    const suggestionStrings =
+      suggestions.length > 0
+        ? suggestions.map((item, i) => `${i + 1}. ${item.title} ${item.year}`).join("\n")
+        : ""
 
     const suggestionText = suggestionStrings
       ? `\n\nDid you mean any of these?\n${suggestionStrings}`
@@ -178,9 +189,9 @@ export const caseSearch = async (message: Message): Promise<string> => {
         .setTitle(`${user.name}`)
         .setDescription(
           displayMatches.map((match) => `${match.title} ${match.year}`).join("\n") +
-            (hasMoreMatches ? `\n...and ${matches.length - 2} more` : "")
+            (hasMoreMatches ? `\n...and ${matches.length - 2} more` : ""),
         )
-
+      console.log(matches)
       // Add poster thumbnail from the first match
       const firstMatch = displayMatches[0]
       if (firstMatch) {

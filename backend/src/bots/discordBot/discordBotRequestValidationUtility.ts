@@ -6,7 +6,7 @@ import { getDiscordClient } from "./discordBot"
 import { discordReply } from "./discordBotUtility"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
 import { Movie } from "../../types/movieTypes"
-import { Series } from "../../types/seriesTypes"
+import { MonitorOptions, Series } from "../../types/seriesTypes"
 import { dataDocType } from "../../models/data"
 
 export const validateTitleAndYear = async (
@@ -21,60 +21,135 @@ export const validateTitleAndYear = async (
       year: string
       searchString: string
       foundContentArr: Movie[] | Series[]
+      monitor: MonitorOptions
     }
 > => {
-  const yearCandidate = rest[rest.length - 1]
-  const yearMatch = yearCandidate.match(/^\d{4}$/)
+  // Valid monitor options matching Sonarr's API
+  const validMonitorOptions: MonitorOptions[] = [
+    "all",
+    "future",
+    "missing",
+    "existing",
+    "recent",
+    "pilot",
+    "firstSeason",
+    "lastSeason",
+  ]
 
-  const searchString = rest.join(" ")
-  let foundContentArr: Movie[] | Series[] = []
+  let monitor: MonitorOptions = "all" // default
+  let year: string
+  let title: string
 
-  if (!yearMatch) {
-    foundContentArr =
-      contentType === "movie"
-        ? (await searchRadarr(settings, searchString)) || []
-        : (await searchSonarr(settings, searchString)) || []
+  // Check if the last element is a monitor option
+  const lastElement = rest[rest.length - 1]
+  const normalizedLast = lastElement.replace(/\s+/g, "").toLowerCase()
+  const isLastMonitorOption = validMonitorOptions.some(
+    (opt) => opt.toLowerCase() === normalizedLast,
+  )
 
-    if (data) {
-      if (contentType === "movie") {
-        const movieLibrary = (data.libraries.find((api) => api.name === "Radarr")?.data ??
-          []) as Movie[]
-        foundContentArr = (foundContentArr as Movie[]).filter((c) =>
-          movieLibrary.some((l) => l.tmdbId === c.tmdbId),
-        )
-      } else {
-        const seriesLibrary = (data.libraries.find((api) => api.name === "Sonarr")?.data ??
-          []) as Series[]
-        foundContentArr = (foundContentArr as Series[]).filter((c) =>
-          seriesLibrary.some((l) => l.tvdbId === c.tvdbId),
-        )
-      }
+  if (isLastMonitorOption) {
+    // Last element is a monitor option, so year should be second-to-last
+    if (rest.length < 2) {
+      return `The command must contain a title, a 4-digit year, and optionally a monitoring option. For example: !download ${
+        contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
+      } ${lastElement}`
     }
 
-    const suggestionsHeader = data
-      ? "I've found these in your library: 📚"
-      : "Is it any of these you wanted? ⛏️"
+    const yearCandidate = rest[rest.length - 2]
+    const yearMatch = yearCandidate.match(/^\d{4}$/)
 
-    const recommendations =
-      foundContentArr.length === 0
-        ? "I couldn't find any recommendations for that title."
-        : `${suggestionsHeader}\n\n` +
-          foundContentArr
-            .slice(0, 10)
-            .map((c) => `${c.title} ${c.year}`)
-            .join("\n")
+    if (!yearMatch) {
+      return `When using a monitoring option, the year must come before it. Format: !download <title> <year> <monitor_option>\nExample: !download Breaking Bad 2008 ${lastElement}`
+    }
 
-    return `The last part of the command must be a 4 digit year. ⚠️\n` + recommendations
+    year = yearCandidate
+    title = rest.slice(0, -2).join(" ")
+    monitor = validMonitorOptions.find((opt) => opt.toLowerCase() === normalizedLast)!
+  } else {
+    // Last element is not a monitor option, check if it's a year
+    const yearMatch = lastElement.match(/^\d{4}$/)
+
+    if (!yearMatch) {
+      // Not a year and not a valid monitor option
+      // Check if the second-to-last element is a year (meaning user passed something after the year)
+      if (rest.length >= 2) {
+        const secondToLast = rest[rest.length - 2]
+        const isSecondToLastYear = secondToLast.match(/^\d{4}$/)
+
+        if (isSecondToLastYear) {
+          // User passed "None" which is something we will not allow
+          if (lastElement.toLowerCase() === "none") {
+            return `The "${lastElement}" monitoring option is not allowed. ⚠️`
+          }
+
+          // User passed something after the year that's not a valid monitor option
+          return (
+            `"${lastElement}" is not a valid monitoring option. ⚠️\n\n` +
+            `**Monitoring Options:**\n` +
+            `**All** - Monitor all episodes except specials\n` +
+            `**Future** - Monitor episodes that have not aired yet\n` +
+            `**Missing** - Monitor episodes that do not have files or have not aired yet\n` +
+            `**Existing** - Monitor episodes that have files or have not aired yet\n` +
+            `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
+            `**Pilot** - Only monitor the first episode of the first season\n` +
+            `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
+            `**LastSeason** - Monitor all episodes of the last season`
+          )
+        }
+      }
+
+      // No year found anywhere, show original error with recommendations
+      const searchString = rest.join(" ")
+      let foundContentArr: Movie[] | Series[] = []
+
+      foundContentArr =
+        contentType === "movie"
+          ? (await searchRadarr(settings, searchString)) || []
+          : (await searchSonarr(settings, searchString)) || []
+
+      if (data) {
+        if (contentType === "movie") {
+          const movieLibrary = (data.libraries.find((api) => api.name === "Radarr")?.data ??
+            []) as Movie[]
+          foundContentArr = (foundContentArr as Movie[]).filter((c) =>
+            movieLibrary.some((l) => l.tmdbId === c.tmdbId),
+          )
+        } else {
+          const seriesLibrary = (data.libraries.find((api) => api.name === "Sonarr")?.data ??
+            []) as Series[]
+          foundContentArr = (foundContentArr as Series[]).filter((c) =>
+            seriesLibrary.some((l) => l.tvdbId === c.tvdbId),
+          )
+        }
+      }
+
+      const suggestionsHeader = data
+        ? "I've found these in your library: 📚"
+        : "Is it any of these you wanted? ⛏️"
+
+      const recommendations =
+        foundContentArr.length === 0
+          ? "I couldn't find any recommendations for that title."
+          : `${suggestionsHeader}\n\n` +
+            foundContentArr
+              .slice(0, 10)
+              .map((c) => `${c.title} ${c.year}`)
+              .join("\n")
+
+      return `A 4 digit year must be included after the title. ⚠️\n` + recommendations
+    }
+
+    // Last element is a year
+    year = lastElement
+    title = rest.slice(0, -1).join(" ")
   }
-
-  const year = yearCandidate
-  const title = rest.slice(0, -1).join(" ")
 
   return {
     title,
     year,
     searchString: `${title} ${year}`,
-    foundContentArr,
+    foundContentArr: [],
+    monitor,
   }
 }
 

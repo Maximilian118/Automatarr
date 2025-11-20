@@ -554,7 +554,8 @@ export const deleteFromLibrary = async (
 }
 
 // Send the search command for all wanted missing content for passed Starr API
-export const searchMissing = async (
+// Trigger a search for all missing wanted content across the entire API
+export const searchAllWantedMissing = async (
   commandList: string[] | undefined,
   APIname: "Radarr" | "Sonarr" | "Lidarr",
   URL: string,
@@ -563,30 +564,43 @@ export const searchMissing = async (
 ): Promise<boolean> => {
   // Ensure we have a list of commands for this API
   if (!commandList) {
-    logger.error(`wanted_missing | Could not find any commands for ${APIname}.`)
+    logger.error(`searchAllWantedMissing: Could not find any commands for ${APIname}`)
     return false
   }
 
   // Retrieve the first string that matches startsWith('missing')
   const missingSearchString = commandList.find((str) => str.toLowerCase().startsWith("missing"))
 
-  // Ensure missingSearchString is populated
   if (!missingSearchString) {
-    logger.error(`wanted_missing | Could not find a command string for ${APIname}.`)
+    logger.error(`searchAllWantedMissing: Could not find a command string for ${APIname}`)
     return false
   }
 
   try {
-    await axios.post(cleanUrl(`${URL}/api/${API_version}/command?apikey=${KEY}`), {
-      name: missingSearchString,
-    })
+    const res = await axios.post(
+      cleanUrl(`${URL}/api/${API_version}/command`),
+      { name: missingSearchString },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": KEY,
+        },
+      },
+    )
 
-    logger.info(`wanted_missing | ${APIname} search started.`)
-    return true
+    if (requestSuccess(res.status)) {
+      logger.info(`searchAllWantedMissing: ${APIname} search started successfully`)
+      return true
+    }
+
+    logger.error(
+      `searchAllWantedMissing: Unexpected response from ${APIname}. Status: ${res.status} - ${res.statusText}`,
+    )
   } catch (err) {
-    logger.error(`wanted_missing | ${APIname} error: ${err}.`)
-    return false
+    logger.error(`searchAllWantedMissing Error: ${axiosErrorMessage(err)}`)
   }
+
+  return false
 }
 
 // Get preliminary information for a manual import command

@@ -2,7 +2,7 @@ import { settingsType } from "../models/settings"
 import { activeAPIsArr } from "../shared/activeAPIsArr"
 import { commandData } from "../types/types"
 import logger from "../logger"
-import { searchMissing } from "../shared/StarrRequests"
+import { searchAllWantedMissing } from "../shared/StarrRequests"
 import { shouldSkipLoop, updateLoopData } from "./loopUtility"
 import { saveWithRetry } from "../shared/database"
 
@@ -29,7 +29,7 @@ const search_wanted_missing = async (settings: settingsType): Promise<void> => {
 
     // Send the command request
     // prettier-ignore
-    await searchMissing(API.data.commandList, API.name, API.data.URL, API.data.API_version, API.data.KEY)
+    await searchAllWantedMissing(API.data.commandList, API.name, API.data.URL, API.data.API_version, API.data.KEY)
   }
 
   updateLoopData("search_wanted_missing", data)

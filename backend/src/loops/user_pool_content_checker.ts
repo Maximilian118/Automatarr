@@ -197,8 +197,14 @@ const user_pool_content_checker = async (settings: settingsType): Promise<void> 
                   (s.title === poolSeries.title && s.year === poolSeries.year),
               )
               if (seriesIndex !== -1) {
-                currentSettings.general_bot.users[userIndex].pool.series[seriesIndex] =
-                  seriesInLibrary
+                // Preserve the user's monitor preference when updating series data, default to "all"
+                const originalMonitor =
+                  currentSettings.general_bot.users[userIndex].pool.series[seriesIndex].monitor ||
+                  "all"
+                currentSettings.general_bot.users[userIndex].pool.series[seriesIndex] = {
+                  ...seriesInLibrary,
+                  monitor: originalMonitor,
+                }
                 currentSettings.general_bot.users[userIndex].updated_at = moment().format()
                 currentSettings.markModified(`general_bot.users.${userIndex}.pool.series`)
                 updatedSeries++
@@ -231,12 +237,16 @@ const user_pool_content_checker = async (settings: settingsType): Promise<void> 
               continue
             }
 
+            // Preserve the user's original monitor preference, or default to "all"
+            const originalMonitor = poolSeries.monitor || "all"
+
             // Add series to Sonarr
             const addedSeries = await downloadSeries(
               currentSettings,
               poolSeries,
               qualityProfile.id,
               rootFolder.path,
+              originalMonitor,
             )
 
             if (addedSeries) {
@@ -258,8 +268,11 @@ const user_pool_content_checker = async (settings: settingsType): Promise<void> 
                     (s.title === poolSeries.title && s.year === poolSeries.year),
                 )
                 if (seriesIndex !== -1) {
-                  currentSettings.general_bot.users[userIndex].pool.series[seriesIndex] =
-                    addedSeries
+                  // Preserve the user's monitor preference when updating with re-added series
+                  currentSettings.general_bot.users[userIndex].pool.series[seriesIndex] = {
+                    ...addedSeries,
+                    monitor: originalMonitor,
+                  }
                   currentSettings.general_bot.users[userIndex].updated_at = moment().format()
                   currentSettings.markModified(`general_bot.users.${userIndex}.pool.series`)
                 }
