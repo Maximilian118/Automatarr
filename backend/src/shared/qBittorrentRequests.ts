@@ -301,7 +301,12 @@ export const getqBittorrentData = async (
     return data.qBittorrent
   }
 
-  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(settings, data, undefined, verboseLogging)
+  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(
+    settings,
+    data,
+    undefined,
+    verboseLogging,
+  )
 
   const currentCookie = cookie ? cookie : data.qBittorrent.cookie
   const currentCookieExpiry = cookie_expiry ? cookie_expiry : data.qBittorrent.cookie_expiry
@@ -326,23 +331,31 @@ export const deleteqBittorrent = async (
   try {
     const res = await axios.post(
       cleanUrl(
-        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/delete?hashes=${torrent.hash}&deleteFiles=true`,
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/delete`,
       ),
+      new URLSearchParams({
+        hashes: torrent.hash,
+        deleteFiles: "true",
+      }),
       {
         headers: {
           cookie: cookie,
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       },
     )
 
     if (requestSuccess(res.status)) {
       logger.info(`Torrent deleted: ${torrent.name} 🔥`)
+
       return true
     } else {
       logger.error(`deleteqBittorrent: Unknown error. Status: ${res.status} - ${res.statusText}`)
     }
   } catch (err) {
-    logger.error(`deleteqBittorrent: Could not delete torrent "${torrent.name}": ${axiosErrorMessage(err)}`)
+    logger.error(
+      `deleteqBittorrent: Could not delete torrent "${torrent.name}": ${axiosErrorMessage(err)}`,
+    )
   }
 
   return false
