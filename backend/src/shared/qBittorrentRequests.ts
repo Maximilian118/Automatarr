@@ -6,6 +6,7 @@ import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
 import { axiosErrorMessage } from "./requestError"
+import { isDocker } from "./fileSystem"
 
 // Retreive qBittorrent cookie from check request headers
 export const getqBitCookieFromHeaders = async (
@@ -328,6 +329,12 @@ export const deleteqBittorrent = async (
   cookie: string,
   torrent: Torrent,
 ): Promise<boolean> => {
+  if (!isDocker) {
+    logger.info(`${torrent.name} | Skipped qBittorrent deletion. Running in development mode. 🧊`)
+
+    return false
+  }
+
   try {
     const res = await axios.post(
       cleanUrl(
