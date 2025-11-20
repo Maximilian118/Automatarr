@@ -236,8 +236,8 @@ const commandRegistry: CommandEntry[] = [
     name: "!download",
     category: "Content",
     shortDescription: "Download content",
-    description: "Download some content and add it to your pool.",
-    usage: "!download <movieTitle + Year / seriesTitle + Year>",
+    description: `Download content and add it to your pool. Optionally, specify how much of a Series you'd like to download and monitor with <optional_monitor_option>. Use "!help Monitor Options" for a list of commands.`,
+    usage: "!download <movieTitle + Year / seriesTitle + Year> <optional_monitor_option>",
     adminRequired: false,
   },
   {
@@ -287,7 +287,8 @@ const commandRegistry: CommandEntry[] = [
     name: "!test",
     category: "User Management",
     shortDescription: "Test download notifications",
-    description: "Generate test download notifications for testing purposes. Uses random content from database.",
+    description:
+      "Generate test download notifications for testing purposes. Uses random content from database.",
     usage: "!test <downloading|ready|upgrade|expired>",
     adminRequired: true,
   },
@@ -319,6 +320,22 @@ const caseHelp = (message: Message): void => {
 
   if (command.toLowerCase() !== "!help") {
     sendDiscordMessage(message, `Invalid command \`${command}\`.`)
+    return
+  }
+
+  // Check for "!help Monitor Options" or "!help Monitor"
+  if (query && query.toLowerCase() === "monitor") {
+    const monitorOptionsMessage =
+      `**Series Monitoring Options:**\n` +
+      `**All** - Monitor all episodes except specials\n` +
+      `**Future** - Monitor episodes that have not aired yet\n` +
+      `**Missing** - Monitor episodes that do not have files or have not aired yet\n` +
+      `**Existing** - Monitor episodes that have files or have not aired yet\n` +
+      `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
+      `**Pilot** - Only monitor the first episode of the first season\n` +
+      `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
+      `**LastSeason** - Monitor all episodes of the last season`
+    sendDiscordMessage(message, monitorOptionsMessage)
     return
   }
 
