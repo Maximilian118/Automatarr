@@ -1,13 +1,13 @@
 import { Channel, GuildTextBasedChannel, TextBasedChannel } from "discord.js"
-import { settingsDocType } from "../../models/settings"
-import { searchRadarr } from "../../shared/RadarrStarrRequests"
-import { searchSonarr } from "../../shared/SonarrStarrRequests"
-import { getDiscordClient } from "./discordBot"
-import { discordReply } from "./discordBotUtility"
-import { isTextBasedChannel } from "./discordBotTypeGuards"
-import { Movie } from "../../types/movieTypes"
-import { MonitorOptions, Series } from "../../types/seriesTypes"
-import { dataDocType } from "../../models/data"
+import { settingsDocType } from "../../../models/settings"
+import { searchRadarr } from "../../../shared/RadarrStarrRequests"
+import { searchSonarr } from "../../../shared/SonarrStarrRequests"
+import { getDiscordClient } from "../discordBot"
+import { discordReply } from "../discordBotUtility"
+import { isTextBasedChannel } from "../discordBotTypeGuards"
+import { Movie } from "../../../types/movieTypes"
+import { MonitorOptions, Series } from "../../../types/seriesTypes"
+import { dataDocType } from "../../../models/data"
 
 export const validateTitleAndYear = async (
   rest: string[], // The fill string of a command after the inital !command

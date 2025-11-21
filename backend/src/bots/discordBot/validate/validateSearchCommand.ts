@@ -1,6 +1,6 @@
 import { Message, TextBasedChannel } from "discord.js"
-import { settingsDocType } from "../../models/settings"
-import { channelValid } from "./discordBotRequestValidationUtility"
+import { settingsDocType } from "../../../models/settings"
+import { channelValid } from "./validationUtility"
 
 // Validate the array data for the caseSearch message
 export const validateSearchCommand = async (
@@ -37,7 +37,7 @@ export const validateSearchCommand = async (
 
   // Check if the last part is a 4-digit year
   const lastPart = rest[rest.length - 1]
-  const yearMatch = lastPart.match(/^\d{4}$/)
+  const yearMatch = lastPart.match(/^\\d{4}$/)
 
   let searchTerm: string
   let year: number | undefined

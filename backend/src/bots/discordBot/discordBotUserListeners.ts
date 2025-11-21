@@ -1,15 +1,13 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../models/settings"
-import {
-  validateAdminCommand,
-  validateCaseStats,
-  validateDeleteUserCommand,
-  validateInitCommand,
-  validateMaxCommand,
-  validateOwnerCommand,
-  validateRemoveUserCommand,
-  validateSuperUser,
-} from "./discordRequestValidation"
+import { validateAdminCommand } from "./validate/validateAdminCommand"
+import { validateCaseStats } from "./validate/validateCaseStats"
+import { validateDeleteUserCommand } from "./validate/validateDeleteUserCommand"
+import { validateInitCommand } from "./validate/validateInitCommand"
+import { validateMaxCommand } from "./validate/validateMaxCommand"
+import { validateOwnerCommand } from "./validate/validateOwnerCommand"
+import { validateRemoveUserCommand } from "./validate/validateRemoveUserCommand"
+import { validateSuperUser } from "./validate/validateSuperUser"
 import {
   adminCheck,
   discordReply,

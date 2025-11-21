@@ -12,7 +12,7 @@ import {
   sendDiscordMessage,
   seriesMatches,
 } from "../discordBotUtility"
-import { validateMonitorCommand } from "../discordRequestValidation"
+import { validateMonitorCommand } from "../validate/validateMonitorCommand"
 import { checkUserSeriesLimit } from "../discordBotUserLimits"
 import {
   randomNotFoundMessage,

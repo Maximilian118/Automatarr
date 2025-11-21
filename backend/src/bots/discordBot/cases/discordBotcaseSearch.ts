@@ -1,13 +1,13 @@
 import { Message, EmbedBuilder } from "discord.js"
-import Settings, { settingsDocType, BotUserType } from "../../models/settings"
-import Data, { dataDocType } from "../../models/data"
-import { noDBPull, getPosterImageUrl } from "./discordBotUtility"
-import { validateSearchCommand } from "./discordBotSearchValidation"
-import { searchRadarr } from "../../shared/RadarrStarrRequests"
-import { searchSonarr } from "../../shared/SonarrStarrRequests"
-import { Movie } from "../../types/movieTypes"
-import { Series } from "../../types/seriesTypes"
-import logger from "../../logger"
+import Settings, { settingsDocType, BotUserType } from "../../../models/settings"
+import Data, { dataDocType } from "../../../models/data"
+import { noDBPull, getPosterImageUrl } from "../discordBotUtility"
+import { validateSearchCommand } from "../validate/validateSearchCommand"
+import { searchRadarr } from "../../../shared/RadarrStarrRequests"
+import { searchSonarr } from "../../../shared/SonarrStarrRequests"
+import { Movie } from "../../../types/movieTypes"
+import { Series } from "../../../types/seriesTypes"
+import logger from "../../../logger"
 
 // Search for content across user pools
 export const caseSearch = async (message: Message): Promise<string> => {
