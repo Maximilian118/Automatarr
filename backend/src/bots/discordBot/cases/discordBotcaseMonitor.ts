@@ -27,8 +27,8 @@ import { saveWithRetry } from "../../../shared/database"
 import {
   searchSonarr,
   updateSeriesMonitor,
-  searchMonitoredSeries,
   getSonarrSeries,
+  searchMonitoredSeries,
 } from "../../../shared/SonarrStarrRequests"
 import { sortTMDBSearchArray } from "../../botUtility"
 import { Series } from "../../../types/seriesTypes"

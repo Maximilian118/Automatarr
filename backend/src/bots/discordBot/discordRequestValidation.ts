@@ -295,7 +295,7 @@ export const validateMonitorCommand = async (
   }
 
   // Use existing validateTitleAndYear to parse title, year, and monitor
-  const validated = await validateTitleAndYear(rest, "series", settings)
+  const validated = await validateTitleAndYear(rest, "series", settings, undefined, true)
   if (typeof validated === "string") return validated
 
   return {

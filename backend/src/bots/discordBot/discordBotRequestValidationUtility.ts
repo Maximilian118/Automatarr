@@ -14,6 +14,7 @@ export const validateTitleAndYear = async (
   contentType: "movie" | "series" | "album" | "book", // What content type are we searching for?
   settings: settingsDocType,
   data?: dataDocType,
+  allowSpecialOptions?: boolean,
 ): Promise<
   | string
   | {
@@ -35,6 +36,10 @@ export const validateTitleAndYear = async (
     "firstSeason",
     "lastSeason",
   ]
+
+  if (allowSpecialOptions) {
+    validMonitorOptions.push("monitorSpecials", "unmonitorSpecials")
+  }
 
   let monitor: MonitorOptions = "all" // default
   let year: string
@@ -75,14 +80,22 @@ export const validateTitleAndYear = async (
       if (rest.length >= 2) {
         const secondToLast = rest[rest.length - 2]
         const isSecondToLastYear = secondToLast.match(/^\d{4}$/)
+        const isSpecialOption =
+          lastElement.toLowerCase() === "monitorspecials" ||
+          lastElement.toLowerCase() === "unmonitorspecials"
 
         if (isSecondToLastYear) {
           // User passed "None" which is something we will not allow
           if (lastElement.toLowerCase() === "none") {
-            return `The "${lastElement}" monitoring option is not allowed. ⚠️`
+            return `The "${lastElement}" monitoring option is not allowed ever. ⚠️`
+          }
+
+          if (!allowSpecialOptions && isSpecialOption) {
+            return `The "${lastElement}" monitoring option is not allowed with this command. ⚠️`
           }
 
           // User passed something after the year that's not a valid monitor option
+          // prettier-ignore
           return (
             `"${lastElement}" is not a valid monitoring option. ⚠️\n\n` +
             `**Monitoring Options:**\n` +
@@ -93,7 +106,10 @@ export const validateTitleAndYear = async (
             `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
             `**Pilot** - Only monitor the first episode of the first season\n` +
             `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
-            `**LastSeason** - Monitor all episodes of the last season`
+            `**LastSeason** - Monitor all episodes of the last season\n` +
+            allowSpecialOptions &&
+            `**MonitorSpecials** - Monitor all special episodes without changing the monitored status of other episodes\n` +
+            `**UnmonitorSpecials** - Unmonitor all special episodes without changing the monitored status of other episodes`
           )
         }
       }

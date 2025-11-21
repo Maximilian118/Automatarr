@@ -347,7 +347,9 @@ const caseHelp = (message: Message): void => {
       `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
       `**Pilot** - Only monitor the first episode of the first season\n` +
       `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
-      `**LastSeason** - Monitor all episodes of the last season`
+      `**LastSeason** - Monitor all episodes of the last season\n` +
+      `**MonitorSpecials** - Monitor all special episodes without changing the monitored status of other episodes\n` +
+      `**UnmonitorSpecials** - Unmonitor all special episodes without changing the monitored status of other episodes`
     sendDiscordMessage(message, monitorOptionsMessage)
     return
   }
