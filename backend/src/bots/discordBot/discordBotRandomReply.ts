@@ -488,6 +488,60 @@ export const randomSeriesMonitorChangeToAllMessage = (seriesTitle: string) => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+// Monitor change messages
+export const randomMonitorUpgradeMessage = (
+  seriesTitle: string,
+  oldMonitor: string,
+  newMonitor: string,
+): string => {
+  const messages = [
+    `Upgraded ${seriesTitle} from "${oldMonitor}" to "${newMonitor}" — more content incoming! 📈`,
+    `${seriesTitle} monitoring expanded from "${oldMonitor}" to "${newMonitor}". Get ready for more episodes! 🚀`,
+    `Leveling up! ${seriesTitle} now monitors "${newMonitor}" instead of just "${oldMonitor}". 🎯`,
+    `${seriesTitle} just got a monitoring upgrade: "${oldMonitor}" → "${newMonitor}". Searching for new content now! 🔍`,
+    `Expanding coverage for ${seriesTitle}! Changed from "${oldMonitor}" to "${newMonitor}". 🌟`,
+    `${seriesTitle} monitoring boosted from "${oldMonitor}" to "${newMonitor}". More episodes, more fun! 🎬`,
+    `Successfully upgraded ${seriesTitle} to monitor "${newMonitor}" (was "${oldMonitor}"). Grabbing additional content! ⬆️`,
+    `${seriesTitle} is now monitoring "${newMonitor}" instead of "${oldMonitor}". Expanding your collection! 📺`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMonitorDowngradeMessage = (
+  seriesTitle: string,
+  oldMonitor: string,
+  newMonitor: string,
+): string => {
+  const messages = [
+    `${seriesTitle} monitoring trimmed from "${oldMonitor}" to "${newMonitor}". Keeping it focused! 🎯`,
+    `Scaled back ${seriesTitle} from "${oldMonitor}" to "${newMonitor}". Less is sometimes more! 📉`,
+    `${seriesTitle} now monitors "${newMonitor}" instead of "${oldMonitor}". Streamlining your collection! ✂️`,
+    `Downgraded ${seriesTitle} monitoring: "${oldMonitor}" → "${newMonitor}". Focusing on what matters! 🔽`,
+    `${seriesTitle} monitoring adjusted from "${oldMonitor}" to "${newMonitor}". Curating carefully! 🎨`,
+    `Changed ${seriesTitle} to monitor "${newMonitor}" (was "${oldMonitor}"). Keeping it lean! 💨`,
+    `${seriesTitle} monitoring refined from "${oldMonitor}" to "${newMonitor}". Quality over quantity! ⭐`,
+    `Successfully downgraded ${seriesTitle} to "${newMonitor}" from "${oldMonitor}". Selective approach activated! 🎬`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMonitorAddedToPoolMessage = (
+  seriesTitle: string,
+  monitor: string,
+): string => {
+  const messages = [
+    `Added ${seriesTitle} to your pool with "${monitor}" monitoring. It's now being tracked! 📋`,
+    `${seriesTitle} joined your pool! Monitoring set to "${monitor}". 🎉`,
+    `Welcome ${seriesTitle} to your collection! Now monitoring "${monitor}". ✨`,
+    `${seriesTitle} has been added to your pool with "${monitor}" monitoring active. 🌟`,
+    `Pool updated! ${seriesTitle} is now in with "${monitor}" monitoring. 📺`,
+    `${seriesTitle} successfully added to your pool, monitoring "${monitor}". 🎬`,
+    `New addition! ${seriesTitle} is in your pool with "${monitor}" monitoring enabled. 🚀`,
+    `${seriesTitle} added! Your pool now includes this series with "${monitor}" monitoring. 🎯`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomEpisodesDownloadingMessage = (count: number, timeleft?: string): string => {
   let eta = ""
   let longWaitNote = ""
@@ -655,5 +709,33 @@ export const randomCrashedMessage = (err: unknown): string => {
     `😵 That didn't go well. Here's what the server had to say: ${errStr}`,
   ]
 
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomMonitorSpecialsMessage = (seriesTitle: string): string => {
+  const messages = [
+    `All specials for ${seriesTitle} are now being monitored! Starting a search for bonus content. 🎁`,
+    `Special episodes activated for ${seriesTitle}! Searching for all the extra goodies now. ✨`,
+    `${seriesTitle} specials are now on the radar! Hunting down those director's cuts and bonuses. 🔍`,
+    `Monitoring specials for ${seriesTitle}! Time to grab those OVAs, extras, and special episodes. 🎬`,
+    `${seriesTitle} just got the special treatment! Searching for all bonus episodes now. 🌟`,
+    `Specials enabled for ${seriesTitle}! Scouring the archives for extra content. 📺`,
+    `${seriesTitle} specials are now being tracked! Initiating search for all the bonus material. 🚀`,
+    `Special episodes for ${seriesTitle} are now monitored! Let's find those hidden gems. 💎`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+export const randomUnmonitorSpecialsMessage = (seriesTitle: string): string => {
+  const messages = [
+    `Specials for ${seriesTitle} will no longer be monitored. Any existing special episodes will be removed. 🗑️`,
+    `${seriesTitle} specials have been unmonitored. Bonus content will be cleaned up. 🧹`,
+    `Special episodes for ${seriesTitle} are now off the list. They'll be removed from your library. ✂️`,
+    `${seriesTitle} is dropping the specials! All bonus episodes will be deleted. 📉`,
+    `Unmonitored specials for ${seriesTitle}. Say goodbye to those extras! 👋`,
+    `${seriesTitle} specials have been disabled. Clearing out the bonus content now. 🚮`,
+    `No more specials for ${seriesTitle}! Existing special episodes will be purged. 🔥`,
+    `${seriesTitle} specials are history! All bonus episodes will be removed from storage. 📦`,
+  ]
   return messages[Math.floor(Math.random() * messages.length)]
 }

@@ -18,6 +18,7 @@ import { getDiscordClient } from "./discordBot"
 import { WebHookWaitingType } from "../../models/webhook"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
 import { isMovie, isSeries } from "../../types/typeGuards"
+import { Series } from "../../types/seriesTypes"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -735,4 +736,46 @@ export const createWebhookEmbed = (
   })
 
   return embed
+}
+
+// Check if a series matches another series by various IDs
+export const seriesMatches = (series1: Series, series2: Series): boolean => {
+  return (
+    series1.tvdbId === series2.tvdbId ||
+    (!!series1.tmdbId && series1.tmdbId === series2.tmdbId) ||
+    (!!series1.imdbId && series1.imdbId === series2.imdbId)
+  )
+}
+
+// Check which users have a series in their pool
+export const checkUserExclusivity = (
+  seriesInDB: Series,
+  settings: settingsDocType,
+): { isExclusive: boolean; usersWithSeries: string[] } => {
+  const usersWithSeries: string[] = []
+
+  for (const u of settings.general_bot.users) {
+    const hasSeries = u.pool.series.some((s) => seriesMatches(s, seriesInDB))
+    if (hasSeries) {
+      usersWithSeries.push(u.name)
+    }
+  }
+
+  return {
+    isExclusive: usersWithSeries.length === 1,
+    usersWithSeries,
+  }
+}
+
+// Check if a series is in Sonarr import lists
+export const checkSeriesInImportList = (seriesInDB: Series, data: dataDocType): boolean => {
+  const sonarrImportList = data.importLists.find((il) => il.name === "Sonarr")
+  const importListItems = sonarrImportList?.listItems || []
+
+  return importListItems.some(
+    (item) =>
+      item.id === seriesInDB.tmdbId ||
+      item.imdb_id === seriesInDB.imdbId ||
+      item.tvdbid === seriesInDB.tvdbId,
+  )
 }

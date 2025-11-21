@@ -21,6 +21,7 @@ import {
 } from "./discordBotContentListeners"
 import { caseSearch } from "./discordBotSearch"
 import { handleDiscordCase } from "./discordBotCaseHandler"
+import { caseMonitor } from "./cases/discordBotcaseMonitor"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -95,6 +96,9 @@ export const messageListeners = async (client: Client) => {
         break
       case "stay": // Ensure some content isn't deleted by adding it to your user pool
         await handleDiscordCase(message, caseStay)
+        break
+      case "monitor": // Change a series monitoring options
+        await handleDiscordCase(message, caseMonitor)
         break
       case "search": // Search for content across user pools
         await handleDiscordCase(message, caseSearch)
@@ -273,6 +277,15 @@ const commandRegistry: CommandEntry[] = [
     shortDescription: "Keep content downloaded",
     description: "Ensure some content isn't deleted by adding it to your user pool.",
     usage: "!stay <movieTitle + Year / seriesTitle + Year>",
+    adminRequired: false,
+  },
+  {
+    name: "!monitor",
+    category: "Content",
+    shortDescription: "Change a series monitoring options",
+    description:
+      'Update monitoring options for a series. Upgrading (e.g., pilot → all) is always allowed. Downgrading (e.g., all → pilot) requires you to be the only user with the series AND it must not be in any import list. Use "!help Monitor" for monitoring options.',
+    usage: "!monitor <seriesTitle + Year> <monitor_option>",
     adminRequired: false,
   },
   {
