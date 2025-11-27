@@ -280,7 +280,10 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
             episodes: [],
             waitForStatus: "Import",
             status: "ready",
-            message: randomMovieReadyMessage("you", movieData.movie.title),
+            message: randomMovieReadyMessage(
+              message.author.toString(),
+              movieData.movie.title,
+            ),
             sentMessageId: message.id, // This will edit the existing message
             created_at: new Date(),
           }
@@ -384,7 +387,10 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
             episodes: [],
             waitForStatus: "Import",
             status: "ready",
-            message: randomSeriesReadyMessage("you", seriesData.series.title),
+            message: randomSeriesReadyMessage(
+              message.author.toString(),
+              seriesData.series.title,
+            ),
             sentMessageId: message.id, // This will edit the existing message
             created_at: new Date(),
           }

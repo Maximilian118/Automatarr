@@ -125,6 +125,31 @@ export const sendDiscordNotification = async (
           } | ${webhookMatch.sentMessageId}`,
         )
 
+        // For "Ready" or "Not Found" notifications, also send a follow-up message
+        // This creates a fresh notification for the user (especially if the old message is buried)
+        const shouldSendFollowUp =
+          webhookMatch.waitForStatus === "Import" ||
+          webhookMatch.waitForStatus === "Upgrade" ||
+          expired === true
+
+        if (shouldSendFollowUp && webhookMatch.discordData.authorMention) {
+          try {
+            const followUpMessage = `${webhookMatch.discordData.authorMention}, ${message}`
+            await textBasedChannel.send(followUpMessage)
+
+            logger.bot(
+              `Webhook | Follow-up Message Sent | ${webhookMatch.waitForStatus} | ${
+                webhookMatch.discordData.authorUsername
+              } | ${webhookMatch.content.title}`,
+            )
+          } catch (followUpErr) {
+            logger.warn(
+              `sendDiscordNotification: Failed to send follow-up message: ${String(followUpErr)}`,
+            )
+            // Don't fail the whole operation if follow-up fails
+          }
+        }
+
         return { success: true, messageId: webhookMatch.sentMessageId }
       } catch (editErr) {
         logger.warn(
