@@ -12,6 +12,7 @@ import {
   startWebhookExpiryWatcher,
   webhookCleanup,
 } from "../webhooks/webhookUtility"
+import { startStuckNotificationCleanup } from "../webhooks/stuckNotificationCleanup"
 
 const createWebhookRouter = (settings: settingsDocType) => {
   const router = Router()
@@ -41,7 +42,10 @@ const createWebhookRouter = (settings: settingsDocType) => {
     // 3. Start expiry watcher if not already started
     startWebhookExpiryWatcher()
 
-    // 4. Process webhook
+    // 4. Start stuck notification cleanup watcher if not already started
+    startStuckNotificationCleanup()
+
+    // 5. Process webhook
     switch (webhook.instanceName) {
       case "Radarr":
         await handleRadarrWebhook(starrWebhookEventType(webhook))
