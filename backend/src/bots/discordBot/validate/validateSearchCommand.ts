@@ -23,6 +23,8 @@ export const validateSearchCommand = async (
 
   const msgArr = message.content.trim().split(/\s+/)
 
+  const validCommands = ["!search", "!find"]
+
   if (msgArr.length < 2) {
     return `The !search command must contain a ${contentType} title. For example: !search ${
       contentType === "movie" ? "Top Gun" : "Breaking Bad"
@@ -31,13 +33,13 @@ export const validateSearchCommand = async (
 
   const [command, ...rest] = msgArr
 
-  if (command.toLowerCase() !== "!search") {
-    return `Invalid command \`${command}\`.`
+  if (!validCommands.includes(command.toLowerCase())) {
+    return `Invalid command \`${command}\`. Use !search or !find.`
   }
 
   // Check if the last part is a 4-digit year
   const lastPart = rest[rest.length - 1]
-  const yearMatch = lastPart.match(/^\\d{4}$/)
+  const yearMatch = lastPart.match(/^\d{4}$/)
 
   let searchTerm: string
   let year: number | undefined

@@ -163,6 +163,7 @@ const commandRegistry: CommandEntry[] = [
   },
   {
     name: "!search",
+    aliases: ["`!find`"],
     category: "Content",
     shortDescription: "Search user pools for content",
     description: "Find which users have specific content in their pools. Use with or without year.",

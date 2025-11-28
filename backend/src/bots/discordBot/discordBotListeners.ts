@@ -99,6 +99,7 @@ export const messageListeners = async (client: Client) => {
         await handleDiscordCase(message, caseMonitor)
         break
       case "search": // Search for content across user pools
+      case "find": // Alias for search
         await handleDiscordCase(message, caseSearch)
         break
       case "test": // Test webhook notifications
