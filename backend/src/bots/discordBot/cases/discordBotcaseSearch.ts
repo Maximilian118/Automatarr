@@ -35,141 +35,92 @@ export const caseSearch = async (message: Message): Promise<string> => {
   // Determine content type based on channel
   const contentType = isMovieChannel ? "movie" : "series"
 
-  // Search through user pools for matches
+  // Get library data
+  const movieDBList =
+    (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
+  const seriesDBList =
+    (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
+
+  // Build search string with optional year
+  const searchString = year ? `${searchTerm} ${year}` : searchTerm
+
+  // First, try to find a library match using API fuzzy search
+  let libraryMatch: Movie | Series | null = null
+
+  try {
+    if (isMovieChannel) {
+      const apiResults = await searchRadarr(settings, searchString)
+
+      if (apiResults && apiResults.length > 0) {
+        // Find first API result that exists in library
+        for (const apiMovie of apiResults) {
+          const match = movieDBList.find(
+            (m) => m.tmdbId === apiMovie.tmdbId || m.imdbId === apiMovie.imdbId,
+          )
+          if (match) {
+            libraryMatch = match
+            break
+          }
+        }
+      }
+    } else if (isSeriesChannel) {
+      const apiResults = await searchSonarr(settings, searchString)
+
+      if (apiResults && apiResults.length > 0) {
+        // Find first API result that exists in library
+        for (const apiSeries of apiResults) {
+          const match = seriesDBList.find(
+            (s) => s.tvdbId === apiSeries.tvdbId || s.imdbId === apiSeries.imdbId,
+          )
+          if (match) {
+            libraryMatch = match
+            break
+          }
+        }
+      }
+    }
+  } catch (error) {
+    logger.error("Error searching API for library match:", error)
+  }
+
+  // If no library match found, show suggestions
+  if (!libraryMatch) {
+    const suggestions = isMovieChannel
+      ? movieDBList.filter((m) => m.title.toLowerCase().includes(searchTerm)).slice(0, 5)
+      : seriesDBList.filter((s) => s.title.toLowerCase().includes(searchTerm)).slice(0, 5)
+
+    const suggestionText =
+      suggestions.length > 0
+        ? `\n\nDid you mean any of these?\n${suggestions.map((s, i) => `${i + 1}. ${s.title} ${s.year}`).join("\n")}`
+        : ""
+
+    return `🔍 **No matches found in Library**${suggestionText}`
+  }
+
+  // Library match found - search pools for this specific item
   const usersWithMatches: Array<{
     user: BotUserType
-    matches: Array<any>
+    matches: Array<Movie | Series>
   }> = []
 
   settings.general_bot.users.forEach((user) => {
     const pool = isMovieChannel ? user.pool.movies : user.pool.series
-    const matches: Array<any> = []
-
-    pool.forEach((item: any) => {
-      const itemTitle = item.title.toLowerCase()
-      const itemYear = item.year
-
-      // Check if the search term matches the title
-      const titleMatches = itemTitle.includes(searchTerm)
-
-      // If year is specified, require exact year match
-      // If no year specified, include all matches
-      const yearMatches = year ? itemYear === year : true
-
-      if (titleMatches && yearMatches) {
-        matches.push(item) // Store the full item object
+    const matches = pool.filter((item: Movie | Series) => {
+      // Match by ID
+      if (isMovieChannel) {
+        return (item as Movie).tmdbId === (libraryMatch as Movie).tmdbId
+      } else {
+        return (item as Series).tvdbId === (libraryMatch as Series).tvdbId
       }
     })
-
     if (matches.length > 0) {
       usersWithMatches.push({ user, matches })
     }
   })
 
-  // If no matches found, use hybrid API + library recommendation system
+  // If no pool matches for the library item
   if (usersWithMatches.length === 0) {
-    let suggestions: (Movie | Series)[] = []
-
-    try {
-      if (isMovieChannel) {
-        // Get intelligent suggestions from Radarr API
-        const apiResults = await searchRadarr(settings, searchTerm)
-        const movieDBList =
-          (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
-
-        // Filter API results to only include items that exist in our library
-        if (apiResults) {
-          suggestions = apiResults
-            .map((apiMovie) => {
-              return movieDBList.find(
-                (libraryMovie) =>
-                  libraryMovie.tmdbId === apiMovie.tmdbId ||
-                  libraryMovie.imdbId === apiMovie.imdbId,
-              )
-            })
-            .filter((movie): movie is Movie => movie !== undefined)
-            .filter((movie) => {
-              // Don't suggest exact matches of what was searched
-              const movieTitleYear = `${movie.title.toLowerCase()} ${movie.year}`
-              const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-              return (
-                movieTitleYear !== searchTermWithYear && movie.title.toLowerCase() !== searchTerm
-              )
-            })
-            .slice(0, 5)
-        }
-      } else if (isSeriesChannel) {
-        // Get intelligent suggestions from Sonarr API
-        const apiResults = await searchSonarr(settings, searchTerm)
-        const seriesDBList =
-          (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
-
-        // Filter API results to only include items that exist in our library
-        if (apiResults) {
-          suggestions = apiResults
-            .map((apiSeries) => {
-              return seriesDBList.find(
-                (librarySeries) =>
-                  librarySeries.tvdbId === apiSeries.tvdbId ||
-                  librarySeries.imdbId === apiSeries.imdbId,
-              )
-            })
-            .filter((series): series is Series => series !== undefined)
-            .filter((series) => {
-              // Don't suggest exact matches of what was searched
-              const seriesTitleYear = `${series.title.toLowerCase()} ${series.year}`
-              const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-              return (
-                seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
-              )
-            })
-            .slice(0, 5)
-        }
-      }
-    } catch (error) {
-      logger.error("Error fetching API suggestions:", error)
-      // Fallback to simple library search
-      if (isMovieChannel) {
-        const movieDBList =
-          (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
-        suggestions = movieDBList
-          .filter((m) => m.title.toLowerCase().includes(searchTerm))
-          .filter((movie) => {
-            // Don't suggest exact matches of what was searched
-            const movieTitleYear = `${movie.title.toLowerCase()} ${movie.year}`
-            const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-            return movieTitleYear !== searchTermWithYear && movie.title.toLowerCase() !== searchTerm
-          })
-          .slice(0, 5)
-      } else if (isSeriesChannel) {
-        const seriesDBList =
-          (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
-        suggestions = seriesDBList
-          .filter((s) => s.title.toLowerCase().includes(searchTerm))
-          .filter((series) => {
-            // Don't suggest exact matches of what was searched
-            const seriesTitleYear = `${series.title.toLowerCase()} ${series.year}`
-            const searchTermWithYear = year ? `${searchTerm} ${year}` : searchTerm
-            return (
-              seriesTitleYear !== searchTermWithYear && series.title.toLowerCase() !== searchTerm
-            )
-          })
-          .slice(0, 5)
-      }
-    }
-
-    const suggestionStrings =
-      suggestions.length > 0
-        ? suggestions.map((item, i) => `${i + 1}. ${item.title} ${item.year}`).join("\n")
-        : ""
-
-    const suggestionText = suggestionStrings
-      ? `\n\nDid you mean any of these?\n${suggestionStrings}`
-      : ""
-
-    return `🔍 **No matches found**\n\nNobody has "${searchTerm}${
-      year ? ` ${year}` : ""
-    }" in their ${contentType} pool.${suggestionText}`
+    return `🔍 **Search Results for "${searchTerm}${year ? ` ${year}` : ""}"**\n\nNobody has "${libraryMatch.title}" in their ${contentType} pool.`
   }
 
   // Create embeds for the results
@@ -188,10 +139,22 @@ export const caseSearch = async (message: Message): Promise<string> => {
         .setColor(color)
         .setTitle(`${user.name}`)
         .setDescription(
-          displayMatches.map((match) => `${match.title} ${match.year}`).join("\n") +
-            (hasMoreMatches ? `\n...and ${matches.length - 2} more` : ""),
+          displayMatches
+            .map((match) => {
+              if (isSeriesChannel) {
+                // Add monitor status for series
+                const rawStatus = (match as Series).monitorNewItems || "all"
+                const monitorDisplay =
+                  rawStatus === "all"
+                    ? "All Seasons"
+                    : rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)
+                return `${match.title} ${match.year}\n**Monitored:** ${monitorDisplay}`
+              }
+              return `${match.title} ${match.year}`
+            })
+            .join("\n\n") + (hasMoreMatches ? `\n\n...and ${matches.length - 2} more` : ""),
         )
-      console.log(matches)
+
       // Add poster thumbnail from the first match
       const firstMatch = displayMatches[0]
       if (firstMatch) {
@@ -218,7 +181,16 @@ export const caseSearch = async (message: Message): Promise<string> => {
 
       const displayMatches = matches.slice(0, 2)
       displayMatches.forEach((match) => {
-        result += `• ${match.title} ${match.year}\n`
+        if (isSeriesChannel) {
+          const rawStatus = (match as Series).monitorNewItems || "all"
+          const monitorDisplay =
+            rawStatus === "all"
+              ? "All Seasons"
+              : rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)
+          result += `• ${match.title} ${match.year}\n  **Monitored:** ${monitorDisplay}\n`
+        } else {
+          result += `• ${match.title} ${match.year}\n`
+        }
       })
 
       if (matches.length > 2) {

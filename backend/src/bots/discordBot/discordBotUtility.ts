@@ -622,8 +622,13 @@ export const createPoolItemEmbed = (
     // Series info
     const seasons = item.seasons ? item.seasons.length : 0
     const downloadedPercent = item.statistics?.percentOfEpisodes || 0
-    const totalEpisodes = item.statistics?.totalEpisodeCount || 0
-    description = `**Seasons:** ${seasons}\n**Episodes:** ${totalEpisodes}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%`
+    // Format monitor status for user-friendly display
+    const rawMonitorStatus = item.monitorNewItems || "all"
+    const monitorDisplay =
+      rawMonitorStatus === "all"
+        ? "All Seasons"
+        : rawMonitorStatus.charAt(0).toUpperCase() + rawMonitorStatus.slice(1)
+    description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%`
   }
   
   embed.setDescription(description)
