@@ -6,10 +6,11 @@ import {
   matchedUser,
   noDBPull,
   noDBSave,
+  sendDiscordMessage,
 } from "../discordBotUtility"
 import { validateRemoveCommand } from "../validate/validateRemoveCommand"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "../discordBotUserLimits"
-import { randomRemovalSuccessMessage } from "../discordBotRandomReply"
+import { randomProcessingMessage, randomRemovalSuccessMessage } from "../discordBotRandomReply"
 import { saveWithRetry } from "../../../shared/database"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
@@ -17,6 +18,8 @@ import { cancelWebhooksForContent } from "../../../webhooks/webhookUtility"
 
 // Remove an item from the users pool
 export const caseRemove = async (message: Message): Promise<string> => {
+  await sendDiscordMessage(message, randomProcessingMessage())
+
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 

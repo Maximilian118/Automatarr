@@ -1,6 +1,12 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../../models/settings"
-import { discordReply, matchedDiscordUser, matchedUser, noDBPull } from "../discordBotUtility"
+import {
+  discordReply,
+  matchedDiscordUser,
+  matchedUser,
+  noDBPull,
+  sendDiscordMessage,
+} from "../discordBotUtility"
 import { validateBlocklistCommand } from "../validate/validateBlocklistCommand"
 import {
   randomMovieReplacementMessage,
@@ -9,19 +15,25 @@ import {
   randomSeriesReadyMessage,
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
+  randomProcessingMessage,
 } from "../discordBotRandomReply"
 import Data, { dataDocType } from "../../../models/data"
 import {
   deleteMovieFile,
   getMovieHistory,
   markMovieAsFailed,
+  searchRadarr,
 } from "../../../shared/RadarrStarrRequests"
 import {
   deleteEpisodeFile,
   getEpisodeHistory,
   getSeriesEpisodes,
   markEpisodeAsFailed,
+  searchSonarr,
 } from "../../../shared/SonarrStarrRequests"
+import { sortTMDBSearchArray } from "../../botUtility"
+import { Series } from "../../../types/seriesTypes"
+import { Movie } from "../../../types/movieTypes"
 import logger from "../../../logger"
 import { notifyEpisodeDownloaded, notifyMovieDownloaded } from "../discordBotAsync"
 import { QueueNotificationType, waitForWebhooks } from "../../../webhooks/webhookUtility"
@@ -29,6 +41,8 @@ import { QueueNotificationType, waitForWebhooks } from "../../../webhooks/webhoo
 // Mark a download as unsatisfactory, blocklist it and add start a new download
 // NO ADMIN PERMISSIONS NEEDED BUT WE'RE REMOVING FILES SO AT LEAST RATE LIMIT
 export const caseBlocklist = async (message: Message): Promise<string> => {
+  await sendDiscordMessage(message, randomProcessingMessage())
+
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
@@ -50,6 +64,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     contentType,
     title,
     year,
+    searchString,
     seasonNumber,
     episodeNumber,
     noMatchMessage,
@@ -68,13 +83,38 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
 
   // If we've targeted a movie, delete the movieFile and then mark the download as failed in queue history
   if (contentType === "movie") {
-    const movieInDB = movieDBList.find((m) => {
-      const yearMatch = m.secondaryYear === year || m.year === year
-      return m.title.toLowerCase() === title.toLowerCase() && yearMatch
-    })
+    // Search Radarr API with fuzzy search
+    const foundMovieArr = await searchRadarr(settings, searchString)
+    if (!foundMovieArr || foundMovieArr.length === 0) {
+      // Show library suggestions only
+      const suggestions = movieDBList
+        .filter((m) => m.title.toLowerCase().includes(title.toLowerCase()))
+        .slice(0, 5)
+        .map((m) => `${m.title} ${m.year}`)
+        .join("\n")
+
+      return noMatchMessage + (suggestions ? `Did you mean any of these?\n${suggestions}` : "")
+    }
+
+    // Sort by year preference and take best match
+    const sortedMovieArr = sortTMDBSearchArray<Movie>(foundMovieArr, year)
+    const foundMovie = sortedMovieArr[0]
+
+    // Match against library by ID (must be in library)
+    const movieInDB = movieDBList.find((m) => m.tmdbId === foundMovie.tmdbId)
 
     if (!movieInDB) {
-      return noMatchMessage
+      // Movie found in API but not in library - show library suggestions
+      const suggestions = movieDBList
+        .filter((m) => m.title.toLowerCase().includes(title.toLowerCase()))
+        .slice(0, 5)
+        .map((m) => `${m.title} ${m.year}`)
+        .join("\n")
+
+      return (
+        `${foundMovie.title} (${foundMovie.year}) is not in your library.\n\n` +
+        (suggestions ? `Did you mean any of these?\n${suggestions}` : "")
+      )
     }
 
     if (!movieInDB.movieFile) {
@@ -125,17 +165,43 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
 
     return randomMovieReplacementMessage(title)
   } else {
-    const titleLower = title.toLowerCase()
+    // Search Sonarr API with fuzzy search
+    const foundSeriesArr = await searchSonarr(settings, searchString)
+    if (!foundSeriesArr || foundSeriesArr.length === 0) {
+      // Show library suggestions only
+      const suggestions = seriesDBList
+        .filter((s) => s.title.toLowerCase().includes(title.toLowerCase()))
+        .slice(0, 5)
+        .map((s) => `${s.title} ${s.year}`)
+        .join("\n")
+
+      return noMatchMessage + (suggestions ? `Did you mean any of these?\n${suggestions}` : "")
+    }
+
+    // Sort by year preference and take best match
+    const sortedSeriesArr = sortTMDBSearchArray<Series>(foundSeriesArr, year)
+    const foundSeries = sortedSeriesArr[0]
+
+    // Match against library by ID (must be in library)
     const seriesInDB = seriesDBList.find(
       (s) =>
-        s.title.toLowerCase() === titleLower ||
-        s.alternateTitles.some((t) => t.title.toLowerCase() === titleLower) ||
-        s.sortTitle.toLowerCase() === titleLower ||
-        s.path.toLowerCase().includes(titleLower),
+        s.tvdbId === foundSeries.tvdbId ||
+        (s.tmdbId && s.tmdbId === foundSeries.tmdbId) ||
+        (s.imdbId && s.imdbId === foundSeries.imdbId),
     )
 
     if (!seriesInDB) {
-      return noMatchMessage
+      // Series found in API but not in library - show library suggestions
+      const suggestions = seriesDBList
+        .filter((s) => s.title.toLowerCase().includes(title.toLowerCase()))
+        .slice(0, 5)
+        .map((s) => `${s.title} ${s.year}`)
+        .join("\n")
+
+      return (
+        `${foundSeries.title} (${foundSeries.year}) is not in your library.\n\n` +
+        (suggestions ? `Did you mean any of these?\n${suggestions}` : "")
+      )
     }
 
     // Find the correct season and episode in the series

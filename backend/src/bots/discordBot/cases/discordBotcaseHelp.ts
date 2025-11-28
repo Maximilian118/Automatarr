@@ -132,7 +132,7 @@ const commandRegistry: CommandEntry[] = [
     category: "Content",
     shortDescription: "Replace content",
     description: "Mark a download as problematic, delete it and replace it with a different file.",
-    usage: "!blocklist <movieTitle + Year / seriesTitle SxxEyy>",
+    usage: "!blocklist <movieTitle Year> or !blocklist <seriesTitle Year SxxEyy>",
     adminRequired: false,
   },
   {

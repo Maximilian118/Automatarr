@@ -17,10 +17,11 @@ export const validateBlocklistCommand = async (
       command: string
       contentType: "movie" | "series"
       title: string
+      searchString: string
       noMatchMessage: string
       movieDBList: Movie[]
       seriesDBList: Series[]
-      year?: number
+      year: string
       seasonNumber?: number
       episodeNumber?: number
     }
@@ -36,7 +37,7 @@ export const validateBlocklistCommand = async (
   const msgArr = message.content.trim().split(/\s+/)
 
   if (msgArr.length < 2) {
-    return "The !blocklist command must contain at least two parts: \`!blocklist <movieTitle + Year / seriesTitle SxxEyy>\`, e.g. \`!blocklist Dune 2021\` or \`!blocklist The Bear S02E04\`."
+    return "The !blocklist command must contain at least two parts: `!blocklist <movieTitle Year>` or `!blocklist <seriesTitle Year SxxEyy>`, e.g. `!blocklist Dune 2021` or `!blocklist The Bear 2022 S02E04`."
   }
 
   const [command, ...rest] = msgArr
@@ -48,15 +49,9 @@ export const validateBlocklistCommand = async (
   }
 
   const rawInput = rest.join(" ").trim()
-  const cleanedInput = rawInput.replace(/\\b(S\\d{1,2})\\s+(E\\d{1,2})\\b/i, "$1$2")
+  // Normalize "S01 E02" to "S01E02" for easier parsing
+  const cleanedInput = rawInput.replace(/\b(S\d{1,2})\s+(E\d{1,2})\b/i, "$1$2")
 
-  const noMatchMessage = `I can't find anything that matches ${rawInput}.\n${
-    singular === "movie"
-      ? `For movies, use a year (e.g., "Dune 2021").`
-      : `For series, include an episode (e.g., "The Office S02E01" or "The Office Season 2 Episode 1")`
-  }.\n\n`
-
-  let suggestions: (Movie | Series)[] = []
   const movieDBList = (data.libraries.find((api) => api.name === "Radarr")?.data as Movie[]) || []
   const seriesDBList = (data.libraries.find((api) => api.name === "Sonarr")?.data as Series[]) || []
 
@@ -64,84 +59,119 @@ export const validateBlocklistCommand = async (
   const seasonEpisode = extractSeasonEpisode(cleanedInput)
 
   if (seasonEpisode) {
-    const title = cleanedInput
-      .replace(/s(\\d{1,2})e(\\d{1,2})/i, "")
-      .replace(/season[\\s]?(\\d{1,2})[\\s_-]*episode[\\s]?(\\d{1,2})/i, "")
+    // Series: requires title + year + season/episode
+    // Remove season/episode pattern to get title + year
+    const withoutSeasonEp = cleanedInput
+      .replace(/s(\d{1,2})e(\d{1,2})/i, "")
+      .replace(/season[\s]?(\d{1,2})[\s_-]*episode[\s]?(\d{1,2})/i, "")
       .trim()
+
+    // Extract year (should be at the end of what remains)
+    const parts = withoutSeasonEp.split(" ")
+    const lastPart = parts[parts.length - 1]
+    const yearMatch = lastPart?.match(/^\d{4}$/)
+
+    if (!yearMatch) {
+      // No year found - provide helpful suggestions from library
+      const likelyTitle = withoutSeasonEp.replace(/\b\d{4}\b/, "").trim().toLowerCase()
+      const suggestions = seriesDBList
+        .filter((s) => s.title.toLowerCase().includes(likelyTitle))
+        .slice(0, 10)
+        .map((s) => `${s.title} ${s.year}`)
+        .join("\n")
+
+      return (
+        `A 4-digit year must be included after the title. ⚠️\n` +
+        `Usage: \`!blocklist <seriesTitle> <year> <SxxEyy>\`\n` +
+        `Example: \`!blocklist The Bear 2022 S02E04\`\n\n` +
+        (suggestions ? `I've found these in your library: 📚\n${suggestions}` : "")
+      )
+    }
+
+    const year = lastPart
+    const title = parts.slice(0, -1).join(" ").trim()
+    const searchString = `${title} ${year}`
+
+    const noMatchMessage = `I can't find anything that matches "${rawInput}".\n`
 
     return {
       command,
       contentType: "series",
       title,
+      searchString,
       movieDBList,
       seriesDBList,
       noMatchMessage,
+      year,
       seasonNumber: seasonEpisode.season,
       episodeNumber: seasonEpisode.episode,
     }
   }
 
-  if (singular === "movie") {
-    // Check for movie title + 4-digit year
-    const parts = rawInput.split(" ")
-    const last = parts[parts.length - 1]
-    const yearMatch = last.match(/^\\d{4}$/)
-
-    if (yearMatch) {
-      const year = parseInt(last, 10)
-      const title = parts.slice(0, -1).join(" ").trim()
-      return {
-        command,
-        contentType: "movie",
-        title,
-        movieDBList,
-        seriesDBList,
-        noMatchMessage,
-        year,
-      }
-    }
-  }
-
-  const likelyTitle = rawInput
-    .replace(/\\bseason[\\s]?(\\d{1,2})[\\s_-]*episode[\\s]?(\\d{1,2})\\b/i, "") // Remove season episode
-    .replace(/\\bs(\\d{1,2})e(\\d{1,2})\\b/i, "") // Remove s**e**
-    .replace(/\\b\\d{4}\\b/, "") // Remove 4-digit year
-    .trim()
-    .toLowerCase()
-
-  if (singular === "movie") {
-    suggestions = movieDBList.filter((m) => m.title.toLowerCase().includes(likelyTitle))
-  } else {
-    suggestions = seriesDBList.filter((s) => s.title.toLowerCase().includes(likelyTitle))
-  }
-
-  const suggestionStrings =
-    suggestions.length > 0
-      ? suggestions
-          .flatMap((s, i) => {
-            if (singular === "movie") {
-              const movie = s as Movie
-              return [`${i}. ${movie.title} ${movie.year}`]
-            } else {
-              const series = s as Series
-              const seriesTitle = series.title
-              const output: string[] = []
-
-              series.seasons
-                ?.filter((season) => season.seasonNumber > 0)
-                .forEach((season) => {
-                  const seasonNumber = season.seasonNumber.toString().padStart(2, "0")
-                  const epCount = season.statistics?.episodeFileCount || "?"
-                  output.push(`${i}. ${seriesTitle} S${seasonNumber} E1-${epCount}`)
-                })
-
-              return output
-            }
+  // Movie or series without season/episode (error for series)
+  if (singular === "series") {
+    // Series requires season/episode
+    const likelyTitle = rawInput.replace(/\b\d{4}\b/, "").trim().toLowerCase()
+    const suggestions = seriesDBList
+      .filter((s) => s.title.toLowerCase().includes(likelyTitle))
+      .slice(0, 10)
+      .flatMap((series) => {
+        const output: string[] = []
+        series.seasons
+          ?.filter((season) => season.seasonNumber > 0)
+          .forEach((season) => {
+            const seasonNumber = season.seasonNumber.toString().padStart(2, "0")
+            const epCount = season.statistics?.episodeFileCount || "?"
+            output.push(`${series.title} ${series.year} S${seasonNumber}E01-${epCount}`)
           })
-          .join("\n")
-      : false
+        return output
+      })
+      .join("\n")
 
-  return (
-    noMatchMessage + (suggestionStrings ? `Did you mean any of these?\n` + suggestionStrings : "")
-  )
+    return (
+      `For series, include a year and episode. ⚠️\n` +
+      `Usage: \`!blocklist <seriesTitle> <year> <SxxEyy>\`\n` +
+      `Example: \`!blocklist The Bear 2022 S02E04\`\n\n` +
+      (suggestions ? `I've found these in your library: 📚\n${suggestions}` : "")
+    )
+  }
+
+  // Movie: requires title + 4-digit year
+  const parts = rawInput.split(" ")
+  const last = parts[parts.length - 1]
+  const yearMatch = last?.match(/^\d{4}$/)
+
+  if (!yearMatch) {
+    // No year found - provide helpful suggestions from library
+    const likelyTitle = rawInput.replace(/\b\d{4}\b/, "").trim().toLowerCase()
+    const suggestions = movieDBList
+      .filter((m) => m.title.toLowerCase().includes(likelyTitle))
+      .slice(0, 10)
+      .map((m) => `${m.title} ${m.year}`)
+      .join("\n")
+
+    return (
+      `A 4-digit year must be included after the title. ⚠️\n` +
+      `Usage: \`!blocklist <movieTitle> <year>\`\n` +
+      `Example: \`!blocklist Dune 2021\`\n\n` +
+      (suggestions ? `I've found these in your library: 📚\n${suggestions}` : "")
+    )
+  }
+
+  const year = last
+  const title = parts.slice(0, -1).join(" ").trim()
+  const searchString = `${title} ${year}`
+
+  const noMatchMessage = `I can't find anything that matches "${rawInput}".\n`
+
+  return {
+    command,
+    contentType: "movie",
+    title,
+    searchString,
+    movieDBList,
+    seriesDBList,
+    noMatchMessage,
+    year,
+  }
 }
