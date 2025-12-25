@@ -777,6 +777,17 @@ export const seriesMatches = (series1: Series, series2: Series): boolean => {
   )
 }
 
+// Normalize a string for fuzzy comparison (used by !remove command)
+export const normalizeForComparison = (str: string): string => {
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/&/g, "and")
+    .replace(/[''`]/g, "")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+}
+
 // Check which users have a series in their pool
 export const checkUserExclusivity = (
   seriesInDB: Series,

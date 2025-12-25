@@ -1,6 +1,6 @@
 import { Message, TextBasedChannel } from "discord.js"
 import { settingsDocType } from "../../../models/settings"
-import { matchedUser } from "../discordBotUtility"
+import { matchedUser, normalizeForComparison } from "../discordBotUtility"
 import { channelValid } from "./validationUtility"
 
 // Validate the array data for the caseRemove message
@@ -100,25 +100,55 @@ export const validateRemoveCommand = async (
     }
   }
 
-  // Fallback: treat as title + 4-digit year
+  // Fallback: treat as title + 4-digit year (also accepts year in parentheses like "(2004)")
   const lastPart = rest[rest.length - 1]
-  const yearMatch = lastPart.match(/^\d{4}$/)
+  const yearMatch = lastPart.match(/^\(?(\d{4})\)?$/)
 
-  if (!yearMatch) {
-    return `Which ${singular} would you like to remove?\n\n${canRemove}`
+  if (yearMatch) {
+    // Year was provided - extract it and the title
+    const year = parseInt(yearMatch[1], 10)
+    const title = rest.slice(0, -1).join(" ").trim()
+    const poolItemTitle = `${title} ${year}`
+
+    return {
+      channel,
+      command,
+      passedIndex: null,
+      poolItemTitle,
+      contentTitle: title,
+      contentYear: year,
+      contentType: singular,
+    }
   }
 
-  const year = parseInt(lastPart, 10)
-  const title = rest.slice(0, -1).join(" ").trim()
-  const poolItemTitle = `${title} ${year}`
+  // No year provided - try to find matches in user's pool using normalized matching
+  const searchTerm = rest.join(" ").trim()
+  const normalizedSearch = normalizeForComparison(searchTerm)
 
-  return {
-    channel,
-    command,
-    passedIndex: null,
-    poolItemTitle,
-    contentTitle: title,
-    contentYear: year,
-    contentType: singular,
+  const matches = contentArr.filter(
+    (item) => normalizeForComparison(item.title) === normalizedSearch,
+  )
+
+  if (matches.length === 1) {
+    // Exactly one match - use it directly
+    const match = matches[0]
+    return {
+      channel,
+      command,
+      passedIndex: null,
+      poolItemTitle: `${match.title} ${match.year}`,
+      contentTitle: match.title,
+      contentYear: match.year,
+      contentType: singular,
+    }
   }
+
+  if (matches.length > 1) {
+    // Multiple matches - show disambiguation
+    const matchList = matches.map((m) => `${m.title} ${m.year}`).join("\n")
+    return `Multiple ${plural} match "${searchTerm}". Please specify the year:\n${matchList}`
+  }
+
+  // No exact matches - show helpful message with full pool list
+  return `Which ${singular} would you like to remove?\n\n${canRemove}`
 }

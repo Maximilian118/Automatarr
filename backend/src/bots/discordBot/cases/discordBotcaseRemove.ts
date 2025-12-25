@@ -6,6 +6,7 @@ import {
   matchedUser,
   noDBPull,
   noDBSave,
+  normalizeForComparison,
   sendDiscordMessage,
 } from "../discordBotUtility"
 import { validateRemoveCommand } from "../validate/validateRemoveCommand"
@@ -47,12 +48,15 @@ export const caseRemove = async (message: Message): Promise<string> => {
   // Find the content to be removed for webhook cancellation
   let removedContent: Movie | Series | null = null
 
+  // Use normalized comparison for fuzzy matching
+  const normalizedTitle = contentTitle ? normalizeForComparison(contentTitle) : null
+
   if (channel.name === settings.discord_bot.movie_channel_name) {
     removedContent =
       user.pool.movies.find((m) => {
-        if (contentTitle !== null && contentYear !== null) {
+        if (normalizedTitle !== null && contentYear !== null) {
           return (
-            m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+            normalizeForComparison(m.title) === normalizedTitle &&
             Number(m.year) === Number(contentYear)
           )
         }
@@ -61,9 +65,9 @@ export const caseRemove = async (message: Message): Promise<string> => {
   } else if (channel.name === settings.discord_bot.series_channel_name) {
     removedContent =
       user.pool.series.find((s) => {
-        if (contentTitle !== null && contentYear !== null) {
+        if (normalizedTitle !== null && contentYear !== null) {
           return (
-            s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+            normalizeForComparison(s.title) === normalizedTitle &&
             Number(s.year) === Number(contentYear)
           )
         }
@@ -79,13 +83,13 @@ export const caseRemove = async (message: Message): Promise<string> => {
     if (user && u._id !== user._id) return u
 
     const pool = u.pool
-    // Use robust comparison for title+year, fallback to string comparison for index-based removal
+    // Use normalized comparison for fuzzy matching, fallback to string comparison for index-based removal
     const updatedMovies =
       channel.name === settings.discord_bot.movie_channel_name
         ? pool.movies.filter((m) => {
-            if (contentTitle !== null && contentYear !== null) {
+            if (normalizedTitle !== null && contentYear !== null) {
               return !(
-                m.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+                normalizeForComparison(m.title) === normalizedTitle &&
                 Number(m.year) === Number(contentYear)
               )
             }
@@ -96,9 +100,9 @@ export const caseRemove = async (message: Message): Promise<string> => {
     const updatedSeries =
       channel.name === settings.discord_bot.series_channel_name
         ? pool.series.filter((s) => {
-            if (contentTitle !== null && contentYear !== null) {
+            if (normalizedTitle !== null && contentYear !== null) {
               return !(
-                s.title.toLowerCase().trim() === contentTitle.toLowerCase().trim() &&
+                normalizeForComparison(s.title) === normalizedTitle &&
                 Number(s.year) === Number(contentYear)
               )
             }
@@ -123,7 +127,16 @@ export const caseRemove = async (message: Message): Promise<string> => {
   const newPoolSize = contentType === "movie" ? user.pool.movies.length : user.pool.series.length
 
   if (originalPoolSize === newPoolSize) {
-    return `I couldn't not find "${poolItemTitle}" in your ${plural} pool. Use \`!list ${plural}\` to see your current ${plural}.`
+    // Show user's current pool as suggestions
+    const currentPool = contentType === "movie" ? user.pool.movies : user.pool.series
+    const suggestions = currentPool.map((item) => `${item.title} ${item.year}`).join("\n")
+
+    return (
+      `I couldn't find "${poolItemTitle}" in your ${plural} pool.\n\n` +
+      (suggestions
+        ? `Your current ${plural}:\n${suggestions}`
+        : `You don't have any ${plural} in your pool.`)
+    )
   }
 
   // Cancel any pending webhooks for the removed content
