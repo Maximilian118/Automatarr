@@ -22,7 +22,6 @@ export const getAxiosErrorMessage = (err: unknown): string => {
 
   // GraphQL-style error inside response.data.errors
   if (axiosError.response?.data?.errors?.[0]?.message) {
-    console.log()
     return axiosError.response.data.errors[0].message
   }
 

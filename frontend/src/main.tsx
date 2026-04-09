@@ -3,6 +3,8 @@ import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import App from './App.tsx'
 import axios from 'axios'
+import { getAuthCallbacks } from './shared/authCallbacks'
+import { logout } from './shared/localStorage'
 
 // URL for backend requests.
 const isLocalhost = window.location.hostname === "localhost"
@@ -19,6 +21,20 @@ if (isLocalhost || isDomain) {
   console.warn("Unknown frontend access pattern. Falling back to /graphql.")
   axios.defaults.baseURL = "/graphql"
 }
+
+// Redirect to login on any 401 response (expired or invalid tokens).
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const { setUser, navigate } = getAuthCallbacks()
+      if (setUser) {
+        logout(setUser, navigate ?? undefined)
+      }
+    }
+    return Promise.reject(error)
+  },
+)
 
 // MUI style
 const theme = createTheme({
