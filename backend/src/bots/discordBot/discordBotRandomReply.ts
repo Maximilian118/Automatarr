@@ -751,3 +751,19 @@ export const randomUnmonitorSpecialsMessage = (seriesTitle: string): string => {
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+// Random messages for when a user's quality argument doesn't match any available profile
+export const randomQualityNotFoundMessage = (qualityArg: string, availableProfiles: string[]): string => {
+  const profileList = availableProfiles.join(", ")
+  const messages = [
+    `I couldn't find a quality profile matching "${qualityArg}". Available profiles: ${profileList}`,
+    `Hmm, "${qualityArg}" doesn't match any of our profiles. Try one of these: ${profileList}`,
+    `No luck with "${qualityArg}"! Our available profiles are: ${profileList}`,
+    `"${qualityArg}"? I don't have a profile for that. Here's what I've got: ${profileList}`,
+    `I looked everywhere but "${qualityArg}" didn't match anything. Pick from: ${profileList}`,
+    `That quality isn't available I'm afraid. "${qualityArg}" didn't match any profile. Options: ${profileList}`,
+    `"${qualityArg}" drew a blank! These are the profiles I know about: ${profileList}`,
+    `No profile found for "${qualityArg}". Maybe try one of these instead? ${profileList}`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}

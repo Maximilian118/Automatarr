@@ -4,13 +4,18 @@ import { searchRadarr } from "../../../shared/RadarrStarrRequests"
 import { searchSonarr } from "../../../shared/SonarrStarrRequests"
 import { getDiscordClient } from "../discordBot"
 import { discordReply } from "../discordBotUtility"
+import { allQualityAliases } from "../discordBotUtility"
 import { isTextBasedChannel } from "../discordBotTypeGuards"
 import { Movie } from "../../../types/movieTypes"
 import { MonitorOptions, Series } from "../../../types/seriesTypes"
 import { dataDocType } from "../../../models/data"
 
+// Check if a string is a recognized quality alias (e.g., "4k", "1080p", "uhd")
+const isQualityArg = (str: string): boolean =>
+  allQualityAliases.includes(str.toLowerCase().trim())
+
 export const validateTitleAndYear = async (
-  rest: string[], // The fill string of a command after the inital !command
+  rest: string[], // The full string of a command after the initial !command
   contentType: "movie" | "series" | "album" | "book", // What content type are we searching for?
   settings: settingsDocType,
   data?: dataDocType,
@@ -23,6 +28,7 @@ export const validateTitleAndYear = async (
       searchString: string
       foundContentArr: Movie[] | Series[]
       monitor: MonitorOptions
+      quality?: string
     }
 > => {
   // Valid monitor options matching Sonarr's API
@@ -41,123 +47,141 @@ export const validateTitleAndYear = async (
     validMonitorOptions.push("monitorSpecials", "unmonitorSpecials")
   }
 
+  // Check if a string is a valid monitor option
+  const isMonitorOption = (str: string): boolean =>
+    validMonitorOptions.some((opt) => opt.toLowerCase() === str.replace(/\s+/g, "").toLowerCase())
+
   let monitor: MonitorOptions = "all" // default
+  let quality: string | undefined
   let year: string
   let title: string
 
-  // Check if the last element is a monitor option
+  // Collect trailing arguments after the title and year.
+  // Format: !download <title> <year> [quality] [monitor]
+  // Quality and monitor can appear in any order after the year.
   const lastElement = rest[rest.length - 1]
-  const normalizedLast = lastElement.replace(/\s+/g, "").toLowerCase()
-  const isLastMonitorOption = validMonitorOptions.some(
-    (opt) => opt.toLowerCase() === normalizedLast,
-  )
+  const secondToLast = rest.length >= 2 ? rest[rest.length - 2] : undefined
+  const thirdToLast = rest.length >= 3 ? rest[rest.length - 3] : undefined
 
-  if (isLastMonitorOption) {
-    // Last element is a monitor option, so year should be second-to-last
-    if (rest.length < 2) {
-      return `The command must contain a title, a 4-digit year, and optionally a monitoring option. For example: !download ${
-        contentType === "movie" ? "Top Gun 1986" : "Breaking Bad 2008"
-      } ${lastElement}`
+  // Determine how many trailing optional args exist after the year
+  const lastIsMonitor = isMonitorOption(lastElement)
+  const lastIsQuality = isQualityArg(lastElement)
+  const secondIsMonitor = secondToLast ? isMonitorOption(secondToLast) : false
+  const secondIsQuality = secondToLast ? isQualityArg(secondToLast) : false
+
+  // Case 1: Two trailing args (quality + monitor in any order)
+  if (
+    thirdToLast?.match(/^\d{4}$/) &&
+    ((lastIsMonitor && secondIsQuality) || (lastIsQuality && secondIsMonitor))
+  ) {
+    year = thirdToLast
+    title = rest.slice(0, -3).join(" ")
+
+    if (lastIsMonitor) {
+      monitor = validMonitorOptions.find(
+        (opt) => opt.toLowerCase() === lastElement.replace(/\s+/g, "").toLowerCase(),
+      )!
+      quality = secondToLast!
+    } else {
+      monitor = validMonitorOptions.find(
+        (opt) => opt.toLowerCase() === secondToLast!.replace(/\s+/g, "").toLowerCase(),
+      )!
+      quality = lastElement
     }
-
-    const yearCandidate = rest[rest.length - 2]
-    const yearMatch = yearCandidate.match(/^\d{4}$/)
-
-    if (!yearMatch) {
-      return `When using a monitoring option, the year must come before it. Format: !download <title> <year> <monitor_option>\nExample: !download Breaking Bad 2008 ${lastElement}`
-    }
-
-    year = yearCandidate
+  }
+  // Case 2: One trailing arg that is a monitor option
+  else if (lastIsMonitor && secondToLast?.match(/^\d{4}$/)) {
+    year = secondToLast!
     title = rest.slice(0, -2).join(" ")
-    monitor = validMonitorOptions.find((opt) => opt.toLowerCase() === normalizedLast)!
-  } else {
-    // Last element is not a monitor option, check if it's a year
-    const yearMatch = lastElement.match(/^\d{4}$/)
-
-    if (!yearMatch) {
-      // Not a year and not a valid monitor option
-      // Check if the second-to-last element is a year (meaning user passed something after the year)
-      if (rest.length >= 2) {
-        const secondToLast = rest[rest.length - 2]
-        const isSecondToLastYear = secondToLast.match(/^\d{4}$/)
-        const isSpecialOption =
-          lastElement.toLowerCase() === "monitorspecials" ||
-          lastElement.toLowerCase() === "unmonitorspecials"
-
-        if (isSecondToLastYear) {
-          // User passed "None" which is something we will not allow
-          if (lastElement.toLowerCase() === "none") {
-            return `The "${lastElement}" monitoring option is not allowed ever. ⚠️`
-          }
-
-          if (!allowSpecialOptions && isSpecialOption) {
-            return `The "${lastElement}" monitoring option is not allowed with this command. ⚠️`
-          }
-
-          // User passed something after the year that's not a valid monitor option
-          // prettier-ignore
-          return (
-            `"${lastElement}" is not a valid monitoring option. ⚠️\n\n` +
-            `**Monitoring Options:**\n` +
-            `**All** - Monitor all episodes except specials\n` +
-            `**Future** - Monitor episodes that have not aired yet\n` +
-            `**Missing** - Monitor episodes that do not have files or have not aired yet\n` +
-            `**Existing** - Monitor episodes that have files or have not aired yet\n` +
-            `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
-            `**Pilot** - Only monitor the first episode of the first season\n` +
-            `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
-            `**LastSeason** - Monitor all episodes of the last season\n` +
-            allowSpecialOptions &&
-            `**MonitorSpecials** - Monitor all special episodes without changing the monitored status of other episodes\n` +
-            `**UnmonitorSpecials** - Unmonitor all special episodes without changing the monitored status of other episodes`
-          )
-        }
-      }
-
-      // No year found anywhere, show original error with recommendations
-      const searchString = rest.join(" ")
-      let foundContentArr: Movie[] | Series[] = []
-
-      foundContentArr =
-        contentType === "movie"
-          ? (await searchRadarr(settings, searchString)) || []
-          : (await searchSonarr(settings, searchString)) || []
-
-      if (data) {
-        if (contentType === "movie") {
-          const movieLibrary = (data.libraries.find((api) => api.name === "Radarr")?.data ??
-            []) as Movie[]
-          foundContentArr = (foundContentArr as Movie[]).filter((c) =>
-            movieLibrary.some((l) => l.tmdbId === c.tmdbId),
-          )
-        } else {
-          const seriesLibrary = (data.libraries.find((api) => api.name === "Sonarr")?.data ??
-            []) as Series[]
-          foundContentArr = (foundContentArr as Series[]).filter((c) =>
-            seriesLibrary.some((l) => l.tvdbId === c.tvdbId),
-          )
-        }
-      }
-
-      const suggestionsHeader = data
-        ? "I've found these in your library: 📚"
-        : "Is it any of these you wanted? ⛏️"
-
-      const recommendations =
-        foundContentArr.length === 0
-          ? "I couldn't find any recommendations for that title."
-          : `${suggestionsHeader}\n\n` +
-            foundContentArr
-              .slice(0, 10)
-              .map((c) => `${c.title} ${c.year}`)
-              .join("\n")
-
-      return `A 4 digit year must be included after the title. ⚠️\n` + recommendations
-    }
-
-    // Last element is a year
+    monitor = validMonitorOptions.find(
+      (opt) => opt.toLowerCase() === lastElement.replace(/\s+/g, "").toLowerCase(),
+    )!
+  }
+  // Case 3: One trailing arg that is a quality alias
+  else if (lastIsQuality && secondToLast?.match(/^\d{4}$/)) {
+    year = secondToLast!
+    title = rest.slice(0, -2).join(" ")
+    quality = lastElement
+  }
+  // Case 4: Last element is a year (no trailing args)
+  else if (lastElement.match(/^\d{4}$/)) {
     year = lastElement
     title = rest.slice(0, -1).join(" ")
+  }
+  // Case 5: No valid year found — show error with recommendations
+  else {
+    // Check if the second-to-last element is a year (user passed something unrecognized after the year)
+    if (rest.length >= 2 && secondToLast?.match(/^\d{4}$/)) {
+      const isSpecialOption =
+        lastElement.toLowerCase() === "monitorspecials" ||
+        lastElement.toLowerCase() === "unmonitorspecials"
+
+      if (lastElement.toLowerCase() === "none") {
+        return `The "${lastElement}" monitoring option is not allowed ever. ⚠️`
+      }
+
+      if (!allowSpecialOptions && isSpecialOption) {
+        return `The "${lastElement}" monitoring option is not allowed with this command. ⚠️`
+      }
+
+      // prettier-ignore
+      return (
+        `"${lastElement}" is not a valid option. ⚠️\n\n` +
+        `**Quality Options:** 4k, 1080p, 720p, 480p (and variations)\n\n` +
+        `**Monitoring Options:**\n` +
+        `**All** - Monitor all episodes except specials\n` +
+        `**Future** - Monitor episodes that have not aired yet\n` +
+        `**Missing** - Monitor episodes that do not have files or have not aired yet\n` +
+        `**Existing** - Monitor episodes that have files or have not aired yet\n` +
+        `**Recent** - Monitor episodes aired within the last 90 days and future episodes\n` +
+        `**Pilot** - Only monitor the first episode of the first season\n` +
+        `**FirstSeason** - Monitor all episodes of the first season. All other seasons will be ignored\n` +
+        `**LastSeason** - Monitor all episodes of the last season\n` +
+        allowSpecialOptions &&
+        `**MonitorSpecials** - Monitor all special episodes without changing the monitored status of other episodes\n` +
+        `**UnmonitorSpecials** - Unmonitor all special episodes without changing the monitored status of other episodes`
+      )
+    }
+
+    // No year found anywhere, show original error with recommendations
+    const searchString = rest.join(" ")
+    let foundContentArr: Movie[] | Series[] = []
+
+    foundContentArr =
+      contentType === "movie"
+        ? (await searchRadarr(settings, searchString)) || []
+        : (await searchSonarr(settings, searchString)) || []
+
+    if (data) {
+      if (contentType === "movie") {
+        const movieLibrary = (data.libraries.find((api) => api.name === "Radarr")?.data ??
+          []) as Movie[]
+        foundContentArr = (foundContentArr as Movie[]).filter((c) =>
+          movieLibrary.some((l) => l.tmdbId === c.tmdbId),
+        )
+      } else {
+        const seriesLibrary = (data.libraries.find((api) => api.name === "Sonarr")?.data ??
+          []) as Series[]
+        foundContentArr = (foundContentArr as Series[]).filter((c) =>
+          seriesLibrary.some((l) => l.tvdbId === c.tvdbId),
+        )
+      }
+    }
+
+    const suggestionsHeader = data
+      ? "I've found these in your library: 📚"
+      : "Is it any of these you wanted? ⛏️"
+
+    const recommendations =
+      foundContentArr.length === 0
+        ? "I couldn't find any recommendations for that title."
+        : `${suggestionsHeader}\n\n` +
+          foundContentArr
+            .slice(0, 10)
+            .map((c) => `${c.title} ${c.year}`)
+            .join("\n")
+
+    return `A 4 digit year must be included after the title. ⚠️\n` + recommendations
   }
 
   return {
@@ -166,6 +190,7 @@ export const validateTitleAndYear = async (
     searchString: `${title} ${year}`,
     foundContentArr: [],
     monitor,
+    quality,
   }
 }
 

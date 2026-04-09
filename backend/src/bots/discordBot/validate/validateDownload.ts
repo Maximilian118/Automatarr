@@ -17,6 +17,7 @@ export const validateDownload = async (
       year: string
       searchString: string
       monitor: MonitorOptions
+      quality?: string
     }
 > => {
   // Check if an accepted channel has been used

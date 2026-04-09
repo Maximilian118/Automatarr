@@ -19,6 +19,7 @@ import { WebHookWaitingType } from "../../models/webhook"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
 import { isMovie, isSeries } from "../../types/typeGuards"
 import { Series } from "../../types/seriesTypes"
+import { randomQualityNotFoundMessage } from "./discordBotRandomReply"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -442,6 +443,55 @@ export const matchedUser = (
   identifier: string,
 ): BotUserType | undefined =>
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
+
+// Alias groups mapping user input to keywords for matching against quality profile names
+const qualityAliases: Record<string, string[]> = {
+  "4k": ["4k", "2160", "2160p", "2160i", "uhd", "ultra"],
+  "1080": ["1080", "1080p", "1080i", "fhd", "fullhd", "full-hd"],
+  "720": ["720", "720p", "720i"],
+  "480": ["480", "480p", "480i", "sd"],
+}
+
+// All recognized quality argument strings (flattened from alias groups)
+export const allQualityAliases: string[] = Object.values(qualityAliases).flat()
+
+// Match a user's quality argument (e.g., "4k", "1080p") to an available quality profile
+export const findQualityProfileByAlias = (
+  qualityArg: string,
+  data: dataDocType,
+  APIName: "Radarr" | "Sonarr" | "Lidarr",
+): QualityProfile | string => {
+  const qualityProfiles = data.qualityProfiles.find((qp) => qp.name === APIName)
+
+  if (!qualityProfiles) {
+    return `It looks like the quality profiles data isn't initialised for ${APIName}. Curious...`
+  }
+
+  // Find which alias group the user's input belongs to
+  const normalizedArg = qualityArg.toLowerCase().trim()
+  const matchedGroup = Object.entries(qualityAliases).find(([, aliases]) =>
+    aliases.includes(normalizedArg),
+  )
+
+  if (!matchedGroup) {
+    const profileNames = qualityProfiles.data.map((qp) => qp.name)
+    return randomQualityNotFoundMessage(qualityArg, profileNames)
+  }
+
+  // Search all profiles for any whose name contains a keyword from this alias group
+  const [, keywords] = matchedGroup
+  const matchedProfiles = qualityProfiles.data.filter((qp) => {
+    const profileNameLower = qp.name.toLowerCase()
+    return keywords.some((keyword) => profileNameLower.includes(keyword))
+  })
+
+  if (matchedProfiles.length === 0) {
+    const profileNames = qualityProfiles.data.map((qp) => qp.name)
+    return randomQualityNotFoundMessage(qualityArg, profileNames)
+  }
+
+  return matchedProfiles[0]
+}
 
 // Find a quality profile in the database by name
 export const findQualityProfile = (

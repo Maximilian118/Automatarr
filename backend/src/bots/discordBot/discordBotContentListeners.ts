@@ -3,6 +3,7 @@ import Settings, { settingsDocType } from "../../models/settings"
 import {
   discordReply,
   findQualityProfile,
+  findQualityProfileByAlias,
   findRootFolder,
   freeSpaceCheck,
   matchedUser,
@@ -49,6 +50,7 @@ import logger from "../../logger"
 import { notifyMovieDownloaded, notifySeriesDownloaded } from "./discordBotAsync"
 import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
+import { QualityProfile } from "../../types/qualityProfileType"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./validate/validationUtility"
 import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
@@ -94,7 +96,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   }
 
   // If message is valid, give me the juicy data
-  const { searchString, year } = parsed
+  const { searchString, year, quality } = parsed
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -166,17 +168,6 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     )
   }
 
-  // Ensure a quality profile is selected
-  const selectedQP = settings.general_bot.movie_quality_profile
-
-  if (!selectedQP) {
-    return discordReply(
-      "A quality profile for movies has not been selected. Please inform the server owner!",
-      "error",
-      "!download command used but no quality profiles have been selected. Go to the API > Bots > Movie Quality Profile.",
-    )
-  }
-
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType
 
@@ -187,11 +178,28 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     )
   }
 
-  // Check Selected Quality Profile
-  const qualityProfile = findQualityProfile(selectedQP, data, "Radarr")
+  // If the user specified a quality argument, find a matching profile by alias.
+  // Otherwise, use the default profile from settings.
+  let qualityProfile: QualityProfile
 
-  if (typeof qualityProfile === "string") {
-    return discordReply(qualityProfile, "error")
+  if (quality) {
+    const matched = findQualityProfileByAlias(quality, data, "Radarr")
+    if (typeof matched === "string") return discordReply(matched, "info")
+    qualityProfile = matched
+  } else {
+    const selectedQP = settings.general_bot.movie_quality_profile
+
+    if (!selectedQP) {
+      return discordReply(
+        "A quality profile for movies has not been selected. Please inform the server owner!",
+        "error",
+        "!download command used but no quality profiles have been selected. Go to the API > Bots > Movie Quality Profile.",
+      )
+    }
+
+    const matched = findQualityProfile(selectedQP, data, "Radarr")
+    if (typeof matched === "string") return discordReply(matched, "error")
+    qualityProfile = matched
   }
 
   // Grab rootFolder data
@@ -304,7 +312,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   // If message is valid, give me the juicy data
-  const { searchString, year, monitor } = parsed
+  const { searchString, year, monitor, quality: seriesQuality } = parsed
 
   // Find the user tied to the author
   const user = matchedUser(settings, message.author.username)
@@ -487,22 +495,28 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     )
   }
 
-  // Ensure a quality profile is selected
-  const selectedQP = settings.general_bot.series_quality_profile
+  // If the user specified a quality argument, find a matching profile by alias.
+  // Otherwise, use the default profile from settings.
+  let qualityProfile: QualityProfile
 
-  if (!selectedQP) {
-    return discordReply(
-      "A quality profile for series has not been selected. Please inform the server owner!",
-      "error",
-      "!download command used but no quality profiles have been selected. Go to the API > Bots > Series Quality Profile.",
-    )
-  }
+  if (seriesQuality) {
+    const matched = findQualityProfileByAlias(seriesQuality, data, "Sonarr")
+    if (typeof matched === "string") return discordReply(matched, "info")
+    qualityProfile = matched
+  } else {
+    const selectedQP = settings.general_bot.series_quality_profile
 
-  // Check Selected Quality Profile
-  const qualityProfile = findQualityProfile(selectedQP, data, "Sonarr")
+    if (!selectedQP) {
+      return discordReply(
+        "A quality profile for series has not been selected. Please inform the server owner!",
+        "error",
+        "!download command used but no quality profiles have been selected. Go to the API > Bots > Series Quality Profile.",
+      )
+    }
 
-  if (typeof qualityProfile === "string") {
-    return discordReply(qualityProfile, "error")
+    const matched = findQualityProfile(selectedQP, data, "Sonarr")
+    if (typeof matched === "string") return discordReply(matched, "error")
+    qualityProfile = matched
   }
 
   // Grab rootFolder data
