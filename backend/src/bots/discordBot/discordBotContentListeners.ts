@@ -26,6 +26,7 @@ import {
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
   randomNotReleasedMessage,
+  randomReAddedToPoolMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -119,6 +120,32 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // Check if the movie is already downloaded
   if (foundMovie.movieFile) {
+    // Check if the movie is in the user's pool - if not, re-add it
+    const inUserPool = user.pool.movies.some((m) => m.tmdbId === foundMovie.tmdbId)
+
+    if (!inUserPool) {
+      settings.general_bot.users = settings.general_bot.users.map((u) => {
+        if (u._id === user._id) {
+          return {
+            ...u,
+            pool: {
+              ...u.pool,
+              movies: [...(u.pool.movies || []), foundMovie],
+            },
+          }
+        }
+        return u
+      })
+
+      if (!(await saveWithRetry(settings, "caseDownloadMovie - re-add to pool"))) return noDBSave()
+
+      return discordReply(
+        randomReAddedToPoolMessage(foundMovie.title),
+        "success",
+        `${user.name} | Re-added to pool | ${foundMovie.title}`,
+      )
+    }
+
     return randomAlreadyAddedMessage()
   }
 
@@ -344,10 +371,36 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     // Get the current monitor setting from the matched series (default to "all" if not set)
     const currentMonitor = matchedSeries.monitor || "all"
 
-    // Scenario 1: Monitor matches or is "all" - return early
+    // Scenario 1: Monitor matches or is "all" - check pool before returning
     if (currentMonitor === "all" || currentMonitor === monitor) {
-      // Series is already being monitored the way the user requested (or is set to "all")
-      // Just return the already added message, don't add to user pool
+      // Check if the series is in the user's pool - if not, re-add it
+      const inUserPool = user.pool.series.some((s) => s.tvdbId === matchedSeries.tvdbId)
+
+      if (!inUserPool) {
+        settings.general_bot.users = settings.general_bot.users.map((u) => {
+          if (u._id === user._id) {
+            return {
+              ...u,
+              pool: {
+                ...u.pool,
+                series: [...(u.pool.series || []), { ...matchedSeries, monitor }],
+              },
+            }
+          }
+          return u
+        })
+
+        if (!(await saveWithRetry(settings, "caseDownloadSeries - re-add to pool")))
+          return noDBSave()
+
+        return discordReply(
+          randomReAddedToPoolMessage(matchedSeries.title),
+          "success",
+          `${user.name} | Re-added to pool | ${matchedSeries.title}`,
+        )
+      }
+
+      // Series is in the user's pool - return appropriate status message
       if (matchedSeries.statistics.percentOfEpisodes === 100) {
         return randomAlreadyAddedMessage()
       }

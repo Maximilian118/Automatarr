@@ -2,6 +2,7 @@ import { Message, EmbedBuilder } from "discord.js"
 import Settings, { settingsDocType, BotUserType } from "../../../models/settings"
 import Data, { dataDocType } from "../../../models/data"
 import { noDBPull, getPosterImageUrl } from "../discordBotUtility"
+import { sortTMDBSearchArray } from "../../botUtility"
 import { validateSearchCommand } from "../validate/validateSearchCommand"
 import { searchRadarr } from "../../../shared/RadarrStarrRequests"
 import { searchSonarr } from "../../../shared/SonarrStarrRequests"
@@ -52,8 +53,11 @@ export const caseSearch = async (message: Message): Promise<string> => {
       const apiResults = await searchRadarr(settings, searchString)
 
       if (apiResults && apiResults.length > 0) {
+        // Prioritize results matching the requested year
+        const sortedResults = year ? sortTMDBSearchArray(apiResults, year) : apiResults
+
         // Find first API result that exists in library
-        for (const apiMovie of apiResults) {
+        for (const apiMovie of sortedResults) {
           const match = movieDBList.find(
             (m) => m.tmdbId === apiMovie.tmdbId || m.imdbId === apiMovie.imdbId,
           )
@@ -67,8 +71,11 @@ export const caseSearch = async (message: Message): Promise<string> => {
       const apiResults = await searchSonarr(settings, searchString)
 
       if (apiResults && apiResults.length > 0) {
+        // Prioritize results matching the requested year
+        const sortedResults = year ? sortTMDBSearchArray(apiResults, year) : apiResults
+
         // Find first API result that exists in library
-        for (const apiSeries of apiResults) {
+        for (const apiSeries of sortedResults) {
           const match = seriesDBList.find(
             (s) => s.tvdbId === apiSeries.tvdbId || s.imdbId === apiSeries.imdbId,
           )

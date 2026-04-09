@@ -175,6 +175,18 @@ export const randomAlreadyAddedMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
+// Random message for when content is already downloaded but was missing from the user's pool
+export const randomReAddedToPoolMessage = (title: string) => {
+  const messages = [
+    `"${title}" is already downloaded — I've added it back to your pool.`,
+    `That one's already here! I've popped "${title}" back into your pool.`,
+    `"${title}" never left the library — just your pool. Fixed that for you!`,
+    `Welcome back, "${title}"! Re-added to your pool.`,
+    `"${title}" was still downloaded — I've slotted it back into your pool.`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomInLibraryNotDownloadedMessage = () => {
   const messages = [
     "It's in your library — just waiting for you to hit download.",
