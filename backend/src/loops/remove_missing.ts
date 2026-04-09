@@ -100,7 +100,7 @@ const processDeletionsInBatches = async <T>(
 
 const remove_missing = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
-    logger.error("Remove Missing: qBittorrent is required for this loop.")
+    logger.error("Library Cleanup: qBittorrent is required for this loop.")
     return
   }
 
@@ -229,7 +229,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
     // Ensure library for this API exists
     if (!library) {
-      logger.error(`Remove Missing | ${API.name} | No library data.`)
+      logger.error(`Library Cleanup | ${API.name} | No library data.`)
       continue
     }
 
@@ -247,7 +247,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     if (settings.remove_missing_level === "Import List") {
       // Skip if this API has no import lists
       if (!API.data.importLists || API.data.importLists.length === 0) {
-        logger.warn(`Remove Missing | ${API.name} | has no Import Lists.`)
+        logger.warn(`Library Cleanup | ${API.name} | has no Import Lists.`)
         continue
       }
 
@@ -256,20 +256,20 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
       if (listsError) {
         logger.warn(
-          `Remove Missing | ${API.name} | Stopped execution due to getMdbListItems error.`,
+          `Library Cleanup | ${API.name} | Stopped execution due to getMdbListItems error.`,
         )
         return
       }
 
       // If importListItems is still empty, don't go any further
       if (importListItems.length === 0) {
-        logger.error(`Remove Missing | ${API.name} | No Import list data. Skipping...`)
+        logger.error(`Library Cleanup | ${API.name} | No Import list data. Skipping...`)
         continue
       }
 
       if (importListItems.length > 0 && !newListItems) {
         logger.warn(
-          `Remove Missing | ${API.name} | No new mdbLists could be retreived. Falling back to lists in the databse.`,
+          `Library Cleanup | ${API.name} | No new mdbLists could be retreived. Falling back to lists in the databse.`,
         )
       }
 
@@ -370,7 +370,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
         for (const [user, titles] of Object.entries(userSkippedMap)) {
           logger.info(
-            `Remove Missing | ${API.name} | Skipping ${titles.length} ${
+            `Library Cleanup | ${API.name} | Skipping ${titles.length} ${
               titles.length < 2 ? singular : plural
             } in ${user}'s pool: [${titles.join(", ")}] 🔒`,
           )
@@ -390,7 +390,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
           const deleteFromLibraryHelper = async (): Promise<boolean> => {
             if (!isDocker) {
               logger.info(
-                `Remove Missing | ${API.name} | ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
+                `Library Cleanup | ${API.name} | ${libraryItem.title} Skipped deletion. Running in development mode. 🧊`,
               )
               return false
             }
@@ -522,7 +522,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     if (settings.remove_missing_level === "Library") {
       // Check we have root folder path
       if (!API.data.rootFolder) {
-        logger.error(`Remove Missing | ${API.name} | Root folder data missing for ${API.name}.`)
+        logger.error(`Library Cleanup | ${API.name} | Root folder data missing for ${API.name}.`)
         continue
       }
 
@@ -552,7 +552,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
     if (settings.verbose_logging) {
       logger.success(
-        `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
+        `Library Cleanup | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
       )
     } else {
       // Enhanced summary with detailed statistics
@@ -573,7 +573,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         stats.userProtected > 0 ? ` User Protected: ${stats.userProtected}.` : ""
 
       logger.success(
-        `Remove Missing | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
+        `Library Cleanup | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
       )
     }
   }

@@ -12,7 +12,7 @@ const sendListsError = (
   level: "catastrophic" | "error" | "warn" | "debug" | "info" | "success",
   customLog?: string,
 ): string => {
-  const logMessage = `Remove Missing | ${customLog || msg}`
+  const logMessage = `Library Cleanup | ${customLog || msg}`
 
   if (typeof logger[level] === "function") {
     logger[level](logMessage)
@@ -80,7 +80,7 @@ export const getMdbListItems = async (
     return {
       importListItems: listInDB ?? [],
       listsError: sendListsError(
-        `${API.name} | Import lists contain a mix of mdblists and unsupported list types. As a precaution, the Remove Missing loop has been deactivated and must not be re-enabled until this issue is resolved.`,
+        `${API.name} | Import lists contain a mix of mdblists and unsupported list types. As a precaution, the Library Cleanup loop has been deactivated and must not be re-enabled until this issue is resolved.`,
         "catastrophic",
       ),
     }
@@ -91,14 +91,14 @@ export const getMdbListItems = async (
     // Check that the import list is enabled
     if (!importList.enabled && !importList.enableAutomaticAdd) {
       logger.warn(
-        `Remove Missing | ${API.name} | Import List ${importList.name} is disabled and will be ignored.`,
+        `Library Cleanup | ${API.name} | Import List ${importList.name} is disabled and will be ignored.`,
       )
       continue
     }
 
     if (!importList.fields || importList.fields.length === 0) {
       logger.warn(
-        `Remove Missing | ${API.name} | No fields found for ${importList.name} Import List.`,
+        `Library Cleanup | ${API.name} | No fields found for ${importList.name} Import List.`,
       )
       continue
     }
@@ -110,7 +110,7 @@ export const getMdbListItems = async (
         const res = await axios.get(`${field.value}/json`)
         mdblistItems.push(...res.data)
       } catch (err) {
-        logger.warn(`Remove Missing | ${API.name} | Something went wrong ${axiosErrorMessage(err)}`)
+        logger.warn(`Library Cleanup | ${API.name} | Something went wrong ${axiosErrorMessage(err)}`)
         allRequestsSucceeded = false
         continue
       }
@@ -122,7 +122,7 @@ export const getMdbListItems = async (
 
   // If all requests succeeded and we have data, return fresh list + indicator to save it
   if (uniqueItems.length > 0 && allRequestsSucceeded) {
-    logger.success(`Remove Missing | ${API.name} | Successfully fetched fresh list items.`)
+    logger.success(`Library Cleanup | ${API.name} | Successfully fetched fresh list items.`)
 
     return {
       importListItems: uniqueItems,
@@ -131,7 +131,7 @@ export const getMdbListItems = async (
   }
 
   // If there are no mdbListItems or partial failures occurred, fallback to DB
-  logger.warn(`Remove Missing | ${API.name} | Using fallback listItems from database.`)
+  logger.warn(`Library Cleanup | ${API.name} | Using fallback listItems from database.`)
 
   return {
     importListItems: listInDB ?? [],

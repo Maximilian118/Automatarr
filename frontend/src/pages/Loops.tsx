@@ -1,7 +1,7 @@
 import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Loop as MuiLoop, Send } from "@mui/icons-material"
+import { Loop as MuiLoop, Send, Build } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { checkChownValidity, inputLabel, updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
@@ -27,7 +27,7 @@ const Loops: React.FC = () => {
   const [ unixGroups, setUnixGroups ] = useState<string[]>([])
 
   const navigate = useNavigate()
-  
+
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
@@ -79,15 +79,17 @@ const Loops: React.FC = () => {
     await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
   }
 
+  // Render a loop card with its title, description, toggle, and time picker
   const loop = (
-    name: keyof settingsType, 
+    name: keyof settingsType,
+    displayName: string,
     desc?: string,
     params?: JSX.Element,
     disabled?: boolean,
     disabledText?: string
   ) => (
     <Loop
-      title={name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+      title={displayName}
       loop={name}
       settings={settings}
       setSettings={setSettings}
@@ -113,15 +115,17 @@ const Loops: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputModel 
-        title="Loops" 
+      <InputModel
+        title="Core Loops"
         startIcon={<MuiLoop/>}
+        description="These loops are the heart of Automatarr — they manage your media library lifecycle, handle downloads, and protect user pool content."
       >
         {loop(
           "remove_missing",
-          "Remove any content in Starr app libraries and file system that does not appear in Import Lists.",
+          "Library Cleanup",
+          "Removes content from your library that no longer appears in your Import Lists. Content in user pools is always protected — only unprotected items are removed. This is the core mechanism that keeps your library lean while respecting what users have explicitly added.",
           <MUIAutocomplete
-            label="Remove Missing Level"
+            label="Library Cleanup Level"
             options={["Library", "Import List"]}
             value={settings.remove_missing_level}
             setValue={(val) => setSettings(prevSettings => {
@@ -134,27 +138,37 @@ const Loops: React.FC = () => {
             disabled={!settings.remove_missing || !settings.qBittorrent_active}
             onChange={(e) => updateInput(e, setSettings, setFormErr)}
             error={!!formErr.remove_missing_level}
-          />, 
+          />,
           !settings.qBittorrent_active,
           "qBittorrent Required"
         )}
         {loop(
           "wanted_missing",
-          "Start a search for all missing content in the Wanted > Missing tabs.",
+          "Content Search",
+          "Searches for all content marked as wanted but not yet downloaded. Triggers Radarr and Sonarr to find and grab missing movies and episodes so your library stays up to date.",
         )}
         {loop(
           "remove_blocked",
-          "Delete all blocked items in Starr App queues.",
+          "Queue Health",
+          "Monitors download queues for stuck, blocked, or problematic items. Automatically removes failed imports, stalled downloads, and format mismatches, then searches for alternatives to keep downloads flowing.",
         )}
         {loop(
           "remove_failed",
-          "Remove all downloads in qBittorrent download paths that have failed.",
+          "Failed Cleanup",
+          "Scans download directories for files marked as failed and removes them from disk, keeping your download folders clean.",
           undefined,
           !settings.qBittorrent_active,
           "qBittorrent Required"
         )}
+      </InputModel>
+      <InputModel
+        title="Utilities"
+        startIcon={<Build/>}
+        description="Optional maintenance tasks for filesystem housekeeping."
+      >
         {loop(
           "tidy_directories",
+          "Tidy Directories",
           "Remove all unwanted files and directories in the provided paths. Only keep children specified in the allowed directories section. Unwanted children will be removed if they still exists after 3 loops.",
           <TidyPathPicker
             label={inputLabel("tidy_directories", formErr, "Directories")}
@@ -170,6 +184,7 @@ const Loops: React.FC = () => {
         )}
         {loop(
           "permissions_change",
+          "Permissions Change",
           "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
           <>
             <MUIAutocomplete
@@ -211,12 +226,12 @@ const Loops: React.FC = () => {
           </>
         )}
       </InputModel>
-      <Button 
+      <Button
         type="submit"
         variant="contained"
         sx={{ margin: "20px 0" }}
-        endIcon={localLoading ? 
-          <CircularProgress size={20} color="inherit"/> : 
+        endIcon={localLoading ?
+          <CircularProgress size={20} color="inherit"/> :
           <Send color="inherit"/>
         }
       >Submit</Button>

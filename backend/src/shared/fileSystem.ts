@@ -84,7 +84,7 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
 
   try {
     if (process.env.NODE_ENV === "development") {
-      logger.info("removeFailed bypassed. In Development mode. 🔧")
+      logger.info("Failed Cleanup bypassed. In Development mode. 🔧")
       return result
     }
 

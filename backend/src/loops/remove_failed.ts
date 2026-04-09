@@ -6,7 +6,7 @@ import { deleteFailedDownloads } from "../shared/fileSystem"
 
 const remove_failed = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
-    logger.error("Remove Failed: qBittorrent is required for this loop.")
+    logger.error("Failed Cleanup: qBittorrent is required for this loop.")
     return
   }
 
@@ -14,13 +14,13 @@ const remove_failed = async (settings: settingsType): Promise<void> => {
   const data = await Data.findOne()
 
   if (!data) {
-    logger.error("removeFailed: Could not find data object in db.")
+    logger.error("Failed Cleanup: Could not find data object in db.")
     return
   }
 
   // If there's no qBittorrent data to check, return
   if (!qBittorrentDataExists(data)) {
-    logger.warn("removeFailed: qBittorrent data required.")
+    logger.warn("Failed Cleanup: qBittorrent data required.")
     return
   }
 
@@ -33,7 +33,7 @@ const remove_failed = async (settings: settingsType): Promise<void> => {
 
   if (stats.length !== 0) {
     logger.success(
-      `removeFailed: Removed ${deletions} failed downloads out of ${searched} downloads from ${stats.length} directories.`,
+      `Failed Cleanup: Removed ${deletions} failed downloads out of ${searched} downloads from ${stats.length} directories.`,
     )
   }
 }

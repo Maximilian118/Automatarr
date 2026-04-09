@@ -13,10 +13,10 @@ All bots abide by a unified pool system which regulates how much content users c
 
 Loops:
 
-- Remove Missing - Remove all library content not in Starr App Import Lists while respecting download ratio/time requirements.
-- Wanted Missing - Search for all wanted missing items across all Starr Apps.
-- Remove Blocked - Remove all blocked downloads in the queue.
-- Remove Failed - Remove all failed downloads.
+- Library Cleanup - Remove all library content not in Starr App Import Lists while respecting download ratio/time requirements and protecting user pool content.
+- Content Search - Search for all wanted missing items across all Starr Apps.
+- Queue Health - Monitor and remove all blocked or problematic downloads in the queue.
+- Failed Cleanup - Remove all failed downloads from disk.
 - Tidy Directories - Remove all unwanted files and directories in the provided paths.
 - Permissions Change - Change ownership and permissions of completed downloads.
 
