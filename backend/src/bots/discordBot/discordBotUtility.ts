@@ -452,9 +452,6 @@ const qualityAliases: Record<string, string[]> = {
   "480": ["480", "480p", "480i", "sd"],
 }
 
-// All recognized quality argument strings (flattened from alias groups)
-export const allQualityAliases: string[] = Object.values(qualityAliases).flat()
-
 // Match a user's quality argument (e.g., "4k", "1080p") to an available quality profile
 export const findQualityProfileByAlias = (
   qualityArg: string,
