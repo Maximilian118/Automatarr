@@ -47,15 +47,53 @@ export const initDiscordBot = (discord_bot: DiscordBotType): DiscordBotType => {
   }
 }
 
-// A function for type safty with message.channel.send()
+// Split a message into chunks that fit within Discord's 2000 character limit
+// Splits on newlines to avoid breaking mid-line
+const splitMessage = (content: string, limit: number = 2000): string[] => {
+  if (content.length <= limit) return [content]
+
+  const chunks: string[] = []
+  let remaining = content
+
+  while (remaining.length > 0) {
+    if (remaining.length <= limit) {
+      chunks.push(remaining)
+      break
+    }
+
+    // Find the last newline within the limit
+    let splitIndex = remaining.lastIndexOf("\n", limit)
+
+    // If no newline found, split at the limit
+    if (splitIndex <= 0) {
+      splitIndex = limit
+    }
+
+    chunks.push(remaining.slice(0, splitIndex))
+    remaining = remaining.slice(splitIndex + 1)
+  }
+
+  return chunks
+}
+
+// A function for type safety with message.channel.send()
+// Automatically splits messages exceeding Discord's 2000 character limit
 export const sendDiscordMessage = async (message: Message, content: string): Promise<void> => {
   // Skip sending if content is empty or just whitespace
   if (!content || content.trim() === "") {
     return
   }
-  
+
   if ("send" in message.channel && typeof message.channel.send === "function") {
-    await message.channel.send(content)
+    try {
+      const chunks = splitMessage(content)
+
+      for (const chunk of chunks) {
+        await message.channel.send(chunk)
+      }
+    } catch (err) {
+      logger.error(`sendDiscordMessage: Failed to send message: ${err}`)
+    }
   } else {
     logger.warn(`safeSend: Channel is not text-based. Could not send message: "${content}"`)
   }
