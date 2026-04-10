@@ -92,18 +92,18 @@ export interface settingsType {
   lidarr_KEY: string // API KEY for Lidarr
   lidarr_API_version: string // Lidarr API Version
   lidarr_active: boolean // Has Lidarr connection been tested and therefore should be included in requests?
-  remove_blocked: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
-  wanted_missing: boolean // Enable or disable automation of searching for missing and monitored library items
-  remove_failed: boolean // Enable or disable automation of removing failed downloads
-  remove_missing: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
+  queue_cleaner: boolean // Enable or disable automation of handling Starr app files with importBlocked in API queues
+  content_search: boolean // Enable or disable automation of searching for missing and monitored library items
+  failed_cleanup: boolean // Enable or disable automation of removing failed downloads
+  library_cleanup: boolean // Enable or disable automation of removing files from the file system that no longer appear in any Starr app library
   permissions_change: boolean // Enable or disable automation of changing all directories and files inside Starr app root folders to a user and group
   storage_cleaner: boolean // Enable or disable automation of scanning for orphaned content on disk
   tidy_directories: boolean // Enable or disable automation of removing unwanted files in specified directories
-  remove_blocked_loop: number // Loop timer for importBlocked. Unit = minutes
-  wanted_missing_loop: number // Loop timer for wanted missing search. Unit = minutes
-  remove_failed_loop: number // Loop timer for remove_failed. Unit = minutes
-  remove_missing_loop: number // Loop timer for remove_missing. Unit = minutes
-  remove_missing_level: "Library" | "Import List" // The level that which remove missing removes files from the file system. Library = Any file that isn't in Library. Import List = Any file that isn't in Import Lists.
+  queue_cleaner_loop: number // Loop timer for importBlocked. Unit = minutes
+  content_search_loop: number // Loop timer for wanted missing search. Unit = minutes
+  failed_cleanup_loop: number // Loop timer for failed_cleanup. Unit = minutes
+  library_cleanup_loop: number // Loop timer for library_cleanup. Unit = minutes
+  library_cleanup_level: "Library" | "Import List" // The level that which remove missing removes files from the file system. Library = Any file that isn't in Library. Import List = Any file that isn't in Import Lists.
   permissions_change_loop: number // Loop timer for permissions_change. Unit = minutes
   permissions_change_chown: string // Intended ownership of all content inside Starr app root folders
   permissions_change_chmod: string // Intended permissions of all content inside Starr app root folders
@@ -206,18 +206,18 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     lidarr_KEY: { type: String, default: "" },
     lidarr_API_version: { type: String, default: "v1" },
     lidarr_active: { type: Boolean, default: false },
-    remove_blocked: { type: Boolean, default: false },
-    wanted_missing: { type: Boolean, default: false },
-    remove_failed: { type: Boolean, default: false },
-    remove_missing: { type: Boolean, default: false },
+    queue_cleaner: { type: Boolean, default: false },
+    content_search: { type: Boolean, default: false },
+    failed_cleanup: { type: Boolean, default: false },
+    library_cleanup: { type: Boolean, default: false },
     permissions_change: { type: Boolean, default: false },
     storage_cleaner: { type: Boolean, default: false },
     tidy_directories: { type: Boolean, default: false },
-    remove_blocked_loop: { type: Number, default: 10 },
-    wanted_missing_loop: { type: Number, default: 240 },
-    remove_failed_loop: { type: Number, default: 60 },
-    remove_missing_loop: { type: Number, default: 60 },
-    remove_missing_level: { type: String, default: "Import List" },
+    queue_cleaner_loop: { type: Number, default: 10 },
+    content_search_loop: { type: Number, default: 240 },
+    failed_cleanup_loop: { type: Number, default: 60 },
+    library_cleanup_loop: { type: Number, default: 60 },
+    library_cleanup_level: { type: String, default: "Import List" },
     permissions_change_loop: { type: Number, default: 10 },
     permissions_change_chown: { type: String, default: "" },
     permissions_change_chmod: { type: String, default: "" },

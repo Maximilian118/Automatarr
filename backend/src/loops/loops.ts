@@ -4,10 +4,10 @@ import { dynamicLoop } from "../shared/dynamicLoop"
 import { collectStats } from "../shared/statsCollector"
 import backups from "./backups"
 import permissions_change from "./permissions_change"
-import remove_blocked from "./remove_blocked"
-import remove_failed from "./remove_failed"
-import remove_missing from "./remove_missing"
-import search_wanted_missing from "./search_wanted_missing"
+import queue_cleaner from "./queue_cleaner"
+import failed_cleanup from "./failed_cleanup"
+import library_cleanup from "./library_cleanup"
+import content_search from "./content_search"
 import tidy_directories from "./tidy_directories"
 
 // Start looping through all of the core loops
@@ -24,21 +24,21 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
     }
   }, true, 60)
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
-  await dynamicLoop("wanted_missing_loop", async (settings) => {
-    await search_wanted_missing(settings)
+  await dynamicLoop("content_search_loop", async (settings) => {
+    await content_search(settings)
   }, skipFirst)
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  await dynamicLoop("remove_blocked_loop", async (settings) => {
-    await remove_blocked(settings)
+  await dynamicLoop("queue_cleaner_loop", async (settings) => {
+    await queue_cleaner(settings)
   }, skipFirst)
   // Check for any failed downloads and delete them from the file system.
-  await dynamicLoop("remove_failed_loop", async (settings) => {
-    await remove_failed(settings)
+  await dynamicLoop("failed_cleanup_loop", async (settings) => {
+    await failed_cleanup(settings)
   }, skipFirst)
   // Note: user_pool_content_checker now runs at the end of getData to ensure fresh library data
   // Check for any failed downloads and delete them from the file system.
-  await dynamicLoop("remove_missing_loop", async (settings) => {
-    await remove_missing(settings)
+  await dynamicLoop("library_cleanup_loop", async (settings) => {
+    await library_cleanup(settings)
   }, skipFirst)
   // Remove all unwanted files and directories in the provided paths.
   await dynamicLoop("tidy_directories_loop", async (settings) => {
@@ -57,22 +57,22 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
 // Call all core loop functions once
 export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> => {
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
-  if (settings.wanted_missing) {
-    await search_wanted_missing(settings._doc)
+  if (settings.content_search) {
+    await content_search(settings._doc)
   }
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
-  if (settings.remove_blocked) {
-    await remove_blocked(settings._doc)
+  if (settings.queue_cleaner) {
+    await queue_cleaner(settings._doc)
   }
   // Check for any failed downloads and delete them from the file system.
-  if (settings.remove_failed) {
-    await remove_failed(settings._doc)
+  if (settings.failed_cleanup) {
+    await failed_cleanup(settings._doc)
   }
   // Note: user_pool_content_checker now runs at the end of getData to ensure fresh library data
   // Note: storage_cleaner now runs at the end of getData to ensure fresh library data
   // Check for any failed downloads and delete them from the file system.
-  if (settings.remove_missing) {
-    await remove_missing(settings._doc)
+  if (settings.library_cleanup) {
+    await library_cleanup(settings._doc)
   }
   // Remove all unwanted files and directories in the provided paths.
   if (settings.tidy_directories) {

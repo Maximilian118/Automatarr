@@ -80,7 +80,7 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
     if (e.target.value === "Library" || e.target.value === "Import List") {
       inputErr(e.target.name, "")
     } else {
-      inputErr(e.target.name, "Must be one of the remove_missing_level options.")
+      inputErr(e.target.name, "Must be one of the library_cleanup_level options.")
     }
   }
 

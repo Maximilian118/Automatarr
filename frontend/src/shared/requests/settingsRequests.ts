@@ -126,18 +126,18 @@ export const updateSettings = async (
           $lidarr_KEY: String
           $lidarr_API_version: String
           $lidarr_active: Boolean
-          $remove_blocked: Boolean
-          $wanted_missing: Boolean
-          $remove_failed: Boolean
-          $remove_missing: Boolean
+          $queue_cleaner: Boolean
+          $content_search: Boolean
+          $failed_cleanup: Boolean
+          $library_cleanup: Boolean
           $permissions_change: Boolean
           $storage_cleaner: Boolean
           $tidy_directories: Boolean
-          $remove_blocked_loop: Int
-          $wanted_missing_loop: Int
-          $remove_failed_loop: Int
-          $remove_missing_loop: Int
-          $remove_missing_level: String
+          $queue_cleaner_loop: Int
+          $content_search_loop: Int
+          $failed_cleanup_loop: Int
+          $library_cleanup_loop: Int
+          $library_cleanup_level: String
           $permissions_change_loop: Int
           $permissions_change_chown: String
           $permissions_change_chmod: String
@@ -177,18 +177,18 @@ export const updateSettings = async (
             lidarr_KEY: $lidarr_KEY
             lidarr_API_version: $lidarr_API_version
             lidarr_active: $lidarr_active
-            remove_blocked: $remove_blocked
-            wanted_missing: $wanted_missing
-            remove_failed: $remove_failed
-            remove_missing: $remove_missing
+            queue_cleaner: $queue_cleaner
+            content_search: $content_search
+            failed_cleanup: $failed_cleanup
+            library_cleanup: $library_cleanup
             permissions_change: $permissions_change
             storage_cleaner: $storage_cleaner
             tidy_directories: $tidy_directories
-            remove_blocked_loop: $remove_blocked_loop
-            wanted_missing_loop: $wanted_missing_loop
-            remove_failed_loop: $remove_failed_loop
-            remove_missing_loop: $remove_missing_loop
-            remove_missing_level: $remove_missing_level
+            queue_cleaner_loop: $queue_cleaner_loop
+            content_search_loop: $content_search_loop
+            failed_cleanup_loop: $failed_cleanup_loop
+            library_cleanup_loop: $library_cleanup_loop
+            library_cleanup_level: $library_cleanup_level
             permissions_change_loop: $permissions_change_loop
             permissions_change_chown: $permissions_change_chown
             permissions_change_chmod: $permissions_change_chmod

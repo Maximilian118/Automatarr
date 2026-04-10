@@ -4,7 +4,7 @@ import Data from "../models/data"
 import { currentPaths, qBittorrentDataExists } from "../shared/utility"
 import { deleteFailedDownloads } from "../shared/fileSystem"
 
-const remove_failed = async (settings: settingsType): Promise<void> => {
+const failed_cleanup = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
     logger.error("Failed Cleanup: qBittorrent is required for this loop.")
     return
@@ -38,4 +38,4 @@ const remove_failed = async (settings: settingsType): Promise<void> => {
   }
 }
 
-export default remove_failed
+export default failed_cleanup

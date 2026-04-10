@@ -121,39 +121,39 @@ const Loops: React.FC = () => {
         description="These loops are the heart of Automatarr — they manage your media library lifecycle, handle downloads, and protect user pool content."
       >
         {loop(
-          "remove_missing",
+          "library_cleanup",
           "Library Cleanup",
           "Removes content from your library that no longer appears in your Import Lists. Content in user pools is always protected — only unprotected items are removed. This is the core mechanism that keeps your library lean while respecting what users have explicitly added.",
           <MUIAutocomplete
             label="Library Cleanup Level"
             options={["Library", "Import List"]}
-            value={settings.remove_missing_level}
+            value={settings.library_cleanup_level}
             setValue={(val) => setSettings(prevSettings => {
               return {
                 ...prevSettings,
-                remove_missing_level: val as "Library" | "Import List"
+                library_cleanup_level: val as "Library" | "Import List"
               }
             })}
             size="small"
-            disabled={!settings.remove_missing || !settings.qBittorrent_active}
+            disabled={!settings.library_cleanup || !settings.qBittorrent_active}
             onChange={(e) => updateInput(e, setSettings, setFormErr)}
-            error={!!formErr.remove_missing_level}
+            error={!!formErr.library_cleanup_level}
           />,
           !settings.qBittorrent_active,
           "qBittorrent Required"
         )}
         {loop(
-          "wanted_missing",
+          "content_search",
           "Content Search",
           "Searches for all content marked as wanted but not yet downloaded. Triggers Radarr and Sonarr to find and grab missing movies and episodes so your library stays up to date.",
         )}
         {loop(
-          "remove_blocked",
-          "Queue Health",
+          "queue_cleaner",
+          "Queue Cleaner",
           "Monitors download queues for stuck, blocked, or problematic items. Automatically removes failed imports, stalled downloads, and format mismatches, then searches for alternatives to keep downloads flowing.",
         )}
         {loop(
-          "remove_failed",
+          "failed_cleanup",
           "Failed Cleanup",
           "Scans download directories for files marked as failed and removes them from disk, keeping your download folders clean.",
           undefined,

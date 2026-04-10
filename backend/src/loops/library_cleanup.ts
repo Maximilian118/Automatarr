@@ -98,7 +98,7 @@ const processDeletionsInBatches = async <T>(
   return processedItems
 }
 
-const remove_missing = async (settings: settingsType): Promise<void> => {
+const library_cleanup = async (settings: settingsType): Promise<void> => {
   if (!settings.qBittorrent_active) {
     logger.error("Library Cleanup: qBittorrent is required for this loop.")
     return
@@ -111,7 +111,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
   const { torrents, cookieRenewed, cookie, cookie_expiry } = await getqBittorrentTorrents(
     settings,
     data,
-    "remove_missing",
+    "library_cleanup",
   )
 
   // If we have a new qbittorrent cookie
@@ -244,7 +244,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
     let itemsForDeletion: (Movie | Series)[] = []
 
     // If Import Lists is the selected level
-    if (settings.remove_missing_level === "Import List") {
+    if (settings.library_cleanup_level === "Import List") {
       // Skip if this API has no import lists
       if (!API.data.importLists || API.data.importLists.length === 0) {
         logger.warn(`Library Cleanup | ${API.name} | has no Import Lists.`)
@@ -514,12 +514,12 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
       // If we've deleted some items from Starr app libraries, update libraries in db
       if (itemsForDeletion.length > 0 && filteredLibrary.length < library.length) {
         data.updated_at = moment().format()
-        await saveWithRetry(data, "remove_missing")
+        await saveWithRetry(data, "library_cleanup")
       }
     }
 
     // If we're just checking if there's anything in the file system that isn't in the library
-    if (settings.remove_missing_level === "Library") {
+    if (settings.library_cleanup_level === "Library") {
       // Check we have root folder path
       if (!API.data.rootFolder) {
         logger.error(`Library Cleanup | ${API.name} | Root folder data missing for ${API.name}.`)
@@ -552,7 +552,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
 
     if (settings.verbose_logging) {
       logger.success(
-        `Library Cleanup | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}. Deleted: ${deleted}.`,
+        `Library Cleanup | ${API.name} | Level: ${settings.library_cleanup_level}. Library: ${library.length}. Deleted: ${deleted}.`,
       )
     } else {
       // Enhanced summary with detailed statistics
@@ -573,7 +573,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
         stats.userProtected > 0 ? ` User Protected: ${stats.userProtected}.` : ""
 
       logger.success(
-        `Library Cleanup | ${API.name} | Level: ${settings.remove_missing_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
+        `Library Cleanup | ${API.name} | Level: ${settings.library_cleanup_level}. Library: ${library.length}.${importListInfo}${userProtectedInfo}${summary}`,
       )
     }
   }
@@ -584,7 +584,7 @@ const remove_missing = async (settings: settingsType): Promise<void> => {
   }
 
   // Save the changes to data to the database
-  await saveWithRetry(data, "remove_missing")
+  await saveWithRetry(data, "library_cleanup")
 }
 
-export default remove_missing
+export default library_cleanup

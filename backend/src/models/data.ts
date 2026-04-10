@@ -81,10 +81,10 @@ export interface LoopData {
 
 export interface Loops {
   permissions_change: LoopData | null
-  remove_blocked: LoopData | null
-  remove_failed: LoopData | null
-  remove_missing: LoopData | null
-  search_wanted_missing: LoopData | null
+  queue_cleaner: LoopData | null
+  failed_cleanup: LoopData | null
+  library_cleanup: LoopData | null
+  content_search: LoopData | null
   storage_cleaner: LoopData | null
   tidy_directories: LoopData | null
   user_pool_checker: LoopData | null
@@ -182,10 +182,10 @@ const loopDataSchema = new mongoose.Schema<LoopData>({
 
 const loopSchema = new mongoose.Schema<Loops>({
   permissions_change: { type: loopDataSchema, default: null },
-  remove_blocked: { type: loopDataSchema, default: null },
-  remove_failed: { type: loopDataSchema, default: null },
-  remove_missing: { type: loopDataSchema, default: null },
-  search_wanted_missing: { type: loopDataSchema, default: null },
+  queue_cleaner: { type: loopDataSchema, default: null },
+  failed_cleanup: { type: loopDataSchema, default: null },
+  library_cleanup: { type: loopDataSchema, default: null },
+  content_search: { type: loopDataSchema, default: null },
   storage_cleaner: { type: loopDataSchema, default: null },
   tidy_directories: { type: loopDataSchema, default: null },
   user_pool_checker: { type: loopDataSchema, default: null },

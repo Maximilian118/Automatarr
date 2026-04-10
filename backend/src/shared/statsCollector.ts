@@ -154,10 +154,10 @@ const collectSystemMetrics = async (data: dataDocType, settings: settingsDocType
   
   // Count active loops by checking which loop settings are enabled
   let activeLoops = 0
-  if (settings.remove_blocked) activeLoops++
-  if (settings.wanted_missing) activeLoops++
-  if (settings.remove_failed) activeLoops++
-  if (settings.remove_missing) activeLoops++
+  if (settings.queue_cleaner) activeLoops++
+  if (settings.content_search) activeLoops++
+  if (settings.failed_cleanup) activeLoops++
+  if (settings.library_cleanup) activeLoops++
   if (settings.permissions_change) activeLoops++
   if (settings.tidy_directories) activeLoops++
   

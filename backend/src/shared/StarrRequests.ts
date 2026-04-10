@@ -492,18 +492,23 @@ export const deleteFromQueue = async (
   reason?: string,
 ): Promise<DownloadStatus | undefined> => {
   // A conditional check to ensure we don't delete torrents from qBit here which would bypass seed checks.
-  // By setting removeFromClient=false for torrents we let remove_missing handle the torrent removal from qBit.
-  // If it's a usenet download then we do want to remove it from the usenet downloader
+  // By setting removeFromClient=false for torrents we let library_cleanup handle the torrent removal from qBit.
+  // Exception: "unknown" items (no movieId/episodeId/artistId/albumId) must be removed from the client
+  // directly, as library_cleanup cannot handle them and they would otherwise loop indefinitely.
+  // If it's a usenet download then we do want to remove it from the usenet downloader.
   const isTorrent =
     download.protocol.toLowerCase().includes("torrent") ||
     download.downloadClient.toLowerCase().includes("torrent")
+
+  const isUnknownItem =
+    !download.movieId && !download.episodeId && !download.artistId && !download.albumId
 
   try {
     const res = await axios.delete(
       cleanUrl(
         `${API.data.URL}/api/${API.data.API_version}/queue/${
           download.id
-        }?removeFromClient=${!isTorrent}&apikey=${API.data.KEY}`,
+        }?removeFromClient=${!isTorrent || isUnknownItem}&apikey=${API.data.KEY}`,
       ),
     )
 

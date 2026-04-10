@@ -50,18 +50,18 @@ export const populateSettings = `
   lidarr_KEY
   lidarr_API_version
   lidarr_active
-  remove_blocked
-  wanted_missing
-  remove_failed
-  remove_missing
+  queue_cleaner
+  content_search
+  failed_cleanup
+  library_cleanup
   permissions_change
   storage_cleaner
   tidy_directories
-  remove_blocked_loop
-  wanted_missing_loop
-  remove_failed_loop
-  remove_missing_loop
-  remove_missing_level
+  queue_cleaner_loop
+  content_search_loop
+  failed_cleanup_loop
+  library_cleanup_loop
+  library_cleanup_level
   permissions_change_loop
   permissions_change_chown
   permissions_change_chmod

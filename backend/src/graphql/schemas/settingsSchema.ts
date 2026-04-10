@@ -63,18 +63,18 @@ const settingsSchema = `
     lidarr_KEY: String!
     lidarr_API_version: String!
     lidarr_active: Boolean!
-    remove_blocked: Boolean!
-    wanted_missing: Boolean!
-    remove_failed: Boolean!
-    remove_missing: Boolean!
+    queue_cleaner: Boolean!
+    content_search: Boolean!
+    failed_cleanup: Boolean!
+    library_cleanup: Boolean!
     permissions_change: Boolean!
     storage_cleaner: Boolean!
     tidy_directories: Boolean!
-    remove_blocked_loop: Int!
-    wanted_missing_loop: Int!
-    remove_failed_loop: Int!
-    remove_missing_loop: Int!
-    remove_missing_level: String!
+    queue_cleaner_loop: Int!
+    content_search_loop: Int!
+    failed_cleanup_loop: Int!
+    library_cleanup_loop: Int!
+    library_cleanup_level: String!
     permissions_change_loop: Int!
     permissions_change_chown: String!
     permissions_change_chmod: String!
@@ -150,18 +150,18 @@ const settingsSchema = `
     lidarr_KEY: String
     lidarr_API_version: String
     lidarr_active: Boolean
-    remove_blocked: Boolean
-    wanted_missing: Boolean
-    remove_failed: Boolean
-    remove_missing: Boolean
+    queue_cleaner: Boolean
+    content_search: Boolean
+    failed_cleanup: Boolean
+    library_cleanup: Boolean
     permissions_change: Boolean
     storage_cleaner: Boolean
     tidy_directories: Boolean
-    remove_blocked_loop: Int
-    wanted_missing_loop: Int
-    remove_failed_loop: Int
-    remove_missing_loop: Int
-    remove_missing_level: String
+    queue_cleaner_loop: Int
+    content_search_loop: Int
+    failed_cleanup_loop: Int
+    library_cleanup_loop: Int
+    library_cleanup_level: String
     permissions_change_loop: Int
     permissions_change_chown: String
     permissions_change_chmod: String

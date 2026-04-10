@@ -59,7 +59,7 @@ export const getMdbListItems = async (
   }
 
   // If only some Import Lists are not an mdbList, this is really bad and could result in the non mdbList items from being removed.
-  // We need to take extra steps to tell the user we can't do this. Stop remove_missing with the error message and deactivate the loop.
+  // We need to take extra steps to tell the user we can't do this. Stop library_cleanup with the error message and deactivate the loop.
   if (hasMdbList && hasUnsupp) {
     const settings = (await Settings.findOne()) as settingsDocType
 
@@ -74,7 +74,7 @@ export const getMdbListItems = async (
       }
     }
 
-    settings.remove_missing = false
+    settings.library_cleanup = false
     await saveWithRetry(settings, "getMdbListItems")
 
     return {
