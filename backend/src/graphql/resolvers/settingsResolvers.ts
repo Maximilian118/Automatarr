@@ -4,7 +4,7 @@ import logger from "../../logger"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
 import { allLoopsDeactivated } from "../../shared/utility"
 import Resolvers from "./resolvers"
-import { getAllChannels } from "../../bots/discordBot/discordBotUtility"
+import { getAllChannels, findChannelByName } from "../../bots/discordBot/discordBotUtility"
 import { getDiscordClient } from "../../bots/discordBot/discordBot"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { getAllQualityProfiles } from "../../shared/StarrRequests"
@@ -300,6 +300,121 @@ const settingsResolvers = {
     logger.info(
       `Removed ${itemTypeDisplay} "${removedItem.title} (${removedItem.year})" from ${user.name}'s pool`,
     )
+
+    return {
+      ...settings._doc,
+      tokens: req.tokens,
+    }
+  },
+
+  // Transfer a pool item from one user to another, with limit enforcement and Discord notification for series
+  transferPoolItem: async (
+    args: {
+      sourceUserId: string
+      destUserId: string
+      itemType: "movies" | "series"
+      itemIndex: number
+    },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const settings = (await Settings.findOne()) as settingsDocType
+
+    if (!settings) {
+      logger.error("transferPoolItem: No settings object was found.")
+      throw new Error("No settings object was found.")
+    }
+
+    if (args.sourceUserId === args.destUserId) {
+      throw new Error("Source and destination users cannot be the same.")
+    }
+
+    // Find both users by ID
+    const sourceIndex = settings.general_bot.users.findIndex((u) => u._id?.toString() === args.sourceUserId)
+    const destIndex = settings.general_bot.users.findIndex((u) => u._id?.toString() === args.destUserId)
+
+    if (sourceIndex === -1) {
+      logger.error(`transferPoolItem: Source user with ID ${args.sourceUserId} not found.`)
+      throw new Error("Source user not found.")
+    }
+
+    if (destIndex === -1) {
+      logger.error(`transferPoolItem: Destination user with ID ${args.destUserId} not found.`)
+      throw new Error("Destination user not found.")
+    }
+
+    const sourceUser = settings.general_bot.users[sourceIndex]
+    const destUser = settings.general_bot.users[destIndex]
+
+    // Validate the item index on the source user's pool
+    const sourcePool = args.itemType === "movies" ? sourceUser.pool.movies : sourceUser.pool.series
+
+    if (args.itemIndex < 0 || args.itemIndex >= sourcePool.length) {
+      logger.error(`transferPoolItem: Invalid item index ${args.itemIndex} for ${args.itemType}.`)
+      throw new Error("Invalid item index.")
+    }
+
+    // Enforce pool limits on the destination user
+    if (!destUser.admin) {
+      const destPool = args.itemType === "movies" ? destUser.pool.movies : destUser.pool.series
+      const generalMax = args.itemType === "movies" ? settings.general_bot.max_movies : settings.general_bot.max_series
+      const overwrite = args.itemType === "movies" ? destUser.max_movies_overwrite : destUser.max_series_overwrite
+
+      // Determine effective max: overwrite > general max, super_user doubles it
+      let effectiveMax: number | null = null
+      if (overwrite != null) {
+        effectiveMax = overwrite
+      } else if (generalMax != null) {
+        effectiveMax = destUser.super_user ? generalMax * 2 : generalMax
+      }
+
+      if (effectiveMax != null && destPool.length >= effectiveMax) {
+        const itemTypeDisplay = args.itemType === "movies" ? "movie" : "series"
+        throw new Error(`${destUser.name} has reached their ${itemTypeDisplay} pool limit (${effectiveMax}).`)
+      }
+    }
+
+    // Transfer: splice from source, push to destination
+    let transferredItem: { title: string; year: number }
+    if (args.itemType === "movies") {
+      const [item] = sourceUser.pool.movies.splice(args.itemIndex, 1)
+      destUser.pool.movies.push(item)
+      transferredItem = item
+    } else {
+      const [item] = sourceUser.pool.series.splice(args.itemIndex, 1)
+      destUser.pool.series.push(item)
+      transferredItem = item
+    }
+
+    // Mark both user paths as modified for MongoDB
+    settings.markModified(`general_bot.users.${sourceIndex}.pool.${args.itemType}`)
+    settings.markModified(`general_bot.users.${destIndex}.pool.${args.itemType}`)
+
+    settings.updated_at = moment().format()
+
+    await saveWithRetry(settings, "transferPoolItem")
+
+    const itemTypeDisplay = args.itemType === "movies" ? "movie" : "series"
+    logger.info(
+      `Transferred ${itemTypeDisplay} "${transferredItem.title} (${transferredItem.year})" from ${sourceUser.name} to ${destUser.name}`,
+    )
+
+    // Send Discord notification for series transfers
+    if (args.itemType === "series" && settings.discord_bot?.series_channel_name) {
+      try {
+        const { textBasedChannel } = findChannelByName(settings.discord_bot.series_channel_name)
+        if (textBasedChannel) {
+          await textBasedChannel.send(
+            `**${transferredItem.title} (${transferredItem.year})** has been transferred from **${sourceUser.name}** to **${destUser.name}**.`,
+          )
+        }
+      } catch (discordError) {
+        logger.error(`transferPoolItem: Failed to send Discord notification: ${discordError}`)
+      }
+    }
 
     return {
       ...settings._doc,

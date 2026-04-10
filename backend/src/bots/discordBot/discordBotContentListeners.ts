@@ -19,7 +19,11 @@ import {
   getMovieStatusMessage,
   randomEpisodesDownloadingMessage,
   randomMovieDownloadStartMessage,
+  randomMovieQualityDownloadStartMessage,
   randomSeriesDownloadStartMessage,
+  randomSeriesMonitorDownloadStartMessage,
+  randomSeriesQualityDownloadStartMessage,
+  randomSeriesQualityMonitorDownloadStartMessage,
   randomSeriesMonitorChangeToAllMessage,
   randomProcessingMessage,
   randomMovieReadyMessage,
@@ -286,9 +290,13 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     )
   }
 
-  // Notify that we've grabbed a movie
+  // Notify that we've grabbed a movie with quality-aware feedback if applicable
+  const movieStartMessage = quality
+    ? randomMovieQualityDownloadStartMessage(movie, quality)
+    : randomMovieDownloadStartMessage(movie)
+
   return discordReply(
-    randomMovieDownloadStartMessage(movie),
+    movieStartMessage,
     "success",
     `${user.name} | Started Movie Download | ${movie.title} | They have ${currentLeft} pool allowance available for movies.`,
   )
@@ -593,8 +601,23 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     )
   }
 
+  // Select the appropriate message function based on which arguments were specified
+  const hasQuality = !!seriesQuality
+  const hasMonitor = monitor !== "all"
+
+  let seriesStartMessage: string
+  if (hasQuality && hasMonitor) {
+    seriesStartMessage = randomSeriesQualityMonitorDownloadStartMessage(series, monitor, seriesQuality)
+  } else if (hasQuality) {
+    seriesStartMessage = randomSeriesQualityDownloadStartMessage(series, seriesQuality)
+  } else if (hasMonitor) {
+    seriesStartMessage = randomSeriesMonitorDownloadStartMessage(series, monitor)
+  } else {
+    seriesStartMessage = randomSeriesDownloadStartMessage(series)
+  }
+
   return discordReply(
-    randomSeriesDownloadStartMessage(series, monitor),
+    seriesStartMessage,
     "success",
     `${user.name} | Started Series Download | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
   )

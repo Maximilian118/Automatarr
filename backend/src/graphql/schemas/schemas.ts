@@ -50,6 +50,7 @@ const Schema = buildSchema(`
     updateUser(userInput: userInput): User!
     updateSettings(settingsInput: settingsInput): Settings
     removePoolItem(userId: String!, itemType: String!, itemIndex: Int!): Settings
+    transferPoolItem(sourceUserId: String!, destUserId: String!, itemType: String!, itemIndex: Int!): Settings
     deleteUser(userId: String!): Settings
     updateUserStatus(userId: String!, admin: Boolean, superUser: Boolean): Settings
     updateUserOverwrites(userId: String!, maxMoviesOverwrite: Int, maxSeriesOverwrite: Int): Settings

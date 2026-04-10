@@ -1,0 +1,82 @@
+.draggable-pool-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  cursor: grab;
+
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  &.dragging {
+    opacity: 0.4;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .item-title {
+    flex-grow: 1;
+    margin-right: 8px;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    position: relative;
+    height: 1.5em;
+
+    .title-text,
+    .storage-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      transition: opacity 0.1s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .title-text {
+      color: white;
+    }
+
+    .storage-text {
+      color: white;
+      font-weight: 500;
+    }
+
+    .fade-in {
+      opacity: 1;
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
+  }
+
+  .item-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+
+    .action-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .delete-button {
+      min-width: auto;
+      width: 28px;
+      height: 28px;
+    }
+
+    .confirm-button {
+      min-width: auto;
+      padding: 0 8px;
+    }
+  }
+}

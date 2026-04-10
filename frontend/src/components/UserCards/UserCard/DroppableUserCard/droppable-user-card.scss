@@ -1,0 +1,11 @@
+.droppable-user-card {
+  transition: outline 0.2s ease, background-color 0.2s ease;
+  border-radius: 4px;
+
+  &.drop-target {
+    outline: 2px solid #1976d2;
+    outline-offset: -2px;
+    background-color: rgba(25, 118, 210, 0.08);
+    border-radius: 4px;
+  }
+}

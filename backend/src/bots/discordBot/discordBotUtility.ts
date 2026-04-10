@@ -445,7 +445,7 @@ export const matchedUser = (
   settings.general_bot.users.find((u) => u.ids.some((id) => id === identifier))
 
 // Alias groups mapping user input to keywords for matching against quality profile names
-const qualityAliases: Record<string, string[]> = {
+export const qualityAliases: Record<string, string[]> = {
   "4k": ["4k", "2160", "2160p", "2160i", "uhd", "ultra"],
   "1080": ["1080", "1080p", "1080i", "fhd", "fullhd", "full-hd"],
   "720": ["720", "720p", "720i"],

@@ -1,0 +1,13 @@
+.drag-overlay-item {
+  background-color: #1976d2;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}

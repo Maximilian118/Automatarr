@@ -5,6 +5,25 @@ import { formatTimeLeft } from "../../shared/utility"
 import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
 import { MonitorOptions, Series } from "../../types/seriesTypes"
+import { qualityAliases } from "./discordBotUtility"
+
+// Display-friendly labels for each quality group
+const qualityLabels: Record<string, string> = {
+  "4k": "4K",
+  "1080": "1080p",
+  "720": "720p",
+  "480": "480p",
+}
+
+// Resolve a raw quality input (e.g. "2160p", "uhd", "sd") to a display-friendly label
+const resolveQualityLabel = (quality: string): string => {
+  const normalized = quality.toLowerCase().trim()
+  const group = Object.entries(qualityAliases).find(([, aliases]) => aliases.includes(normalized))
+  return group ? qualityLabels[group[0]] || quality : quality
+}
+
+// Pick a random element from an array
+const pickRandom = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]
 
 const longWaitComments = [
   "Sheesh, that's a long wait!",
@@ -400,90 +419,496 @@ export const randomMovieDownloadStartMessage = (movie: Movie) => {
     `Cheers! '${movie.title}' is being summoned from the movie gods. 🍷🎥`,
     `'${movie.title}' is downloading — excellent choice, by the way. 😎`,
   ]
-  return messages[Math.floor(Math.random() * messages.length)]
+  return pickRandom(messages)
 }
 
-export const randomSeriesDownloadStartMessage = (series: Series, monitor: MonitorOptions) => {
-  // Monitor-specific messages explaining what will be downloaded
-  const monitorMessages: Record<MonitorOptions, string[]> = {
-    all: [],
-    future: [
-      "Only future episodes will be grabbed — no backlog binges here!",
-      "I'll snag episodes as they air, but the past stays in the past.",
-      "Future episodes only — time to catch up on other shows while you wait!",
-      "You're living in the now! Only new episodes coming your way.",
+// Movie download start message when a quality preference was specified
+export const randomMovieQualityDownloadStartMessage = (movie: Movie, quality: string) => {
+  const label = resolveQualityLabel(quality)
+  const title = movie.title
+
+  const qualityMessages: Record<string, string[]> = {
+    "4K": [
+      `Got it! '${title}' is downloading in glorious 4K — your eyeballs are in for a treat! 👁️✨`,
+      `'${title}' in 4K? Oh fancy! Downloading now in ultra-high definition. 🎩🍿`,
+      `4K Ultra HD locked in for '${title}'! Hope your screen can keep up! 🖥️🔥`,
+      `'${title}' in 4K coming right up! Every pixel is gonna count. 💎`,
+      `You want '${title}' in 4K? Say no more! Downloading the crispest version I can find. 🤌✨`,
+      `4K mode activated for '${title}'! Prepare for ridiculous levels of detail. 🤯`,
+      `'${title}' in glorious 4K — because you deserve to see every blade of grass. 🌿📺`,
+      `Downloading '${title}' in 4K! Your storage might cry, but your eyes will thank you. 💾😍`,
     ],
-    missing: [
-      "I'll grab missing episodes and future releases — filling in those gaps!",
-      "Missing episodes detected — time for some digital archaeology!",
-      "Tracking down what you're missing, plus keeping up with new episodes.",
-      "Past gaps and future releases — I'm on both cases!",
+    "1080p": [
+      `'${title}' in 1080p coming right up! The sweet spot of quality. 🎯`,
+      `Full HD locked in! '${title}' is downloading in crisp 1080p. 📺✨`,
+      `'${title}' in 1080p — sharp, clean, and not gonna eat all your storage. Smart choice! 👌`,
+      `1080p it is! '${title}' is downloading in Full HD. Very sensible. 🧠`,
+      `Got it! '${title}' in 1080p — the Goldilocks of resolutions. Not too big, not too small. 🐻`,
+      `'${title}' downloading in 1080p! Sharp enough to see the boom mic in every scene. 🎤😄`,
+      `1080p for '${title}' — quality and storage living in perfect harmony. ☮️🍿`,
+      `'${title}' in 1080p — because you have standards, but also a hard drive budget. 💸`,
     ],
-    existing: [
-      "Only monitoring episodes with files or future releases — keeping what you've got!",
-      "I'll watch the episodes you have, plus grab new ones as they air.",
-      "Existing episodes stay monitored, and future ones will join the party.",
-      "Maintaining your current collection and tracking future releases!",
+    "720p": [
+      `'${title}' in 720p — keeping it practical! Downloading now. 📺`,
+      `720p for '${title}'! Still looks great, I promise. Downloading! 👍`,
+      `Got it! '${title}' in 720p — light on storage, easy on the bandwidth. 🪶`,
+      `'${title}' downloading in 720p! Your hard drive will barely notice. 💨`,
+      `720p selected for '${title}' — efficient and effective! On it! 🎯`,
+      `'${title}' in 720p? Perfect for those 'I just want to watch something' moments. Downloading! 🛋️`,
+      `Going 720p for '${title}' — more room for more content! 📦`,
+      `'${title}' in 720p — small footprint, big entertainment. Downloading now! 🎬`,
     ],
-    recent: [
-      "Last 90 days plus future episodes — no ancient history here!",
-      "Recent episodes and future releases only — keeping it fresh!",
-      "Grabbing the last 90 days worth, plus anything new that drops.",
-      "You're in the modern era — recent and future episodes incoming!",
+    "480p": [
+      `'${title}' in 480p — going old school! Respect. Downloading now! 📼`,
+      `SD quality for '${title}'! Tiny files, big entertainment. On it! 🤏🎬`,
+      `'${title}' in 480p — because it's the content that counts, right? Downloading! 🧐`,
+      `480p for '${title}'! Your storage sends its thanks. Downloading now! 🙏`,
+      `'${title}' in 480p — retro vibes only. Coming right up! 🕹️`,
+      `Going with 480p for '${title}'! Squint and it's basically HD. 😄📺`,
+      `'${title}' in 480p — saving bandwidth like a true hero. Downloading! 🦸`,
+      `480p for '${title}'! Maximum content, minimum storage. Love the efficiency! 📼✨`,
     ],
-    pilot: [
-      "Just the pilot episode — testing the waters before diving in!",
-      "First episode only — gotta see if it's worth the commitment!",
-      "Starting with episode one — your toe is officially in the water.",
-      "Pilot episode inbound — let's see if this show's got wings!",
-    ],
-    firstSeason: [
-      "Season 1 only — keeping it simple and focused!",
-      "Just the first season — a controlled binge situation.",
-      "Starting with season one — the rest can wait!",
-      "First season on the way — baby steps into the series!",
-    ],
-    lastSeason: [
-      "Latest season only — jumping straight to the good stuff!",
-      "Just the most recent season — you're cutting to the chase!",
-      "Last season incoming — no time for backstory!",
-      "Most recent season only — living on the edge of the plot!",
-    ],
-    monitorSpecials: [
-      "Monitoring special episodes — because bonus content matters!",
-      "Specials are coming too — extra goodies included!",
-      "Regular episodes plus specials — the full experience!",
-      "Special episodes tracked — no director's cuts left behind!",
-    ],
-    unmonitorSpecials: [
-      "Skipping special episodes — just the main storyline for you!",
-      "No specials in this batch — keeping it to the core narrative!",
-      "Special episodes ignored — mainline content only!",
-      "Regular episodes only — specials need not apply!",
-    ],
-    none: [],
   }
 
-  // Get monitor-specific comment
-  const monitorComments = monitorMessages[monitor] || []
-  const monitorSpecificComment =
-    monitorComments.length > 0
-      ? monitorComments[Math.floor(Math.random() * monitorComments.length)]
-      : ""
+  const messages = qualityMessages[label]
+  if (!messages || messages.length === 0) return randomMovieDownloadStartMessage(movie)
+  return pickRandom(messages)
+}
 
+// Series download start message when no special monitor or quality args are specified (monitor=all)
+export const randomSeriesDownloadStartMessage = (series: Series) => {
   const messages = [
-    `Binge mode: activated! '${series.title}' is on the way. ${monitorSpecificComment} 📺`,
-    `Here we go — '${series.title}' is starting to download! ${monitorSpecificComment} 🍿`,
-    `'${series.title}' is joining the library. Get comfy! ${monitorSpecificComment} 🛋️`,
-    `Episodes inbound! '${series.title}' is downloading now. ${monitorSpecificComment} 🚚`,
-    `Get ready for a wild ride — '${series.title}' is coming in hot! ${monitorSpecificComment} 🔥`,
-    `One episode at a time... '${series.title}' is on the move! ${monitorSpecificComment} 🎬`,
-    `'${series.title}' is headed your way. It's series time! ${monitorSpecificComment} 📦`,
-    `Cue the theme song — '${series.title}' is downloading. ${monitorSpecificComment} 🎵`,
-    `'${series.title}' is loading up. Snacks not included. ${monitorSpecificComment} 🍪`,
-    `📡 Incoming transmission: '${series.title}' has entered the download zone. ${monitorSpecificComment}`,
+    `Binge mode: activated! '${series.title}' is on the way. 📺`,
+    `Here we go — '${series.title}' is starting to download! 🍿`,
+    `'${series.title}' is joining the library. Get comfy! 🛋️`,
+    `Episodes inbound! '${series.title}' is downloading now. 🚚`,
+    `Get ready for a wild ride — '${series.title}' is coming in hot! 🔥`,
+    `One episode at a time... '${series.title}' is on the move! 🎬`,
+    `'${series.title}' is headed your way. It's series time! 📦`,
+    `Cue the theme song — '${series.title}' is downloading. 🎵`,
+    `'${series.title}' is loading up. Snacks not included. 🍪`,
+    `📡 Incoming transmission: '${series.title}' has entered the download zone.`,
   ]
-  return messages[Math.floor(Math.random() * messages.length)]
+  return pickRandom(messages)
+}
+
+// Series download start message when a monitor option is specified (no quality)
+export const randomSeriesMonitorDownloadStartMessage = (series: Series, monitor: MonitorOptions) => {
+  const title = series.title
+
+  const monitorMessages: Record<string, string[]> = {
+    future: [
+      `'${title}' is added! I'll only grab episodes that haven't aired yet — no backlog, just the fresh stuff! 📡`,
+      `Future episodes only for '${title}'! I'll snag them as they air. No past, just vibes. 🔮`,
+      `'${title}' locked in for future episodes! You're living in the now — only new episodes headed your way. ⏭️`,
+      `On it! '${title}' future episodes only — time to catch up on other shows while you wait for new ones! 📺`,
+      `'${title}' is set up! Only upcoming episodes will be grabbed — the past stays in the past. 🚀`,
+      `Future-only mode for '${title}'! I'll keep watch for new episodes as they drop. 👀`,
+    ],
+    missing: [
+      `On it! I'll hunt down any missing episodes of '${title}' and keep an eye on future ones too! 🔍`,
+      `'${title}' — tracking down what's missing plus any future releases. Double duty! 🕵️`,
+      `Missing episodes of '${title}' detected — time for some digital archaeology! Future ones too! 🏺`,
+      `'${title}' is in! I'll fill the gaps in your collection and grab anything new that airs. 🧩`,
+      `Downloading missing episodes of '${title}' and watching for new releases — I'm on both cases! 📋`,
+      `'${title}' — any episodes without files plus future ones are on my radar now! 📡`,
+    ],
+    existing: [
+      `'${title}' is locked in! I'll keep tabs on episodes you already have plus anything new coming out. 📦`,
+      `Existing episodes of '${title}' stay monitored, and future ones will join the party! 🎉`,
+      `'${title}' — maintaining your current collection and tracking future releases! 🔧`,
+      `Got it! '${title}' — I'll watch the episodes you have and grab new ones as they air. 👀📺`,
+      `'${title}' set up! Monitoring episodes with files or that haven't aired yet. 📂`,
+      `'${title}' is on! Keeping your existing episodes in check and eyes peeled for new ones. 🦅`,
+    ],
+    recent: [
+      `'${title}' — grabbing episodes from the last 90 days plus anything coming up! Staying current! 📅`,
+      `Recent episodes mode for '${title}'! Last 90 days and future releases only — keeping it fresh! 🌱`,
+      `'${title}' is in! I'll grab the last 90 days' worth, plus anything new that drops. No ancient history! 📆`,
+      `You're in the modern era! '${title}' — recent and future episodes incoming! 🏃`,
+      `'${title}' locked in for recent episodes! The last 90 days plus the future — no dusty archives here. 🧹`,
+      `Recent mode for '${title}'! Fresh episodes and upcoming releases only. Staying trendy! 😎`,
+    ],
+    pilot: [
+      `Just the pilot? Bold strategy! Downloading only the first episode of '${title}' — let's see if it hooks you! 🎣`,
+      `Testing the waters with '${title}'! Just the pilot episode — one episode to rule them all. 💍`,
+      `First episode of '${title}' only — gotta see if it's worth the commitment! Smart move. 🧠`,
+      `'${title}' pilot inbound! Starting with episode one — your toe is officially in the water. 🏊`,
+      `Just the pilot of '${title}'? Alright! Let's see if this show's got wings! 🦋`,
+      `One episode. That's it. '${title}' pilot downloading — no pressure, just vibes. 🎬`,
+    ],
+    firstSeason: [
+      `Just the first season? Alright if you're sure! Downloading season one of '${title}' now! 🎬`,
+      `Season 1 of '${title}' only — keeping it simple and focused! All other seasons will chill for now. 🧊`,
+      `'${title}' first season coming up! A controlled binge situation — I respect it. 🍿`,
+      `Downloading just season one of '${title}'! Starting from the beginning — the rest can wait. ⏳`,
+      `First season of '${title}' on the way! Baby steps into a new series — smart approach! 👣`,
+      `Season one of '${title}' locked in! Let's see if this show earns the other seasons. 🏆`,
+    ],
+    lastSeason: [
+      `Skipping straight to the latest season of '${title}'! No spoiler-free zone here! 🏃💨`,
+      `Latest season of '${title}' only — jumping straight to the good stuff! 🎯`,
+      `Just the most recent season of '${title}' — you're cutting to the chase! Love it. ✂️`,
+      `'${title}' last season incoming! No time for backstory — straight to the action! 💥`,
+      `Most recent season of '${title}' only — living on the edge of the plot! 🗺️`,
+      `Last season of '${title}' downloading! Who needs context anyway? 😄📺`,
+    ],
+    monitorSpecials: [
+      `Specials mode on for '${title}'! Bonus episodes, behind-the-scenes — all the extras coming your way! 🎁`,
+      `'${title}' specials are now being tracked! Because bonus content matters. 🌟`,
+      `Monitoring special episodes of '${title}' — no director's cuts left behind! 🎬✨`,
+      `'${title}' specials locked in! Extra goodies included — you want the full experience! 🎭`,
+      `Special episodes of '${title}' are on my radar! The main episodes won't be affected. 📡`,
+      `'${title}' — specials are now monitored! Holiday specials, bonus eps, the works! 🎄🎬`,
+    ],
+    unmonitorSpecials: [
+      `Turning off specials for '${title}' — sticking to the main storyline only! 🎯`,
+      `'${title}' specials? Nah. Skipping special episodes — just the core narrative for you! 📖`,
+      `Special episodes of '${title}' are off the radar! Mainline content only. No distractions! 🚫✨`,
+      `'${title}' — unmonitoring specials! Regular episodes stay untouched. Clean and focused! 🧹`,
+      `Specials for '${title}' are out! Just the main episodes — no bonus fluff. 🎬`,
+      `'${title}' — special episodes need not apply! Main storyline only from here. 📺`,
+    ],
+  }
+
+  const messages = monitorMessages[monitor]
+  if (!messages || messages.length === 0) return randomSeriesDownloadStartMessage(series)
+  return pickRandom(messages)
+}
+
+// Series download start message when a quality preference is specified (monitor=all)
+export const randomSeriesQualityDownloadStartMessage = (series: Series, quality: string) => {
+  const label = resolveQualityLabel(quality)
+  const title = series.title
+
+  const qualityMessages: Record<string, string[]> = {
+    "4K": [
+      `'${title}' in 4K is on the way! Every frame in ultra-high detail. Your TV is about to earn its keep! 📺✨`,
+      `4K Ultra HD for '${title}'! Downloading the sharpest version available. Buckle up! 🚀`,
+      `'${title}' in glorious 4K! This is going to look absolutely stunning. Downloading now! 💎`,
+      `Got it! '${title}' in 4K — because binge-watching in anything less would be a crime. 👨‍⚖️`,
+      `'${title}' downloading in 4K! Your storage might need therapy, but your eyes will be in heaven. 😍`,
+      `4K locked in for '${title}'! Every pore, every raindrop, every dramatic zoom — in perfect detail. 🔍`,
+      `'${title}' in 4K coming right up! Time to see what your screen is really capable of. 🖥️🔥`,
+      `Downloading '${title}' in 4K UHD! Premium quality for premium binge-watching. 🍿✨`,
+    ],
+    "1080p": [
+      `'${title}' in 1080p — the perfect balance! Downloading now. 🎯📺`,
+      `Full HD for '${title}'! Crisp, clean, and sensibly sized. Great choice! 👌`,
+      `'${title}' in 1080p coming right up! Sharp visuals without melting your hard drive. 🧊`,
+      `1080p locked in for '${title}'! The Goldilocks resolution — just right. 🐻`,
+      `Downloading '${title}' in 1080p! Quality and storage, living in harmony. ☮️`,
+      `'${title}' in Full HD! Every episode in crisp 1080p — binge responsibly! 📺`,
+      `Got it! '${title}' in 1080p — because you have taste AND a storage budget. 💸✨`,
+      `'${title}' downloading in 1080p! The sweet spot where quality meets common sense. 🧠`,
+    ],
+    "720p": [
+      `'${title}' in 720p — lean, mean, and still looks great! Downloading now. 📺`,
+      `720p for '${title}'! Light on storage, heavy on entertainment. On it! 🪶`,
+      `Got it! '${title}' in 720p — your bandwidth and hard drive both send their thanks. 🙏`,
+      `'${title}' downloading in 720p! More room for more shows. Smart thinking! 🧠`,
+      `720p locked in for '${title}'! Efficient binge-watching — I respect the strategy. 📦`,
+      `'${title}' in 720p coming right up! Still looks fantastic, downloads way faster. ⚡`,
+      `Downloading '${title}' in 720p! Small footprint, maximum binge potential. 🎬`,
+      `'${title}' in 720p — practical and still pretty. The Honda Civic of resolutions! 🚗`,
+    ],
+    "480p": [
+      `'${title}' in 480p — classic vibes! Downloading now. 📼`,
+      `SD for '${title}'! Tiny files, huge entertainment value. Coming right up! 🤏🎬`,
+      `'${title}' in 480p? You're a storage efficiency legend. Downloading! 🦸`,
+      `480p locked in for '${title}'! Retro resolution, modern content. Love it! 🕹️`,
+      `Got it! '${title}' in 480p — because it's the story that counts, not the pixels. 📖`,
+      `Downloading '${title}' in 480p! Your hard drive is throwing a party right now. 🎉💾`,
+      `'${title}' in 480p — maximum episodes, minimum space. Downloading now! 📺`,
+      `480p for '${title}'! Squint a little and it's basically 4K. Downloading! 😄`,
+    ],
+  }
+
+  const messages = qualityMessages[label]
+  if (!messages || messages.length === 0) return randomSeriesDownloadStartMessage(series)
+  return pickRandom(messages)
+}
+
+// Series download start message when BOTH quality and monitor options are specified
+export const randomSeriesQualityMonitorDownloadStartMessage = (
+  series: Series,
+  monitor: MonitorOptions,
+  quality: string,
+) => {
+  const label = resolveQualityLabel(quality)
+  const title = series.title
+
+  // Every quality × monitor combination gets its own set of fully integrated messages
+  const comboMessages: Record<string, Record<string, string[]>> = {
+    "4K": {
+      future: [
+        `'${title}' in 4K, future episodes only! Ultra-HD quality for every new episode as it drops. 🔮✨`,
+        `Future episodes of '${title}' in glorious 4K! Your TV will be working overtime when new ones air. 📡💎`,
+        `4K and future-only for '${title}'! No backlog, just pristine new episodes in ultra-high def. 🚀`,
+        `'${title}' — 4K resolution, future episodes only. Maximum quality, zero archaeology. Living in the now! 🌟`,
+        `Got it! '${title}' future episodes in 4K! Each new episode will look absolutely stunning. 👁️✨`,
+      ],
+      missing: [
+        `'${title}' in 4K — hunting down missing episodes in ultra-HD! Plus I'll grab future ones too. 🔍💎`,
+        `Missing episodes of '${title}' in 4K! Filling those gaps with the crispest quality possible. 🧩✨`,
+        `4K quality for '${title}' — tracking down what you're missing in glorious detail! Future episodes included. 🕵️`,
+        `'${title}' missing + future episodes, all in 4K! Digital archaeology just got a serious upgrade. 🏺💎`,
+        `Got it! Every missing episode of '${title}' in 4K, plus future releases. Your collection will be stunning! 🌟`,
+      ],
+      existing: [
+        `'${title}' in 4K — monitoring existing episodes and future releases in ultra-HD! 📦💎`,
+        `4K quality locked in for '${title}'! Keeping tabs on what you have and grabbing new ones in stunning detail. 👀✨`,
+        `'${title}' — existing and future episodes, all in 4K. Your library just got a premium upgrade! 🎩`,
+        `Got it! '${title}' in 4K for existing and upcoming episodes. Quality and coverage! 📺💎`,
+        `Monitoring '${title}' in 4K! Episodes you have plus future ones — all in ultra-high definition. 🔥`,
+      ],
+      recent: [
+        `'${title}' in 4K — last 90 days and future episodes in ultra-HD! Fresh AND gorgeous. 📅💎`,
+        `Recent episodes of '${title}' in 4K! The last 90 days in stunning detail, plus anything new. 🌱✨`,
+        `4K and recent mode for '${title}'! Modern episodes in maximum quality — no ancient history. 🏃💎`,
+        `'${title}' — recent and future episodes, all in glorious 4K. Staying current in style! 😎✨`,
+        `Got it! '${title}' in 4K, recent episodes only. The freshest content in the crispest quality! 🔥`,
+      ],
+      pilot: [
+        `Just the pilot of '${title}' in 4K? Going all-out on first impressions! Downloading now! 🎬💎`,
+        `One episode. 4K. Maximum impact. '${title}' pilot downloading in ultra-HD! 💥✨`,
+        `Testing '${title}' with the pilot in 4K! If one episode is all you get, might as well make it gorgeous. 👁️🔥`,
+        `'${title}' pilot in 4K — the most visually stunning way to test-drive a new show! 🚗💎`,
+        `Got it! Just the pilot of '${title}' in glorious 4K. No commitment, maximum pixels! 🤌✨`,
+      ],
+      firstSeason: [
+        `Well alright alright alright! Just the first season of '${title}' in 4K quality! Coming right up! 🎬✨`,
+        `Season one of '${title}' in 4K! Starting the journey in ultra-HD — what a way to begin. 🚀💎`,
+        `'${title}' first season downloading in 4K! Every frame of season one in glorious detail. 💎📺`,
+        `First season of '${title}' in 4K? Bold and beautiful. Downloading now! 🌟`,
+        `Got it! Season one of '${title}' in 4K — if you're gonna start, start in style! 🎩✨`,
+      ],
+      lastSeason: [
+        `Latest season of '${title}' in 4K! Skipping to the good stuff in ultra-HD. 🏃💎`,
+        `'${title}' last season in 4K — cutting straight to the action in the crispest quality! ✂️✨`,
+        `Most recent season of '${title}' in glorious 4K! Who needs context when you have pixels? 😄💎`,
+        `Last season of '${title}' downloading in 4K! The grand finale deserves the grand resolution. 🎆`,
+        `Got it! '${title}' latest season in 4K — jumping to the end in style! 🏆✨`,
+      ],
+      monitorSpecials: [
+        `Specials for '${title}' in 4K! Bonus content deserves bonus quality. 🎁💎`,
+        `'${title}' special episodes in 4K — behind-the-scenes in ultra-high definition! 🎬✨`,
+        `4K specials for '${title}'! Every bonus episode in glorious detail. 🌟`,
+        `Monitoring specials of '${title}' in 4K! The extras just became the main event. 🎭💎`,
+        `Got it! '${title}' specials in 4K — because even bonus content deserves the royal treatment. 👑`,
+      ],
+      unmonitorSpecials: [
+        `'${title}' in 4K, no specials — pure main storyline in ultra-HD! 🎯💎`,
+        `Unmonitoring specials for '${title}', keeping it 4K for the core episodes! Focused and stunning. 🔥`,
+        `'${title}' — 4K quality, main episodes only. No special episode distractions! 📺💎`,
+        `Specials off, 4K on for '${title}'! Just the main story in glorious detail. ✨`,
+        `Got it! '${title}' main storyline only in 4K — clean, focused, and crystal clear. 🎬💎`,
+      ],
+    },
+    "1080p": {
+      future: [
+        `'${title}' in 1080p, future episodes only! Crisp quality for every new episode. 📡🎯`,
+        `Future episodes of '${title}' in Full HD! New episodes in sharp 1080p as they air. 📺`,
+        `1080p and future-only for '${title}'! Sensible quality, forward-looking schedule. Love it! 🧠`,
+        `'${title}' — 1080p, future episodes only. Smart resolution, smart monitoring. The double whammy! ✨`,
+        `Got it! '${title}' future episodes in 1080p. Clean quality, no backlog. Perfect setup! 👌`,
+      ],
+      missing: [
+        `'${title}' in 1080p — filling those missing episode gaps in Full HD! Future ones too. 🧩`,
+        `Missing episodes of '${title}' in 1080p! Hunting them down in crisp quality. 🔍📺`,
+        `1080p for '${title}' missing and future episodes! Filling gaps with style. 💪`,
+        `'${title}' — tracking down what's missing in 1080p. Plus future releases. On the case! 🕵️`,
+        `Got it! Missing episodes of '${title}' in 1080p — your collection is about to look sharp! ✨`,
+      ],
+      existing: [
+        `'${title}' in 1080p — keeping your existing episodes monitored plus future ones! All in Full HD. 📦`,
+        `1080p locked in for '${title}'! Existing and future episodes in crisp quality. 👀`,
+        `'${title}' — existing and upcoming episodes in 1080p. Solid setup! 🔧`,
+        `Monitoring '${title}' in 1080p! What you have plus what's coming — all sharp. 📺`,
+        `Got it! '${title}' in 1080p for existing and future episodes. Clean and practical! 👌`,
+      ],
+      recent: [
+        `'${title}' in 1080p — recent episodes plus future ones! Last 90 days in Full HD. 📅`,
+        `Recent mode for '${title}' in 1080p! Fresh content in sharp quality. 🌱`,
+        `1080p and recent for '${title}'! The last 90 days in crisp Full HD, plus anything new. 📺`,
+        `'${title}' — recent and future episodes in 1080p. Staying current, staying sharp! 🎯`,
+        `Got it! '${title}' in 1080p, recent episodes only. Modern content, sensible quality! 🧠`,
+      ],
+      pilot: [
+        `Testing the waters with just the pilot of '${title}' in 1080p — smart and sharp! 🧠`,
+        `'${title}' pilot in 1080p! One episode to decide, and it'll look great doing it. 🎬`,
+        `Just the pilot of '${title}' in Full HD! Crisp first impressions. 📺`,
+        `'${title}' pilot downloading in 1080p — giving it the fair trial it deserves! ⚖️`,
+        `Got it! '${title}' pilot in 1080p. Minimal commitment, maximum clarity! 🔍`,
+      ],
+      firstSeason: [
+        `First season of '${title}' in 1080p! Starting the journey in Full HD — great combo! 🎬📺`,
+        `Season one of '${title}' in 1080p — the sensible binge begins! Downloading now. 🧠`,
+        `'${title}' season one in Full HD! A controlled binge in crisp quality. 🍿`,
+        `Just the first season of '${title}' in 1080p — smart resolution, smart approach. Love it! 👌`,
+        `Got it! Season one of '${title}' in 1080p. Sharp quality, no over-commitment! ✨`,
+      ],
+      lastSeason: [
+        `Latest season of '${title}' in 1080p! Straight to the action in Full HD. 🏃📺`,
+        `'${title}' last season in 1080p — cutting to the chase in sharp quality! ✂️`,
+        `Most recent season of '${title}' in 1080p! No filler, just the latest in Full HD. 🎯`,
+        `Last season of '${title}' downloading in 1080p! The end game looks crisp. 🔥`,
+        `Got it! '${title}' latest season in 1080p — jumping ahead in style! 🚀`,
+      ],
+      monitorSpecials: [
+        `Specials for '${title}' in 1080p! Bonus content in Full HD. 🎁📺`,
+        `'${title}' special episodes in 1080p — the extras in crisp quality! 🌟`,
+        `Monitoring specials of '${title}' in 1080p! Because even bonus episodes deserve clarity. ✨`,
+        `1080p specials for '${title}'! Full HD bonus content coming your way. 🎬`,
+        `Got it! '${title}' specials in 1080p — quality extras for quality watching! 👌`,
+      ],
+      unmonitorSpecials: [
+        `'${title}' in 1080p, no specials — main storyline in crisp Full HD! 🎯📺`,
+        `Unmonitoring specials for '${title}', 1080p for the core episodes! Focused and sharp. 🔍`,
+        `'${title}' — 1080p quality, main episodes only. No filler! 📺`,
+        `Specials off, 1080p on for '${title}'! Just the main story in Full HD. ✨`,
+        `Got it! '${title}' main storyline only in 1080p — lean, clean, and sharp. 🧹`,
+      ],
+    },
+    "720p": {
+      future: [
+        `'${title}' in 720p, future episodes only! Lightweight and forward-looking. 📡🪶`,
+        `Future episodes of '${title}' in 720p! New episodes without hogging your storage. ⚡`,
+        `720p and future-only for '${title}'! Fast downloads, fresh episodes. Win-win! 🏆`,
+        `'${title}' — 720p, future episodes only. Efficient all around! 🎯`,
+        `Got it! '${title}' future episodes in 720p. Small files, big anticipation! 📺`,
+      ],
+      missing: [
+        `'${title}' in 720p — tracking down missing episodes without eating your storage! 🔍🪶`,
+        `Missing episodes of '${title}' in 720p! Filling gaps efficiently. 🧩`,
+        `720p for '${title}' missing and future episodes! Quick downloads, complete collection. 💨`,
+        `'${title}' — hunting down what's missing in 720p. Light on space, heavy on results! ⚡`,
+        `Got it! Missing episodes of '${title}' in 720p — lean and mean gap-filling! 🎯`,
+      ],
+      existing: [
+        `'${title}' in 720p — monitoring existing and future episodes on the light side! 📦🪶`,
+        `720p for '${title}'! Existing and future episodes, storage-friendly. 📺`,
+        `'${title}' — existing and upcoming in 720p. Practical and efficient! 🔧`,
+        `Monitoring '${title}' in 720p! What you have plus what's coming — no bloat. ⚡`,
+        `Got it! '${title}' in 720p for existing and future episodes. Lean and lovely! 💪`,
+      ],
+      recent: [
+        `'${title}' in 720p — recent episodes and future ones! Light and current. 📅🪶`,
+        `Recent mode for '${title}' in 720p! Fresh content, fast downloads. 🌱`,
+        `720p and recent for '${title}'! The last 90 days, minimal storage impact. ⚡`,
+        `'${title}' — recent and future in 720p. Staying current, staying light! 🏃`,
+        `Got it! '${title}' in 720p, recent episodes. Efficient and up to date! 📺`,
+      ],
+      pilot: [
+        `'${title}' pilot in 720p — quick download, quick decision! Let's see if it hooks you. 🎣`,
+        `Just the pilot of '${title}' in 720p! Minimal storage for maximum test-driving. 🚗`,
+        `'${title}' pilot downloading in 720p — fast, light, and straight to the point! ⚡`,
+        `One episode of '${title}' in 720p! The ultimate low-commitment trial. 🎬`,
+        `Got it! '${title}' pilot in 720p. Quick grab, quick watch, quick verdict! 🏃`,
+      ],
+      firstSeason: [
+        `First season of '${title}' in 720p! A whole season that barely dents your storage. 📦`,
+        `Season one of '${title}' in 720p — efficient bingeing at its finest! 🪶`,
+        `'${title}' first season in 720p! Light downloads, full season. Nice balance! ⚖️`,
+        `Just season one of '${title}' in 720p — practical approach, I respect it! 👍`,
+        `Got it! Season one of '${title}' in 720p. Maximum episodes, minimum footprint! 📺`,
+      ],
+      lastSeason: [
+        `Latest season of '${title}' in 720p! Straight to the latest, light on storage. 🏃🪶`,
+        `'${title}' last season in 720p — cutting to the chase, keeping it lean! ✂️`,
+        `Most recent season of '${title}' in 720p! Quick downloads, latest content. ⚡`,
+        `Last season of '${title}' in 720p — no fuss, no bloat, just the good stuff! 📺`,
+        `Got it! '${title}' latest season in 720p — fast and focused! 🎯`,
+      ],
+      monitorSpecials: [
+        `Specials for '${title}' in 720p! Bonus content, light on storage. 🎁🪶`,
+        `'${title}' special episodes in 720p — extras without the extra space! 📺`,
+        `Monitoring specials of '${title}' in 720p! Efficient bonus content! ⚡`,
+        `720p specials for '${title}'! All the extras, none of the storage guilt. 🎬`,
+        `Got it! '${title}' specials in 720p — lean bonus content! 👌`,
+      ],
+      unmonitorSpecials: [
+        `'${title}' in 720p, no specials — lean main storyline! 🎯🪶`,
+        `Unmonitoring specials for '${title}' in 720p! Core episodes only, super efficient. ⚡`,
+        `'${title}' — 720p, main episodes only. Maximum efficiency! 📺`,
+        `Specials off, 720p on for '${title}'! Streamlined and lightweight. 🧹`,
+        `Got it! '${title}' main storyline only in 720p — trim and terrific! 💪`,
+      ],
+    },
+    "480p": {
+      future: [
+        `'${title}' in 480p, future episodes only! Tiny files for every new episode. 📡📼`,
+        `Future episodes of '${title}' in SD! Your storage will barely blink. 💾`,
+        `480p and future-only for '${title}'! The most storage-efficient setup possible. 🦸`,
+        `'${title}' — 480p, future episodes only. Lean machine mode! 🤖`,
+        `Got it! '${title}' future episodes in 480p. Microscopic files, maximum content! 🤏`,
+      ],
+      missing: [
+        `'${title}' in 480p — tracking down missing episodes in retro resolution! 🔍📼`,
+        `Missing episodes of '${title}' in 480p! Filling gaps with minimal footprint. 🧩`,
+        `480p for '${title}' missing and future episodes! So tiny, so efficient. 🤏`,
+        `'${title}' — hunting down what's missing in 480p. Your hard drive won't even notice! 💾`,
+        `Got it! Missing episodes of '${title}' in 480p — gap-filling on a diet! 🥗`,
+      ],
+      existing: [
+        `'${title}' in 480p — existing and future episodes in classic SD! 📦📼`,
+        `480p for '${title}'! Existing and future episodes, ultra-light. 🪶`,
+        `'${title}' — existing and upcoming in 480p. The minimalist's dream! 🧘`,
+        `Monitoring '${title}' in 480p! What you have plus what's coming — barely any space used. 💾`,
+        `Got it! '${title}' in 480p for existing and future episodes. Storage hero mode! 🦸`,
+      ],
+      recent: [
+        `'${title}' in 480p — recent episodes, barely any storage used! 📅📼`,
+        `Recent mode for '${title}' in 480p! Last 90 days in classic resolution. 🕹️`,
+        `480p and recent for '${title}'! Fresh content, vintage resolution. ⚡`,
+        `'${title}' — recent and future in 480p. Retro quality, modern schedule! 📺`,
+        `Got it! '${title}' in 480p, recent episodes. Maximum efficiency achieved! 🏆`,
+      ],
+      pilot: [
+        `'${title}' pilot in 480p — the absolute smallest test-drive possible! 🤏🎬`,
+        `Just the pilot of '${title}' in 480p! One episode, barely any space. Ultimate trial! 📼`,
+        `'${title}' pilot in SD — blink and you'll miss the file size! Downloading! 💨`,
+        `One episode of '${title}' in 480p! The commitment level is basically zero. 😄`,
+        `Got it! '${title}' pilot in 480p. The tiniest possible taste of a new show! 🤏`,
+      ],
+      firstSeason: [
+        `First season of '${title}' in 480p! A whole season that takes up almost nothing. 📼`,
+        `Season one of '${title}' in 480p — retro resolution for a full season binge! 🕹️`,
+        `'${title}' first season in SD! Your storage won't even flinch. 💪💾`,
+        `Just season one of '${title}' in 480p — an entire season in the space of one HD movie! 🤏`,
+        `Got it! Season one of '${title}' in 480p. Vintage vibes, full season! 📺`,
+      ],
+      lastSeason: [
+        `Latest season of '${title}' in 480p! Straight to the point, minimum space! 🏃📼`,
+        `'${title}' last season in 480p — cutting to the chase, saving all the space! ✂️💾`,
+        `Most recent season of '${title}' in SD! Who needs pixels when you have plot? 😄`,
+        `Last season of '${title}' in 480p — the no-frills express! 🚂`,
+        `Got it! '${title}' latest season in 480p — fast, small, done! ⚡`,
+      ],
+      monitorSpecials: [
+        `Specials for '${title}' in 480p! Bonus content that barely takes up any room. 🎁📼`,
+        `'${title}' special episodes in SD — the extras in classic resolution! 🕹️`,
+        `Monitoring specials of '${title}' in 480p! Retro bonus content! 📺`,
+        `480p specials for '${title}'! All the extras, barely any space. 🤏`,
+        `Got it! '${title}' specials in 480p — storage-friendly bonus content! 💾`,
+      ],
+      unmonitorSpecials: [
+        `'${title}' in 480p, no specials — pure main storyline, pure efficiency! 🎯📼`,
+        `Unmonitoring specials for '${title}' in 480p! Core content only, maximum savings. 💰`,
+        `'${title}' — 480p, main episodes only. The most efficient setup known to man! 🦸`,
+        `Specials off, 480p on for '${title}'! Absolute minimum storage usage. 📺`,
+        `Got it! '${title}' main storyline only in 480p — lean, mean, streaming machine! 💪`,
+      ],
+    },
+  }
+
+  const qualityGroup = comboMessages[label]
+  if (!qualityGroup) return randomSeriesMonitorDownloadStartMessage(series, monitor)
+
+  const messages = qualityGroup[monitor]
+  if (!messages || messages.length === 0) return randomSeriesMonitorDownloadStartMessage(series, monitor)
+
+  return pickRandom(messages)
 }
 
 export const randomSeriesMonitorChangeToAllMessage = (seriesTitle: string) => {

@@ -393,6 +393,48 @@ export const removePoolItem = async (
   }
 }
 
+// Transfer a pool item from one user to another
+export const transferPoolItem = async (
+  sourceUserId: string,
+  destUserId: string,
+  itemType: "movies" | "series",
+  itemIndex: number,
+): Promise<settingsType> => {
+  try {
+    const userToken = localStorage.getItem("token")
+    const res = await axios.post(
+      "",
+      {
+        variables: {
+          sourceUserId,
+          destUserId,
+          itemType,
+          itemIndex,
+        },
+        query: `
+          mutation TransferPoolItem($sourceUserId: String!, $destUserId: String!, $itemType: String!, $itemIndex: Int!) {
+            transferPoolItem(sourceUserId: $sourceUserId, destUserId: $destUserId, itemType: $itemType, itemIndex: $itemIndex) {
+              ${populateSettings}
+            }
+          }
+        `,
+      },
+      { headers: headers(userToken || "") },
+    )
+
+    if (res.data.errors) {
+      console.error(`transferPoolItem Error: ${res.data.errors[0].message}`)
+      throw new Error(res.data.errors[0].message)
+    } else {
+      console.log(`transferPoolItem: Pool item transferred successfully.`)
+      return res.data.data.transferPoolItem
+    }
+  } catch (err) {
+    console.error(getAxiosErrorMessage(err))
+    throw err
+  }
+}
+
 export const deleteUser = async (userId: string): Promise<settingsType> => {
   try {
     const userToken = localStorage.getItem("token")
