@@ -15,7 +15,7 @@ Loops:
 
 - Library Cleanup - Remove all library content not in Starr App Import Lists while respecting download ratio/time requirements and protecting user pool content.
 - Content Search - Search for all wanted missing items across all Starr Apps.
-- Queue Health - Monitor and remove all blocked or problematic downloads in the queue.
+- Queue Cleaner - Monitor and remove all blocked or problematic downloads in the queue.
 - Failed Cleanup - Remove all failed downloads from disk.
 - Tidy Directories - Remove all unwanted files and directories in the provided paths.
 - Permissions Change - Change ownership and permissions of completed downloads.
