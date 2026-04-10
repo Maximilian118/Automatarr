@@ -489,11 +489,8 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
 
           // Check if all torrents have finished downloading and met their seed criteria
           const torrentsReady = torrentFiles.every((t) => {
-            // If we can't verify a torrent's seeding status, block deletion for safety
-            if (!t) {
-              logger.warn(`Library Cleanup | ${API.name} | Torrent reference is null/undefined for ${libraryItem.title} - blocking deletion for safety.`)
-              return false
-            }
+            // No torrent in qBit for this episode — nothing to seed-check
+            if (!t) return true
 
             const isDownloaded = torrentDownloadedCheck(t, t.torrentType, settings.verbose_logging)
             const hasMetSeedRequirements = torrentSeedCheck(t, data.qBittorrent.preferences, t.torrentType, settings.verbose_logging)
