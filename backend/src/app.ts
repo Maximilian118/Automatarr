@@ -20,6 +20,22 @@ import createWebhookRouter from "./middleware/webhooks"
 import { newWebhook } from "./webhooks/webhookUtility"
 import logsRouter from "./routes/logs"
 
+// Read version from package.json
+const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"))
+const version = packageJson.version
+
+// Welcome message
+logger.info(``)
+logger.info(`  ___        _                        _                `)
+logger.info(` / _ \\      | |                      | |               `)
+logger.info(`/ /_\\ \\_   _| |_ ___  _ __ ___   __ _| |_ __ _ _ __ _ __ `)
+logger.info(`|  _  | | | | __/ _ \\| '_ \` _ \\ / _\` | __/ _\` | '__| '__|`)
+logger.info(`| | | | |_| | || (_) | | | | | | (_| | || (_| | |  | |   `)
+logger.info(`\\_| |_/\\__,_|\\__\\___/|_| |_| |_|\\__,_|\\__\\__,_|_|  |_|   `)
+logger.info(``)
+logger.info(`v${version}`)
+logger.info(``)
+
 // Start listening for errors
 globalErrorHandlers()
 
