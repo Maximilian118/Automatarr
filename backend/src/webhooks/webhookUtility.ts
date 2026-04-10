@@ -12,6 +12,7 @@ import { Episode } from "../types/episodeTypes"
 import { Message } from "discord.js"
 import { isMovie, isSeries } from "../types/typeGuards"
 import { sendDiscordNotification } from "../bots/discordBot/discordBotUtility"
+import Settings, { settingsDocType } from "../models/settings"
 
 // Ensure the webHook dataset has been created
 export const newWebhook = async (): Promise<WebHookDocType> => {
@@ -43,6 +44,7 @@ export type QueueNotificationType = {
   message: string
   expiry?: Date
   expired_message?: string
+  persistent?: boolean
 }
 
 export const waitForWebhooks = async (
@@ -80,6 +82,7 @@ export const waitForWebhooks = async (
         w.message,
         w.expiry,
         w.expired_message,
+        w.persistent,
       )
     }
 
@@ -111,6 +114,7 @@ const waitForWebhook = async (
   message: string, // Message for the user
   expiry?: Date,
   expired_message?: string,
+  persistent?: boolean,
 ): Promise<void> => {
   const discordData: DiscordDataType = {
     guildId: discordMessage?.guild?.id ?? "",
@@ -134,6 +138,7 @@ const waitForWebhook = async (
     message,
     expiry,
     expired_message,
+    persistent: persistent ?? false,
     created_at: new Date(),
   }
 
@@ -161,10 +166,27 @@ const waitForWebhook = async (
   waitingWebhooks.waiting.push(waiting)
 }
 
+// Check if content is still in at least one user's pool
+const isContentInAnyUserPool = (
+  users: settingsDocType["general_bot"]["users"],
+  content: Movie | Series | Episode,
+): boolean => {
+  return users.some((u) => {
+    if (isMovie(content)) {
+      return u.pool.movies.some((m) => m.tmdbId === content.tmdbId)
+    }
+    if (isSeries(content)) {
+      return u.pool.series.some((s) => s.tvdbId === content.tvdbId)
+    }
+    return false
+  })
+}
+
 // Cleanup webhooks with multi-layered safeguards:
-// 1. ABSOLUTE SAFEGUARD: Remove ANY webhook older than 48 hours (prevents indefinite accumulation)
-// 2. Remove webhooks older than 24 hours (normal cleanup)
-// 3. Keep "Expired" webhooks for 24h grace period for potential Import/Upgrade edits
+// 1. Persistent webhooks survive cleanup unless no user has the content in their pool or they exceed 365 days
+// 2. ABSOLUTE SAFEGUARD: Remove ANY non-persistent webhook older than 48 hours (prevents indefinite accumulation)
+// 3. Remove webhooks older than 24 hours (normal cleanup)
+// 4. Keep "Expired" webhooks for 24h grace period for potential Import/Upgrade edits
 export const webhookCleanup = async (): Promise<void> => {
   const waitingWebhooks = (await WebHook.findOne()) as WebHookDocType
 
@@ -180,10 +202,39 @@ export const webhookCleanup = async (): Promise<void> => {
 
   // Filter webhooks with absolute maximum age safeguard
   const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000) // 48 hours ago
+  const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000) // 365 days ago
   let removedForAge = 0
+  let removedPersistentOrphans = 0
+
+  // Load settings for persistent webhook pool membership checks
+  const settings = (await Settings.findOne()) as settingsDocType | null
+  const users = settings?.general_bot?.users ?? []
 
   waitingWebhooks.waiting = waitingWebhooks.waiting.filter((w) => {
-    // ABSOLUTE SAFEGUARD: Remove ANY webhook older than 48 hours regardless of status
+    // Persistent webhooks survive normal cleanup but have their own safeguards
+    if (w.persistent) {
+      // Safety net: remove persistent webhooks older than 365 days
+      if (w.created_at && new Date(w.created_at) <= oneYearAgo) {
+        removedForAge++
+        logger.warn(
+          `Webhook | Removing persistent webhook older than 365d | ${w.content.title} = ${w.waitForStatus} | Created: ${w.created_at}`,
+        )
+        return false
+      }
+
+      // Remove persistent webhooks if the content is no longer in any user's pool
+      if (!isContentInAnyUserPool(users, w.content)) {
+        removedPersistentOrphans++
+        logger.info(
+          `Webhook | Removing orphaned persistent webhook | ${w.content.title} = ${w.waitForStatus} | No user has this in their pool`,
+        )
+        return false
+      }
+
+      return true
+    }
+
+    // ABSOLUTE SAFEGUARD: Remove ANY non-persistent webhook older than 48 hours regardless of status
     if (w.created_at && new Date(w.created_at) <= twoDaysAgo) {
       removedForAge++
       logger.warn(
@@ -207,7 +258,11 @@ export const webhookCleanup = async (): Promise<void> => {
   })
 
   if (removedForAge > 0) {
-    logger.info(`Webhook | Cleanup | Removed ${removedForAge} webhook(s) for exceeding 48h maximum age`)
+    logger.info(`Webhook | Cleanup | Removed ${removedForAge} webhook(s) for exceeding maximum age`)
+  }
+
+  if (removedPersistentOrphans > 0) {
+    logger.info(`Webhook | Cleanup | Removed ${removedPersistentOrphans} orphaned persistent webhook(s)`)
   }
 
   if (waitingWebhooks.waiting.length < originalLength) {

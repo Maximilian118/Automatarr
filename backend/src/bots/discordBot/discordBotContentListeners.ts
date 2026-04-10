@@ -30,8 +30,10 @@ import {
   randomSeriesReadyMessage,
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
-  randomNotReleasedMessage,
   randomReAddedToPoolMessage,
+  randomUnreleasedAddedMessage,
+  randomUnreleasedMovieReadyMessage,
+  randomUnreleasedSeriesReadyMessage,
 } from "./discordBotRandomReply"
 import Data, { dataDocType } from "../../models/data"
 import { saveWithRetry } from "../../shared/database"
@@ -163,14 +165,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
   }
 
-  // Check to see if the movie is available
-  if (!foundMovie.isAvailable) {
-    return discordReply(
-      randomNotReleasedMessage(message.author.toString(), foundMovie.title, foundMovie.status),
-      "info",
-      `${user.name} tried to download ${foundMovie.title} but it's not available.`,
-    )
-  }
+  // Track whether the movie is unreleased (will be used to branch webhook/reply behavior)
+  const isUnreleased = !foundMovie.isAvailable
 
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType
@@ -243,6 +239,10 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     )
   }
 
+  // Guard against duplicate pool entries (e.g. user re-requests the same unreleased movie)
+  const alreadyInPool = user.pool.movies.some((m) => m.tmdbId === movie.tmdbId)
+  if (alreadyInPool) return randomAlreadyAddedMessage()
+
   // Add the movie to the users pool
   settings.general_bot.users = settings.general_bot.users.map((u) => {
     if (u._id === user._id) {
@@ -260,6 +260,36 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
 
+  if (isUnreleased) {
+    // Queue a persistent Import webhook for unreleased media (no Grab needed, no expiry - survives cleanup)
+    if (settings.webhooks) {
+      const queueNotifications: QueueNotificationType[] = []
+
+      if (settings.webhooks_enabled.includes("Import")) {
+        queueNotifications.push({
+          waitForStatus: "Import",
+          message: randomUnreleasedMovieReadyMessage(message.author.toString(), movie.title),
+          persistent: true,
+        })
+      }
+
+      if (queueNotifications.length > 0) {
+        await waitForWebhooks(queueNotifications, "Radarr", ["Discord"], message, null, movie)
+      }
+    } else {
+      logger.warn(
+        `Webhook | Unreleased movie '${movie.title}' added by ${user.name} but webhooks are disabled. No download notification will be sent.`,
+      )
+    }
+
+    return discordReply(
+      randomUnreleasedAddedMessage(message.author.toString(), movie.title, movie.status),
+      "success",
+      `${user.name} | Unreleased Movie Added to Pool | ${movie.title} | They have ${currentLeft} pool allowance available for movies.`,
+    )
+  }
+
+  // Released media: queue normal webhooks with standard expiry
   if (settings.webhooks) {
     const queueNotifications: QueueNotificationType[] = []
 
@@ -344,14 +374,8 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   // Grab the first series in the array
   const foundSeries = sortedSeriesArr[0]
 
-  // Check if the series has been aired
-  if (!isSeriesReleased(foundSeries)) {
-    return discordReply(
-      randomNotReleasedMessage(message.author.toString(), foundSeries.title),
-      "info",
-      `${user.name} tried to download ${foundSeries.title} but it's not available.`,
-    )
-  }
+  // Track whether the series is unreleased (will be used to branch webhook/reply behavior)
+  const isUnreleased = !isSeriesReleased(foundSeries)
 
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType
@@ -554,6 +578,10 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     )
   }
 
+  // Guard against duplicate pool entries (e.g. user re-requests the same unreleased series)
+  const alreadyInPool = user.pool.series.some((s) => s.tvdbId === series.tvdbId)
+  if (alreadyInPool) return randomAlreadyAddedMessage()
+
   // Add the series to the users pool
   settings.general_bot.users = settings.general_bot.users.map((u) => {
     if (u._id === user._id) {
@@ -571,6 +599,36 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
 
+  if (isUnreleased) {
+    // Queue a persistent Import webhook for unreleased media (no Grab needed, no expiry - survives cleanup)
+    if (settings.webhooks) {
+      const queueNotifications: QueueNotificationType[] = []
+
+      if (settings.webhooks_enabled.includes("Import")) {
+        queueNotifications.push({
+          waitForStatus: "Import",
+          message: randomUnreleasedSeriesReadyMessage(message.author.toString(), series.title),
+          persistent: true,
+        })
+      }
+
+      if (queueNotifications.length > 0) {
+        await waitForWebhooks(queueNotifications, "Sonarr", ["Discord"], message, null, series)
+      }
+    } else {
+      logger.warn(
+        `Webhook | Unreleased series '${series.title}' added by ${user.name} but webhooks are disabled. No download notification will be sent.`,
+      )
+    }
+
+    return discordReply(
+      randomUnreleasedAddedMessage(message.author.toString(), series.title),
+      "success",
+      `${user.name} | Unreleased Series Added to Pool | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
+    )
+  }
+
+  // Released media: queue normal webhooks with standard expiry
   if (settings.webhooks) {
     const queueNotifications: QueueNotificationType[] = []
 

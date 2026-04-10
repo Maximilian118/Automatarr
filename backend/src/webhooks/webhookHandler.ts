@@ -7,6 +7,8 @@ import { isMovie, isSeries } from "../types/typeGuards"
 import {
   randomMovieReadyMessage,
   randomSeriesReadyMessage,
+  randomUnreleasedMovieReadyMessage,
+  randomUnreleasedSeriesReadyMessage,
 } from "../bots/discordBot/discordBotRandomReply"
 import { sendDiscordNotification } from "../bots/discordBot/discordBotUtility"
 import { saveWithRetry } from "../shared/database"
@@ -55,6 +57,10 @@ export const handleRadarrWebhook = async (webhook: StarrWebhookType): Promise<vo
     return
   }
 
+  // Only handle event types we care about - silently ignore everything else (e.g. ManualInteractionRequired, Rename, HealthIssue)
+  const handledEventTypes = ["Grab", "Import", "Upgrade"]
+  if (!handledEventTypes.includes(webhook.eventType)) return
+
   if (!webhook.movie) {
     logger.error(
       `Webhook | handleRadarrWebhook | ${webhook.eventType} | ${title} | No movie found in the webhook.`,
@@ -78,7 +84,10 @@ export const handleRadarrWebhook = async (webhook: StarrWebhookType): Promise<vo
   if (webhook.eventType === "Import" || webhook.eventType === "Upgrade") {
     if (webhookMatch.discordData) {
       const userMention = webhookMatch.discordData.authorMention
-      webhookMatch.message = randomMovieReadyMessage(userMention, webhookMatch.content.title)
+      // Use special "waited for" message for persistent webhooks (unreleased media)
+      webhookMatch.message = webhookMatch.persistent
+        ? randomUnreleasedMovieReadyMessage(userMention, webhookMatch.content.title)
+        : randomMovieReadyMessage(userMention, webhookMatch.content.title)
     }
   }
 
@@ -155,6 +164,10 @@ export const handleSonarrWebhook = async (webhook: StarrWebhookType): Promise<vo
     return
   }
 
+  // Only handle event types we care about - silently ignore everything else (e.g. ManualInteractionRequired, Rename, HealthIssue)
+  const sonarrHandledEventTypes = ["Grab", "Import", "Upgrade"]
+  if (!sonarrHandledEventTypes.includes(webhook.eventType)) return
+
   if (!webhook.series) {
     logger.error(
       `Webhook | handleSonarrWebhook | ${webhook.eventType} | ${title} | No series found in the webhook.`,
@@ -178,7 +191,10 @@ export const handleSonarrWebhook = async (webhook: StarrWebhookType): Promise<vo
   if (webhook.eventType === "Upgrade") {
     if (webhookMatch.discordData) {
       const userMention = webhookMatch.discordData.authorMention
-      webhookMatch.message = randomSeriesReadyMessage(userMention, webhookMatch.content.title)
+      // Use special "waited for" message for persistent webhooks (unreleased media)
+      webhookMatch.message = webhookMatch.persistent
+        ? randomUnreleasedSeriesReadyMessage(userMention, webhookMatch.content.title)
+        : randomSeriesReadyMessage(userMention, webhookMatch.content.title)
     }
   }
 

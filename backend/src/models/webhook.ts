@@ -53,6 +53,7 @@ export interface WebHookWaitingType {
   expiry?: Date | null // Time that we stop waiting for a webhook that matches
   expired_message?: string // Message to send if we stop waiting for a webhook that matches
   expiredCount?: number // Track how many times this webhook has been expired (prevent infinite re-expiry)
+  persistent?: boolean // If true, webhook survives normal cleanup (used for unreleased media that may take months to download)
   created_at: Date
 }
 
@@ -92,6 +93,7 @@ const WebHookWaitingSchema = new mongoose.Schema<WebHookWaitingType>({
   expiry: { type: Date, default: null },
   expired_message: { type: String, default: "" },
   expiredCount: { type: Number, default: 0 },
+  persistent: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
 })
 

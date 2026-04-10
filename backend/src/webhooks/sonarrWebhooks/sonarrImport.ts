@@ -127,9 +127,11 @@ export const sonarrImport = async (
       const userMention = webhookMatch.discordData.authorMention
 
       if (allImported) {
-        // All episodes imported - send "Ready" message
-        const { randomSeriesReadyMessage } = await import("../../bots/discordBot/discordBotRandomReply")
-        webhookMatch.message = randomSeriesReadyMessage(userMention, webhookMatch.content.title)
+        // All episodes imported - send "Ready" message (use special message for unreleased/persistent webhooks)
+        const { randomSeriesReadyMessage, randomUnreleasedSeriesReadyMessage } = await import("../../bots/discordBot/discordBotRandomReply")
+        webhookMatch.message = webhookMatch.persistent
+          ? randomUnreleasedSeriesReadyMessage(userMention, webhookMatch.content.title)
+          : randomSeriesReadyMessage(userMention, webhookMatch.content.title)
       } else {
         // Partial import - show progress
         const importedCount = webhookMatch.episodes.filter(ep => ep.imported).length

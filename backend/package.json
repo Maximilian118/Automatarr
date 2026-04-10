@@ -1,6 +1,6 @@
 {
   "name": "automatarr-backend",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Backend for automatarr",
   "main": "dist/app.js",
   "scripts": {

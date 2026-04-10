@@ -100,6 +100,84 @@ export const randomNotReleasedMessage = (
   return base
 }
 
+// Immediate reply when a user requests unreleased media - tells them it's been added and they'll be notified
+export const randomUnreleasedAddedMessage = (
+  name: string,
+  title: string,
+  status?: "inCinemas" | "released" | "announced",
+) => {
+  const statusTaglines: Record<"inCinemas" | "released" | "announced", string[]> = {
+    announced: [
+      "No release date yet, but I'll be watching.",
+      "It's only been announced so far, but I've got my eye on it.",
+      "Still a ways off, but I'll keep tabs on it for you.",
+    ],
+    inCinemas: [
+      "It's in theaters right now, so I'll grab it once it hits home release.",
+      "Still cinema-only for now — I'll snag it as soon as it's available.",
+      "Once it leaves the big screen, it's headed straight to your library.",
+    ],
+    released: [
+      "It should be available soon — I'll grab it as soon as I can.",
+      "Might just be a matter of time before it shows up.",
+      "I'll keep looking and grab it the moment it's out there.",
+    ],
+  }
+
+  const baseMessages = [
+    `Hey ${name}, '${title}' isn't out yet — but I've added it to your pool. I'll let you know when it's downloaded! 🔔`,
+    `${name}, '${title}' hasn't been released yet, but it's on my radar now. You'll get a ping when it lands! 📡`,
+    `Got it, ${name}! '${title}' isn't available yet, but I've queued it up. I'll notify you when it's ready. ⏳`,
+    `'${title}' is still unreleased, ${name}, but consider it tracked. I'll shout when it's downloaded! 📢`,
+    `No worries, ${name} — '${title}' is now in your pool. When it drops and downloads, you'll be the first to know! 🎯`,
+    `I can't grab '${title}' just yet, ${name}, but I've added it to your pool and I'll ping you when it's downloaded! 🛎️`,
+    `'${title}' isn't out in the wild yet, ${name}. I've saved it to your pool though — sit tight, I'll let you know! 💤`,
+    `Consider it done, ${name}. '${title}' is in your pool — I'll hit you up when it's finally available and downloaded! ✨`,
+  ]
+
+  const base = baseMessages[Math.floor(Math.random() * baseMessages.length)]
+
+  if (status) {
+    const taglines = statusTaglines[status]
+    const statusMessage = taglines[Math.floor(Math.random() * taglines.length)]
+    return `${base} ${statusMessage}`
+  }
+
+  return base
+}
+
+// Webhook notification when an unreleased movie has finally been downloaded
+export const randomUnreleasedMovieReadyMessage = (name: string, movieTitle: string) => {
+  const messages = [
+    `${name}, that movie '${movieTitle}' you've been waiting for has been downloaded! 🎬🎉`,
+    `The wait is over, ${name}! '${movieTitle}' has finally landed in your library! 🍿`,
+    `Remember '${movieTitle}', ${name}? It's here! Downloaded and ready to watch! 🎥`,
+    `${name}, '${movieTitle}' just dropped and it's already downloaded for you! Time was well spent waiting! ⏰✅`,
+    `Big news, ${name} — '${movieTitle}' is out and downloaded! Your patience has been rewarded! 🏆`,
+    `Ding ding! ${name}, '${movieTitle}' is finally here. It's been a long wait, but it's all yours now! 🔔`,
+    `${name}, guess what? '${movieTitle}' has been released and downloaded! Go enjoy it! 🎊`,
+    `The day has come, ${name}! '${movieTitle}' is downloaded and waiting for you. Worth the wait? 🤩`,
+    `Hey ${name}, remember when you asked for '${movieTitle}'? Well, it's downloaded now! Enjoy! 🥳`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
+// Webhook notification when an unreleased series has finally been downloaded
+export const randomUnreleasedSeriesReadyMessage = (name: string, seriesTitle: string) => {
+  const messages = [
+    `${name}, that series '${seriesTitle}' you've been waiting for has been downloaded! 📺🎉`,
+    `The wait is over, ${name}! '${seriesTitle}' has finally arrived in your library! 🍿`,
+    `Remember '${seriesTitle}', ${name}? It's here! Downloaded and ready to binge! 🎬`,
+    `${name}, '${seriesTitle}' just dropped and it's already downloaded for you! Time to binge! ⏰✅`,
+    `Big news, ${name} — '${seriesTitle}' is out and downloaded! Your patience has paid off! 🏆`,
+    `Ding ding! ${name}, '${seriesTitle}' is finally here. The wait is over, get comfy! 🔔`,
+    `${name}, guess what? '${seriesTitle}' has been released and downloaded! Happy binging! 🎊`,
+    `The day has come, ${name}! '${seriesTitle}' is downloaded and ready. Worth the wait? 🤩`,
+    `Hey ${name}, remember when you asked for '${seriesTitle}'? Well, it's downloaded now! Enjoy! 🥳`,
+  ]
+  return messages[Math.floor(Math.random() * messages.length)]
+}
+
 export const randomSeriesReadyMessage = (name: string, seriesTitle: string) => {
   const messages = [
     `Hey ${name}, '${seriesTitle}' just finished downloading! Time to binge! 📺`,
