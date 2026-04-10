@@ -113,8 +113,8 @@ const commandRegistry: CommandEntry[] = [
     name: "!download",
     category: "Content",
     shortDescription: "Download content",
-    description: `Download content and add it to your pool. Optionally, specify how much of a Series you'd like to download and monitor with <optional_monitor_option>. Use "!help Monitor Options" for a list of commands.`,
-    usage: "!download <movieTitle + Year / seriesTitle + Year> <optional_monitor_option>",
+    description: `Download content and add it to your pool. Optionally, specify a quality and/or a monitor option in any order after the year. Use "!help Quality" for quality options and "!help Monitor" for monitor options.`,
+    usage: "!download <title + year> <optional_quality> <optional_monitor>",
     adminRequired: false,
   },
   {
@@ -210,10 +210,11 @@ export const caseHelp = (message: Message): void => {
     return
   }
 
-  // Check for "!help Monitor Options" or "!help Monitor"
+  // Check for "!help Monitor"
   if (query && query.toLowerCase() === "monitor") {
     const monitorOptionsMessage =
-      `**Series Monitoring Options:**\n` +
+      `**Series Monitoring Options:**\n\n` +
+      `Monitoring controls how much of a series gets downloaded. By default, all episodes are downloaded. Use these options with !download or !monitor to choose which episodes you want.\n\n` +
       `**All** - Monitor all episodes except specials\n` +
       `**Future** - Monitor episodes that have not aired yet\n` +
       `**Missing** - Monitor episodes that do not have files or have not aired yet\n` +
@@ -225,6 +226,24 @@ export const caseHelp = (message: Message): void => {
       `**MonitorSpecials** - Monitor all special episodes without changing the monitored status of other episodes\n` +
       `**UnmonitorSpecials** - Unmonitor all special episodes without changing the monitored status of other episodes`
     sendDiscordMessage(message, monitorOptionsMessage)
+    return
+  }
+
+  // Check for "!help Quality"
+  if (query && query.toLowerCase() === "quality") {
+    const qualityOptionsMessage =
+      `**Quality Options for !download:**\n\n` +
+      `Add a quality option after the year to override the default quality profile.\n` +
+      `Quality and monitor options can be used together in any order.\n\n` +
+      `**4K / Ultra HD:** 4k, 2160p, 2160, uhd, ultra\n` +
+      `**1080p / Full HD:** 1080p, 1080, fhd, fullhd\n` +
+      `**720p / HD:** 720p, 720\n` +
+      `**480p / SD:** 480p, 480, sd\n\n` +
+      `**Examples:**\n` +
+      `\`!download Breaking Bad 2008 4k\`\n` +
+      `\`!download Firefly 2002 1080p future\`\n` +
+      `\`!download Top Gun 1986 uhd\``
+    sendDiscordMessage(message, qualityOptionsMessage)
     return
   }
 
