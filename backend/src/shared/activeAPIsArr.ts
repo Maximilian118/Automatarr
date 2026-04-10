@@ -7,6 +7,7 @@ import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import {
   commandData,
+  DownloadClient,
   DownloadStatus,
   ImportListData,
   MdblistItem,
@@ -22,6 +23,7 @@ type APIDataFields = {
   commands?: commandData[]
   commandList?: string[]
   downloadQueue?: DownloadStatus[]
+  downloadClients?: DownloadClient[]
   importLists?: ImportListData[]
   listItems?: MdblistItem[]
   rootFolder?: rootFolderData
@@ -102,6 +104,9 @@ export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs>
             commands: data.commands.filter((c) => API.name === c.name).flatMap((c) => c.data),
             commandList: data.commandList.filter((c) => API.name === c.name).flatMap((c) => c.data),
             downloadQueue: data.downloadQueues
+              .filter((d) => API.name === d.name)
+              .flatMap((d) => d.data),
+            downloadClients: data.downloadClients
               .filter((d) => API.name === d.name)
               .flatMap((d) => d.data),
             importLists: data.importLists.filter((l) => API.name === l.name).flatMap((l) => l.data),

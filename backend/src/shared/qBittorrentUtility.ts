@@ -1,19 +1,63 @@
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
-import { Torrent } from "../types/qBittorrentTypes"
+import { qBittorrentPreferences, Torrent } from "../types/qBittorrentTypes"
 import { Series } from "../types/seriesTypes"
 import { isEpisode, isMovie } from "../types/typeGuards"
 import { APIData } from "./activeAPIsArr"
 import { extractStringWords, secsToMins } from "./utility"
 
+// Resolve effective seeding limits by handling qBittorrent special values:
+// -1 = "use global settings", -2 = "no limit" (seed forever)
+// Returns null for a dimension if there is no limit (seed forever).
+export const resolveEffectiveLimits = (
+  torrent: Torrent,
+  preferences: qBittorrentPreferences,
+): { effectiveRatioLimit: number | null; effectiveTimeLimit: number | null } => {
+  let effectiveRatioLimit: number | null
+
+  if (torrent.ratio_limit === -2) {
+    // No limit - seed forever
+    effectiveRatioLimit = null
+  } else if (torrent.ratio_limit === -1) {
+    // Use global settings
+    effectiveRatioLimit = preferences.max_ratio_enabled ? preferences.max_ratio : null
+  } else {
+    // Per-torrent limit
+    effectiveRatioLimit = torrent.ratio_limit
+  }
+
+  let effectiveTimeLimit: number | null
+
+  if (torrent.seeding_time_limit === -2) {
+    // No limit - seed forever
+    effectiveTimeLimit = null
+  } else if (torrent.seeding_time_limit === -1) {
+    // Use global settings (max_seeding_time is in minutes)
+    effectiveTimeLimit = preferences.max_seeding_time_enabled ? preferences.max_seeding_time : null
+  } else {
+    // Per-torrent limit (already in minutes)
+    effectiveTimeLimit = torrent.seeding_time_limit
+  }
+
+  return { effectiveRatioLimit, effectiveTimeLimit }
+}
+
 // Check if a torrent has exceeded its seeding requirements
-export const torrentSeedCheck = (torrent: Torrent, type?: string, verboseLogging: boolean = true): boolean => {
-  const { ratio, ratio_limit, seeding_time, seeding_time_limit, name } = torrent
+export const torrentSeedCheck = (
+  torrent: Torrent,
+  preferences: qBittorrentPreferences,
+  type?: string,
+  verboseLogging: boolean = true,
+): boolean => {
+  const { ratio, seeding_time, name } = torrent
   const seeding_time_mins = Number(secsToMins(seeding_time).toFixed(0))
 
-  const exceededRatio = ratio > ratio_limit
-  const exceededTime = seeding_time_mins > seeding_time_limit
+  const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(torrent, preferences)
+
+  // If either limit is null (no limit / seed forever), that dimension can never be exceeded
+  const exceededRatio = effectiveRatioLimit !== null && ratio > effectiveRatioLimit
+  const exceededTime = effectiveTimeLimit !== null && seeding_time_mins > effectiveTimeLimit
 
   if (exceededRatio && exceededTime) {
     return true
@@ -21,8 +65,10 @@ export const torrentSeedCheck = (torrent: Torrent, type?: string, verboseLogging
 
   if (verboseLogging) {
     const prefix = type ? `${type} torrent` : `Torrent`
-    const ratioInfo = `ratio: ${ratio.toFixed(2)}/${ratio_limit}`
-    const timeInfo = `time: ${seeding_time_mins}/${seeding_time_limit} mins`
+    const ratioDisplay = effectiveRatioLimit !== null ? effectiveRatioLimit.toString() : "∞"
+    const timeDisplay = effectiveTimeLimit !== null ? effectiveTimeLimit.toString() : "∞"
+    const ratioInfo = `ratio: ${ratio.toFixed(2)}/${ratioDisplay}`
+    const timeInfo = `time: ${seeding_time_mins}/${timeDisplay} mins`
 
     logger.info(`${prefix} has not met seeding requirements (${ratioInfo}, ${timeInfo}): ${name}`)
   }
@@ -30,36 +76,43 @@ export const torrentSeedCheck = (torrent: Torrent, type?: string, verboseLogging
   return false
 }
 
+// All qBittorrent states that signify a torrent has finished downloading (upload-side states)
+const downloadedStates = new Set([
+  "stalledUP",   // Downloaded, no upload activity
+  "uploading",   // Actively uploading/seeding
+  "pausedUP",    // Paused while seeding (qBit <5.x)
+  "stoppedUP",   // Stopped while seeding (qBit 5.x+)
+  "queuedUP",    // Queued for upload
+  "checkingUP",  // Rechecking data after download complete
+  "forcedUP",    // Force-seeding (bypasses queue limits)
+])
+
 // Check if a torrent has downloaded and is seeding
 export const torrentDownloadedCheck = (torrent: Torrent, type?: string, verboseLogging: boolean = true): boolean => {
   const { state, name } = torrent
 
   const prefix = type ? `${type} t` : `T`
 
-  // All status strings that signify the torrent is downloaded
-  if (state === "stalledUP" || state === "uploading" || state === "pausedUP") {
+  // Check if the torrent state indicates it has finished downloading
+  if (downloadedStates.has(state)) {
     return true
   }
 
   if (verboseLogging) {
     if (state === "downloading") {
       logger.info(`Torrent is downloading: ${name}`)
-    }
-
-    if (state === "stalledDL") {
+    } else if (state === "stalledDL") {
       logger.warn(`${prefix}orrent has stalled: ${name}`)
-    }
-
-    if (state === "unknown") {
+    } else if (state === "unknown") {
       logger.warn(`${prefix}orrent has an unknown status: ${name}`)
-    }
-
-    if (state === "error") {
+    } else if (state === "error") {
       logger.warn(`${prefix}orrent has an error: ${name}`)
-    }
-
-    if (state === "missingFiles") {
+    } else if (state === "missingFiles") {
       logger.warn(`${prefix}orrent has missing files: ${name}`)
+    } else {
+      // Catch-all for any other download-side or transitional states
+      // (queuedDL, checkingDL, forcedDL, allocating, metaDL, moving, pausedDL, stoppedDL, checkingResumeData)
+      logger.info(`${prefix}orrent is in state "${state}": ${name}`)
     }
   }
 

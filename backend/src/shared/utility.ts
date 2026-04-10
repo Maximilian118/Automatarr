@@ -1,5 +1,5 @@
 import moment from "moment"
-import { DownloadStatus } from "../types/types"
+import { DownloadClient, DownloadStatus } from "../types/types"
 import { APIData } from "./activeAPIsArr"
 import { baseData, dataDocType, dataType, downloadQueue } from "../models/data"
 import logger from "../logger"
@@ -39,6 +39,19 @@ export const capsFirstLetter = (str: string): string => str.charAt(0).toUpperCas
 
 // Simple request response success indication
 export const requestSuccess = (status: number): boolean => status >= 200 && status < 300
+
+// Detect the download protocol mode for a Starr app based on its enabled download clients
+export type DownloadProtocolMode = "torrent-only" | "usenet-only" | "mixed" | "none"
+
+export const detectDownloadProtocol = (downloadClients: DownloadClient[]): DownloadProtocolMode => {
+  const hasTorrent = downloadClients.some((c) => c.enable && c.protocol === "torrent")
+  const hasUsenet = downloadClients.some((c) => c.enable && c.protocol === "usenet")
+
+  if (hasTorrent && hasUsenet) return "mixed"
+  if (hasTorrent) return "torrent-only"
+  if (hasUsenet) return "usenet-only"
+  return "none"
+}
 
 // Takes a string and splits words by full stops or spaces and returns them in an array
 export const extractStringWords = (filename: string): string[] => {

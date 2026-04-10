@@ -4,6 +4,7 @@ import { ObjectId } from "mongodb"
 // Force recompilation
 import {
   commandData,
+  DownloadClient,
   DownloadStatus,
   ImportListData,
   MdblistItem,
@@ -64,6 +65,11 @@ export interface library extends baseData {
   episodes?: Episode[] // Sonarr Episodes
 }
 
+// A name to categorize download clients for each API
+export interface downloadClientList extends baseData {
+  data: DownloadClient[]
+}
+
 // An object with qBittorrent data
 export interface qBittorrent extends baseData {
   cookie: string
@@ -96,6 +102,7 @@ export interface dataType {
   commands: commandsData[]
   commandList: commandList[]
   downloadQueues: downloadQueue[]
+  downloadClients: downloadClientList[]
   importLists: importList[]
   rootFolders: rootFolder[]
   diskspaces: diskspace[]
@@ -137,6 +144,11 @@ const commandListSchema = new mongoose.Schema<commandList>({
 const downloadQueuesSchema = new mongoose.Schema<downloadQueue>({
   ...baseSchema,
   data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of download statuses
+})
+
+const downloadClientListSchema = new mongoose.Schema<downloadClientList>({
+  ...baseSchema,
+  data: { type: mongoose.Schema.Types.Mixed, required: true }, // Array of download clients
 })
 
 const importListSchema = new mongoose.Schema<importList>({
@@ -207,6 +219,7 @@ const dataSchema = new mongoose.Schema<dataType>({
   commands: { type: [commandsSchema], default: [] },
   commandList: { type: [commandListSchema], default: [] },
   downloadQueues: { type: [downloadQueuesSchema], default: [] },
+  downloadClients: { type: [downloadClientListSchema], default: [] },
   importLists: { type: [importListSchema], default: [] },
   rootFolders: { type: [rootFoldersSchema], default: [] },
   diskspaces: { type: [diskspacesSchema], default: [] },

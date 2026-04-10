@@ -48,8 +48,14 @@ export const shouldSkipLoop = (
   return { shouldSkip: false }
 }
 
-// Store stalled torrent attempts in memory
+// Store stalled torrent attempts in memory, keyed by downloadId (or title as fallback)
 const stalledDownloadAttempts = new Map<string, number>()
+
+// Get a unique key for tracking stalled downloads, preferring downloadId over title
+// to avoid counter carry-over when a torrent is blocklisted and re-grabbed with the same title
+const getStallKey = (blockedFile: DownloadStatus): string => {
+  return blockedFile.downloadId?.toLowerCase().trim() ?? blockedFile.title
+}
 
 // Function to handle stalled torrents
 export const stalledDownloadRemover = async (
@@ -57,13 +63,14 @@ export const stalledDownloadRemover = async (
   stalledCase: string,
   API: APIData,
 ) => {
-  const stalledTorrent = stalledDownloadAttempts.get(blockedFile.title)
+  const stallKey = getStallKey(blockedFile)
+  const stalledTorrent = stalledDownloadAttempts.get(stallKey)
 
   // If download has not stalled
   if (!stalledCase) {
     // If the download is in stalledDownloadAttempts, remove it
-    if (!!stalledTorrent) {
-      stalledDownloadAttempts.delete(blockedFile.title)
+    if (stalledTorrent !== undefined) {
+      stalledDownloadAttempts.delete(stallKey)
     }
 
     return
@@ -72,7 +79,7 @@ export const stalledDownloadRemover = async (
   const currentAttempts = stalledTorrent || 0
   const nextAttempt = currentAttempts + 1
 
-  stalledDownloadAttempts.set(blockedFile.title, nextAttempt)
+  stalledDownloadAttempts.set(stallKey, nextAttempt)
 
   if (nextAttempt < 3) {
     logger.warn(`${API.name} | Stalled | ${blockedFile.title} | Stall count ${nextAttempt}/3`)
@@ -88,8 +95,8 @@ export const stalledDownloadRemover = async (
 
     // Delete the queue item
     if (await deleteFromQueue(blockedFile, API, stalledCase)) {
-      // cleanup memory if remove request succeeds
-      stalledDownloadAttempts.delete(blockedFile.title)
+      // Cleanup memory if remove request succeeds
+      stalledDownloadAttempts.delete(stallKey)
     } else {
       logger.error(`${API.name} | Stalled | ${blockedFile.title} | Could not be deleted.`)
     }

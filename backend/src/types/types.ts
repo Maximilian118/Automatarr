@@ -93,6 +93,16 @@ export type DownloadStatus = {
   downloadForced?: boolean // Lidarr-specific
 }
 
+// Download client configuration from Starr apps
+export type DownloadClient = {
+  id: number
+  name: string
+  enable: boolean
+  protocol: "torrent" | "usenet"
+  priority: number
+  implementation: string
+}
+
 // All of the data for a single command
 export type commandData = {
   name: string

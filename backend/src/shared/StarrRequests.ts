@@ -2,6 +2,7 @@ import axios from "axios"
 import {
   commandsData,
   dataType,
+  downloadClientList,
   downloadQueue,
   importList,
   library,
@@ -17,7 +18,7 @@ import {
   getContentName,
   requestSuccess,
 } from "./utility"
-import { commandData, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
+import { commandData, DownloadClient, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
 import logger from "../logger"
 import { Episode, EpisodeFile } from "../types/episodeTypes"
 import { Movie } from "../types/movieTypes"
@@ -72,6 +73,50 @@ export const getAllDownloadQueues = async (
 
   // Filter out undefined values
   return results.filter((c): c is downloadQueue => c !== undefined)
+}
+
+// Retrieve the download clients configured for a specific Starr API
+export const getDownloadClients = async (
+  API: APIData,
+  data: dataType,
+  verboseLogging: boolean = true,
+): Promise<downloadClientList | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/downloadclient?apikey=${API.data.KEY}`),
+    )
+
+    if (requestSuccess(res.status)) {
+      if (verboseLogging) {
+        logger.success(`${API.name} | Retrieving Download Clients.`)
+      }
+
+      return {
+        ...dataBoilerplate(API, data.downloadClients),
+        data: res.data as DownloadClient[],
+      }
+    } else {
+      logger.error(`getDownloadClients: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`getDownloadClients: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// Loop through all of the activeAPIs and return all of the latest download clients
+export const getAllDownloadClients = async (
+  activeAPIs: APIData[],
+  data: dataType,
+  verboseLogging: boolean = true,
+): Promise<downloadClientList[]> => {
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getDownloadClients(API, data, verboseLogging)),
+  )
+
+  // Filter out undefined values
+  return results.filter((c): c is downloadClientList => c !== undefined)
 }
 
 // Retrieve the root folder from the API
@@ -491,24 +536,35 @@ export const deleteFromQueue = async (
   API: APIData,
   reason?: string,
 ): Promise<DownloadStatus | undefined> => {
-  // A conditional check to ensure we don't delete torrents from qBit here which would bypass seed checks.
+  // Ensure we don't delete torrents from qBit here which would bypass seed checks.
   // By setting removeFromClient=false for torrents we let library_cleanup handle the torrent removal from qBit.
-  // Exception: "unknown" items (no movieId/episodeId/artistId/albumId) must be removed from the client
-  // directly, as library_cleanup cannot handle them and they would otherwise loop indefinitely.
+  // Unknown torrent items (no movieId/episodeId/artistId/albumId) are also kept in qBit so that
+  // library_cleanup's unmatched torrents loop can clean them up after seeding requirements are met.
   // If it's a usenet download then we do want to remove it from the usenet downloader.
   const isTorrent =
     download.protocol.toLowerCase().includes("torrent") ||
     download.downloadClient.toLowerCase().includes("torrent")
 
-  const isUnknownItem =
-    !download.movieId && !download.episodeId && !download.artistId && !download.albumId
+  // For torrents, never remove from client - library_cleanup handles torrent removal after seed checks
+  const removeFromClient = !isTorrent
+
+  if (isTorrent) {
+    const isUnknownItem =
+      !download.movieId && !download.episodeId && !download.artistId && !download.albumId
+
+    if (isUnknownItem) {
+      logger.warn(
+        `${API.name} | ${download.title} | Unknown torrent item removed from queue but kept in qBittorrent for seed check safety.`,
+      )
+    }
+  }
 
   try {
     const res = await axios.delete(
       cleanUrl(
         `${API.data.URL}/api/${API.data.API_version}/queue/${
           download.id
-        }?removeFromClient=${!isTorrent || isUnknownItem}&apikey=${API.data.KEY}`,
+        }?removeFromClient=${removeFromClient}&apikey=${API.data.KEY}`,
       ),
     )
 

@@ -1,9 +1,10 @@
 import { settingsType } from "../models/settings"
 import logger from "../logger"
 import { activeAPIsArr } from "../shared/activeAPIsArr"
-import { processingTimeMessage } from "../shared/utility"
+import { detectDownloadProtocol, processingTimeMessage } from "../shared/utility"
 import {
   findLibraryTorrents,
+  resolveEffectiveLimits,
   torrentDownloadedCheck,
   torrentSeedCheck,
 } from "../shared/qBittorrentUtility"
@@ -141,22 +142,23 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
   const reason = "Superseded"
   for (const torrent of unmatchedTorrents) {
     const isDownloaded = torrentDownloadedCheck(torrent, reason, settings.verbose_logging)
-    const hasMetSeedRequirements = torrentSeedCheck(torrent, reason, settings.verbose_logging)
+    const hasMetSeedRequirements = torrentSeedCheck(torrent, data.qBittorrent.preferences, reason, settings.verbose_logging)
 
     if (isDownloaded && hasMetSeedRequirements) {
-      deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
-      unmatchedDeleted++
+      const deleted = await deleteqBittorrent(settings, data.qBittorrent.cookie, torrent)
+      if (deleted) unmatchedDeleted++
     } else if (!settings.verbose_logging) {
       // Track reasons for non-verbose summary
       if (torrent.state === "downloading") {
         supersededDownloading++
       } else if (isDownloaded && !hasMetSeedRequirements) {
-        const { ratio, ratio_limit, seeding_time, seeding_time_limit } = torrent
+        const { ratio, seeding_time } = torrent
         const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
+        const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(torrent, data.qBittorrent.preferences)
 
-        if (ratio < ratio_limit) {
+        if (effectiveRatioLimit !== null && ratio < effectiveRatioLimit) {
           supersededWaitingSeeding++
-        } else if (seeding_time_mins < seeding_time_limit) {
+        } else if (effectiveTimeLimit !== null && seeding_time_mins < effectiveTimeLimit) {
           supersededWaitingTime++
         }
       } else {
@@ -239,6 +241,13 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
     } else if (API.name === "Sonarr") {
       logging.sonarrLibrary = library.length
     }
+
+    // Detect download protocol mode for this API based on enabled download clients
+    const clients = API.data.downloadClients || []
+    const protocolMode = detectDownloadProtocol(clients)
+    const torrentCount = clients.filter((c) => c.enable && c.protocol === "torrent").length
+    const usenetCount = clients.filter((c) => c.enable && c.protocol === "usenet").length
+    logger.info(`Library Cleanup | ${API.name} | Download protocol detected: ${protocolMode} (${torrentCount} torrent, ${usenetCount} usenet)`)
 
     // Init an Array of library items identified for deletion
     let itemsForDeletion: (Movie | Series)[] = []
@@ -418,16 +427,28 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
             ? !libraryItem.torrent
             : !libraryItem.torrentsPresent
 
-          // If the libraryItem hasn't been matched to any torrent, it's a usenet download and is ok to delete.
+          // If the libraryItem hasn't been matched to any torrent, check if usenet clients exist.
+          // Only safe to delete immediately if this API has enabled usenet download clients.
+          // In torrent-only setups, an unmatched item is likely a torrent that failed fuzzy matching.
           if (noTorrents) {
-            const success = await deleteFromLibraryHelper()
-            if (success) {
-              // Track usenet deletions
-              const currentStats =
-                API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
-              currentStats.usenetDeleted++
+            if (protocolMode === "usenet-only" || protocolMode === "mixed") {
+              const success = await deleteFromLibraryHelper()
+              if (success) {
+                // Track usenet deletions
+                const currentStats =
+                  API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
+                currentStats.usenetDeleted++
+              }
+              return success
+            } else {
+              // Torrent-only setup: unmatched item may be a torrent that failed to match in qBittorrent
+              if (settings.verbose_logging) {
+                logger.warn(
+                  `Library Cleanup | ${API.name} | ${libraryItem.title} has no matched torrent in a torrent-only setup - skipping deletion for safety.`,
+                )
+              }
+              return false
             }
-            return success
           }
 
           // Create an array of torrents associated with this libraryItem
@@ -442,18 +463,22 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
             const currentStats =
               API.name === "Radarr" ? logging.radarrTorrentStats : logging.sonarrTorrentStats
 
+            // Set of states that indicate a torrent has finished downloading
+            const downloadedStates = new Set(["stalledUP", "uploading", "pausedUP", "queuedUP", "checkingUP", "forcedUP", "stoppedUP"])
+
             torrentFiles.forEach((t) => {
               if (!t) return
 
-              const { state, ratio, ratio_limit, seeding_time, seeding_time_limit } = t
+              const { state, ratio, seeding_time } = t
               const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
+              const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(t, data.qBittorrent.preferences)
 
               if (state === "downloading") {
                 currentStats.downloading++
-              } else if (state === "stalledUP" || state === "uploading" || state === "pausedUP") {
-                if (ratio < ratio_limit) {
+              } else if (downloadedStates.has(state)) {
+                if (effectiveRatioLimit !== null && ratio < effectiveRatioLimit) {
                   currentStats.waitingRatio++
-                } else if (seeding_time_mins < seeding_time_limit) {
+                } else if (effectiveTimeLimit !== null && seeding_time_mins < effectiveTimeLimit) {
                   currentStats.waitingTime++
                 }
               } else {
@@ -462,13 +487,18 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
             })
           }
 
-          // Check if all torrents have met their seed criteria
+          // Check if all torrents have finished downloading and met their seed criteria
           const torrentsReady = torrentFiles.every((t) => {
-            if (!t) return true
+            // If we can't verify a torrent's seeding status, block deletion for safety
+            if (!t) {
+              logger.warn(`Library Cleanup | ${API.name} | Torrent reference is null/undefined for ${libraryItem.title} - blocking deletion for safety.`)
+              return false
+            }
 
-            const seedCheckResult = torrentSeedCheck(t, t.torrentType, settings.verbose_logging)
+            const isDownloaded = torrentDownloadedCheck(t, t.torrentType, settings.verbose_logging)
+            const hasMetSeedRequirements = torrentSeedCheck(t, data.qBittorrent.preferences, t.torrentType, settings.verbose_logging)
 
-            return seedCheckResult
+            return isDownloaded && hasMetSeedRequirements
           })
 
           // If every torrent that belongs to the libraryItem is met its requirements, delete the libraryItem.
@@ -536,6 +566,35 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
       for (const childPath of rootChildrenPaths) {
         // If the directory in host file system is not present in library
         if (!libraryPaths.has(childPath)) {
+          // Check if any qBittorrent torrent is seeding from this path before deleting
+          const matchingTorrents = torrents.filter(
+            (t) => t.content_path.startsWith(childPath) || t.save_path.startsWith(childPath),
+          )
+
+          // If torrents reference this path, ensure they've all met seeding requirements
+          if (matchingTorrents.length > 0) {
+            const allTorrentsReady = matchingTorrents.every((t) => {
+              const isDownloaded = torrentDownloadedCheck(t, "Library Cleanup", settings.verbose_logging)
+              const hasMet = torrentSeedCheck(t, data.qBittorrent.preferences, "Library Cleanup", settings.verbose_logging)
+              return isDownloaded && hasMet
+            })
+
+            if (!allTorrentsReady) {
+              if (settings.verbose_logging) {
+                const torrentNames = matchingTorrents.map((t) => t.name).join(", ")
+                logger.warn(
+                  `Library Cleanup | ${API.name} | Skipping ${childPath} - torrent(s) still seeding: ${torrentNames}`,
+                )
+              }
+              continue
+            }
+
+            // Delete the matched torrents from qBittorrent since we're removing their files
+            for (const t of matchingTorrents) {
+              await deleteqBittorrent(settings, data.qBittorrent.cookie, t)
+            }
+          }
+
           // Delete the directory recursively from the file system
           deleteFromMachine(childPath)
 

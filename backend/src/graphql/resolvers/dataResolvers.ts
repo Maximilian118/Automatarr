@@ -4,6 +4,7 @@ import logger from "../../logger"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import {
   getAllCommands,
+  getAllDownloadClients,
   getAllDownloadQueues,
   getAllImportLists,
   getAllLibraries,
@@ -70,6 +71,7 @@ const dataResolvers = {
     data.commands = await getAllCommands(activeAPIs, data, verboseLogging)
     data.commandList = commandList.length === 0 ? data.commandList : commandList // If commandList is empty, do not remove the commands currently in db
     data.downloadQueues = await getAllDownloadQueues(activeAPIs, data, verboseLogging)
+    data.downloadClients = await getAllDownloadClients(activeAPIs, data, verboseLogging)
     data.importLists = await getAllImportLists(activeAPIs, data, verboseLogging)
     data.rootFolders = await getAllRootFolders(activeAPIs, data, verboseLogging)
     data.diskspaces = await getAllDiskspaces(activeAPIs, data, verboseLogging)
