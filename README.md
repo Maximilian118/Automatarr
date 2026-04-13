@@ -14,8 +14,11 @@ _Like this app? Thanks for giving it a_ ⭐️
 
 ## Overview
 
-Automatarr reduces manual input tasks for Radarr & Sonarr and allows for the control of Starr apps through bots.
-All bots abide by a unified pool system which regulates how much content users can download at once.
+Automatarr keeps your media library fresh on limited storage by automatically cycling content based on your Radarr/Sonarr import lists.
+
+When content drops off your import lists and isn't in anyone's user pool, it's safely removed — always respecting torrent seeding requirements. Your library stays current without you touching anything.
+
+Each user has a pool of protected content that is immune to automated cleanup. The Discord bot lets users manage their own pools — downloading and removing content without needing access to Radarr/Sonarr or contacting the server owner.
 
 ## Feature overview:
 
