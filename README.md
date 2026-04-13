@@ -1,8 +1,16 @@
+<div align="center">
+
 <img alt="Automatarr" src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo.webp" width=300/>
 
 _Like this app? Thanks for giving it a_ ⭐️
 
 <a href="https://coff.ee/maximilian118" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
+
+[![Build](https://img.shields.io/github/actions/workflow/status/Maximilian118/Automatarr/docker-publish.yml?branch=main&label=build)](https://github.com/Maximilian118/Automatarr/actions)
+[![License](https://img.shields.io/github/license/Maximilian118/Automatarr)](https://github.com/Maximilian118/Automatarr/blob/main/LICENSE)
+[![Version](https://img.shields.io/github/package-json/v/Maximilian118/Automatarr?filename=backend%2Fpackage.json&label=version)](https://github.com/Maximilian118/Automatarr/releases)
+
+</div>
 
 ## Overview
 
