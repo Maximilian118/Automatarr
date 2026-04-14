@@ -1,0 +1,81 @@
+@use '../../../scss/variables';
+@use '../../../scss/mixins';
+
+// Horizontal segmented bar
+.segment-bar {
+  width: 100%;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+
+  &.segment-bar-empty {
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .segment-bar-section {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-width: 0;
+    box-sizing: border-box;
+
+    span {
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: white;
+      white-space: nowrap;
+      line-height: 1;
+      width: 100%;
+      padding: 0 8px;
+      box-sizing: border-box;
+    }
+  }
+}
+
+// Tooltip styling (rendered in a portal)
+.segment-bar-tooltip {
+  background: #1a1a1a !important;
+  padding: 10px 14px !important;
+  border-radius: 6px !important;
+  max-width: none !important;
+}
+
+.segment-bar-tooltip-arrow {
+  color: #1a1a1a !important;
+}
+
+.segment-bar-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .segment-bar-tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .segment-bar-tooltip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .segment-bar-tooltip-label {
+      font-size: 0.75rem;
+      color: variables.$mui-off-white;
+      flex: 1;
+    }
+
+    .segment-bar-tooltip-value {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: white;
+      margin-left: 12px;
+    }
+  }
+}

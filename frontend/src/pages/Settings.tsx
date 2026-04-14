@@ -2,7 +2,7 @@ import { Button, CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
 import { ArrowBackIos, Close, Done, Logout, Person, Restore, Send, Settings as SettingsIcon, SettingsBackupRestore, Webhook } from "@mui/icons-material"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import Footer from "../components/footer/Footer"
 import { logout } from "../shared/localStorage"
 import { useNavigate } from "react-router-dom"
@@ -99,7 +99,7 @@ const Settings: React.FC = () => {
   return (
     <>
       <form onSubmit={e => onSubmitHandler(e)}>
-        <InputModel
+        <InputPanel
           title="Backups" 
           startIcon={<SettingsBackupRestore/>}
           description={`Backup your settings and user pool data to the path assigned in the docker-compose.yml file.`}
@@ -187,8 +187,8 @@ const Settings: React.FC = () => {
               }}
             >Restore</Button>
           </div>
-        </InputModel>
-        <InputModel 
+        </InputPanel>
+        <InputPanel 
           title="User Settings" 
           startIcon={<Person/>}
         >
@@ -297,8 +297,8 @@ const Settings: React.FC = () => {
             onBlur={(e) => updateInput(e, setUser, setUserFormErr)}
             type="password"
           />
-        </InputModel>
-        <InputModel
+        </InputPanel>
+        <InputPanel
           title="Webhooks" 
           startIcon={<Webhook/>}
           description={`Webhooks allow you to send specific notifications through your bots.
@@ -357,8 +357,8 @@ const Settings: React.FC = () => {
           />
           {webhookNotificationType("Import")}
           {webhookNotificationType("Grab")}
-        </InputModel>
-        <InputModel
+        </InputPanel>
+        <InputPanel
           title="Advanced"
           startIcon={<SettingsIcon/>}
           description={`Advanced system settings for experienced users. These settings control internal system behavior and should be used with caution.`}
@@ -393,7 +393,7 @@ const Settings: React.FC = () => {
               }))
             }
           />
-        </InputModel>
+        </InputPanel>
         <Button 
           type="submit"
           variant="contained"

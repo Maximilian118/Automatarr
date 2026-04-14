@@ -6,7 +6,7 @@ import { initSettingsErrors } from "../shared/init"
 import { checkChownValidity, inputLabel, updateInput } from "../shared/formValidation"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import Loop from "../components/loop/Loop"
 import LoopTime from "../components/loop/looptime/Looptime"
 import { createChownString } from "../shared/utility"
@@ -115,7 +115,7 @@ const Loops: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputModel
+      <InputPanel
         title="Core Loops"
         startIcon={<MuiLoop/>}
         description="These loops are the heart of Automatarr — they manage your media library lifecycle, handle downloads, and protect user pool content."
@@ -160,8 +160,8 @@ const Loops: React.FC = () => {
           !settings.qBittorrent_active,
           "qBittorrent Required"
         )}
-      </InputModel>
-      <InputModel
+      </InputPanel>
+      <InputPanel
         title="Utilities"
         startIcon={<Build/>}
         description="Optional maintenance tasks for filesystem housekeeping."
@@ -225,7 +225,7 @@ const Loops: React.FC = () => {
             />
           </>
         )}
-      </InputModel>
+      </InputPanel>
       <Button
         type="submit"
         variant="contained"

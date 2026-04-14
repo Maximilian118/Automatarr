@@ -2,7 +2,7 @@ import React from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { BotUserType, settingsType } from "../../../../types/settingsType"
 import UserCard from "../UserCard"
-import "./droppable-user-card.scss"
+import "./_droppable-user-card.scss"
 
 interface DroppableUserCardProps {
   user: BotUserType

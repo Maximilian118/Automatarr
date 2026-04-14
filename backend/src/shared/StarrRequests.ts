@@ -868,3 +868,134 @@ export const getAllQualityProfiles = async (
   // Filter out undefined values
   return results.filter((c): c is qualityProfile => c !== undefined)
 }
+
+// Get all root folder paths for a specific API (returns full array, not just first)
+export const getRootFolderPaths = async (
+  API: APIData,
+): Promise<{ name: string; paths: string[] } | undefined> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/rootfolder?apikey=${API.data.KEY}`),
+    )
+
+    if (requestSuccess(res.status)) {
+      return {
+        name: API.name,
+        paths: res.data.map((rf: { path: string }) => rf.path),
+      }
+    } else {
+      logger.error(`getRootFolderPaths: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`getRootFolderPaths: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// Get all root folder paths from all active APIs
+export const getAllRootFolderPaths = async (
+  activeAPIs: APIData[],
+): Promise<{ name: string; paths: string[] }[]> => {
+  const results = await Promise.all(
+    activeAPIs.map(async (API) => await getRootFolderPaths(API)),
+  )
+
+  return results.filter((r): r is { name: string; paths: string[] } => r !== undefined)
+}
+
+// Create a new import list on a specific API
+export const createImportList = async (
+  API: APIData,
+  payload: Partial<ImportListData>,
+): Promise<ImportListData | undefined> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist?apikey=${API.data.KEY}`),
+      payload,
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Import list "${payload.name}" created.`)
+      return res.data as ImportListData
+    } else {
+      logger.error(`createImportList: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`createImportList: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// Update an existing import list on a specific API
+export const updateImportList = async (
+  API: APIData,
+  id: number,
+  payload: Partial<ImportListData>,
+): Promise<ImportListData | undefined> => {
+  try {
+    const res = await axios.put(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist/${id}?apikey=${API.data.KEY}`),
+      payload,
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Import list "${payload.name}" updated.`)
+      return res.data as ImportListData
+    } else {
+      logger.error(`updateImportList: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`updateImportList: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return
+}
+
+// Delete an import list from a specific API
+export const deleteImportList = async (
+  API: APIData,
+  id: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.delete(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist/${id}?apikey=${API.data.KEY}`),
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Import list ${id} deleted.`)
+      return true
+    } else {
+      logger.error(`deleteImportList: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`deleteImportList: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
+}
+
+// Test an import list configuration against a specific API
+export const testImportList = async (
+  API: APIData,
+  payload: Partial<ImportListData>,
+): Promise<boolean> => {
+  try {
+    const res = await axios.post(
+      cleanUrl(`${API.data.URL}/api/${API.data.API_version}/importlist/test?apikey=${API.data.KEY}`),
+      payload,
+    )
+
+    if (requestSuccess(res.status)) {
+      logger.success(`${API.name} | Import list test passed.`)
+      return true
+    } else {
+      logger.error(`testImportList: Unknown error. Status: ${res.status} - ${res.statusText}`)
+    }
+  } catch (err) {
+    logger.error(`testImportList: ${API.name} Error: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
+}

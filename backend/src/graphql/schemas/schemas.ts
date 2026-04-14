@@ -11,6 +11,7 @@ import checkSchema from "./checkSchema"
 import miscSchema from "./miscSchema"
 import userSchema from "./userSchema"
 import statsSchema from "./statsSchema"
+import importListSchema from "./importListSchema"
 
 const Schema = buildSchema(`
   ${miscSchema}
@@ -25,6 +26,7 @@ const Schema = buildSchema(`
   ${dataSchema}
   ${userSchema}
   ${statsSchema}
+  ${importListSchema}
 
   type RootQuery {
     login(name: String!, password: String!): User!
@@ -43,6 +45,9 @@ const Schema = buildSchema(`
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!
     getStats(statsInput: StatsQueryInput): Stats
+    getImportLists: ImportListReturn!
+    getRootFolderPaths: RootFolderPathsReturn!
+    getImportListStats: ImportListStatsReturn!
   }
 
   type RootMutation {
@@ -54,6 +59,10 @@ const Schema = buildSchema(`
     deleteUser(userId: String!): Settings
     updateUserStatus(userId: String!, admin: Boolean, superUser: Boolean): Settings
     updateUserOverwrites(userId: String!, maxMoviesOverwrite: Int, maxSeriesOverwrite: Int): Settings
+    createImportList(input: ImportListCreateInput!): ImportListMutationReturn!
+    updateImportList(input: ImportListUpdateInput!): ImportListMutationReturn!
+    deleteImportList(input: ImportListDeleteInput!): ImportListMutationReturn!
+    testImportList(input: ImportListTestInput!): ImportListMutationReturn!
   }
 
   schema {

@@ -1,5 +1,5 @@
 import React from "react"
-import "./nivo-legend.scss"
+import "./_nivo-legend.scss"
 
 export interface NivoLegendItem {
   id: string

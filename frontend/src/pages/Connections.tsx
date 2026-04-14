@@ -5,7 +5,7 @@ import { Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import Footer from "../components/footer/Footer"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { updateInput } from "../shared/formValidation"
@@ -51,31 +51,31 @@ const Connections: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputModel 
+      <InputPanel 
         title="Radarr" 
         startIcon="https://radarr.video/img/logo.png"
         status={settings.radarr_active ? "Connected" : "Disconnected"}
       >
         {MUITextFieldHelper("radarr_URL")}
         {MUITextFieldHelper("radarr_KEY")}
-      </InputModel>
-      <InputModel 
+      </InputPanel>
+      <InputPanel 
         title="Sonarr" 
         startIcon="https://sonarr.tv/img/logo.png"
         status={settings.sonarr_active ? "Connected" : "Disconnected"}
       >
         {MUITextFieldHelper("sonarr_URL")}
         {MUITextFieldHelper("sonarr_KEY")}
-      </InputModel>
-      <InputModel 
+      </InputPanel>
+      <InputPanel 
         title="Lidarr" 
         startIcon="https://lidarr.audio/img/logo.png"
         status={settings.lidarr_active ? "Connected" : "Disconnected"}
       >
         {MUITextFieldHelper("lidarr_URL")}
         {MUITextFieldHelper("lidarr_KEY")}
-      </InputModel>
-      <InputModel 
+      </InputPanel>
+      <InputPanel 
         title="qBittorrent" 
         startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
         status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
@@ -83,7 +83,7 @@ const Connections: React.FC = () => {
         {MUITextFieldHelper("qBittorrent_URL")}
         {MUITextFieldHelper("qBittorrent_username")}
         {MUITextFieldHelper("qBittorrent_password", "password")}
-      </InputModel>
+      </InputPanel>
       <Button 
         type="submit"
         variant="contained"

@@ -1,7 +1,7 @@
 import React, { FormEvent, useContext, useState } from "react"
 import Footer from "../components/footer/Footer"
 import AppContext from "../context"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initUserErrors } from "../shared/init"
 import { UserErrorType } from "../types/userType"
@@ -32,7 +32,7 @@ const Login: React.FC = () => {
           alt="Automatarr Logo"
           src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped_circle.webp" 
         />
-        <InputModel 
+        <InputPanel 
           title="Login" 
           startIcon={<LoginOutlined/>}
           bottom={(
@@ -72,7 +72,7 @@ const Login: React.FC = () => {
             type="password"
             error={!!formErr.password}
           />
-        </InputModel>
+        </InputPanel>
         <Button 
           type="submit"
           variant="contained"

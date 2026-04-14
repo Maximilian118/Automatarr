@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
-import './tidyPathPicker.scss'
+import './_tidy_path_picker.scss'
 import { settingsErrorType, settingsType, tidyPaths } from "../../../types/settingsType"
 import MUIAutocomplete from "../MUIAutocomplete/MUIAutocomplete"
 import { getChildPaths } from "../../../shared/requests/fileSystemRequests"

@@ -1,9 +1,9 @@
 import React, { ReactNode } from "react"
-import { statusColours } from "../modelUtility"
+import { statusColours } from "../panelUtility"
 import { Switch } from "@mui/material"
 import { multilineText } from "../../../shared/utility"
 
-interface BotModelType {
+interface BotPanelType {
   children: ReactNode
   title: string
   description?: string
@@ -13,11 +13,12 @@ interface BotModelType {
   onToggle: (value: boolean) => void
 }
 
-export const BotModel: React.FC<BotModelType> = ({ 
-  children, 
+// A panel container for bot configurations with an active toggle and status indicator
+export const BotPanel: React.FC<BotPanelType> = ({
+  children,
   title,
   description,
-  startIcon, 
+  startIcon,
   status,
   active,
   onToggle,
@@ -27,9 +28,9 @@ export const BotModel: React.FC<BotModelType> = ({
   }
 
   return (
-    <div className="model">
-      <div className="model-top">
-        <div className="model-top-left">
+    <div className="panel">
+      <div className="panel-top">
+        <div className="panel-top-left">
           {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
           {title && <h2>{title}</h2>}
         </div>
@@ -39,7 +40,7 @@ export const BotModel: React.FC<BotModelType> = ({
           inputProps={{ 'aria-label': 'controlled' }}
         />
       </div>
-      {description && multilineText(description, "model-description")}
+      {description && multilineText(description, "panel-description")}
       {status && <p style={{ color: statusColours(status) }}>{status}</p>}
       {children}
     </div>

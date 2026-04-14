@@ -2,7 +2,7 @@ import React, { FormEvent, useContext, useEffect, useState } from "react"
 import Footer from "../components/footer/Footer"
 import { Button, TextField } from "@mui/material"
 import { Check, Key } from "@mui/icons-material"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import AppContext from "../context"
 import { useNavigate } from "react-router-dom"
 
@@ -27,7 +27,7 @@ const RecoveryKey: React.FC = () => {
   return (
     <>
       <form onSubmit={onSubmitHandler}>
-        <InputModel title="Recovery Key" startIcon={<Key />}>
+        <InputPanel title="Recovery Key" startIcon={<Key />}>
           <p>
             This is your recovery key. Store it somewhere safe. If you lose this key and forget your password, there will be no way to access your account.
           </p>
@@ -36,7 +36,7 @@ const RecoveryKey: React.FC = () => {
             fullWidth
             slotProps={{ input: {readOnly: true } }}
           />
-        </InputModel>
+        </InputPanel>
         <Button
           type="submit"
           color="success"

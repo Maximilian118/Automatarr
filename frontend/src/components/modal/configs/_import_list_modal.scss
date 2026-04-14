@@ -1,0 +1,42 @@
+@use '../../../scss/variables';
+
+// Toggle + description grouping
+.import-list-field-group {
+  width: 100%;
+
+  .toggle {
+    margin-bottom: 0;
+  }
+
+  .import-list-description {
+    font-size: 0.7rem;
+    color: variables.$mui-off-white;
+    line-height: 1.3;
+    margin-top: -2px;
+    max-width: 78%;
+    transform: translateY(-10px);
+  }
+}
+
+// Test button with color transitions for pass/fail states
+.import-list-test-btn {
+  min-width: 64px !important;
+  min-height: 36.5px !important;
+  transition: background 0.2s ease !important;
+
+  &.test-pass.modal-action-cancel {
+    background: variables.$mui-success !important;
+
+    &:hover {
+      background: variables.$mui-success !important;
+    }
+  }
+
+  &.test-fail.modal-action-cancel {
+    background: variables.$mui-error !important;
+
+    &:hover {
+      background: variables.$mui-error !important;
+    }
+  }
+}

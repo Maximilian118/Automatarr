@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.6.0
+
+### Lists Tab
+
+A new **Lists** tab for managing Radarr/Sonarr import lists directly through the Automatarr UI. Changes are reflected instantly in Radarr/Sonarr and vice versa.
+
+- Full CRUD — Add, edit, test, and delete import lists for both Radarr and Sonarr without leaving Automatarr.
+- Per-list stats — Each list card shows a colour-coded progress bar (green = downloaded, orange = downloading, red = missing) with rich tooltip.
+- Disk usage per list — Each card shows total storage used by downloaded content from that list.
+- Disk usage colour spectrum — With 3+ lists, storage tags are colour-coded green to red relative to each other.
+- Aggregate header stats — Each API section shows total downloaded, downloading, missing, and combined storage.
+- Broken list detection — Invalid or deleted mdblist URLs show a red card background with error message tooltip.
+- Test button — Validates import list configuration against Radarr/Sonarr with animated pass/fail feedback.
+
+### Behaviour Change
+
+- **Disabled lists now protect content** — Previously, disabling an import list caused its content to become eligible for deletion by Library Cleanup. Now disabled lists still protect their content. To remove content, delete the import list entirely. This aligns with Radarr/Sonarr behaviour.
+
+### New Reusable Components
+
+- **SegmentBar** — Configurable horizontal progress bar with segments, labels, thresholds, and tooltip.
+- **ListCard** — Compact card with status indicator, title, children slot, tags (with optional colour), and error state.
+- **Modal** — Base modal with title, optional icon, content slot, and configurable action buttons. Configs in `configs/` subdirectory.
+
 ## v0.5.0
 
 - Fix (Critical): Torrents using global seeding settings (`ratio_limit=-1`) or unlimited seeding (`ratio_limit=-2`) were instantly passing seed checks and being deleted — causing hit-and-runs. Added `resolveEffectiveLimits()` to correctly resolve qBittorrent special values against global preferences.

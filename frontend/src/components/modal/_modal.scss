@@ -1,0 +1,90 @@
+@use '../../scss/variables';
+@use '../../scss/mixins';
+
+// Base modal styling (applied globally since Dialog renders in a portal)
+.modal-paper {
+  background: variables.$off-black !important;
+  background-image: none !important;
+  color: white !important;
+  border-radius: 8px !important;
+}
+
+.modal-header {
+  @include mixins.flexbox-space-between;
+  padding: 16px 24px 0;
+
+  .modal-title {
+    @include mixins.flexbox-start;
+    gap: 10px;
+
+    img {
+      height: 24px;
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    svg {
+      height: 24px;
+      width: 24px;
+      color: white;
+    }
+
+    h2 {
+      color: white;
+      font-size: 1.2rem;
+    }
+  }
+
+  .MuiIconButton-root {
+    color: variables.$mui-off-white;
+  }
+}
+
+.modal-content {
+  @include mixins.flexbox-start-column;
+  padding: 16px 24px 24px !important;
+
+  >:not(:last-child) {
+    margin-bottom: 20px;
+  }
+
+  .MuiTextField-root {
+    width: 100%;
+  }
+
+  .modal-actions {
+    width: 100%;
+    @include mixins.flexbox-space-between;
+    margin-top: 8px;
+
+    .MuiButton-root {
+      text-transform: none;
+    }
+
+    // Delete button — red background, white text
+    .modal-action-danger {
+      background: variables.$mui-error !important;
+      color: white !important;
+
+      &:hover {
+        background: darken(#F44336, 10%) !important;
+      }
+    }
+
+    // Subtle dark background buttons (test, etc) — white text
+    .modal-action-cancel {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: white !important;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.14) !important;
+      }
+    }
+
+    .modal-actions-right {
+      @include mixins.flexbox-end;
+      gap: 8px;
+      margin-left: auto;
+    }
+  }
+}

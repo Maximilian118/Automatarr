@@ -1,6 +1,6 @@
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import Footer from "../components/footer/Footer"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import { Button, CircularProgress } from "@mui/material"
 import { ArrowBackIos, LockReset, Send } from "@mui/icons-material"
 import { forgot } from "../shared/requests/userRequests"
@@ -36,7 +36,7 @@ const Forgot: React.FC = () => {
           alt="Automatarr Logo"
           src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped_circle.webp" 
         />
-        <InputModel 
+        <InputPanel 
           title="Forgot" 
           startIcon={<LockReset/>}
         >
@@ -47,7 +47,7 @@ const Forgot: React.FC = () => {
             formErr={formErr}
             onChange={(e) => set_recovery_key(e.target.value)}
           />
-        </InputModel>
+        </InputPanel>
         <div className="button-bar">
           <Button 
             variant="contained"

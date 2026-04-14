@@ -1,5 +1,5 @@
 import React from "react"
-import "./drag-overlay-item.scss"
+import "./_drag-overlay-item.scss"
 
 interface DragOverlayItemProps {
   title: string

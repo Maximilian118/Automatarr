@@ -202,14 +202,21 @@ export type ImportListField = {
 export type ImportListData = {
   id: number
   enabled?: boolean
+  // Radarr-specific fields
+  enableAuto?: boolean
+  monitor?: string
+  searchOnAdd?: boolean
+  minimumAvailability?: string
+  // Sonarr-specific fields
   enableAutomaticAdd?: boolean
   searchForMissingEpisodes?: boolean
-  shouldMonitor: string
-  monitorNewItems: string
+  shouldMonitor?: string
+  monitorNewItems?: string
+  seriesType?: string
+  seasonFolder?: boolean
+  // Common fields
   rootFolderPath: string
   qualityProfileId: number
-  seriesType: string
-  seasonFolder: boolean
   listType: string
   listOrder: number
   minRefreshInterval: string
@@ -219,7 +226,7 @@ export type ImportListData = {
   implementation: string
   configContract: string
   infoLink: string
-  tags: []
+  tags: number[]
 }
 
 export type LogFile = {

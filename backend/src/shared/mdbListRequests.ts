@@ -88,12 +88,11 @@ export const getMdbListItems = async (
 
   // Loop through all of the import lists
   for (const importList of importLists) {
-    // Check that the import list is enabled
+    // Disabled lists still have their content protected from deletion
     if (!importList.enabled && !importList.enableAutomaticAdd) {
-      logger.warn(
-        `Library Cleanup | ${API.name} | Import List ${importList.name} is disabled and will be ignored.`,
+      logger.info(
+        `Library Cleanup | ${API.name} | Import List ${importList.name} is disabled but content is still protected.`,
       )
-      continue
     }
 
     if (!importList.fields || importList.fields.length === 0) {

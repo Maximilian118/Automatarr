@@ -3,7 +3,7 @@ import { useDraggable } from "@dnd-kit/core"
 import { Typography, IconButton, Button, Collapse } from "@mui/material"
 import { Clear, CheckCircle } from "@mui/icons-material"
 import { formatBytes } from "../../../../shared/utility"
-import "./draggable-pool-item.scss"
+import "./_draggable-pool-item.scss"
 
 interface DraggablePoolItemProps {
   userId: string

@@ -1,0 +1,125 @@
+@use '../../scss/variables';
+@use '../../scss/mixins';
+
+.lists-page {
+  // API sections
+  .lists-section {
+    width: 100%;
+    @include mixins.flexbox-start-column;
+    align-items: flex-start;
+    padding: 0 40px;
+    box-sizing: border-box;
+
+    >:not(:last-child) {
+      margin-bottom: 16px;
+    }
+
+    // Section header with API logo, center stats, and new button
+    .lists-section-header {
+      width: 100%;
+      @include mixins.flexbox-space-between;
+      position: relative;
+
+      .lists-section-title {
+        @include mixins.flexbox-start;
+
+        img {
+          height: 28px;
+          width: 28px;
+          margin-right: 12px;
+          border-radius: 4px;
+        }
+
+        h2 {
+          color: white;
+        }
+      }
+
+      // Aggregate stats centered absolutely so left/right widths don't affect position
+      .lists-section-stats {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        @include mixins.flexbox;
+        gap: 16px;
+
+        .lists-stat {
+          @include mixins.flexbox;
+          gap: 4px;
+
+          .lists-stat-dot {
+            font-size: 10px;
+
+            &.downloaded {
+              color: variables.$mui-success;
+            }
+
+            &.downloading {
+              color: #ffa726;
+            }
+
+            &.missing {
+              color: variables.$mui-error;
+            }
+          }
+
+          span {
+            font-size: 0.8rem;
+            color: variables.$mui-off-white;
+            white-space: nowrap;
+          }
+
+          .lists-stat-size {
+            font-weight: 500;
+            color: white;
+          }
+        }
+      }
+
+      .lists-new-btn {
+        color: white;
+        text-transform: none;
+        font-size: 1.2rem;
+        padding: 6px 16px;
+      }
+    }
+
+    .lists-inactive,
+    .lists-empty {
+      color: variables.$mui-off-white;
+    }
+
+    .lists-loading {
+      width: 100%;
+      @include mixins.flexbox;
+      padding: 20px 0;
+    }
+
+    // Responsive grid of compact cards
+    .lists-grid {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+  }
+
+}
+
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 700px) {
+  .lists-page {
+    .lists-section {
+      padding: 0 16px;
+
+      .lists-section-header .lists-section-stats {
+        display: none;
+      }
+
+      .lists-grid {
+        flex-direction: column;
+      }
+    }
+  }
+}

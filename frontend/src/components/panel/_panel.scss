@@ -1,7 +1,7 @@
 @use '../../scss/variables';
 @use '../../scss/mixins';
 
-.model {
+.panel {
   width: 420px;
   background: variables.$off-black;
   @include mixins.flexbox-space-between-column;
@@ -14,12 +14,12 @@
     text-align: left;
   }
 
-  .model-top {
+  .panel-top {
     width: 100%;
     @include mixins.flexbox-space-between;
     margin-bottom: 30px !important;
 
-    .model-top-left {
+    .panel-top-left {
       @include mixins.flexbox-start;
 
       img {
@@ -36,13 +36,13 @@
     }
   }
 
-  .model-row {
+  .panel-row {
     width: 100%;
     @include mixins.flexbox-space-between;
     margin-top: 10px;
   }
 
-  .model-bottom {
+  .panel-bottom {
     width: 100%;
     min-height: 40px;
     display: flex;
@@ -59,7 +59,7 @@
     }
   }
 
-  .model-bottom:has(p:first-child + p) {
+  .panel-bottom:has(p:first-child + p) {
     justify-content: space-between;
   }
 
@@ -71,7 +71,7 @@
     width: 100%;
   }
 
-  .model-description {
+  .panel-description {
     margin-bottom: 40px;
   }
 
@@ -102,7 +102,7 @@
 
 /* Styles for mobile devices */
 @media only screen and (max-width: 700px) {
-  .model {
+  .panel {
     width: 100% !important;
     max-width: none;
     border-radius: 0px;

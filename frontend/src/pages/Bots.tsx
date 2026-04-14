@@ -4,13 +4,13 @@ import AppContext from "../context"
 import { Send, SettingsSuggest } from "@mui/icons-material"
 import { getDiscordChannels, getQualityProfiles, getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
-import { BotModel } from "../components/model/botModel/BotModel"
+import { BotPanel } from "../components/panel/botPanel/BotPanel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initBotErr } from "../shared/init"
 import { botsErrType } from "../types/botType"
 import { updateInput } from "../shared/formValidation"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import { QualityProfile } from "../types/qualityProfileType"
 import { useNavigate } from "react-router-dom"
@@ -65,7 +65,7 @@ const Bots: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputModel
+      <InputPanel
         title="General"
         startIcon={<SettingsSuggest/>}
         description={`
@@ -194,8 +194,8 @@ const Bots: React.FC = () => {
           error={!!formErr.general_bot_welcome_message}
           multiline={4}
         />
-      </InputModel>
-      <BotModel 
+      </InputPanel>
+      <BotPanel 
         title="Discord Bot"
         startIcon="https://avatars.githubusercontent.com/u/1965106?s=200&v=4"
         description={`
@@ -289,7 +289,7 @@ const Bots: React.FC = () => {
             }
           })}
         />
-      </BotModel>
+      </BotPanel>
       <Button 
         type="submit"
         variant="contained"

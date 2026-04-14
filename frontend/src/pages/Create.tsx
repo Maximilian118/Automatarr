@@ -1,7 +1,7 @@
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import Footer from "../components/footer/Footer"
 import AppContext from "../context"
-import InputModel from "../components/model/inputModel/InputModel"
+import InputPanel from "../components/panel/inputPanel/InputPanel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initUserErrors } from "../shared/init"
 import { UserErrorType } from "../types/userType"
@@ -39,7 +39,7 @@ const Create: React.FC = () => {
           alt="Automatarr Logo" 
           src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped_circle.webp" 
         />
-        <InputModel 
+        <InputPanel 
           title="Create Account" 
           startIcon={<AccountCircle/>}
         >
@@ -74,7 +74,7 @@ const Create: React.FC = () => {
             type="password"
             minLength={8}
           />
-        </InputModel>
+        </InputPanel>
         <div className="button-bar">
           <Button 
             variant="contained"

@@ -7,7 +7,7 @@ import Toggle from "../../utility/Toggle/Toggle"
 import MUIAutocomplete from "../../utility/MUIAutocomplete/MUIAutocomplete"
 import DraggablePoolItem from "./DraggablePoolItem/DraggablePoolItem"
 import { userOverwriteSelection, userOverwriteToNumber, numberToUserOverwriteString, formatBytes } from "../../../shared/utility"
-import "./user-card.scss"
+import "./_user-card.scss"
 
 const calculateUserMovieLimit = (user: BotUserType, settings: settingsType): string => {
   if (user.admin) return "∞"

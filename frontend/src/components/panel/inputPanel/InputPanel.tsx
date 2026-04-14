@@ -1,10 +1,10 @@
 import React, { ReactNode } from "react"
-import '../model.scss'
-import { statusColours } from "../modelUtility"
+import '../_panel.scss'
+import { statusColours } from "../panelUtility"
 import { multilineText } from "../../../shared/utility"
 import { Switch } from "@mui/material"
 
-interface InputModelType {
+interface InputPanelType {
   children: ReactNode
   title?: string
   startIcon?: ReactNode
@@ -16,7 +16,8 @@ interface InputModelType {
   disabled?: boolean
 }
 
-const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, status, description, bottom, checked, onToggle, disabled }) => {
+// A panel container for form inputs with a title, icon, optional status indicator, and toggle
+const InputPanel: React.FC<InputPanelType> = ({ children, title, startIcon, status, description, bottom, checked, onToggle, disabled }) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (onToggle) {
       onToggle(event.target.checked)
@@ -24,9 +25,9 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
   }
 
   return (
-    <div className="model" style={bottom && { paddingBottom: 20 }}>
-      <div className="model-top">
-        <div className="model-top-left">
+    <div className="panel" style={bottom ? { paddingBottom: 20 } : undefined}>
+      <div className="panel-top">
+        <div className="panel-top-left">
           {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
           {title && <h2>{title}</h2>}
         </div>
@@ -40,10 +41,10 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
           />
         )}
       </div>
-      {description && multilineText(description, "model-description")}
+      {description && multilineText(description, "panel-description")}
       {children}
       {bottom && (
-        <div className="model-bottom">
+        <div className="panel-bottom">
           {bottom}
         </div>
       )}
@@ -51,4 +52,4 @@ const InputModel: React.FC<InputModelType> = ({ children, title, startIcon, stat
   )
 }
 
-export default InputModel
+export default InputPanel

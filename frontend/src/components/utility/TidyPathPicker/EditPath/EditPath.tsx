@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
-import './editPath.scss'
+import './_edit_path.scss'
 import { settingsType, tidyPaths } from "../../../../types/settingsType"
 import TidyPath from "../TidyPath/TidyPath"
 import { getChildPaths } from "../../../../shared/requests/fileSystemRequests"

@@ -1,5 +1,5 @@
 import React from "react"
-import './Toggle.scss'
+import './_toggle.scss'
 import { Switch } from "@mui/material"
 
 interface ToggleType {

@@ -12,6 +12,10 @@ export const navItems = [
     url: "/bots",
   },
   {
+    text: "Lists",
+    url: "/lists",
+  },
+  {
     text: "Loops",
     url: "/loops",
   },

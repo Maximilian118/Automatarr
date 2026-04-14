@@ -7,7 +7,7 @@ import AppContext from "../../../context"
 import { useNavigate } from "react-router-dom"
 import { formatBytes } from "../../../shared/utility"
 import NivoLegend from "../NivoLegend/NivoLegend"
-import "./storage-chart.scss"
+import "./_storage-chart.scss"
 
 interface StorageChartProps {
   users: BotUserType[]

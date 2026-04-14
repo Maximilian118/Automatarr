@@ -7,7 +7,7 @@ import { calculateUserTotalStorageBytes } from "./UserCard/UserCard"
 import { transferPoolItem } from "../../shared/requests/settingsRequests"
 import DroppableUserCard from "./UserCard/DroppableUserCard/DroppableUserCard"
 import DragOverlayItem from "./DragOverlayItem/DragOverlayItem"
-import "./user-cards.scss"
+import "./_user-cards.scss"
 
 interface DragItemData {
   sourceUserId: string

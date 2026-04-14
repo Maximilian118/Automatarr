@@ -1,0 +1,106 @@
+@use 'sass:color';
+@use '../../../scss/variables';
+@use '../../../scss/mixins';
+
+.list-card {
+  @include mixins.flexbox-start-column;
+  align-items: stretch;
+  gap: 12px;
+  background: variables.$off-black;
+  border-radius: 4px;
+  padding: 14px 18px;
+  width: 260px;
+  flex: 0 0 260px;
+  cursor: pointer;
+  transition: background variables.$trans-speed;
+  box-sizing: border-box;
+
+  &:hover {
+    background: color.adjust(variables.$off-black, $lightness: 5%);
+  }
+
+  &.error {
+    background: rgba(variables.$mui-error, 0.15);
+
+    &:hover {
+      background: rgba(variables.$mui-error, 0.22);
+    }
+  }
+
+  .list-card-header {
+    @include mixins.flexbox-start;
+
+    .list-card-status {
+      font-size: 10px;
+      margin-right: 8px;
+      flex-shrink: 0;
+
+      &.enabled {
+        color: variables.$mui-success;
+      }
+
+      &.disabled {
+        color: variables.$mui-error;
+      }
+    }
+
+    h3 {
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .list-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .list-card-tag {
+      font-size: 0.7rem;
+      color: variables.$mui-off-white;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+
+    .list-card-error-tag {
+      font-size: 0.7rem;
+      color: variables.$mui-error;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+  }
+}
+
+// Tooltip styling (matching SegmentBar tooltip)
+.list-card-tooltip {
+  background: #1a1a1a !important;
+  padding: 10px 14px !important;
+  border-radius: 6px !important;
+  font-size: 0.75rem !important;
+}
+
+.list-card-tooltip-arrow {
+  color: #1a1a1a !important;
+}
+
+/* Styles for mobile devices */
+@media only screen and (max-width: 700px) {
+  .list-card {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+  }
+}
