@@ -51,49 +51,53 @@ const Connections: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
-      <InputPanel 
-        title="Radarr" 
-        startIcon="https://radarr.video/img/logo.png"
-        status={settings.radarr_active ? "Connected" : "Disconnected"}
-      >
-        {MUITextFieldHelper("radarr_URL")}
-        {MUITextFieldHelper("radarr_KEY")}
-      </InputPanel>
-      <InputPanel 
-        title="Sonarr" 
-        startIcon="https://sonarr.tv/img/logo.png"
-        status={settings.sonarr_active ? "Connected" : "Disconnected"}
-      >
-        {MUITextFieldHelper("sonarr_URL")}
-        {MUITextFieldHelper("sonarr_KEY")}
-      </InputPanel>
-      <InputPanel 
-        title="Lidarr" 
-        startIcon="https://lidarr.audio/img/logo.png"
-        status={settings.lidarr_active ? "Connected" : "Disconnected"}
-      >
-        {MUITextFieldHelper("lidarr_URL")}
-        {MUITextFieldHelper("lidarr_KEY")}
-      </InputPanel>
-      <InputPanel 
-        title="qBittorrent" 
-        startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
-        status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
-      >
-        {MUITextFieldHelper("qBittorrent_URL")}
-        {MUITextFieldHelper("qBittorrent_username")}
-        {MUITextFieldHelper("qBittorrent_password", "password")}
-      </InputPanel>
-      <Button 
-        type="submit"
-        variant="contained"
-        sx={{ margin: "20px 0" }}
-        endIcon={localLoading ? 
-          <CircularProgress size={20} color="inherit"/> : 
-          <Send color="inherit"/>
-        }
-      >Submit</Button>
-      <Footer/>
+      <div className="grid-layout">
+        <InputPanel
+          title="Radarr"
+          startIcon="https://radarr.video/img/logo.png"
+          status={settings.radarr_active ? "Connected" : "Disconnected"}
+        >
+          {MUITextFieldHelper("radarr_URL")}
+          {MUITextFieldHelper("radarr_KEY")}
+        </InputPanel>
+        <InputPanel
+          title="Sonarr"
+          startIcon="https://sonarr.tv/img/logo.png"
+          status={settings.sonarr_active ? "Connected" : "Disconnected"}
+        >
+          {MUITextFieldHelper("sonarr_URL")}
+          {MUITextFieldHelper("sonarr_KEY")}
+        </InputPanel>
+        <InputPanel
+          title="Lidarr"
+          startIcon="https://lidarr.audio/img/logo.png"
+          status={settings.lidarr_active ? "Connected" : "Disconnected"}
+        >
+          {MUITextFieldHelper("lidarr_URL")}
+          {MUITextFieldHelper("lidarr_KEY")}
+        </InputPanel>
+        <InputPanel
+          title="qBittorrent"
+          startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
+          status={settings.qBittorrent_active ? "Connected" : "Disconnected"}
+        >
+          {MUITextFieldHelper("qBittorrent_URL")}
+          {MUITextFieldHelper("qBittorrent_username")}
+          {MUITextFieldHelper("qBittorrent_password", "password")}
+        </InputPanel>
+      </div>
+      <div className="page-bottom">
+        <Button
+          type="submit"
+          variant="contained"
+          sx={{ margin: "20px 0" }}
+          endIcon={localLoading ?
+            <CircularProgress size={20} color="inherit"/> :
+            <Send color="inherit"/>
+          }
+        >Submit</Button>
+        <Footer/>
+      </div>
     </form>
   )
 }

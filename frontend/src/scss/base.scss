@@ -35,7 +35,7 @@ body {
     // Consistent layout for all pages: margin-top for nav spacing, padding for content spacing
     main, form {
       margin-top: variables.$nav-height;
-      padding: 20px 0;
+      padding: 20px variables.$grid-padding;
       @include mixins.flexbox-start-column;
       flex-shrink: 0;
       width: 100%;
@@ -46,9 +46,22 @@ body {
       }
     }
 
-    main {
+    // Responsive grid layout for panel-based pages (420px fixed-width columns)
+    .grid-layout {
+      @include mixins.grid-layout(420px);
+      > * { margin-bottom: 0; }
+    }
+
+    // Responsive grid layout for graph-based pages (800px fixed-width columns)
+    .grid-layout-graphs {
+      @include mixins.grid-layout(800px);
+      > * { margin-bottom: 0; }
+    }
+
+    // Ensure pages fill viewport height so footer stays at the bottom
+    main, form {
       flex-grow: 1;
-      min-height: calc(100vh - variables.$nav-height); // Ensure full height minus nav
+      min-height: calc(100vh - variables.$nav-height);
     }
 
     .login-form {
@@ -68,12 +81,16 @@ body {
       @include mixins.flexbox-space-evenly;
     }
 
-    .bottom {
-      width: 420px;
+    // Groups action buttons and footer together at the bottom of the page
+    .page-bottom {
+      margin-top: auto;
+      flex-shrink: 0;
       @include mixins.flexbox-column;
+      width: 100%;
     }
 
-    .bottom, footer {
+    // Standalone footer pushed to the bottom when not inside .page-bottom
+    main > footer, form > footer {
       margin-top: auto;
       flex-shrink: 0;
     }
@@ -92,8 +109,13 @@ body {
   
   body {
     #root {
-      form {
+      main, form {
         padding: 20px 0;
+      }
+
+      .grid-layout, .grid-layout-graphs {
+        grid-template-columns: 1fr;
+        gap: 0;
       }
 
       .login-form {

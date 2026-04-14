@@ -1,3 +1,5 @@
+@use "./variables";
+
 @mixin flexbox {
   display: flex;
   justify-content: center;
@@ -54,4 +56,15 @@
   flex-flow: column nowrap;
   justify-content: space-between;
   align-items: center;
+}
+
+// Responsive grid layout with fixed-width columns centered on the page
+@mixin grid-layout($col-width: 420px) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, $col-width);
+  justify-content: center;
+  gap: variables.$grid-gap;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
 }

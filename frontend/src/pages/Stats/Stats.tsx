@@ -161,10 +161,9 @@ const Stats: React.FC = () => {
             <CircularProgress />
           </div>
         ) : currentStats ? (
-            <div className="stats-charts">
+            <div className="stats-charts grid-layout-graphs">
               {/* Storage Line Chart */}
               <Graph
-                width={800}
                 title="Storage"
                 icon="💾"
                 subtitle={`${currentStats.storage.used_percentage.toFixed(1)}%`}
@@ -182,9 +181,17 @@ const Stats: React.FC = () => {
                 />
               </Graph>
 
+              {/* Storage Pie Chart */}
+              <Graph
+                title="Storage Usage"
+                icon="💾"
+
+              >
+                <Pie data={storageChartData} />
+              </Graph>
+
               {/* Movies Line Chart */}
               <Graph
-                width={800}
                 title="Movies"
                 icon="https://radarr.video/img/logo.png"
                 subtitle={`${currentStats.movies.downloaded}`}
@@ -200,7 +207,6 @@ const Stats: React.FC = () => {
 
               {/* Series Line Chart */}
               <Graph
-                width={800}
                 title="Series"
                 icon="https://sonarr.tv/img/logo.png"
                 subtitle={`${currentStats.series.downloaded}`}
@@ -212,16 +218,6 @@ const Stats: React.FC = () => {
                   maxValue={seriesChartMax}
                   tickCount={tickCount}
                 />
-              </Graph>
-
-              {/* Storage Pie Chart */}
-              <Graph
-                width={800}
-                title="Storage Usage"
-                icon="💾"
-
-              >
-                <Pie data={storageChartData} />
               </Graph>
             </div>
         ) : (

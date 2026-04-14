@@ -5,6 +5,7 @@ import { settingsType } from "../types/settingsType"
 import UserCards from "../components/UserCards/UserCards"
 import StorageChart from "../components/utility/StorageChart/StorageChart"
 import AppContext from "../context"
+import Footer from "../components/footer/Footer"
 
 const Users: React.FC = () => {
   const { loading, setLoading } = useContext(AppContext)
@@ -56,19 +57,15 @@ const Users: React.FC = () => {
   const users = settings.general_bot.users
 
   return (
-    <div style={{
-      position: 'relative',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <main>
       <StorageChart users={users}/>
-      <UserCards 
+      <UserCards
         users={users}
         settings={settings}
         onSettingsUpdate={handleSettingsUpdate}
       />
-    </div>
+      <Footer/>
+    </main>
   )
 }
 

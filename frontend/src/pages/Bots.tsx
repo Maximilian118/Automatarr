@@ -65,6 +65,7 @@ const Bots: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
+      <div className="grid-layout">
       <InputPanel
         title="General"
         startIcon={<SettingsSuggest/>}
@@ -290,16 +291,19 @@ const Bots: React.FC = () => {
           })}
         />
       </BotPanel>
-      <Button 
-        type="submit"
-        variant="contained"
-        sx={{ margin: "20px 0" }}
-        endIcon={localLoading ? 
-          <CircularProgress size={20} color="inherit"/> : 
-          <Send color="inherit"/>
-        }
-      >Submit</Button>
-      <Footer/>
+      </div>
+      <div className="page-bottom">
+        <Button
+          type="submit"
+          variant="contained"
+          sx={{ margin: "20px 0" }}
+          endIcon={localLoading ?
+            <CircularProgress size={20} color="inherit"/> :
+            <Send color="inherit"/>
+          }
+        >Submit</Button>
+        <Footer/>
+      </div>
     </form>
   )
 }

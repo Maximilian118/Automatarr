@@ -6,13 +6,8 @@
   width: 100%;
 }
 
-// Charts section layout
+// Charts section layout — grid handled by .grid-layout-graphs class
 .stats-charts {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 24px;
   width: 100%;
 }
 
@@ -47,9 +42,4 @@
   }
 }
 
-// Mobile responsive
-@media only screen and (max-width: 768px) {
-  .stats-charts {
-    gap: 0;
-  }
-}
+// Mobile responsive — grid collapse handled by base.scss

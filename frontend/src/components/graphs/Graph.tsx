@@ -3,7 +3,6 @@ import { useTheme, useMediaQuery } from "@mui/material"
 import "./_graph.scss"
 
 interface GraphProps {
-  width: number
   title: string
   icon: string
   subtitle?: string
@@ -13,7 +12,6 @@ interface GraphProps {
 
 // Reusable graph wrapper providing card background, header with icon/title/subtitle, and legend
 const Graph: React.FC<GraphProps> = ({
-  width,
   title,
   icon,
   subtitle,
@@ -26,7 +24,6 @@ const Graph: React.FC<GraphProps> = ({
   return (
   <div
     className={`graph-card ${isMobile ? 'graph-card-mobile' : ''}`}
-    style={isMobile ? undefined : { width }}
   >
     {/* Header with icon, title, subtitle, and legend */}
     <div className="graph-header">

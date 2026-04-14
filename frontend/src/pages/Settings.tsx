@@ -97,10 +97,10 @@ const Settings: React.FC = () => {
   )
 
   return (
-    <>
       <form onSubmit={e => onSubmitHandler(e)}>
+        <div className="grid-layout">
         <InputPanel
-          title="Backups" 
+          title="Backups"
           startIcon={<SettingsBackupRestore/>}
           description={`Backup your settings and user pool data to the path assigned in the docker-compose.yml file.`}
           checked={settings.backups}
@@ -394,30 +394,32 @@ const Settings: React.FC = () => {
             }
           />
         </InputPanel>
-        <Button 
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ? 
-            <CircularProgress size={20} color="inherit"/> : 
-            <Send color="inherit"/>
-          }
-        >Submit</Button>
+        </div>
+        <div className="page-bottom">
+          <div className="button-bar">
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ margin: "20px 0" }}
+              endIcon={localLoading ?
+                <CircularProgress size={20} color="inherit"/> :
+                <Send color="inherit"/>
+              }
+            >Submit</Button>
+            <Button
+              variant="contained"
+              sx={{ margin: "20px 0" }}
+              endIcon={localLoading ?
+                <CircularProgress size={20} color="inherit"/> :
+                <Logout color="inherit"/>
+              }
+              color="error"
+              onClick={() => logout(setUser, navigate)}
+            >Logout</Button>
+          </div>
+          <Footer/>
+        </div>
       </form>
-      <div className="bottom">
-        <Button 
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ? 
-            <CircularProgress size={20} color="inherit"/> : 
-            <Logout color="inherit"/>
-          }
-          color="error"
-          onClick={() => logout(setUser, navigate)}
-        >Logout</Button>
-        <Footer/>
-      </div>
-    </>
   )
 }
 

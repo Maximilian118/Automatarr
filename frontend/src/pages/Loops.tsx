@@ -115,6 +115,7 @@ const Loops: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
+      <div className="grid-layout">
       <InputPanel
         title="Core Loops"
         startIcon={<MuiLoop/>}
@@ -226,16 +227,19 @@ const Loops: React.FC = () => {
           </>
         )}
       </InputPanel>
-      <Button
-        type="submit"
-        variant="contained"
-        sx={{ margin: "20px 0" }}
-        endIcon={localLoading ?
-          <CircularProgress size={20} color="inherit"/> :
-          <Send color="inherit"/>
-        }
-      >Submit</Button>
-      <Footer/>
+      </div>
+      <div className="page-bottom">
+        <Button
+          type="submit"
+          variant="contained"
+          sx={{ margin: "20px 0" }}
+          endIcon={localLoading ?
+            <CircularProgress size={20} color="inherit"/> :
+            <Send color="inherit"/>
+          }
+        >Submit</Button>
+        <Footer/>
+      </div>
     </form>
   )
 }
