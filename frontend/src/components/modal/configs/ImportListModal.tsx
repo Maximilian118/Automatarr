@@ -62,7 +62,6 @@ const ImportListModal: React.FC<ImportListModalProps> = ({
   const isEdit = mode === "edit"
   const title = isEdit ? "Edit Import List" : "New Import List"
   const isRadarr = apiName === "Radarr"
-  const contentType = isRadarr ? "movies" : "series"
 
   // Test button state
   const [testState, setTestState] = useState<"idle" | "loading" | "pass" | "fail">("idle")
