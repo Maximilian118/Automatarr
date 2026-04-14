@@ -26,21 +26,24 @@ const InputPanel: React.FC<InputPanelType> = ({ children, title, startIcon, stat
 
   return (
     <div className="panel" style={bottom ? { paddingBottom: 20 } : undefined}>
-      <div className="panel-top">
-        <div className="panel-top-left">
-          {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
-          {title && <h2>{title}</h2>}
+      {/* Panel header — only rendered when there is a title, status, or toggle */}
+      {(title || startIcon || status || onToggle) && (
+        <div className="panel-top">
+          <div className="panel-top-left">
+            {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
+            {title && <h2>{title}</h2>}
+          </div>
+          {status && <p style={{ color: statusColours(status) }}>{status}</p>}
+          {onToggle && (
+            <Switch
+              checked={checked}
+              onChange={handleSwitchChange}
+              inputProps={{ 'aria-label': 'controlled' }}
+              disabled={disabled}
+            />
+          )}
         </div>
-        {status && <p style={{ color: statusColours(status) }}>{status}</p>}
-        {onToggle && (
-          <Switch
-            checked={checked}
-            onChange={handleSwitchChange}
-            inputProps={{ 'aria-label': 'controlled' }}
-            disabled={disabled}
-          />
-        )}
-      </div>
+      )}
       {description && multilineText(description, "panel-description")}
       {children}
       {bottom && (

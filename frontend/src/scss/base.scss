@@ -52,6 +52,31 @@ body {
       > * { margin-bottom: 0; }
     }
 
+    // Section header that spans all grid columns for grouping cards
+    .grid-section-header {
+      grid-column: 1 / -1;
+      @include mixins.flexbox-start-column;
+      align-items: flex-start;
+      margin-bottom: 0;
+
+      .section-title {
+        @include mixins.flexbox-start;
+        margin-bottom: 8px;
+
+        svg {
+          height: 30px;
+          width: 30px;
+          margin-right: 9px;
+          color: white;
+        }
+      }
+
+      p {
+        color: variables.$mui-off-white;
+        margin: 0;
+      }
+    }
+
     // Responsive grid layout for graph-based pages (800px fixed-width columns)
     .grid-layout-graphs {
       @include mixins.grid-layout(800px);

@@ -116,117 +116,135 @@ const Loops: React.FC = () => {
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
       <div className="grid-layout">
-      <InputPanel
-        title="Core Loops"
-        startIcon={<MuiLoop/>}
-        description="These loops are the heart of Automatarr — they manage your media library lifecycle, handle downloads, and protect user pool content."
-      >
-        {loop(
-          "library_cleanup",
-          "Library Cleanup",
-          "Removes content from your library that no longer appears in your Import Lists. Content in user pools is always protected — only unprotected items are removed. This is the core mechanism that keeps your library lean while respecting what users have explicitly added.",
-          <MUIAutocomplete
-            label="Library Cleanup Level"
-            options={["Library", "Import List"]}
-            value={settings.library_cleanup_level}
-            setValue={(val) => setSettings(prevSettings => {
-              return {
-                ...prevSettings,
-                library_cleanup_level: val as "Library" | "Import List"
-              }
-            })}
-            size="small"
-            disabled={!settings.library_cleanup || !settings.qBittorrent_active}
-            onChange={(e) => updateInput(e, setSettings, setFormErr)}
-            error={!!formErr.library_cleanup_level}
-          />,
-          !settings.qBittorrent_active,
-          "qBittorrent Required"
-        )}
-        {loop(
-          "content_search",
-          "Content Search",
-          "Searches for all content marked as wanted but not yet downloaded. Triggers Radarr and Sonarr to find and grab missing movies and episodes so your library stays up to date.",
-        )}
-        {loop(
-          "queue_cleaner",
-          "Queue Cleaner",
-          "Monitors download queues for stuck, blocked, or problematic items. Automatically removes failed imports, stalled downloads, and format mismatches, then searches for alternatives to keep downloads flowing.",
-        )}
-        {loop(
-          "failed_cleanup",
-          "Failed Cleanup",
-          "Scans download directories for files marked as failed and removes them from disk, keeping your download folders clean.",
-          undefined,
-          !settings.qBittorrent_active,
-          "qBittorrent Required"
-        )}
-      </InputPanel>
-      <InputPanel
-        title="Utilities"
-        startIcon={<Build/>}
-        description="Optional maintenance tasks for filesystem housekeeping."
-      >
-        {loop(
-          "tidy_directories",
-          "Tidy Directories",
-          "Remove all unwanted files and directories in the provided paths. Only keep children specified in the allowed directories section. Unwanted children will be removed if they still exists after 3 loops.",
-          <TidyPathPicker
-            label={inputLabel("tidy_directories", formErr, "Directories")}
-            paths={settings.tidy_directories_paths}
-            setSettings={setSettings}
-            setFormErr={setFormErr}
-            user={user}
-            setUser={setUser}
-            navigate={navigate}
-            disabled={!settings.tidy_directories}
-            error={!!formErr.tidy_directories}
-          />
-        )}
-        {loop(
-          "permissions_change",
-          "Permissions Change",
-          "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
-          <>
+        {/* Core Loops section header */}
+        <div className="grid-section-header">
+          <div className="section-title">
+            <MuiLoop/>
+            <h2>Core Loops</h2>
+          </div>
+          <p>These loops are the heart of Automatarr — they manage your media library lifecycle, handle downloads, and protect user pool content.</p>
+        </div>
+        {/* Individual core loop cards */}
+        <InputPanel>
+          {loop(
+            "library_cleanup",
+            "Library Cleanup",
+            "Removes content from your library that no longer appears in your Import Lists. Content in user pools is always protected — only unprotected items are removed. This is the core mechanism that keeps your library lean while respecting what users have explicitly added.",
             <MUIAutocomplete
-              label="User"
-              options={unixUsers}
-              value={unixUser}
-              setValue={(val) => setUnixUser(val)}
+              label="Library Cleanup Level"
+              options={["Library", "Import List"]}
+              value={settings.library_cleanup_level}
+              setValue={(val) => setSettings(prevSettings => {
+                return {
+                  ...prevSettings,
+                  library_cleanup_level: val as "Library" | "Import List"
+                }
+              })}
               size="small"
-              disabled={!settings.permissions_change}
-              onChange={(e) => {
-                checkChownValidity(unixUser, unixGroup, setFormErr)
-                updateInput(e, setSettings, setFormErr)
-              }}
-              error={!!formErr.permissions_change_chown}
-            />
-            <MUIAutocomplete
-              label="Group"
-              options={unixGroups}
-              value={unixGroup}
-              setValue={val => setUnixGroup(val)}
-              size="small"
-              disabled={!settings.permissions_change}
-              onChange={(e) => {
-                checkChownValidity(unixUser, unixGroup, setFormErr)
-                updateInput(e, setSettings, setFormErr)
-              }}
-              error={!!formErr.permissions_change_chown}
-            />
-            <MUITextField
-              name="permissions_change_chmod"
-              label="Pemissions"
-              value={settings.permissions_change_chmod}
+              disabled={!settings.library_cleanup || !settings.qBittorrent_active}
               onChange={(e) => updateInput(e, setSettings, setFormErr)}
-              formErr={formErr}
-              size="small"
-              maxLength={3}
-              disabled={!settings.permissions_change}
+              error={!!formErr.library_cleanup_level}
+            />,
+            !settings.qBittorrent_active,
+            "qBittorrent Required"
+          )}
+        </InputPanel>
+        <InputPanel>
+          {loop(
+            "content_search",
+            "Content Search",
+            "Searches for all content marked as wanted but not yet downloaded. Triggers Radarr and Sonarr to find and grab missing movies and episodes so your library stays up to date.",
+          )}
+        </InputPanel>
+        <InputPanel>
+          {loop(
+            "queue_cleaner",
+            "Queue Cleaner",
+            "Monitors download queues for stuck, blocked, or problematic items. Automatically removes failed imports, stalled downloads, and format mismatches, then searches for alternatives to keep downloads flowing.",
+          )}
+        </InputPanel>
+        <InputPanel>
+          {loop(
+            "failed_cleanup",
+            "Failed Cleanup",
+            "Scans download directories for files marked as failed and removes them from disk, keeping your download folders clean.",
+            undefined,
+            !settings.qBittorrent_active,
+            "qBittorrent Required"
+          )}
+        </InputPanel>
+        {/* Utilities section header */}
+        <div className="grid-section-header">
+          <div className="section-title">
+            <Build/>
+            <h2>Utilities</h2>
+          </div>
+          <p>Optional maintenance tasks for filesystem housekeeping.</p>
+        </div>
+        {/* Individual utility loop cards */}
+        <InputPanel>
+          {loop(
+            "tidy_directories",
+            "Tidy Directories",
+            "Remove all unwanted files and directories in the provided paths. Only keep children specified in the allowed directories section. Unwanted children will be removed if they still exists after 3 loops.",
+            <TidyPathPicker
+              label={inputLabel("tidy_directories", formErr, "Directories")}
+              paths={settings.tidy_directories_paths}
+              setSettings={setSettings}
+              setFormErr={setFormErr}
+              user={user}
+              setUser={setUser}
+              navigate={navigate}
+              disabled={!settings.tidy_directories}
+              error={!!formErr.tidy_directories}
             />
-          </>
-        )}
-      </InputPanel>
+          )}
+        </InputPanel>
+        <InputPanel>
+          {loop(
+            "permissions_change",
+            "Permissions Change",
+            "Change the ownership and permissions of the entire contents of Starr app root folders to the specified user and group.",
+            <>
+              <MUIAutocomplete
+                label="User"
+                options={unixUsers}
+                value={unixUser}
+                setValue={(val) => setUnixUser(val)}
+                size="small"
+                disabled={!settings.permissions_change}
+                onChange={(e) => {
+                  checkChownValidity(unixUser, unixGroup, setFormErr)
+                  updateInput(e, setSettings, setFormErr)
+                }}
+                error={!!formErr.permissions_change_chown}
+              />
+              <MUIAutocomplete
+                label="Group"
+                options={unixGroups}
+                value={unixGroup}
+                setValue={val => setUnixGroup(val)}
+                size="small"
+                disabled={!settings.permissions_change}
+                onChange={(e) => {
+                  checkChownValidity(unixUser, unixGroup, setFormErr)
+                  updateInput(e, setSettings, setFormErr)
+                }}
+                error={!!formErr.permissions_change_chown}
+              />
+              <MUITextField
+                name="permissions_change_chmod"
+                label="Pemissions"
+                value={settings.permissions_change_chmod}
+                onChange={(e) => updateInput(e, setSettings, setFormErr)}
+                formErr={formErr}
+                size="small"
+                maxLength={3}
+                disabled={!settings.permissions_change}
+              />
+            </>
+          )}
+        </InputPanel>
       </div>
       <div className="page-bottom">
         <Button

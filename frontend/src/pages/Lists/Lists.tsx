@@ -28,6 +28,7 @@ const apiLogos: Record<string, string> = {
   Sonarr: "https://sonarr.tv/img/logo.png",
 }
 
+
 // Extract the list URL from the fields array (Radarr uses "url", Sonarr uses "baseUrl")
 const getListUrl = (list: ImportListData): string => {
   const urlField = list.fields.find((f) => f.name === "url" || f.name === "baseUrl")
