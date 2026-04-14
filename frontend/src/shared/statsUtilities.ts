@@ -27,7 +27,7 @@ export const formatStorage = (bytes: number): string => {
  * @returns Formatted day/month string (e.g., "09/09")
  */
 export const formatDailyChartTimestamp = (timestamp: string): string => {
-  return moment(timestamp).format("DD/MM")
+  return moment(timestamp).format("D")
 }
 
 /**
@@ -253,14 +253,14 @@ export const getChartTheme = (theme: Theme) => ({
  */
 export const getLineLegendConfig = () => ([
   {
-    anchor: 'bottom-right' as const,
-    direction: 'column' as const,
+    anchor: 'bottom-left' as const,
+    direction: 'row' as const,
     justify: false,
-    translateX: 100,
-    translateY: 0,
-    itemsSpacing: 0,
+    translateX: 0,
+    translateY: 86,
+    itemsSpacing: 24,
     itemDirection: 'left-to-right' as const,
-    itemWidth: 80,
+    itemWidth: 100,
     itemHeight: 20,
     itemOpacity: 0.75,
     symbolSize: 12,

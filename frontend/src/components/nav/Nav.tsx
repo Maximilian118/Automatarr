@@ -59,12 +59,13 @@ const Nav: React.FC<navTypes> = ({ loading }) => {
         >
           <MenuIcon/>
         </IconButton>
-        <Tabs value={value} onChange={handleChange} className='nav-tabs'>
-          {navItems.map((item, i) => 
-            <Tab 
+        <Tabs value={value} onChange={handleChange} className='nav-tabs' sx={{ minHeight: 56 }}>
+          {navItems.map((item, i) =>
+            <Tab
               key={i}
               label={item.text}
               onClick={() => navigate(item.url)}
+              sx={{ minHeight: 56 }}
               {...a11yProps(i)}
             />
           )}

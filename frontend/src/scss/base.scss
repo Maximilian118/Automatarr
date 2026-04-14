@@ -34,7 +34,7 @@ body {
 
     // Consistent layout for all pages: margin-top for nav spacing, padding for content spacing
     main, form {
-      margin-top: 48px;
+      margin-top: variables.$nav-height;
       padding: 20px 0;
       @include mixins.flexbox-start-column;
       flex-shrink: 0;
@@ -48,7 +48,7 @@ body {
 
     main {
       flex-grow: 1;
-      min-height: calc(100vh - 48px); // Ensure full height minus nav
+      min-height: calc(100vh - variables.$nav-height); // Ensure full height minus nav
     }
 
     .login-form {

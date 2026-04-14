@@ -2,7 +2,7 @@
 
 .icon-menu {
   position: absolute !important;
-  top: 46px;
+  top: calc(variables.$nav-height - 2px);
   left: 0;
   width: 100%;
   z-index: 998;

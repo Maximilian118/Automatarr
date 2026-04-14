@@ -5,7 +5,7 @@ nav {
   width: 100%;
   background: variables.$off-black;
   @include mixins.flexbox-space-between;
-  height: 48px;
+  height: variables.$nav-height;
   border-bottom: 2px solid black;
   padding-right: 15px;
   box-sizing: border-box;
@@ -20,7 +20,7 @@ nav {
 
     img {
       height: 75%;
-      margin-left: 15px;
+      margin: 0 15px;
       cursor: pointer;
     }
 

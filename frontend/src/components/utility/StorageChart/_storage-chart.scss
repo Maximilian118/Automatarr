@@ -1,6 +1,8 @@
+@use '../../../scss/variables';
+
 .storage-chart-container {
   position: relative;
-  margin-top: 48px;
+  margin-top: variables.$nav-height;
   padding: 20px 0;
   background-color: inherit;
 

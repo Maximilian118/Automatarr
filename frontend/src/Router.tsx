@@ -1,7 +1,7 @@
 import React from "react"
 import { Route, Routes } from "react-router-dom"
 import NotFound from "./pages/NotFound"
-import Stats from "./pages/Stats"
+import Stats from "./pages/Stats/Stats"
 import Connections from "./pages/Connections"
 import Loops from "./pages/Loops"
 import Bots from "./pages/Bots"
