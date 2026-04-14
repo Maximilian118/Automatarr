@@ -44,6 +44,44 @@ export const formatChartTimestamp = (timestamp: string, isMobile: boolean): stri
 // CHART CALCULATION UTILITIES
 // ========================================
 
+const ONE_TERABYTE = Math.pow(1024, 4)
+
+/**
+ * Calculates the maximum Y-axis value for the storage line chart with 25% padding
+ * Enforces a minimum of 1 TB so small drives don't produce a squashed chart
+ * @param data - Array of stats data points
+ * @returns Maximum value in bytes with padding, minimum of 1 TB
+ */
+export const calculateStorageChartMaxValue = (data: StatsDataPoint[]): number => {
+  if (!data.length) return ONE_TERABYTE
+
+  let maxTotal = 0
+  data.forEach(point => {
+    maxTotal = Math.max(maxTotal, Number(point.storage.total_storage))
+  })
+
+  // Use max total directly as the ceiling, with a floor of 1 TB for small drives
+  return Math.max(maxTotal, ONE_TERABYTE)
+}
+
+/**
+ * Generates evenly spaced Y-axis tick values for the storage chart
+ * The top tick is always the exact max value so it displays on the axis
+ * @param maxValue - The maximum Y-axis value in bytes
+ * @param tickCount - Number of ticks to generate (default 10)
+ * @returns Array of tick values from 0 to maxValue
+ */
+export const generateStorageTickValues = (maxValue: number, tickCount: number = 10): number[] => {
+  const step = maxValue / tickCount
+  const ticks: number[] = []
+
+  for (let i = 0; i <= tickCount; i++) {
+    ticks.push(step * i)
+  }
+
+  return ticks
+}
+
 /**
  * Calculates the maximum Y-axis value for charts with 25% padding
  * @param data - Array of stats data points
@@ -119,6 +157,37 @@ export const aggregateDataByDay = (data: StatsDataPoint[]): StatsDataPoint[] => 
 // ========================================
 // CHART DATA GENERATORS
 // ========================================
+
+/**
+ * Converts raw stats data into Nivo line chart format for storage over time with daily aggregation
+ * @param data - Array of stats data points
+ * @returns Array of chart data series for storage (Disk Size, Used) aggregated by day
+ */
+export const generateStorageLineChartData = (data: StatsDataPoint[]): NivoLineData[] => {
+  if (!data.length) return []
+
+  // Aggregate data by day and limit to 30 days
+  const dailyData = aggregateDataByDay(data)
+
+  return [
+    {
+      id: "Disk Size",
+      color: "#F44336",
+      data: dailyData.map(point => ({
+        x: formatDailyChartTimestamp(point.timestamp),
+        y: Number(point.storage.total_storage)
+      }))
+    },
+    {
+      id: "Used",
+      color: "#4CAF50",
+      data: dailyData.map(point => ({
+        x: formatDailyChartTimestamp(point.timestamp),
+        y: Number(point.storage.total_storage) - Number(point.storage.free_storage)
+      }))
+    }
+  ]
+}
 
 /**
  * Converts raw stats data into Nivo line chart format for movies with daily aggregation

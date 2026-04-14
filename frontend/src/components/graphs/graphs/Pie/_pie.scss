@@ -1,0 +1,11 @@
+// Pie chart container height
+.pie-chart-container {
+  height: 400px;
+}
+
+// Mobile responsive
+@media only screen and (max-width: 768px) {
+  .pie-chart-container {
+    height: 250px;
+  }
+}

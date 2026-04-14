@@ -1,0 +1,84 @@
+@use '../../scss/variables';
+@use '../../scss/mixins';
+
+// Graph card wrapper — provides background, padding, and width
+.graph-card {
+  background-color: variables.$off-black;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+// Header row with icon, title, subtitle, and legend
+.graph-header {
+  padding: 0 48px 0 32px;
+  @include mixins.flexbox-space-between;
+}
+
+// Title area with icon and text
+.graph-title {
+  @include mixins.flexbox-start;
+  gap: 10px;
+
+  img {
+    height: 28px;
+    width: 28px;
+    border-radius: 4px;
+  }
+
+  h6 {
+    color: white;
+    margin: 0;
+    font-size: 1.25rem;
+  }
+}
+
+// Subtitle value displayed next to chart title
+.graph-subtitle {
+  color: variables.$mui-off-white;
+  font-size: 1.1rem;
+  font-weight: normal;
+}
+
+// Emoji icon fallback for charts without an image icon
+.graph-emoji {
+  font-size: 1.5rem;
+  line-height: 28px;
+}
+
+// Colour legend in header
+.graph-legend {
+  @include mixins.flexbox-start;
+  gap: 20px;
+}
+
+.graph-legend-item {
+  @include mixins.flexbox-start;
+  gap: 8px;
+}
+
+.graph-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.graph-legend-label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+}
+
+// Mobile responsive
+@media only screen and (max-width: 768px) {
+  .graph-card-mobile {
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    border-radius: 0;
+    margin-bottom: 24px;
+  }
+
+  .graph-legend {
+    display: none;
+  }
+}

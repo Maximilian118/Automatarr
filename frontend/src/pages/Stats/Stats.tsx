@@ -1,24 +1,23 @@
 import React, { useContext, useEffect, useState, useMemo } from "react"
-import {
-  CircularProgress,
-  Alert,
-  useTheme,
-  useMediaQuery
-} from "@mui/material"
-import { ResponsiveLine, PointTooltipProps } from '@nivo/line'
-import { ResponsivePie } from '@nivo/pie'
+import { CircularProgress, Alert } from "@mui/material"
+import { PointTooltipProps } from '@nivo/line'
 import AppContext from "../../context"
 import Footer from "../../components/footer/Footer"
+import Graph from "../../components/graphs/Graph"
+import Line from "../../components/graphs/graphs/Line/Line"
+import Pie from "../../components/graphs/graphs/Pie/Pie"
 import { getStats } from "../../shared/requests/statsRequests"
-import { StatsType, NivoLineData } from "../../types/statsType"
+import { StatsType } from "../../types/statsType"
 import { useNavigate } from "react-router-dom"
 import {
   formatStorage,
   calculateChartMaxValue,
+  calculateStorageChartMaxValue,
+  generateStorageTickValues,
   generateMovieChartData,
   generateSeriesChartData,
+  generateStorageLineChartData,
   generateStorageChartData,
-  getChartTheme,
   aggregateDataByDay
 } from "../../shared/statsUtilities"
 import "./_stats.scss"
@@ -27,22 +26,24 @@ import "./_stats.scss"
 // CONSTANTS
 // ========================================
 
-// Legend items for line charts
+// Legend items for movie/series line charts
 const legendItems = [
   { label: 'Downloaded', color: '#4CAF50' },
   { label: 'Queued', color: '#FF9800' },
   { label: 'Deleted', color: '#F44336' },
 ]
 
-// ========================================
-// CHART COMPONENTS
-// ========================================
+// Legend items for storage line chart
+const storageLegendItems = [
+  { label: 'Disk Size', color: '#F44336' },
+  { label: 'Used', color: '#4CAF50' },
+]
 
-// Tooltip shown on chart point hover
-const ChartTooltip: React.FC<PointTooltipProps> = ({ point }) => (
-  <div className="stats-card">
+// Tooltip for storage chart showing formatted byte values
+const StorageChartTooltip: React.FC<PointTooltipProps> = ({ point }) => (
+  <div className="graph-card" style={{ width: "auto" }}>
     <div style={{ color: point.serieColor, fontWeight: 'bold' }}>
-      {point.serieId}: {point.data.yFormatted}
+      {point.serieId}: {formatStorage(point.data.y as number)}
     </div>
   </div>
 )
@@ -60,8 +61,6 @@ const Stats: React.FC = () => {
   const [stats, setStats] = useState<StatsType | null>(null)
   const [error, setError] = useState<string>("")
   const navigate = useNavigate()
-  const theme = useTheme()
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // ========================================
   // DATA FETCHING
@@ -104,6 +103,11 @@ const Stats: React.FC = () => {
     return stats?.data_points ? generateSeriesChartData(stats.data_points) : []
   }, [stats])
 
+  // Generate storage line chart data (memoized for performance) with daily aggregation
+  const storageLineChartData = useMemo(() => {
+    return stats?.data_points ? generateStorageLineChartData(stats.data_points) : []
+  }, [stats])
+
   const storageChartData = useMemo(() => {
     return currentStats ? generateStorageChartData(currentStats) : []
   }, [currentStats])
@@ -121,6 +125,16 @@ const Stats: React.FC = () => {
     return dailyAggregatedData.length ? calculateChartMaxValue(dailyAggregatedData, 'series') : 100
   }, [dailyAggregatedData])
 
+  // Calculate storage chart max value (minimum 1 TB floor)
+  const storageLineChartMax = useMemo(() => {
+    return dailyAggregatedData.length ? calculateStorageChartMaxValue(dailyAggregatedData) : Math.pow(1024, 4)
+  }, [dailyAggregatedData])
+
+  // Generate evenly spaced Y-axis ticks with the top tick being the exact max
+  const storageTickValues = useMemo(() => {
+    return generateStorageTickValues(storageLineChartMax)
+  }, [storageLineChartMax])
+
   // Calculate optimal tick count for daily data (max 30 days)
   const tickCount = useMemo(() => {
     const dailyDataLength = dailyAggregatedData.length
@@ -128,88 +142,12 @@ const Stats: React.FC = () => {
   }, [dailyAggregatedData.length])
 
   // ========================================
-  // RENDER HELPERS
-  // ========================================
-
-  // Renders a responsive line chart with icon, title, and inline legend
-  const renderLineChart = (
-    data: NivoLineData[],
-    maxValue: number,
-    title: string,
-    icon: string
-  ) => (
-    <div className={`stats-card ${isMobile ? 'stats-card-mobile' : ''}`}>
-      {/* Chart header with icon, title, and legend */}
-      <div className="stats-chart-header">
-        <div className="stats-chart-title">
-          <img src={icon} alt={title} />
-          <h6>{title}</h6>
-        </div>
-        <div className="stats-chart-legend">
-          {legendItems.map(item => (
-            <div key={item.label} className="stats-legend-item">
-              <span className="stats-legend-dot" style={{ backgroundColor: item.color }} />
-              <span className="stats-legend-label">{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="stats-chart-container">
-        <ResponsiveLine
-          data={data}
-          margin={{
-            top: 50,
-            right: 30,
-            bottom: 50,
-            left: 60
-          }}
-          xScale={{ type: 'point' }}
-          yScale={{
-            type: 'linear',
-            min: 0,
-            max: maxValue,
-            stacked: false,
-            reverse: false
-          }}
-          curve="monotoneX"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: isMobile ? -45 : 0,
-            tickValues: tickCount,
-            legend: 'Day',
-            legendOffset: 36,
-            legendPosition: 'middle'
-          }}
-          axisLeft={{
-            tickSize: 5,
-            tickPadding: 5,
-            tickRotation: 0,
-            legend: 'Count',
-            legendOffset: -40,
-            legendPosition: 'middle'
-          }}
-          colors={{ datum: 'color' }}
-          pointSize={0}
-          enablePoints={false}
-          useMesh={true}
-          tooltip={ChartTooltip}
-          legends={[]}
-          theme={getChartTheme(theme)}
-        />
-      </div>
-    </div>
-  )
-
-  // ========================================
   // MAIN RENDER
   // ========================================
 
   return (
     <main>
-      <div>
+      <div className="stats-page">
         {/* Error Display */}
         {error && (
           <Alert severity="error" className="stats-error">
@@ -223,105 +161,69 @@ const Stats: React.FC = () => {
             <CircularProgress />
           </div>
         ) : currentStats ? (
-          <>
-            {/* Current Stats Summary Cards */}
-            <div className="stats-summary">
-              {/* Movies Summary */}
-              <div className={`stats-card ${isMobile ? 'stats-card-mobile' : ''}`}>
-                <h6 className="stats-summary-title">🎬 Movies</h6>
-                <h4 className="stats-summary-value">
-                  {currentStats.movies.downloaded}
-                </h4>
-                <p className="stats-summary-detail">
-                  Downloaded • {currentStats.movies.queued} queued • {currentStats.movies.deleted} deleted
-                </p>
-              </div>
-
-              {/* Series Summary */}
-              <div className={`stats-card ${isMobile ? 'stats-card-mobile' : ''}`}>
-                <h6 className="stats-summary-title">📺 Series</h6>
-                <h4 className="stats-summary-value">
-                  {currentStats.series.downloaded}
-                </h4>
-                <p className="stats-summary-detail">
-                  Downloaded • {currentStats.series.queued} queued • {currentStats.series.episodes_downloaded} episodes
-                </p>
-              </div>
-
-              {/* Storage Summary */}
-              <div className={`stats-card ${isMobile ? 'stats-card-mobile' : ''}`}>
-                <h6 className="stats-summary-title">💾 Storage</h6>
-                <h4 className="stats-summary-value">
-                  {currentStats.storage.used_percentage.toFixed(1)}%
-                </h4>
-                <p className="stats-summary-detail">
-                  Used • {formatStorage(currentStats.storage.free_storage)} free
-                  {currentStats.storage.storage_consistency === 'inconsistent' ? ' ⚠️' : ''}
-                </p>
-              </div>
-            </div>
-
-            {/* Charts Section */}
             <div className="stats-charts">
+              {/* Storage Line Chart */}
+              <Graph
+                width={800}
+                title="Storage"
+                icon="💾"
+                subtitle={`${currentStats.storage.used_percentage.toFixed(1)}%`}
+                legendItems={storageLegendItems}
+
+              >
+                <Line
+                  data={storageLineChartData}
+                  maxValue={storageLineChartMax}
+                  yAxisLabel="Storage"
+                  yAxisFormat={(v: number) => formatStorage(v)}
+                  yAxisTickValues={storageTickValues}
+                  tooltip={StorageChartTooltip}
+                  tickCount={tickCount}
+                />
+              </Graph>
+
               {/* Movies Line Chart */}
-              <div className={isMobile ? 'stats-chart-wrapper' : ''}>
-                {renderLineChart(movieChartData, movieChartMax, "Movies", "https://radarr.video/img/logo.png")}
-              </div>
+              <Graph
+                width={800}
+                title="Movies"
+                icon="https://radarr.video/img/logo.png"
+                subtitle={`${currentStats.movies.downloaded}`}
+                legendItems={legendItems}
+
+              >
+                <Line
+                  data={movieChartData}
+                  maxValue={movieChartMax}
+                  tickCount={tickCount}
+                />
+              </Graph>
 
               {/* Series Line Chart */}
-              <div className={isMobile ? 'stats-chart-wrapper' : ''}>
-                {renderLineChart(seriesChartData, seriesChartMax, "Series", "https://sonarr.tv/img/logo.png")}
-              </div>
+              <Graph
+                width={800}
+                title="Series"
+                icon="https://sonarr.tv/img/logo.png"
+                subtitle={`${currentStats.series.downloaded}`}
+                legendItems={legendItems}
+
+              >
+                <Line
+                  data={seriesChartData}
+                  maxValue={seriesChartMax}
+                  tickCount={tickCount}
+                />
+              </Graph>
 
               {/* Storage Pie Chart */}
-              <div className={`stats-card ${isMobile ? 'stats-card-mobile' : ''}`}>
-                <div className="stats-pie-title">
-                  <h6>Storage Usage</h6>
-                </div>
-                <div className="stats-chart-container">
-                  <ResponsivePie
-                    data={storageChartData}
-                    margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-                    innerRadius={0.5}
-                    padAngle={0.7}
-                    cornerRadius={3}
-                    activeOuterRadiusOffset={8}
-                    borderWidth={1}
-                    borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
-                    arcLinkLabelsSkipAngle={10}
-                    arcLinkLabelsTextColor={theme.palette.text.primary}
-                    arcLinkLabelsThickness={2}
-                    arcLinkLabelsColor={{ from: 'color' }}
-                    arcLabelsSkipAngle={10}
-                    arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
-                    legends={[
-                      {
-                        anchor: 'bottom',
-                        direction: 'row',
-                        justify: false,
-                        translateX: 0,
-                        translateY: 56,
-                        itemsSpacing: 0,
-                        itemWidth: 100,
-                        itemHeight: 18,
-                        itemTextColor: theme.palette.text.primary,
-                        itemDirection: 'left-to-right',
-                        itemOpacity: 1,
-                        symbolSize: 18,
-                        symbolShape: 'circle',
-                        effects: [
-                          {
-                            on: 'hover',
-                            style: { itemTextColor: theme.palette.primary.main }
-                          }
-                        ]
-                      }
-                    ]}
-                  />
-                </div>
-              </div>
+              <Graph
+                width={800}
+                title="Storage Usage"
+                icon="💾"
+
+              >
+                <Pie data={storageChartData} />
+              </Graph>
             </div>
-          </>
         ) : (
           /* No Data State */
           <div className="stats-empty">

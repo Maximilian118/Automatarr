@@ -1,0 +1,11 @@
+// Line chart container height
+.line-chart-container {
+  height: 400px;
+}
+
+// Mobile responsive
+@media only screen and (max-width: 768px) {
+  .line-chart-container {
+    height: 250px;
+  }
+}

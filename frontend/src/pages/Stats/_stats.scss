@@ -1,107 +1,19 @@
 @use '../../scss/variables';
 @use '../../scss/mixins';
 
-// Shared card styling
-.stats-card {
-  background-color: variables.$off-black;
-  padding: 16px;
-  border-radius: 4px;
+// Page wrapper — stretches to full width inside main's centered flex layout
+.stats-page {
+  width: 100%;
 }
 
-// Summary cards grid
-.stats-summary {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.stats-summary-title {
-  color: variables.$mui-hover;
-  margin: 0 0 8px 0;
-  font-size: 1.25rem;
-}
-
-.stats-summary-value {
-  color: white;
-  margin: 0 0 8px 0;
-  font-size: 2.125rem;
-}
-
-.stats-summary-detail {
-  color: variables.$mui-off-white;
-  margin: 0;
-  font-size: 0.875rem;
-}
-
-// Charts section
+// Charts section layout
 .stats-charts {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 24px;
-}
-
-// Chart header with icon, title, and legend
-.stats-chart-header {
-  padding: 0 48px 0 32px;
-  @include mixins.flexbox-space-between;
-}
-
-.stats-chart-title {
-  @include mixins.flexbox-start;
-  gap: 10px;
-
-  img {
-    height: 28px;
-    width: 28px;
-    border-radius: 4px;
-  }
-
-  h6 {
-    color: white;
-    margin: 0;
-    font-size: 1.25rem;
-  }
-}
-
-// Colour legend in chart header
-.stats-chart-legend {
-  @include mixins.flexbox-start;
-  gap: 20px;
-}
-
-.stats-legend-item {
-  @include mixins.flexbox-start;
-  gap: 8px;
-}
-
-.stats-legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.stats-legend-label {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.95rem;
-}
-
-// Chart container
-.stats-chart-container {
-  height: 400px;
-}
-
-// Pie chart title
-.stats-pie-title {
-  padding: 0 48px;
-
-  h6 {
-    color: white;
-    margin: 0;
-    font-size: 1.25rem;
-  }
+  width: 100%;
 }
 
 // Loading state
@@ -137,32 +49,7 @@
 
 // Mobile responsive
 @media only screen and (max-width: 768px) {
-  .stats-summary {
-    grid-template-columns: 1fr;
-    gap: 0;
-    margin-bottom: 0;
-  }
-
-  .stats-card-mobile {
-    width: 100vw;
-    margin-left: calc(-50vw + 50%);
-    border-radius: 0;
-    margin-bottom: 24px;
-  }
-
   .stats-charts {
     gap: 0;
-  }
-
-  .stats-chart-wrapper {
-    margin-bottom: 24px;
-  }
-
-  .stats-chart-legend {
-    display: none;
-  }
-
-  .stats-chart-container {
-    height: 250px;
   }
 }
