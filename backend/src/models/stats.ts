@@ -28,7 +28,7 @@ export interface SeriesMetrics {
 
 // Storage metrics in bytes
 export interface StorageMetrics {
-  total_storage: number
+  total_storage_size: number
   free_storage: number
   minimum_free_storage: number
   used_percentage: number
@@ -87,7 +87,7 @@ const seriesMetricsSchema = new mongoose.Schema<SeriesMetrics>({
 
 // Storage metrics schema
 const storageMetricsSchema = new mongoose.Schema<StorageMetrics>({
-  total_storage: { type: Number, default: 0 },
+  total_storage_size: { type: Number, default: 0 },
   free_storage: { type: Number, default: 0 },
   minimum_free_storage: { type: Number, default: 0 },
   used_percentage: { type: Number, default: 0 },

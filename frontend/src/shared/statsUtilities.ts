@@ -57,7 +57,9 @@ export const calculateStorageChartMaxValue = (data: StatsDataPoint[]): number =>
 
   let maxTotal = 0
   data.forEach(point => {
-    maxTotal = Math.max(maxTotal, Number(point.storage.total_storage))
+    if (point.storage.total_storage_size) {
+      maxTotal = Math.max(maxTotal, Number(point.storage.total_storage_size))
+    }
   })
 
   // Use max total directly as the ceiling, with a floor of 1 TB for small drives
@@ -161,21 +163,21 @@ export const aggregateDataByDay = (data: StatsDataPoint[]): StatsDataPoint[] => 
 /**
  * Converts raw stats data into Nivo line chart format for storage over time with daily aggregation
  * @param data - Array of stats data points
- * @returns Array of chart data series for storage (Disk Size, Used) aggregated by day
+ * @returns Array of chart data series for storage (Storage Size, Used) aggregated by day
  */
 export const generateStorageLineChartData = (data: StatsDataPoint[]): NivoLineData[] => {
   if (!data.length) return []
 
-  // Aggregate data by day and limit to 30 days
-  const dailyData = aggregateDataByDay(data)
+  // Aggregate data by day and limit to 30 days, filter out old points missing total_storage_size
+  const dailyData = aggregateDataByDay(data).filter(point => point.storage.total_storage_size)
 
   return [
     {
-      id: "Disk Size",
+      id: "Storage Size",
       color: "#F44336",
       data: dailyData.map(point => ({
         x: formatDailyChartTimestamp(point.timestamp),
-        y: Number(point.storage.total_storage)
+        y: Number(point.storage.total_storage_size)
       }))
     },
     {
@@ -183,7 +185,7 @@ export const generateStorageLineChartData = (data: StatsDataPoint[]): NivoLineDa
       color: "#4CAF50",
       data: dailyData.map(point => ({
         x: formatDailyChartTimestamp(point.timestamp),
-        y: Number(point.storage.total_storage) - Number(point.storage.free_storage)
+        y: Number(point.storage.total_storage_size) - Number(point.storage.free_storage)
       }))
     }
   ]
@@ -273,7 +275,7 @@ export const generateSeriesChartData = (data: StatsDataPoint[]): NivoLineData[] 
  * @returns Array with used and available storage data for pie chart
  */
 export const generateStorageChartData = (latestPoint: StatsDataPoint) => {
-  const totalBytes = Number(latestPoint.storage.total_storage)
+  const totalBytes = Number(latestPoint.storage.total_storage_size)
   const freeBytes = Number(latestPoint.storage.free_storage)
   const usedBytes = totalBytes - freeBytes
 

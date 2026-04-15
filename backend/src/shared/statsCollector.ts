@@ -115,11 +115,29 @@ const collectStorageMetrics = async (settings: settingsDocType): Promise<Storage
         totalStorage = rootFolderValues[0].total
         logger.info(`statsCollector | Using root folder storage: ${(totalStorage / (1024**4)).toFixed(1)} TiB total, ${(freeStorage / (1024**4)).toFixed(1)} TiB free`)
       } else {
-        // Estimate total space - with 7.4TiB free out of ~42TiB total, that's about 17.5% free
-        // So: totalSpace = freeSpace / 0.175 ≈ freeSpace * 5.7
-        const estimatedTotal = freeStorage * 5.7 // Estimate based on typical 82.5% usage
-        totalStorage = estimatedTotal
-        logger.info(`statsCollector | Using root folder with estimated total: ${(totalStorage / (1024**4)).toFixed(1)} TiB total (estimated), ${(freeStorage / (1024**4)).toFixed(1)} TiB free`)
+        // Root folder API didn't provide totalSpace - use diskspace API as fallback
+        const diskspaces = data?.diskspaces || []
+        let diskspaceTotalSpace = 0
+
+        // Find totalSpace from diskspace API data (multiple APIs report the same physical disk)
+        for (const ds of diskspaces) {
+          if (ds?.data?.data && Array.isArray(ds.data.data)) {
+            for (const disk of ds.data.data) {
+              diskspaceTotalSpace = Math.max(diskspaceTotalSpace, disk.totalSpace || 0)
+            }
+            // Only need one API's diskspace info since they share the same physical disk
+            if (diskspaceTotalSpace > 0) break
+          }
+        }
+
+        if (diskspaceTotalSpace > 0) {
+          totalStorage = diskspaceTotalSpace
+          logger.info(`statsCollector | Using diskspace API for total: ${(totalStorage / (1024**4)).toFixed(1)} TiB total, ${(freeStorage / (1024**4)).toFixed(1)} TiB free`)
+        } else {
+          // Last resort estimate if neither API provided totalSpace
+          totalStorage = freeStorage * 5.7
+          logger.warn(`statsCollector | No totalSpace from root folder or diskspace API, using estimate: ${(totalStorage / (1024**4)).toFixed(1)} TiB total`)
+        }
       }
       
       // Check consistency between APIs (free space should be similar)
@@ -139,7 +157,7 @@ const collectStorageMetrics = async (settings: settingsDocType): Promise<Storage
   const usedPercentage = totalStorage > 0 ? ((totalStorage - freeStorage) / totalStorage) * 100 : 0
   
   return {
-    total_storage: totalStorage,
+    total_storage_size: totalStorage,
     free_storage: freeStorage,
     minimum_free_storage: minFreeSpace,
     used_percentage: Math.round(usedPercentage * 100) / 100, // Round to 2 decimal places

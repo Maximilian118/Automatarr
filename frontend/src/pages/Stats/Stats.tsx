@@ -35,7 +35,7 @@ const legendItems = [
 
 // Legend items for storage line chart
 const storageLegendItems = [
-  { label: 'Disk Size', color: '#F44336' },
+  { label: 'Storage Size', color: '#F44336' },
   { label: 'Used', color: '#4CAF50' },
 ]
 

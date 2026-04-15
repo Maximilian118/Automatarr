@@ -18,7 +18,7 @@ export const populateStats = `
       episodes_deleted
     }
     storage {
-      total_storage
+      total_storage_size
       free_storage
       minimum_free_storage
       used_percentage

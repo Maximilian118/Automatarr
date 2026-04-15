@@ -60,7 +60,7 @@ const StorageChart: React.FC<StorageChartProps> = ({ users }) => {
 
     // Get the latest storage stats
     const currentStats = stats?.data_points?.[stats.data_points.length - 1]
-    const totalDriveSpaceBytes = currentStats?.storage.total_storage || 0
+    const totalDriveSpaceBytes = currentStats?.storage.total_storage_size || 0
     const freeDriveSpaceBytes = currentStats?.storage.free_storage || 0
     
     // Convert to GB

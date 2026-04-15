@@ -15,7 +15,7 @@ export interface SeriesMetrics {
 }
 
 export interface StorageMetrics {
-  total_storage: number
+  total_storage_size: number
   free_storage: number
   minimum_free_storage: number
   used_percentage: number

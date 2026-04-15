@@ -16,7 +16,7 @@ const statsSchema = `
   }
 
   type StorageMetrics {
-    total_storage: Float!
+    total_storage_size: Float!
     free_storage: Float!
     minimum_free_storage: Float!
     used_percentage: Float!
