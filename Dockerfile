@@ -1,7 +1,7 @@
 # ----------------------------
 # Base image (for build and runtime)
 # ----------------------------
-FROM node:18-bullseye-slim AS base
+FROM node:22-bookworm-slim AS base
 
 # Install required system dependencies for mongodb-memory-server + serve
 RUN apt-get update && apt-get install -y \
