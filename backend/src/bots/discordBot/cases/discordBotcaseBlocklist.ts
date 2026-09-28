@@ -37,12 +37,11 @@ import { Movie } from "../../../types/movieTypes"
 import logger from "../../../logger"
 import { notifyEpisodeDownloaded, notifyMovieDownloaded } from "../discordBotAsync"
 import { QueueNotificationType, waitForWebhooks } from "../../../webhooks/webhookUtility"
+import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Mark a download as unsatisfactory, blocklist it and add start a new download
 // NO ADMIN PERMISSIONS NEEDED BUT WE'RE REMOVING FILES SO AT LEAST RATE LIMIT
 export const caseBlocklist = async (message: Message): Promise<string> => {
-  await sendDiscordMessage(message, randomProcessingMessage())
-
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
@@ -58,7 +57,10 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
 
   // Validate the request string: `!blocklist <movieTitleYear/seriesTitleS01E01>`
   const parsed = await validateBlocklistCommand(message, settings, data)
-  if (typeof parsed === "string") return parsed
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
+
+  // Only show a processing message once the command is known to be valid
+  await sendDiscordMessage(message, randomProcessingMessage())
 
   const {
     contentType,

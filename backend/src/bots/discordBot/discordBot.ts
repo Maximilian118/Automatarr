@@ -1,4 +1,4 @@
-import { Client, Events, GatewayIntentBits } from "discord.js"
+import { Client, Events, GatewayIntentBits, Partials } from "discord.js"
 import { settingsDocType } from "../../models/settings"
 import logger from "../../logger"
 import { getServerandChannels, handleDiscordErrors, initDiscordBot } from "./discordBotUtility"
@@ -52,7 +52,9 @@ export const discordBot = async (settings: settingsDocType): Promise<settingsDoc
       GatewayIntentBits.GuildMembers, // Required to fetch/remove Members
       GatewayIntentBits.GuildMessages, // Required to receive messages sent in guild text channels
       GatewayIntentBits.MessageContent, // Required to read message content
+      GatewayIntentBits.DirectMessages, // Required to receive private chats with the AI
     ],
+    partials: [Partials.Channel], // DM channels aren't cached, so they arrive as partials
   })
 
   // Handle errors

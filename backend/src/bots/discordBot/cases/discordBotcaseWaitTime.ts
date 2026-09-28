@@ -14,6 +14,7 @@ import { getSonarrLibrary, getSonarrQueue, searchSonarr } from "../../../shared/
 import { sortTMDBSearchArray } from "../../botUtility"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
+import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Check the wait time for a movie or series download
 export const caseWaitTime = async (message: Message): Promise<string> => {
@@ -26,10 +27,8 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
   // Validate the message
   const parsed = await validateWaitCommand(message, settings, data)
 
-  // Return if an error string is returned from validateDownload
-  if (typeof parsed === "string") {
-    return parsed
-  }
+  // Return the error, or let the AI work out what the user meant
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // If message is valid, give me the juicy data
   const { channel, searchString, year } = parsed

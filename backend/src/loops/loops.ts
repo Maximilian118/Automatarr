@@ -9,6 +9,7 @@ import failed_cleanup from "./failed_cleanup"
 import library_cleanup from "./library_cleanup"
 import content_search from "./content_search"
 import tidy_directories from "./tidy_directories"
+import bot_recommendations from "./bot_recommendations"
 
 // Start looping through all of the core loops
 // prettier-ignore
@@ -52,6 +53,10 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
   await dynamicLoop("backups_loop", async (settings) => {
     await backups(settings)
   }, skipFirst)
+  // Send an occasional AI recommendation to one opted-in user
+  await dynamicLoop("bot_recommendations_loop", async () => {
+    await bot_recommendations()
+  }, true)
 }
 
 // Call all core loop functions once

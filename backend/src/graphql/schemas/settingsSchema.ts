@@ -18,6 +18,7 @@ const settingsSchema = `
     max_movies_overwrite: Int
     max_series_overwrite: Int
     pool: Pool!
+    plex_username: String
     created_at: String!
     updated_at: String!
   }
@@ -47,6 +48,18 @@ const settingsSchema = `
     music_channel_name: String!
     books_channel_name: String!
     welcome_channel_name: String!
+  }
+
+  type AIBot {
+    active: Boolean!
+    api_key: String!
+    model: String!
+    monthly_budget: Float!
+    chat: Boolean!
+    command_help: Boolean!
+    chat_channels: [String!]!
+    recommendations_channel: String!
+    recommendations_gap_days: Int!
   }
 
   type Settings {
@@ -86,8 +99,14 @@ const settingsSchema = `
     qBittorrent_password: String!
     qBittorrent_active: Boolean!
     qBittorrent_API_version: String!
+    plex_URL: String!
+    plex_KEY: String!
+    plex_active: Boolean!
     general_bot: GeneralBot!
     discord_bot: DiscordBot!
+    ai_bot: AIBot!
+    bot_recommendations: Boolean!
+    bot_recommendations_loop: Int!
     lockout: Boolean!
     lockout_attempts: Int!
     lockout_mins: Int!
@@ -136,6 +155,18 @@ const settingsSchema = `
     welcome_channel_name: String
   }
 
+  input aiBot {
+    active: Boolean
+    api_key: String
+    model: String
+    monthly_budget: Float
+    chat: Boolean
+    command_help: Boolean
+    chat_channels: [String!]
+    recommendations_channel: String
+    recommendations_gap_days: Int
+  }
+
   input settingsInput {
     _id: ID!
     radarr_URL: String
@@ -173,8 +204,14 @@ const settingsSchema = `
     qBittorrent_password: String
     qBittorrent_active: Boolean
     qBittorrent_API_version: String
+    plex_URL: String
+    plex_KEY: String
+    plex_active: Boolean
     general_bot: generalBot
     discord_bot: discordBot
+    ai_bot: aiBot
+    bot_recommendations: Boolean
+    bot_recommendations_loop: Int
     lockout: Boolean
     lockout_attempts: Int
     lockout_mins: Int

@@ -6,6 +6,7 @@ import {
   GuildTextBasedChannel,
   Message,
   EmbedBuilder,
+  MessageMentionOptions,
 } from "discord.js"
 import Settings, { DiscordBotType, settingsDocType, BotUserType } from "../../models/settings"
 import logger from "../../logger"
@@ -21,6 +22,7 @@ import { isMovie, isSeries } from "../../types/typeGuards"
 import { Series } from "../../types/seriesTypes"
 import { Movie } from "../../types/movieTypes"
 import { randomQualityNotFoundMessage } from "./discordBotRandomReply"
+import { recordBotReply } from "./ai/aiContext"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -78,8 +80,13 @@ const splitMessage = (content: string, limit: number = 2000): string[] => {
 }
 
 // A function for type safety with message.channel.send()
-// Automatically splits messages exceeding Discord's 2000 character limit
-export const sendDiscordMessage = async (message: Message, content: string): Promise<void> => {
+// Automatically splits messages exceeding Discord's 2000 character limit.
+// Every reply is recorded against the author so they can carry on chatting with the AI.
+export const sendDiscordMessage = async (
+  message: Message,
+  content: string,
+  allowedMentions?: MessageMentionOptions, // Restrict who a message may ping. Used for AI replies.
+): Promise<void> => {
   // Skip sending if content is empty or just whitespace
   if (!content || content.trim() === "") {
     return
@@ -90,8 +97,10 @@ export const sendDiscordMessage = async (message: Message, content: string): Pro
       const chunks = splitMessage(content)
 
       for (const chunk of chunks) {
-        await message.channel.send(chunk)
+        await message.channel.send(allowedMentions ? { content: chunk, allowedMentions } : chunk)
       }
+
+      recordBotReply(message.channel.id, message.author.id, content)
     } catch (err) {
       logger.error(`sendDiscordMessage: Failed to send message: ${err}`)
     }

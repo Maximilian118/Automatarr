@@ -2,6 +2,7 @@ import { Dispatch, SetStateAction } from "react"
 import { settingsType } from "../types/settingsType"
 import {
   checkLidarr,
+  checkPlex,
   checkqBittorrent,
   checkRadarr,
   checkSonarr,
@@ -24,11 +25,12 @@ export const checkAPIs = async (
   newSettings?: true,
 ): Promise<settingsType> => {
   const newData = newSettings ? settings : undefined
-  const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active] = await Promise.all([
+  const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active, plex_active] = await Promise.all([
     checkRadarr(user, setUser, navigate, newData),
     checkSonarr(user, setUser, navigate, newData),
     checkLidarr(user, setUser, navigate, newData),
     checkqBittorrent(user, setUser, navigate, newData),
+    checkPlex(user, setUser, navigate, newData),
   ])
 
   return {
@@ -37,6 +39,7 @@ export const checkAPIs = async (
     sonarr_active,
     lidarr_active,
     qBittorrent_active,
+    plex_active,
   }
 }
 

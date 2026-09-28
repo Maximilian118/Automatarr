@@ -10,6 +10,7 @@ import { AuthRequest } from "../../middleware/auth"
 import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { initWebhookBody } from "../../types/webhookType"
 import { axiosErrorMessage } from "../../shared/requestError"
+import { checkPlexConnection } from "../../shared/plexRequests"
 
 const checkResolvers = {
   checkRadarr: async (
@@ -218,6 +219,40 @@ const checkResolvers = {
       logger.error(`qBittorrent | Error: ${axiosErrorMessage(err)}`)
       return { data: status, tokens }
     }
+  },
+  checkPlex: async (
+    args?: { URL?: string; KEY?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const tokens = req?.tokens || []
+    let { URL, KEY } = args || {}
+
+    // If not passed explicitly, fetch from DB
+    if (!URL || !KEY) {
+      const settings = (await Settings.findOne()) as settingsDocType
+
+      if (!settings || !settings.plex_active) {
+        logger.info("Plex | Inactive.")
+        return { data: 500, tokens }
+      }
+
+      if (!settings.plex_URL || !settings.plex_KEY) {
+        logger.warn("Plex | Missing credentials.")
+        return { data: 500, tokens }
+      }
+
+      URL = settings.plex_URL
+      KEY = settings.plex_KEY
+    }
+
+    const status = await checkPlexConnection(URL, KEY)
+    if (requestSuccess(status)) logger.success("Plex | OK!")
+
+    return { data: status, tokens }
   },
   checkWebhooks: async (
     { webhookURL }: { webhookURL: string },

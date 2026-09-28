@@ -1,7 +1,7 @@
 import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, HTMLInputTypeAttribute, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Send } from "@mui/icons-material"
+import { LiveTv, Send } from "@mui/icons-material"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
@@ -84,6 +84,17 @@ const Connections: React.FC = () => {
           {MUITextFieldHelper("qBittorrent_URL")}
           {MUITextFieldHelper("qBittorrent_username")}
           {MUITextFieldHelper("qBittorrent_password", "password")}
+        </InputPanel>
+        <InputPanel
+          title="Plex"
+          startIcon={<LiveTv/>}
+          status={settings.plex_active ? "Connected" : "Disconnected"}
+          description={`
+            Optional. Lets the Claude AI bot see what people are watching so it can chat about it and make better recommendations.
+          `}
+        >
+          {MUITextFieldHelper("plex_URL")}
+          {MUITextFieldHelper("plex_KEY", "password")}
         </InputPanel>
       </div>
       <div className="page-bottom">

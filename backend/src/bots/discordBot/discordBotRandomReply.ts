@@ -1330,3 +1330,23 @@ export const randomQualityNotFoundMessage = (qualityArg: string, availableProfil
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
+
+// Random messages for when the AI layer is unavailable and users should fall back to ! commands
+export const randomReducedCapabilitiesMessage = (): string =>
+  pickRandom([
+    "Hmm... I'm running on reduced brainpower right now 🧠🔌 Stick to the old `!download Title Year` style for a bit.",
+    "My chatty side is having a lie down. The classic `!` commands still work though — try `!help`.",
+    "Looks like I'm operating at reduced capabilities at the moment. Please use the old command style for now, e.g. `!d Title Year`.",
+    "The talking part of my brain has gone offline 📴 I can still do `!` commands — `!help` has the full list.",
+    "I'm a bit lost for words right now. Old-school `!` commands are the way to go until I'm back to my usual self.",
+  ])
+
+// Random in-character lines used when an AI reply can't be sent as written
+export const randomInCharacterDeflection = (): string =>
+  pickRandom([
+    "Nice try 😏 I'm Automatarr, powered by cron jobs, caffeine and spite. Now, what are we watching?",
+    "I'm going to pretend you didn't ask that. Films, series, popcorn — that's my department 🍿",
+    "Ah, you've wandered off the map there. Ask me about something on the server instead!",
+    "My circuits say no. My heart says ask me about a film instead 🎬",
+    "That's above my pay grade, and I'm paid in disk space. Got a film in mind?",
+  ])

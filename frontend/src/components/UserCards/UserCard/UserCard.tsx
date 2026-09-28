@@ -1,11 +1,12 @@
 import React, { useState } from "react"
-import { CardContent, Chip, IconButton, Button, Typography } from "@mui/material"
+import { CardContent, Chip, IconButton, Button, TextField, Typography } from "@mui/material"
 import { MovieRounded, TvRounded, Settings } from "@mui/icons-material"
 import { BotUserType, settingsType } from "../../../types/settingsType"
 import { removePoolItem, deleteUser, updateUserStatus, updateUserOverwrites } from "../../../shared/requests/settingsRequests"
 import Toggle from "../../utility/Toggle/Toggle"
 import MUIAutocomplete from "../../utility/MUIAutocomplete/MUIAutocomplete"
 import DraggablePoolItem from "./DraggablePoolItem/DraggablePoolItem"
+import { updateUserPlexUsername } from "../../../shared/requests/aiRequests"
 import { userOverwriteSelection, userOverwriteToNumber, numberToUserOverwriteString, formatBytes } from "../../../shared/utility"
 import "./_user-card.scss"
 
@@ -178,6 +179,18 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
     }
   }
 
+  // Save the user's Plex account name when the field loses focus
+  const handlePlexUsernameSave = async (value: string) => {
+    if (!user._id || value.trim() === (user.plex_username ?? "")) return
+
+    try {
+      const updatedSettings = await updateUserPlexUsername(user._id, value)
+      onSettingsUpdate(updatedSettings)
+    } catch (error) {
+      console.error("Failed to update Plex username:", error)
+    }
+  }
+
   const currentItems = contentType === 'movies' ? user.pool.movies : user.pool.series
 
   return (
@@ -285,6 +298,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
                 value={user.max_series_overwrite === null ? null : numberToUserOverwriteString(user.max_series_overwrite)}
                 setValue={handleSeriesOverwriteChange}
               />
+              {settings.plex_active && (
+                <TextField
+                  label="Plex Username"
+                  placeholder="Matched by name if empty"
+                  defaultValue={user.plex_username ?? ""}
+                  onBlur={(e) => handlePlexUsernameSave(e.target.value)}
+                />
+              )}
             </div>
             
             <div style={{ flexGrow: 1 }} />

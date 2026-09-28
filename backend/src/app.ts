@@ -175,6 +175,9 @@ const startServer = async () => {
       PASS: bootSettings.qBittorrent_password,
     })
 
+    // Check connection to Plex for the AI bot
+    await Resolvers.checkPlex()
+
     // Check Automatarr has the filesystem permissions it needs
     bootPermissions(data)
 

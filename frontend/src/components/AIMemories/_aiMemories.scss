@@ -1,0 +1,81 @@
+@use '../../scss/variables';
+@use '../../scss/mixins';
+
+// Section listing everything the AI bot remembers about each Discord user
+.ai-memories {
+  padding: 0 variables.$grid-padding variables.$grid-padding;
+  @include mixins.flexbox-column;
+
+  .ai-memories-header {
+    @include mixins.flexbox-start;
+
+    svg {
+      height: 30px;
+      width: 30px;
+      margin-right: 9px;
+      color: white;
+    }
+  }
+
+  .ai-memories-description {
+    color: variables.$mui-off-white;
+    margin: 8px 0 20px;
+    text-align: center;
+  }
+
+  .ai-memories-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: variables.$grid-gap;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .ai-memory-card {
+    width: 320px;
+    background: variables.$off-black;
+    border-radius: 4px;
+    padding: 16px 20px;
+    box-sizing: border-box;
+
+    .ai-memory-card-top {
+      @include mixins.flexbox-space-between;
+      margin-bottom: 10px;
+    }
+
+    .ai-memory-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .ai-memory-empty {
+      color: variables.$mui-disabled;
+    }
+
+    .ai-memory-notes {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        @include mixins.flexbox-space-between;
+        color: variables.$mui-off-white;
+        border-bottom: 1px solid variables.$mui-border;
+        padding: 4px 0;
+
+        span {
+          flex: 1;
+          margin-right: 8px;
+        }
+      }
+    }
+  }
+
+  @media (max-width: 768px) {
+    .ai-memory-card {
+      width: 100%;
+    }
+  }
+}

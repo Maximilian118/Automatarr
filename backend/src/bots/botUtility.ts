@@ -23,6 +23,7 @@ export const initUser = (
     max_movies_overwrite: null,
     max_series_overwrite: null,
     pool: initPool,
+    plex_username: "",
     created_at: moment().format(),
     updated_at: moment().format(),
   }

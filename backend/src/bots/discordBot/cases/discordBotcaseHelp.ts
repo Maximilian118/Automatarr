@@ -190,6 +190,21 @@ const renderCommandHelp = (cmd: CommandEntry): string =>
   }\n` +
   `${cmd.description ? `Description: ${cmd.description}\n` : ""}`
 
+// Get help for the command a user typed (by name or alias), or every non-admin command if it's unknown
+export const commandUsageHelp = (typedCommand: string): string => {
+  const typed = typedCommand.toLowerCase()
+  const match = commandRegistry.find(
+    (cmd) => cmd.name === typed || cmd.aliases?.some((alias) => alias.replace(/`/g, "") === typed),
+  )
+
+  if (match) return renderCommandHelp(match)
+
+  return commandRegistry
+    .filter((cmd) => !cmd.adminRequired)
+    .map(renderCommandHelp)
+    .join("\n")
+}
+
 const categoryHeaders: Record<string, string> = {
   General: "📚   **General Commands**",
   "User Management": "🎛️   **User Management**",

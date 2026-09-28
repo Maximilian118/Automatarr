@@ -12,6 +12,7 @@ import miscSchema from "./miscSchema"
 import userSchema from "./userSchema"
 import statsSchema from "./statsSchema"
 import importListSchema from "./importListSchema"
+import aiSchema from "./aiSchema"
 
 const Schema = buildSchema(`
   ${miscSchema}
@@ -27,6 +28,7 @@ const Schema = buildSchema(`
   ${userSchema}
   ${statsSchema}
   ${importListSchema}
+  ${aiSchema}
 
   type RootQuery {
     login(name: String!, password: String!): User!
@@ -41,6 +43,8 @@ const Schema = buildSchema(`
     checkSonarr(URL: String, KEY: String): CheckStatus!
     checkLidarr(URL: String, KEY: String): CheckStatus!
     checkqBittorrent(URL: String, USER: String, PASS: String): CheckStatus!
+    checkPlex(URL: String, KEY: String): CheckStatus!
+    checkClaude(KEY: String): CheckStatus!
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!
@@ -48,6 +52,9 @@ const Schema = buildSchema(`
     getImportLists: ImportListReturn!
     getRootFolderPaths: RootFolderPathsReturn!
     getImportListStats: ImportListStatsReturn!
+    getAIModels: AIModelsReturn!
+    getAIUsage: AIUsageReturn!
+    getBotMemories: BotMemoriesReturn!
   }
 
   type RootMutation {
@@ -63,6 +70,10 @@ const Schema = buildSchema(`
     updateImportList(input: ImportListUpdateInput!): ImportListMutationReturn!
     deleteImportList(input: ImportListDeleteInput!): ImportListMutationReturn!
     testImportList(input: ImportListTestInput!): ImportListMutationReturn!
+    deleteBotMemoryNote(discord_id: String!, index: Int!): BotMemoriesReturn!
+    forgetBotUser(discord_id: String!): BotMemoriesReturn!
+    updateBotMemoryPreferences(discord_id: String!, private: Boolean, learning: Boolean, chat: Boolean, recommendations: Boolean): BotMemoriesReturn!
+    updateUserPlexUsername(userId: String!, plexUsername: String!): Settings
   }
 
   schema {

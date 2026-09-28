@@ -9,6 +9,7 @@ import { searchSonarr } from "../../../shared/SonarrStarrRequests"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import logger from "../../../logger"
+import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Search for content across user pools
 export const caseSearch = async (message: Message): Promise<string> => {
@@ -20,7 +21,7 @@ export const caseSearch = async (message: Message): Promise<string> => {
 
   // Validate the message
   const parsed = await validateSearchCommand(message, settings)
-  if (typeof parsed === "string") return parsed
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   const { channel, searchTerm, year } = parsed
 

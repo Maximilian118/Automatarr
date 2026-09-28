@@ -32,11 +32,10 @@ import {
 } from "../../../shared/SonarrStarrRequests"
 import { sortTMDBSearchArray } from "../../botUtility"
 import { Series } from "../../../types/seriesTypes"
+import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Change a Series monitoring options
 export const caseMonitor = async (message: Message): Promise<string> => {
-  await sendDiscordMessage(message, randomProcessingMessage())
-
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
@@ -50,7 +49,10 @@ export const caseMonitor = async (message: Message): Promise<string> => {
 
   // Validate the message
   const parsed = await validateMonitorCommand(message, settings)
-  if (typeof parsed === "string") return parsed
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
+
+  // Only show a processing message once the command is known to be valid
+  await sendDiscordMessage(message, randomProcessingMessage())
 
   const { searchString, year, newMonitor } = parsed
 

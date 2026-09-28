@@ -76,6 +76,9 @@ export const populateSettings = `
   qBittorrent_password
   qBittorrent_active
   qBittorrent_API_version
+  plex_URL
+  plex_KEY
+  plex_active
   general_bot {
     max_movies
     movie_pool_expiry
@@ -113,6 +116,7 @@ export const populateSettings = `
           }
         }
       }
+      plex_username
       created_at
       updated_at
     }
@@ -130,6 +134,19 @@ export const populateSettings = `
     books_channel_name
     welcome_channel_name
   }
+  ai_bot {
+    active
+    api_key
+    model
+    monthly_budget
+    chat
+    command_help
+    chat_channels
+    recommendations_channel
+    recommendations_gap_days
+  }
+  bot_recommendations
+  bot_recommendations_loop
   lockout
   lockout_attempts
   lockout_mins

@@ -76,6 +76,22 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
     }
   }
 
+  const casePlexToken = () => {
+    if (/^[A-Za-z0-9_-]{10,}$/.test(e.target.value) || e.target.value.trim() === "") {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Invalid Plex token.")
+    }
+  }
+
+  const caseAnthropicKey = () => {
+    if (/^sk-ant-[A-Za-z0-9_-]{10,}$/.test(e.target.value) || e.target.value.trim() === "") {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Must be an Anthropic API key starting with sk-ant-")
+    }
+  }
+
   const caseRMLOptions = () => {
     if (e.target.value === "Library" || e.target.value === "Import List") {
       inputErr(e.target.name, "")
@@ -143,6 +159,12 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
   switch (true) {
     case e.target.name.includes("URL"):
       caseURL()
+      break
+    case e.target.name === "plex_KEY":
+      casePlexToken()
+      break
+    case e.target.name.includes("api_key"):
+      caseAnthropicKey()
       break
     case e.target.name.includes("KEY"):
       caseKEY()

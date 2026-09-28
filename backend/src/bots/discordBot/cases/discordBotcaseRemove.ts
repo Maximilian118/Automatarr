@@ -16,17 +16,20 @@ import { saveWithRetry } from "../../../shared/database"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { cancelWebhooksForContent } from "../../../webhooks/webhookUtility"
+import { resolveInvalidCommand } from "../ai/aiHandlers"
+import { logRequest } from "../ai/aiRequestLog"
 
 // Remove an item from the users pool
 export const caseRemove = async (message: Message): Promise<string> => {
-  await sendDiscordMessage(message, randomProcessingMessage())
-
   const settings = (await Settings.findOne()) as settingsDocType
   if (!settings) return noDBPull()
 
   // Validate the request string: `!remove <Index/Title + Year>`
   const parsed = await validateRemoveCommand(message, settings)
-  if (typeof parsed === "string") return parsed
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
+
+  // Only show a processing message once the command is known to be valid
+  await sendDiscordMessage(message, randomProcessingMessage())
 
   const { channel, poolItemTitle, contentTitle, contentYear, contentType } = parsed
 
@@ -146,6 +149,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseRemove"))) return noDBSave()
+  if (removedContent) await logRequest(message, contentType === "movie" ? "movie" : "series", removedContent, "remove")
 
   const { currentLeft } =
     contentType === "movie"

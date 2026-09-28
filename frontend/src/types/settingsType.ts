@@ -42,6 +42,7 @@ export type BotUserType = {
   max_movies_overwrite: number | null
   max_series_overwrite: number | null
   pool: PoolType
+  plex_username: string
   created_at: string
   updated_at: string
 }
@@ -72,6 +73,19 @@ export type DiscordBotType = {
   music_channel_name: string // The channel that pertains to music/Lidarr commands
   books_channel_name: string // The channel that pertains to books/Readarr commands
   welcome_channel_name: string // The channel used to welcome new users
+}
+
+// Claude API powered conversational layer for the bots
+export type AIBotType = {
+  active: boolean // Enable or disable the AI layer. Legacy ! commands work regardless
+  api_key: string // Anthropic API key
+  model: string // Claude model ID used for conversations
+  monthly_budget: number // Maximum estimated spend per calendar month in US dollars
+  chat: boolean // Allow conversational replies outside of ! commands
+  command_help: boolean // Allow the AI to work out what a malformed or unknown ! command meant
+  chat_channels: string[] // Channels the AI may chat in. Empty = movie and series channels
+  recommendations_channel: string // Channel for proactive recommendations. Empty = movie channel
+  recommendations_gap_days: number // Minimum days between recommendations for the same user
 }
 
 // Main settingsType
@@ -112,8 +126,14 @@ export interface settingsType {
   qBittorrent_password: string // Password for qBittorrent if it requires credentials
   qBittorrent_active: boolean // Has qBittorrent connection been tested and therefore should be included in requests?
   qBittorrent_API_version: string // qBittorrent API Version
+  plex_URL: string // URL including port to reach the Plex Media Server
+  plex_KEY: string // X-Plex-Token for the Plex Media Server
+  plex_active: boolean // Has Plex connection been tested and therefore should be included in requests?
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
+  ai_bot: AIBotType // Claude API conversational layer settings
+  bot_recommendations: boolean // Enable or disable proactive AI recommendations
+  bot_recommendations_loop: number // Loop timer for bot_recommendations. Unit = minutes
   lockout: boolean // Enable or disable the lockout mechanism
   lockout_attempts: number | null // Amount of tries before lockout
   lockout_mins: number | null // How long the lockout is for

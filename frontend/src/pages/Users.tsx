@@ -6,6 +6,7 @@ import UserCards from "../components/UserCards/UserCards"
 import StorageChart from "../components/utility/StorageChart/StorageChart"
 import AppContext from "../context"
 import Footer from "../components/footer/Footer"
+import AIMemories from "../components/AIMemories/AIMemories"
 
 const Users: React.FC = () => {
   const { loading, setLoading } = useContext(AppContext)
@@ -64,6 +65,7 @@ const Users: React.FC = () => {
         settings={settings}
         onSettingsUpdate={handleSettingsUpdate}
       />
+      {settings.ai_bot.active && <AIMemories/>}
       <Footer/>
     </main>
   )

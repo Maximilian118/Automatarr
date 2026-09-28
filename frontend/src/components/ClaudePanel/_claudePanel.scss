@@ -1,0 +1,20 @@
+@use '../../scss/variables';
+
+// Monthly spend summary with a budget progress bar
+.claude-panel-usage {
+  width: 100%;
+
+  p {
+    color: variables.$mui-off-white;
+    margin-bottom: 8px;
+
+    strong {
+      color: white;
+    }
+  }
+
+  .MuiLinearProgress-root {
+    height: 6px;
+    border-radius: 3px;
+  }
+}

@@ -12,6 +12,7 @@
   "author": "Maximilian Crosby",
   "license": "MIT",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
     "@types/tail": "^2.2.3",
     "axios": "^1.7.7",
     "bcrypt": "^6.0.0",

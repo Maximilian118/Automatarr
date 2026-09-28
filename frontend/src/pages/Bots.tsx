@@ -15,6 +15,7 @@ import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toSt
 import { QualityProfile } from "../types/qualityProfileType"
 import { useNavigate } from "react-router-dom"
 import { AvailableBots } from "../types/settingsType"
+import ClaudePanel from "../components/ClaudePanel/ClaudePanel"
 
 const Bots: React.FC = () => {
   const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -291,6 +292,12 @@ const Bots: React.FC = () => {
           })}
         />
       </BotPanel>
+      <ClaudePanel
+        settings={settings}
+        setSettings={setSettings}
+        formErr={formErr}
+        setFormErr={setFormErr}
+      />
       </div>
       <div className="page-bottom">
         <Button

@@ -5,154 +5,36 @@ import { UserType } from "../../types/userType"
 import { NavigateFunction } from "react-router-dom"
 import { authCheck, handleResponseTokens, headers } from "./requestUtility"
 
-// Checks if API connection is working.
+// Connections that are checked with a URL and an API key/token
+type URLKeyAPI = "Radarr" | "Sonarr" | "Lidarr" | "Plex"
+
+// Checks if a URL + KEY API connection is working.
 // If settings not passed, check with params in db.
-export const checkRadarr = async (
+const checkURLKeyAPI = async (
+  apiName: URLKeyAPI,
   user: UserType,
   setUser: Dispatch<SetStateAction<UserType>>,
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => {
-  if (settings && (!settings.radarr_URL || !settings.radarr_KEY)) {
-    console.warn("checkRadarr: Missing URL or KEY")
+  const prefix = apiName.toLowerCase()
+  const URL = settings?.[`${prefix}_URL` as keyof settingsType] as string | undefined
+  const KEY = settings?.[`${prefix}_KEY` as keyof settingsType] as string | undefined
+  const queryName = `check${apiName}`
+
+  if (settings && (!URL || !KEY)) {
+    console.warn(`${queryName}: Missing URL or KEY`)
     return false
   }
 
   // prettier-ignore
   try {
-    const res = await axios.post("", settings ? 
-      {
-        variables: {
-          URL: settings?.radarr_URL,
-          KEY: settings?.radarr_KEY,
-        },
-        query: `
-          query CheckRadarr( $URL: String!, $KEY: String! ) {
-            checkRadarr( URL: $URL, KEY: $KEY ) {
-              data
-              tokens
-            }
-          }
-        `,
-      } : {
-        query: `
-          query {
-            checkRadarr {
-              data
-              tokens
-            }
-          }
-        `,
-      }, { headers: headers(user.token) }
-    )
-    // Retrieve name of request for logging
-    const APIName = Object.keys(res.data.data)[0]
-
-    if (res.data.errors) {
-      authCheck(res.data.errors, setUser, navigate)
-      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
-      return false
-    } else {
-      handleResponseTokens(res.data.data[APIName], setUser)
-
-      if (Number(res.data.data[APIName].data) === 200) {
-        console.log(`${APIName}: OK!`)
-        return true
-      } else {
-        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
-        return false
-      }
-    }
-  } catch (err) {
-    console.error(`Radarr API Check Error: ${err}`)
-    return false
-  }
-}
-// Checks if API connection is working. If settings not passed, check with params in db.
-export const checkSonarr = async (
-  user: UserType,
-  setUser: Dispatch<SetStateAction<UserType>>,
-  navigate: NavigateFunction,
-  settings?: settingsType,
-): Promise<boolean> => {
-  if (settings && (!settings.sonarr_URL || !settings.sonarr_KEY)) {
-    console.warn("checkSonarr: Missing URL or KEY")
-    return false
-  }
-
-  // prettier-ignore
-  try {
-    const res = await axios.post("", settings ? 
-      {
-        variables: {
-          URL: settings?.sonarr_URL,
-          KEY: settings?.sonarr_KEY,
-        },
-        query: `
-          query CheckSonarr( $URL: String!, $KEY: String! ) {
-            checkSonarr( URL: $URL, KEY: $KEY ) {
-              data
-              tokens
-            }
-          }
-        `,
-      } : {
-        query: `
-          query {
-            checkSonarr {
-              data
-              tokens
-            }
-          }
-        `,
-      }, { headers: headers(user.token) }
-    )
-    // Retrieve name of request for logging
-    const APIName = Object.keys(res.data.data)[0]
-
-    if (res.data.errors) {
-      authCheck(res.data.errors, setUser, navigate)
-      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
-      return false
-    } else {
-      handleResponseTokens(res.data.data[APIName], setUser)
-
-      if (Number(res.data.data[APIName].data) === 200) {
-        console.log(`${APIName}: OK!`)
-        return true
-      } else {
-        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
-        return false
-      }
-    }
-  } catch (err) {
-    console.error(`Sonarr API Check Error: ${err}`)
-    return false
-  }
-}
-// Checks if API connection is working. If settings not passed, check with params in db.
-export const checkLidarr = async (
-  user: UserType,
-  setUser: Dispatch<SetStateAction<UserType>>,
-  navigate: NavigateFunction,
-  settings?: settingsType,
-): Promise<boolean> => {
-  if (settings && (!settings.lidarr_URL || !settings.lidarr_KEY)) {
-    console.warn("checkLidarr: Missing URL or KEY")
-    return false
-  }
-
-  // prettier-ignore
-  try { 
     const res = await axios.post("", settings ?
       {
-        variables: {
-          URL: settings?.lidarr_URL,
-          KEY: settings?.lidarr_KEY,
-        },
+        variables: { URL, KEY },
         query: `
-          query CheckLidarr( $URL: String!, $KEY: String! ) {
-            checkLidarr( URL: $URL, KEY: $KEY ) {
+          query Check${apiName}( $URL: String!, $KEY: String! ) {
+            ${queryName}( URL: $URL, KEY: $KEY ) {
               data
               tokens
             }
@@ -161,7 +43,7 @@ export const checkLidarr = async (
       } : {
         query: `
           query {
-            checkLidarr {
+            ${queryName} {
               data
               tokens
             }
@@ -169,29 +51,60 @@ export const checkLidarr = async (
         `,
       }, { headers: headers(user.token) }
     )
-    // Retrieve name of request for logging
-    const APIName = Object.keys(res.data.data)[0]
-    
+
     if (res.data.errors) {
       authCheck(res.data.errors, setUser, navigate)
-      console.error(`${APIName} Error: ${res.data.errors[0].message}`)
+      console.error(`${queryName} Error: ${res.data.errors[0].message}`)
       return false
-    } else {
-      handleResponseTokens(res.data.data[APIName], setUser)
-
-      if (Number(res.data.data[APIName].data) === 200) {
-        console.log(`${APIName}: OK!`)
-        return true
-      } else {
-        console.log(`${APIName}: Status ${res.data.data[APIName].data}`)
-        return false
-      }
     }
+
+    handleResponseTokens(res.data.data[queryName], setUser)
+
+    if (Number(res.data.data[queryName].data) === 200) {
+      console.log(`${queryName}: OK!`)
+      return true
+    }
+
+    console.log(`${queryName}: Status ${res.data.data[queryName].data}`)
+    return false
   } catch (err) {
-    console.error(`Lidarr API Check Error: ${err}`)
+    console.error(`${apiName} API Check Error: ${err}`)
     return false
   }
 }
+
+// Checks if the Radarr connection is working. If settings not passed, check with params in db.
+export const checkRadarr = (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => checkURLKeyAPI("Radarr", user, setUser, navigate, settings)
+
+// Checks if the Sonarr connection is working. If settings not passed, check with params in db.
+export const checkSonarr = (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => checkURLKeyAPI("Sonarr", user, setUser, navigate, settings)
+
+// Checks if the Lidarr connection is working. If settings not passed, check with params in db.
+export const checkLidarr = (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => checkURLKeyAPI("Lidarr", user, setUser, navigate, settings)
+
+// Checks if the Plex connection is working. If settings not passed, check with params in db.
+export const checkPlex = (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => checkURLKeyAPI("Plex", user, setUser, navigate, settings)
+
 // Checks if API connection is working. If settings not passed, check with params in db.
 export const checkqBittorrent = async (
   user: UserType,

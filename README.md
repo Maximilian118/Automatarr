@@ -40,6 +40,15 @@ Bots:
 - Remove - Each user can remove from their own pool.
 - Blocklist - Users can mark a download as unsatisfactory, blocklist it and start a new download.
 
+Claude AI (optional, bring your own Anthropic API key):
+
+- Chat - Automatarr chats in character when someone @mentions it, replies to it, calls it by name, or carries on a conversation after it replies. Everything else is ignored for free.
+- Command help - Well-formed `!` commands never touch the AI. Malformed or unknown ones are passed to the AI, which runs the corrected command or explains how to type it.
+- Memory and privacy - Remembers what people like. Users can say "keep my info private", "stop learning about me" or "forget me". Admins can view and delete memories on the Users page.
+- Recommendations - Occasionally tags an opted-in user with something from the library they'd like. Private users get it by DM.
+- Plex - Optionally connect Plex so the AI knows what people have been watching.
+- Budget - A monthly spend cap (default $2.50). If the AI is off, out of credit or over budget, the bot falls back to classic `!` commands.
+
 ## Running Automatarr with Docker Compose:
 
 To run Automatarr using Docker, follow these steps:

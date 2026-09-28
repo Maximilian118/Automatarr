@@ -149,8 +149,14 @@ export const updateSettings = async (
           $qBittorrent_password: String
           $qBittorrent_active: Boolean
           $qBittorrent_API_version: String
+          $plex_URL: String
+          $plex_KEY: String
+          $plex_active: Boolean
           $general_bot: generalBot
           $discord_bot: discordBot
+          $ai_bot: aiBot
+          $bot_recommendations: Boolean
+          $bot_recommendations_loop: Int
           $lockout: Boolean
           $lockout_attempts: Int
           $lockout_mins: Int
@@ -200,8 +206,14 @@ export const updateSettings = async (
             qBittorrent_password: $qBittorrent_password
             qBittorrent_active: $qBittorrent_active
             qBittorrent_API_version: $qBittorrent_API_version
+            plex_URL: $plex_URL
+            plex_KEY: $plex_KEY
+            plex_active: $plex_active
             general_bot: $general_bot
             discord_bot: $discord_bot
+            ai_bot: $ai_bot
+            bot_recommendations: $bot_recommendations
+            bot_recommendations_loop: $bot_recommendations_loop
             lockout: $lockout
             lockout_attempts: $lockout_attempts
             lockout_mins: $lockout_mins

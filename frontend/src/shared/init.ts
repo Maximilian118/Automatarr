@@ -1,6 +1,7 @@
 import { botsErrType } from "../types/botType"
 import { dataType } from "../types/dataType"
 import {
+  AIBotType,
   DiscordBotType,
   GeneralBotType,
   settingsErrorType,
@@ -33,6 +34,18 @@ const initDiscordBot: DiscordBotType = {
   music_channel_name: "", // The channel that pertains to music/Lidarr commands
   books_channel_name: "", // The channel that pertains to books/Readarr commands
   welcome_channel_name: "", // The channel used to welcome new users
+}
+
+const initAIBot: AIBotType = {
+  active: false, // Enable or disable the AI layer. Legacy ! commands work regardless
+  api_key: "", // Anthropic API key
+  model: "claude-haiku-4-5", // Claude model ID used for conversations
+  monthly_budget: 2.5, // Maximum estimated spend per calendar month in US dollars
+  chat: true, // Allow conversational replies outside of ! commands
+  command_help: true, // Allow the AI to work out what a malformed or unknown ! command meant
+  chat_channels: [], // Channels the AI may chat in. Empty = movie and series channels
+  recommendations_channel: "", // Channel for proactive recommendations. Empty = movie channel
+  recommendations_gap_days: 7, // Minimum days between recommendations for the same user
 }
 
 // Initialise the settings object with defaults
@@ -73,8 +86,14 @@ export const initSettings: settingsType = {
   qBittorrent_password: "",
   qBittorrent_active: false,
   qBittorrent_API_version: "v2",
+  plex_URL: "",
+  plex_KEY: "",
+  plex_active: false,
   general_bot: initGeneralBot,
   discord_bot: initDiscordBot,
+  ai_bot: initAIBot,
+  bot_recommendations: false,
+  bot_recommendations_loop: 360, // 6 hours
   lockout: false,
   lockout_attempts: 5,
   lockout_mins: 60,
@@ -118,6 +137,7 @@ export const initBotErr: botsErrType = {
   discord_bot_channel_name: "",
   general_bot_min_free_space: "",
   general_bot_welcome_message: "",
+  ai_bot_api_key: "",
 }
 
 // Init a user

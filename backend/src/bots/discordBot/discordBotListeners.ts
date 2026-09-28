@@ -20,6 +20,8 @@ import { caseList } from "./cases/discordBotcaseList"
 import { caseRemove } from "./cases/discordBotcaseRemove"
 import { caseSearch } from "./cases/discordBotcaseSearch"
 import { caseHelp } from "./cases/discordBotcaseHelp"
+import { handleAIMessage, noteCommandActivity, resolveInvalidCommand } from "./ai/aiHandlers"
+import logger from "../../logger"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -29,14 +31,23 @@ export const messageListeners = async (client: Client) => {
   }
 
   messageListenerFn = async (message: Message) => {
-    if (message.author.bot || !message.guild) return
+    if (message.author.bot) return
     if (!("send" in message.channel)) return
 
     const prefix = "!"
 
-    if (!message.content.startsWith(prefix)) return
+    // Anything that isn't a ! command may go to the AI. The AI's gate decides, for free, whether to reply.
+    if (!message.content.startsWith(prefix)) {
+      await handleAIMessage(message).catch((err) => logger.error(`AI Bot | ${err}`))
+      return
+    }
 
-    const [command, ..._args] = message.content.slice(prefix.length).trim().split(/\s+/)
+    // ! commands only work in servers. They never touch the AI unless they're malformed.
+    if (!message.guild) return
+
+    await noteCommandActivity(message)
+
+    const [command] = message.content.slice(prefix.length).trim().split(/\s+/)
 
     switch (command.toLowerCase()) {
       case "hello": // Say Hello!
@@ -107,8 +118,10 @@ export const messageListeners = async (client: Client) => {
       case "test": // Test webhook notifications
         await handleDiscordCase(message, caseTest)
         break
-      default:
-        await message.channel.send(`Sorry. I don't know this command: \`${command}\``)
+      default: // Unknown command. The AI works out what they meant if it's available.
+        await handleDiscordCase(message, (m) =>
+          resolveInvalidCommand(m, `Sorry. I don't know this command: \`${command}\``, true),
+        )
     }
   }
 

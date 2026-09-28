@@ -61,6 +61,8 @@ import { QualityProfile } from "../../types/qualityProfileType"
 import { Series } from "../../types/seriesTypes"
 import { channelValid } from "./validate/validationUtility"
 import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
+import { resolveInvalidCommand } from "./ai/aiHandlers"
+import { logRequest } from "./ai/aiRequestLog"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -97,10 +99,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Validate the message
   const parsed = await validateDownload(message, settings, "Radarr")
 
-  // Return if an error string is returned from validateDownload
-  if (typeof parsed === "string") {
-    return parsed
-  }
+  // Return the error, or let the AI work out what the user meant
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // If message is valid, give me the juicy data
   const { searchString, year, quality } = parsed
@@ -147,6 +147,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       })
 
       if (!(await saveWithRetry(settings, "caseDownloadMovie - re-add to pool"))) return noDBSave()
+      await logRequest(message, "movie", foundMovie, "readd")
 
       return discordReply(
         randomReAddedToPoolMessage(foundMovie.title),
@@ -286,6 +287,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
+  await logRequest(message, "movie", movie, "download")
 
   if (isUnreleased) {
     // Queue a persistent Import webhook for unreleased media (no Grab needed, no expiry - survives cleanup)
@@ -343,10 +345,8 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   // Validate the message
   const parsed = await validateDownload(message, settings, "Sonarr")
 
-  // Return if an error string is returned from validateDownload
-  if (typeof parsed === "string") {
-    return parsed
-  }
+  // Return the error, or let the AI work out what the user meant
+  if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // If message is valid, give me the juicy data
   const { searchString, year, monitor, quality: seriesQuality } = parsed
@@ -431,6 +431,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
         if (!(await saveWithRetry(settings, "caseDownloadSeries - re-add to pool")))
           return noDBSave()
+        await logRequest(message, "series", matchedSeries, "readd")
 
         return discordReply(
           randomReAddedToPoolMessage(matchedSeries.title),
@@ -602,6 +603,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
   // Save the new pool data to the database
   if (!(await saveWithRetry(settings, "caseDownloadSeries"))) return noDBSave()
+  await logRequest(message, "series", series, "download")
 
   if (isUnreleased) {
     // Queue a persistent Import webhook for unreleased media (no Grab needed, no expiry - survives cleanup)
