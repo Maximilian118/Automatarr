@@ -78,6 +78,7 @@ const dataResolvers = {
     data.diskspaces = await getAllDiskspaces(activeAPIs, data, verboseLogging)
     data.qualityProfiles = await getAllQualityProfiles(activeAPIs, data, verboseLogging)
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data, verboseLogging)
+    const previousLibraries = data.libraries // Kept to spot new arrivals for AI recommendations
     data.libraries = await getAllLibraries(activeAPIs, data, verboseLogging) // Only makes requests one per hour per API
     // qBittorrent
     data.qBittorrent = await getqBittorrentData(settings._doc, data, verboseLogging)
@@ -99,6 +100,19 @@ const dataResolvers = {
     if (savedData && settings.storage_cleaner) {
       const { default: storage_cleaner } = await import("../../loops/storage_cleaner")
       await storage_cleaner(settings._doc, savedData)
+    }
+
+    // Queue anything that just became watchable, then maybe recommend one of them to someone
+    if (savedData) {
+      try {
+        const { findNewArrivals, queueArrivals, processPendingArrivals } = await import(
+          "../../bots/discordBot/ai/aiRecommendationTriggers"
+        )
+        await queueArrivals(settings, findNewArrivals(previousLibraries, savedData.libraries))
+        await processPendingArrivals(settings)
+      } catch (err) {
+        logger.error(`getData | AI recommendations failed: ${err}`)
+      }
     }
 
     return savedData

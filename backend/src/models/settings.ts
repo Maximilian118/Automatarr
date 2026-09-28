@@ -86,9 +86,7 @@ export type AIBotType = {
   monthly_budget: number // Maximum estimated spend per calendar month in US dollars
   chat: boolean // Allow conversational replies outside of ! commands
   command_help: boolean // Allow the AI to work out what a malformed or unknown ! command meant
-  chat_channels: string[] // Channels the AI may chat in. Empty = movie and series channels
-  recommendations_channel: string // Channel for proactive recommendations. Empty = movie channel
-  recommendations_gap_days: number // Minimum days between recommendations for the same user
+  recommendations: boolean // Allow rare, event-based recommendations
 }
 
 // Main settingsType
@@ -135,8 +133,6 @@ export interface settingsType {
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
   ai_bot: AIBotType // Claude API conversational layer settings
-  bot_recommendations: boolean // Enable or disable proactive AI recommendations
-  bot_recommendations_loop: number // Loop timer for bot_recommendations. Unit = minutes
   lockout: boolean // Enable or disable the lockout mechanism
   lockout_attempts: number // Amount of tries before lockout
   lockout_mins: number // How long the lockout is for
@@ -220,9 +216,7 @@ const aiBotSchema = new mongoose.Schema<AIBotType>({
   monthly_budget: { type: Number, default: 2.5 },
   chat: { type: Boolean, default: true },
   command_help: { type: Boolean, default: true },
-  chat_channels: { type: [String], default: [] },
-  recommendations_channel: { type: String, default: "" },
-  recommendations_gap_days: { type: Number, default: 7 },
+  recommendations: { type: Boolean, default: false },
 })
 
 const settingsSchema = new mongoose.Schema<settingsType>(
@@ -268,8 +262,6 @@ const settingsSchema = new mongoose.Schema<settingsType>(
     general_bot: { type: generalBotSchema, default: () => ({}) },
     discord_bot: { type: discordBotSchema, default: () => ({}) },
     ai_bot: { type: aiBotSchema, default: () => ({}) },
-    bot_recommendations: { type: Boolean, default: false },
-    bot_recommendations_loop: { type: Number, default: 360 }, // 6 hours
     lockout: { type: Boolean, default: true },
     lockout_attempts: { type: Number, default: 5 },
     lockout_mins: { type: Number, default: 60 },

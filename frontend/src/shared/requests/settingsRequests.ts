@@ -155,8 +155,6 @@ export const updateSettings = async (
           $general_bot: generalBot
           $discord_bot: discordBot
           $ai_bot: aiBot
-          $bot_recommendations: Boolean
-          $bot_recommendations_loop: Int
           $lockout: Boolean
           $lockout_attempts: Int
           $lockout_mins: Int
@@ -212,8 +210,6 @@ export const updateSettings = async (
             general_bot: $general_bot
             discord_bot: $discord_bot
             ai_bot: $ai_bot
-            bot_recommendations: $bot_recommendations
-            bot_recommendations_loop: $bot_recommendations_loop
             lockout: $lockout
             lockout_attempts: $lockout_attempts
             lockout_mins: $lockout_mins

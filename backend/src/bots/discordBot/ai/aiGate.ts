@@ -34,21 +34,6 @@ const nameUsedAsAddress = (message: Message): boolean => {
 const nameMentioned = (message: Message): boolean =>
   nameIndex(message, message.content.trim().split(/\s+/)) !== -1
 
-// The channels the AI is allowed to chat in. Empty setting = movie and series channels.
-const chatChannels = (settings: settingsDocType): string[] => {
-  const configured = settings.ai_bot.chat_channels.filter(Boolean)
-  if (configured.length > 0) return configured
-
-  return [settings.discord_bot.movie_channel_name, settings.discord_bot.series_channel_name].filter(Boolean)
-}
-
-// Check whether a message was sent in a channel the AI may chat in
-export const isChatChannel = (message: Message, settings: settingsDocType): boolean => {
-  if (!message.guild) return true // Direct messages are always allowed
-  const channelName = "name" in message.channel ? message.channel.name : null
-  return !!channelName && chatChannels(settings).includes(channelName)
-}
-
 // Check whether a message is aimed at another human rather than the bot
 const addressedToSomeoneElse = async (message: Message): Promise<boolean> => {
   const botId = message.client.user?.id
@@ -91,7 +76,6 @@ export const gateMessage = async (
   if (message.author.bot) return null
   if (!message.content.trim()) return null
   if (!settings.ai_bot.chat) return null
-  if (!isChatChannel(message, settings)) return null
 
   const channelId = message.channel.id
   const userId = message.author.id

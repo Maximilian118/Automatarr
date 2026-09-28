@@ -1,5 +1,5 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
-import { Autocomplete, LinearProgress, TextField } from "@mui/material"
+import { LinearProgress } from "@mui/material"
 import { AutoAwesome } from "@mui/icons-material"
 import "./_claudePanel.scss"
 import { BotPanel } from "../panel/botPanel/BotPanel"
@@ -18,28 +18,6 @@ interface ClaudePanelType {
   formErr: botsErrType
   setFormErr: Dispatch<SetStateAction<botsErrType>>
 }
-
-// Recommendation frequency options mapped to loop minutes
-const frequencyOptions: Record<string, number> = {
-  "Every hour": 60,
-  "Every 3 hours": 180,
-  "Every 6 hours": 360,
-  "Every 12 hours": 720,
-  "Daily": 1440,
-}
-
-// Minimum days between recommendations for the same person
-const gapOptions: Record<string, number> = {
-  "1 day": 1,
-  "3 days": 3,
-  "1 week": 7,
-  "2 weeks": 14,
-  "1 month": 30,
-}
-
-// Find the label for a value in an options map, falling back to the raw value
-const labelFor = (options: Record<string, number>, value: number, unit: string): string =>
-  Object.keys(options).find((key) => options[key] === value) ?? `${value} ${unit}`
 
 // How long to wait after typing before checking the API key
 const KEY_CHECK_DELAY_MS = 800
@@ -80,8 +58,6 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
     setSettings(prev => ({ ...prev, ai_bot: { ...prev.ai_bot, ...changes } }))
   }
 
-  const channels = settings.discord_bot.channel_list
-  const noChannels = !settings.discord_bot.server_name || channels.length === 0
   const selectedModel = models.find(m => m.id === ai.model)
   const spent = usage ? usage.cost_usd : 0
   const budgetUsed = ai.monthly_budget > 0 ? Math.min(100, (spent / ai.monthly_budget) * 100) : 100
@@ -91,7 +67,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
       title="Claude AI"
       startIcon={<AutoAwesome/>}
       description={`
-        Optional. Lets Automatarr chat with people, work out what they meant when a ! command is malformed, remember what they like and make the odd recommendation.
+        Optional. Lets Automatarr chat with people in any channel, work out what they meant when a ! command is malformed, remember what they like and make the odd recommendation.
 
         Well-formed ! commands never use the AI and always work, even if the AI is off, out of credit or over budget.
 
@@ -150,49 +126,14 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
         checked={ai.command_help}
         onToggle={(value) => updateAI({ command_help: value })}
       />
-      <Autocomplete
-        multiple
-        options={channels}
-        value={ai.chat_channels}
-        disabled={noChannels}
-        onChange={(_, value) => updateAI({ chat_channels: value })}
-        renderInput={(params) => (
-          <TextField {...params} label="Chat Channels" placeholder="Movie & series channels"/>
-        )}
-      />
       <Toggle
         name="Proactive recommendations"
-        checked={settings.bot_recommendations}
-        onToggle={(value) => setSettings(prev => ({ ...prev, bot_recommendations: value }))}
+        checked={ai.recommendations}
+        onToggle={(value) => updateAI({ recommendations: value })}
       />
-      <MUIAutocomplete
-        label="Recommendation Channel"
-        options={channels}
-        value={ai.recommendations_channel || null}
-        placeholder="Movie or series channel"
-        disabled={noChannels || !settings.bot_recommendations}
-        setValue={(val) => updateAI({ recommendations_channel: val ?? "" })}
-      />
-      <MUIAutocomplete
-        label="Recommendation Frequency"
-        options={Object.keys(frequencyOptions)}
-        value={labelFor(frequencyOptions, settings.bot_recommendations_loop, "mins")}
-        disabled={!settings.bot_recommendations}
-        setValue={(val) => {
-          if (val && frequencyOptions[val]) {
-            setSettings(prev => ({ ...prev, bot_recommendations_loop: frequencyOptions[val] }))
-          }
-        }}
-      />
-      <MUIAutocomplete
-        label="Max One Recommendation Per Person Every"
-        options={Object.keys(gapOptions)}
-        value={labelFor(gapOptions, ai.recommendations_gap_days, "days")}
-        disabled={!settings.bot_recommendations}
-        setValue={(val) => {
-          if (val && gapOptions[val]) updateAI({ recommendations_gap_days: gapOptions[val] })
-        }}
-      />
+      <p className="claude-panel-note">
+        Rare by design: at most once every few days to once a month across the whole server, when something new lands that someone will love or when someone comes back after a while. They go to the movie or series channel, or by DM for private users.
+      </p>
     </BotPanel>
   )
 }

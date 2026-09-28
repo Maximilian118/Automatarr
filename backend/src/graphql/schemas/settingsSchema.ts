@@ -57,9 +57,7 @@ const settingsSchema = `
     monthly_budget: Float!
     chat: Boolean!
     command_help: Boolean!
-    chat_channels: [String!]!
-    recommendations_channel: String!
-    recommendations_gap_days: Int!
+    recommendations: Boolean!
   }
 
   type Settings {
@@ -105,8 +103,6 @@ const settingsSchema = `
     general_bot: GeneralBot!
     discord_bot: DiscordBot!
     ai_bot: AIBot!
-    bot_recommendations: Boolean!
-    bot_recommendations_loop: Int!
     lockout: Boolean!
     lockout_attempts: Int!
     lockout_mins: Int!
@@ -162,9 +158,7 @@ const settingsSchema = `
     monthly_budget: Float
     chat: Boolean
     command_help: Boolean
-    chat_channels: [String!]
-    recommendations_channel: String
-    recommendations_gap_days: Int
+    recommendations: Boolean
   }
 
   input settingsInput {
@@ -210,8 +204,6 @@ const settingsSchema = `
     general_bot: generalBot
     discord_bot: discordBot
     ai_bot: aiBot
-    bot_recommendations: Boolean
-    bot_recommendations_loop: Int
     lockout: Boolean
     lockout_attempts: Int
     lockout_mins: Int

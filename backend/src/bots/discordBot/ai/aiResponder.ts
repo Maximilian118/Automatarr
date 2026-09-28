@@ -16,6 +16,7 @@ import { COMMAND_HELP_INSTRUCTIONS } from "./aiPersona"
 import { createAIMessage, responseText, responseToolCalls } from "./aiRequest"
 import { runTool, toolsFor } from "./aiTools"
 import { buildSpeakerProfile } from "./tools/aiInfoTools"
+import { checkReturningUser } from "./aiRecommendationTriggers"
 import { ToolContext } from "./tools/aiToolTypes"
 
 // Maximum request round trips per engagement, so tool loops can't run away
@@ -170,7 +171,7 @@ export const respondWithAI = async (
 
     // Record the message after building the transcript so it isn't duplicated in the context
     if (!failed) recordUserMessage(message.channel.id, message.author.id, message.content)
-    await touchActivity(ctx.identity)
+    checkReturningUser(ctx.identity, await touchActivity(ctx.identity))
 
     if (reason !== "passing" && "sendTyping" in message.channel) {
       await message.channel.sendTyping().catch(() => undefined)

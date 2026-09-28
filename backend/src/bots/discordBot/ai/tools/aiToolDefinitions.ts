@@ -8,6 +8,18 @@ const titleYear = {
   year: { type: "integer", description: "The 4 digit release year." },
 }
 
+const contentType = {
+  type: {
+    type: "string",
+    enum: ["movie", "series"],
+    description: "Whether it's a film or a series. Decides which channel the command runs in.",
+  },
+}
+
+// Title, year and content type, which most action tools need
+const titleYearType = { ...titleYear, ...contentType }
+const titleYearTypeRequired = ["title", "year", "type"]
+
 const preferenceFlags = {
   private: {
     type: "boolean",
@@ -18,53 +30,53 @@ const preferenceFlags = {
   recommendations: { type: "boolean", description: "false = no unprompted recommendations." },
 }
 
-// Tools that run a ! command as the speaker. They post their own reply to the channel.
+// Tools that run a ! command as the speaker. They always run in the movie or series channel
+// matching the content type and post their own output there.
 export const ACTION_TOOLS: Tool[] = [
   {
     name: "download",
-    description:
-      "Download a film (in the movie channel) or series (in the series channel) and add it to the speaker's pool. Same as !download.",
+    description: "Download a film or series and add it to the speaker's pool. Same as !download.",
     input_schema: {
       type: "object",
       properties: {
-        ...titleYear,
+        ...titleYearType,
         quality: { type: "string", description: "Optional quality, e.g. 4k, 1080p, 720p." },
         monitor: {
           type: "string",
           description: "Optional series monitor option: all, future, missing, existing, recent, pilot, firstSeason, lastSeason.",
         },
       },
-      required: ["title", "year"],
+      required: titleYearTypeRequired,
     },
   },
   {
     name: "remove",
     description: "Remove a film or series from the speaker's own pool. Same as !remove.",
-    input_schema: { type: "object", properties: titleYear, required: ["title", "year"] },
+    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "list_pool",
-    description: "Post the speaker's pool for the current channel's content type. Same as !list.",
-    input_schema: { type: "object", properties: {} },
+    description: "Post the speaker's pool of films or series. Same as !list.",
+    input_schema: { type: "object", properties: contentType, required: ["type"] },
   },
   {
     name: "search_library",
     description: "Post which users have a title in their pools. Same as !search.",
-    input_schema: { type: "object", properties: titleYear, required: ["title", "year"] },
+    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "wait_time",
     description: "Post how long a download has left. Same as !waittime.",
-    input_schema: { type: "object", properties: titleYear, required: ["title", "year"] },
+    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "stay",
     description: "Keep a title in the library a while longer. Same as !stay.",
-    input_schema: { type: "object", properties: titleYear, required: ["title", "year"] },
+    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "monitor",
-    description: "Change which episodes of a series are downloaded. Same as !monitor.",
+    description: "Change which episodes of a series are downloaded. Same as !monitor. Series only.",
     input_schema: {
       type: "object",
       properties: {
@@ -84,10 +96,10 @@ export const ACTION_TOOLS: Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        ...titleYear,
+        ...titleYearType,
         episode: { type: "string", description: "For series only, e.g. S02E04." },
       },
-      required: ["title", "year"],
+      required: titleYearTypeRequired,
     },
   },
   {

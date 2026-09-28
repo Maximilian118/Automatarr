@@ -42,10 +42,11 @@ Bots:
 
 Claude AI (optional, bring your own Anthropic API key):
 
-- Chat - Automatarr chats in character when someone @mentions it, replies to it, calls it by name, or carries on a conversation after it replies. Everything else is ignored for free.
+- Chat - Automatarr chats in character in any channel when someone @mentions it, replies to it, calls it by name, or carries on a conversation after it replies. Everything else is ignored for free.
+- Plain-English requests - "Grab me Dune" works from any channel or DM. The download output always lands in the right movie or series channel.
 - Command help - Well-formed `!` commands never touch the AI. Malformed or unknown ones are passed to the AI, which runs the corrected command or explains how to type it.
 - Memory and privacy - Remembers what people like. Users can say "keep my info private", "stop learning about me" or "forget me". Admins can view and delete memories on the Users page.
-- Recommendations - Occasionally tags an opted-in user with something from the library they'd like. Private users get it by DM.
+- Recommendations - Rare and event-based: at most once every few days to once a month across the server, when something new lands that matches someone's taste or when someone comes back after a while. Posted in the movie or series channel, or by DM for private users.
 - Plex - Optionally connect Plex so the AI knows what people have been watching.
 - Budget - A monthly spend cap (default $2.50). If the AI is off, out of credit or over budget, the bot falls back to classic `!` commands.
 

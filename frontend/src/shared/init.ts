@@ -43,9 +43,7 @@ const initAIBot: AIBotType = {
   monthly_budget: 2.5, // Maximum estimated spend per calendar month in US dollars
   chat: true, // Allow conversational replies outside of ! commands
   command_help: true, // Allow the AI to work out what a malformed or unknown ! command meant
-  chat_channels: [], // Channels the AI may chat in. Empty = movie and series channels
-  recommendations_channel: "", // Channel for proactive recommendations. Empty = movie channel
-  recommendations_gap_days: 7, // Minimum days between recommendations for the same user
+  recommendations: false, // Allow rare, event-based recommendations
 }
 
 // Initialise the settings object with defaults
@@ -92,8 +90,6 @@ export const initSettings: settingsType = {
   general_bot: initGeneralBot,
   discord_bot: initDiscordBot,
   ai_bot: initAIBot,
-  bot_recommendations: false,
-  bot_recommendations_loop: 360, // 6 hours
   lockout: false,
   lockout_attempts: 5,
   lockout_mins: 60,

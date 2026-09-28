@@ -99,8 +99,6 @@ const settingsResolvers = {
     settings.plex_active = args.settingsInput.plex_active
     Object.assign(settings.discord_bot, args.settingsInput.discord_bot)
     Object.assign(settings.ai_bot, args.settingsInput.ai_bot)
-    settings.bot_recommendations = args.settingsInput.bot_recommendations
-    settings.bot_recommendations_loop = args.settingsInput.bot_recommendations_loop
     // A safty measure to ensure users can't be touched by this request
     Object.assign(settings.general_bot, {
       ...args.settingsInput.general_bot,

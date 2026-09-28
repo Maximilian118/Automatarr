@@ -1,7 +1,7 @@
-import { Message } from "discord.js"
+import { GuildTextBasedChannel, Message } from "discord.js"
 import logger from "../../../../logger"
 import { truncateText } from "../../../../shared/utility"
-import { sendDiscordMessage } from "../../discordBotUtility"
+import { findChannelByName, sendDiscordMessage } from "../../discordBotUtility"
 import { randomCrashedMessage } from "../../discordBotRandomReply"
 import { caseDownloadSwitch } from "../../discordBotContentListeners"
 import { caseStats } from "../../discordBotUserListeners"
@@ -18,10 +18,17 @@ import { ToolContext, ToolHandler, ToolInput, inputString, inputYear } from "./a
 // Only one action per engagement so the channel doesn't fill with command output
 const MAX_ACTIONS_PER_ENGAGEMENT = 1
 
+type ContentType = "movie" | "series"
+
 type ActionDefinition = {
   build: (input: ToolInput) => string | null // Build the ! command, or null if input is incomplete
   run: (message: Message) => Promise<string> // The existing command handler
+  channel?: (input: ToolInput) => ContentType | null // Which content channel it runs in. Absent = current channel
 }
+
+// Read the content type the model chose
+const inputContentType = (input: ToolInput): ContentType | null =>
+  input.type === "movie" || input.type === "series" ? input.type : null
 
 // Build "<command> <title> <year>" from tool input
 const titleYearCommand = (command: string, input: ToolInput, ...extra: string[]): string | null => {
@@ -39,27 +46,46 @@ const ACTIONS: Record<string, ActionDefinition> = {
     build: (input) =>
       titleYearCommand("!download", input, inputString(input, "quality", 10), inputString(input, "monitor", 20)),
     run: (m) => caseDownloadSwitch(m),
+    channel: inputContentType,
   },
-  remove: { build: (input) => titleYearCommand("!remove", input), run: (m) => caseRemove(m) },
-  list_pool: { build: () => "!list", run: (m) => caseList(m) },
-  search_library: { build: (input) => titleYearCommand("!search", input), run: (m) => caseSearch(m) },
-  wait_time: { build: (input) => titleYearCommand("!waittime", input), run: (m) => caseWaitTime(m) },
-  stay: { build: (input) => titleYearCommand("!stay", input), run: (m) => caseStay(m) },
+  remove: { build: (input) => titleYearCommand("!remove", input), run: (m) => caseRemove(m), channel: inputContentType },
+  list_pool: { build: () => "!list", run: (m) => caseList(m), channel: inputContentType },
+  search_library: {
+    build: (input) => titleYearCommand("!search", input),
+    run: (m) => caseSearch(m),
+    channel: inputContentType,
+  },
+  wait_time: {
+    build: (input) => titleYearCommand("!waittime", input),
+    run: (m) => caseWaitTime(m),
+    channel: inputContentType,
+  },
+  stay: { build: (input) => titleYearCommand("!stay", input), run: (m) => caseStay(m), channel: inputContentType },
   monitor: {
     build: (input) => {
       const option = inputString(input, "option", 20)
       return option ? titleYearCommand("!monitor", input, option) : null
     },
     run: (m) => caseMonitor(m),
+    channel: () => "series",
   },
   blocklist: {
     build: (input) => titleYearCommand("!blocklist", input, inputString(input, "episode", 10)),
     run: (m) => caseBlocklist(m),
+    channel: inputContentType,
   },
   stats: { build: () => "!stats", run: (m) => caseStats(m) },
 }
 
-// Run a ! command as the speaker and report what it posted back to the model
+// Find the configured movie or series channel
+const contentChannel = (ctx: ToolContext, type: ContentType): GuildTextBasedChannel | undefined => {
+  const { movie_channel_name, series_channel_name } = ctx.settings.discord_bot
+  return findChannelByName(type === "movie" ? movie_channel_name : series_channel_name).textBasedChannel
+}
+
+// Run a ! command as the speaker and report what it posted back to the model.
+// Content commands always run in the matching movie or series channel, wherever the user asked.
+
 const runAction = (name: string): ToolHandler => async (ctx: ToolContext, input: ToolInput) => {
   const action = ACTIONS[name]
 
@@ -70,19 +96,30 @@ const runAction = (name: string): ToolHandler => async (ctx: ToolContext, input:
   const command = action.build(input)
   if (!command) return "Not run. A title and 4 digit year are required."
 
+  let target: GuildTextBasedChannel | undefined
+
+  if (action.channel) {
+    const type = action.channel(input)
+    if (!type) return "Not run. Say whether it's a movie or a series."
+
+    target = contentChannel(ctx, type)
+    if (!target) return `Not run. No ${type} channel is set up in Automatarr. Tell them to ask an admin.`
+  }
+
   ctx.actionsTaken++
   ctx.postedByAction = true
 
-  const synthetic = buildCommandMessage(ctx.message, command)
-  logger.bot(`AI Bot | ${ctx.identity.username} | Running \`${command}\``)
+  const synthetic = buildCommandMessage(ctx.message, command, target)
+  const where = target ? `in <#${target.id}>${target.id !== ctx.message.channel.id ? ", not the channel you're chatting in" : ""}` : "here"
+  logger.bot(`AI Bot | ${ctx.identity.username} | Running \`${command}\` ${target ? `in #${target.name}` : ""}`)
 
   try {
     const reply = await action.run(synthetic)
     await sendDiscordMessage(synthetic, reply)
 
     return reply
-      ? `Ran \`${command}\`. It posted: "${truncateText(reply, 300)}"`
-      : `Ran \`${command}\`. It posted its results to the channel.`
+      ? `Ran \`${command}\` ${where}. It posted: "${truncateText(reply, 300)}"`
+      : `Ran \`${command}\` ${where}. It posted its results there.`
   } catch (err) {
     logger.error(`AI Bot | \`${command}\` crashed: ${err}`)
     await sendDiscordMessage(synthetic, randomCrashedMessage(err))

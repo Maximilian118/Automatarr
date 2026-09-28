@@ -141,12 +141,8 @@ export const populateSettings = `
     monthly_budget
     chat
     command_help
-    chat_channels
-    recommendations_channel
-    recommendations_gap_days
+    recommendations
   }
-  bot_recommendations
-  bot_recommendations_loop
   lockout
   lockout_attempts
   lockout_mins

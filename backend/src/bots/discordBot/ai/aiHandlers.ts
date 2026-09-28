@@ -10,6 +10,7 @@ import { gateMessage } from "./aiGate"
 import { respondWithAI } from "./aiResponder"
 import { recordUserMessage } from "./aiContext"
 import { touchActivity } from "./aiMemory"
+import { checkReturningUser } from "./aiRecommendationTriggers"
 import logger from "../../../logger"
 
 // Note a ! command in the user's exchange so they can chat about it afterwards,
@@ -20,7 +21,8 @@ export const noteCommandActivity = async (message: Message): Promise<void> => {
   try {
     const settings = (await Settings.findOne()) as settingsDocType | null
     if (settings && aiConfigured(settings.ai_bot)) {
-      await touchActivity({ id: message.author.id, username: message.author.username })
+      const identity = { id: message.author.id, username: message.author.username }
+      checkReturningUser(identity, await touchActivity(identity))
     }
   } catch (err) {
     logger.error(`AI Bot | Failed to note command activity: ${err}`)

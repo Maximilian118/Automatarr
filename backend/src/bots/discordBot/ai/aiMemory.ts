@@ -48,16 +48,19 @@ export const getPreferences = async (discordId: string): Promise<BotMemoryPrefer
   return memory?.preferences ?? initBotMemoryPreferences()
 }
 
-// Record that a user has just interacted with Automatarr
-export const touchActivity = async (identity: DiscordIdentity): Promise<void> => {
+// Record that a user has just interacted with Automatarr.
+// Returns when they were last active before now, or null if never or unknown.
+export const touchActivity = async (identity: DiscordIdentity): Promise<string | null> => {
   try {
-    await getMemory(identity)
+    const memory = await getMemory(identity)
     await BotMemory.updateOne(
       { discord_id: identity.id },
       { $set: { last_active_at: moment().format() } },
     )
+    return memory.last_active_at
   } catch (err) {
     logger.error(`AI Bot | Failed to record activity for ${identity.username}: ${err}`)
+    return null
   }
 }
 
