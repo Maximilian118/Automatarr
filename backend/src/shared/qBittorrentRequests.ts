@@ -124,6 +124,19 @@ export const renewqBitCookie = async (
   return response
 }
 
+// Return a valid qBittorrent cookie, renewing it (and storing it on the data object) if it has expired
+export const getValidqBitCookie = async (
+  settings: settingsType,
+  data: dataDocType,
+): Promise<string> => {
+  if (await qBitCookieExpired(data)) {
+    const { cookie } = await renewqBitCookie(settings, data)
+    return cookie
+  }
+
+  return data.qBittorrent.cookie
+}
+
 // Get all current torrents
 export const getqBittorrentTorrents = async (
   settings: settingsType,
@@ -132,6 +145,7 @@ export const getqBittorrentTorrents = async (
   verboseLogging: boolean = true,
 ): Promise<{
   torrents: Torrent[]
+  fetchFailed: boolean // True if qBittorrent couldn't be reached. `torrents` is then empty and unreliable
   cookieRenewed: boolean
   cookie?: string
   cookie_expiry?: string
@@ -150,6 +164,7 @@ export const getqBittorrentTorrents = async (
 
     return {
       torrents: data.qBittorrent.torrents,
+      fetchFailed: false,
       cookieRenewed: false,
     }
   }
@@ -173,6 +188,7 @@ export const getqBittorrentTorrents = async (
   }
 
   let torrents: Torrent[] = []
+  let fetchFailed = true
 
   try {
     const res = await axios.get(
@@ -188,6 +204,8 @@ export const getqBittorrentTorrents = async (
       if (verboseLogging) {
         logger.success(`qBittorrent | ${ident ? `${ident} | ` : ""}Retrieving torrents`)
       }
+
+      fetchFailed = false
 
       // Return all torrents and process the name to something that can be more easily matched with
       torrents = res.data.map((torrent: Torrent) => {
@@ -209,6 +227,7 @@ export const getqBittorrentTorrents = async (
 
   return {
     torrents,
+    fetchFailed,
     cookieRenewed,
     cookie,
     cookie_expiry,
@@ -302,12 +321,18 @@ export const getqBittorrentData = async (
     return data.qBittorrent
   }
 
-  const { torrents, cookie, cookie_expiry } = await getqBittorrentTorrents(
+  const { torrents, fetchFailed, cookie, cookie_expiry } = await getqBittorrentTorrents(
     settings,
     data,
     undefined,
     verboseLogging,
   )
+
+  // Keep the last known qBittorrent data rather than overwriting it with an empty torrent list
+  if (fetchFailed) {
+    logger.warn("qBittorrent | Torrents could not be retrieved. Keeping the last known data.")
+    return data.qBittorrent
+  }
 
   const currentCookie = cookie ? cookie : data.qBittorrent.cookie
   const currentCookieExpiry = cookie_expiry ? cookie_expiry : data.qBittorrent.cookie_expiry

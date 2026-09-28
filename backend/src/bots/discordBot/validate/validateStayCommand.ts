@@ -38,7 +38,7 @@ export const validateStayCommand = async (
     }`
   }
 
-  const validated = await validateTitleAndYear(rest, contentType, settings, data)
+  const validated = await validateTitleAndYear(message, rest, contentType, settings, data)
   if (typeof validated === "string") return validated
 
   return {

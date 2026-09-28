@@ -4,14 +4,17 @@ import { activeAPIsArr } from "../shared/activeAPIsArr"
 import { detectDownloadProtocol, processingTimeMessage } from "../shared/utility"
 import {
   findLibraryTorrents,
-  resolveEffectiveLimits,
+  getImportRecord,
+  ImportHistories,
+  seedWaitReason,
   torrentDownloadedCheck,
   torrentSeedCheck,
 } from "../shared/qBittorrentUtility"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
+import { Episode } from "../types/episodeTypes"
 import { getMdbListItems } from "../shared/mdbListRequests"
-import { deleteFromLibrary } from "../shared/StarrRequests"
+import { deleteFromLibrary, getImportHistory } from "../shared/StarrRequests"
 import { isMovie } from "../types/typeGuards"
 import moment from "moment"
 import { saveWithRetry } from "../shared/database"
@@ -67,6 +70,39 @@ const isInUserPoolOptimized = (
   return false
 }
 
+// Retrieve the import history of every active Radarr and Sonarr API
+const getImportHistories = async (
+  activeAPIs: Awaited<ReturnType<typeof activeAPIsArr>>["activeAPIs"],
+): Promise<ImportHistories> => {
+  const importHistories: ImportHistories = {}
+
+  for (const API of activeAPIs) {
+    if (API.name !== "Radarr" && API.name !== "Sonarr") continue
+
+    const history = await getImportHistory(API)
+    if (history) importHistories[API.name] = history
+  }
+
+  return importHistories
+}
+
+// Check whether the import history accounts for every file of a library item.
+// Any torrent still in qBittorrent would already have been matched by hash, so a history record
+// for every file proves no torrent is left to seed and the item is safe to delete.
+const importHistoryAccountsForFiles = (
+  libraryItem: Movie | Series,
+  episodes: Episode[],
+  importHistories: ImportHistories,
+): boolean => {
+  if (isMovie(libraryItem)) return !!getImportRecord(libraryItem, importHistories)
+
+  const episodeFiles = episodes.filter((ep) => ep.seriesId === libraryItem.id && ep.hasFile)
+
+  return (
+    episodeFiles.length > 0 && episodeFiles.every((ep) => !!getImportRecord(ep, importHistories))
+  )
+}
+
 // Process deletions in batches
 const processDeletionsInBatches = async <T>(
   items: T[],
@@ -109,11 +145,17 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
   const { data, activeAPIs } = await activeAPIsArr(settings)
 
   // Retrieve torrents, if no connection to qBit, return empty array
-  const { torrents, cookieRenewed, cookie, cookie_expiry } = await getqBittorrentTorrents(
-    settings,
-    data,
-    "library_cleanup",
-  )
+  const { torrents, fetchFailed, cookieRenewed, cookie, cookie_expiry } =
+    await getqBittorrentTorrents(settings, data, "library_cleanup")
+
+  // Without the torrent list every torrent-backed item would look unmatched and could be deleted
+  // before it has finished seeding, so skip this run entirely.
+  if (fetchFailed) {
+    logger.error(
+      "Library Cleanup | Could not retrieve torrents from qBittorrent. Skipping this run to avoid deleting content that's still seeding.",
+    )
+    return
+  }
 
   // If we have a new qbittorrent cookie
   if (cookieRenewed && cookie && cookie_expiry) {
@@ -128,7 +170,14 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
   // Get activeAPIs with updated torrent data and get torrents that do not match any movies or episodes.
   // There's no solid way to sort torrents in qBit so the best way of finding unmatched torrents
   // is by sorting with all movies and episodes together outside of the loop.
-  const { updatedActiveAPIs, unmatchedTorrents } = findLibraryTorrents(activeAPIs, torrents)
+  // Torrents are matched by the exact hash recorded in each Starr app's import history first,
+  // falling back to fuzzy name matching when no history exists.
+  const importHistories = await getImportHistories(activeAPIs)
+  const { updatedActiveAPIs, unmatchedTorrents } = findLibraryTorrents(
+    activeAPIs,
+    torrents,
+    importHistories,
+  )
 
   let unmatchedDeleted = 0
 
@@ -152,13 +201,11 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
       if (torrent.state === "downloading") {
         supersededDownloading++
       } else if (isDownloaded && !hasMetSeedRequirements) {
-        const { ratio, seeding_time } = torrent
-        const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
-        const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(torrent, data.qBittorrent.preferences)
+        const waitReason = seedWaitReason(torrent, data.qBittorrent.preferences)
 
-        if (effectiveRatioLimit !== null && ratio < effectiveRatioLimit) {
+        if (waitReason === "ratio") {
           supersededWaitingSeeding++
-        } else if (effectiveTimeLimit !== null && seeding_time_mins < effectiveTimeLimit) {
+        } else if (waitReason === "time") {
           supersededWaitingTime++
         }
       } else {
@@ -427,11 +474,18 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
             ? !libraryItem.torrent
             : !libraryItem.torrentsPresent
 
-          // If the libraryItem hasn't been matched to any torrent, check if usenet clients exist.
-          // Only safe to delete immediately if this API has enabled usenet download clients.
+          // If the libraryItem hasn't been matched to any torrent, it's safe to delete immediately when
+          // the import history accounts for every file (usenet or a torrent no longer in qBittorrent).
+          // Without history, only delete if this API has enabled usenet download clients.
           // In torrent-only setups, an unmatched item is likely a torrent that failed fuzzy matching.
           if (noTorrents) {
-            if (protocolMode === "usenet-only" || protocolMode === "mixed") {
+            const provenSafe = importHistoryAccountsForFiles(
+              libraryItem,
+              (API.data.episodes ?? []) as Episode[],
+              importHistories,
+            )
+
+            if (provenSafe || protocolMode === "usenet-only" || protocolMode === "mixed") {
               const success = await deleteFromLibraryHelper()
               if (success) {
                 // Track usenet deletions
@@ -469,16 +523,16 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
             torrentFiles.forEach((t) => {
               if (!t) return
 
-              const { state, ratio, seeding_time } = t
-              const seeding_time_mins = Number((seeding_time / 60).toFixed(0))
-              const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(t, data.qBittorrent.preferences)
+              const { state } = t
 
               if (state === "downloading") {
                 currentStats.downloading++
               } else if (downloadedStates.has(state)) {
-                if (effectiveRatioLimit !== null && ratio < effectiveRatioLimit) {
+                const waitReason = seedWaitReason(t, data.qBittorrent.preferences)
+
+                if (waitReason === "ratio") {
                   currentStats.waitingRatio++
-                } else if (effectiveTimeLimit !== null && seeding_time_mins < effectiveTimeLimit) {
+                } else if (waitReason === "time") {
                   currentStats.waitingTime++
                 }
               } else {

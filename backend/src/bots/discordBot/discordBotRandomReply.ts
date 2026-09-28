@@ -5,7 +5,7 @@ import { formatTimeLeft } from "../../shared/utility"
 import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
 import { MonitorOptions, Series } from "../../types/seriesTypes"
-import { qualityAliases } from "./discordBotUtility"
+import { getQualityGroup } from "./discordBotUtility"
 
 // Display-friendly labels for each quality group
 const qualityLabels: Record<string, string> = {
@@ -17,9 +17,8 @@ const qualityLabels: Record<string, string> = {
 
 // Resolve a raw quality input (e.g. "2160p", "uhd", "sd") to a display-friendly label
 const resolveQualityLabel = (quality: string): string => {
-  const normalized = quality.toLowerCase().trim()
-  const group = Object.entries(qualityAliases).find(([, aliases]) => aliases.includes(normalized))
-  return group ? qualityLabels[group[0]] || quality : quality
+  const group = getQualityGroup(quality)
+  return group ? qualityLabels[group] || quality : quality
 }
 
 // Pick a random element from an array
@@ -501,6 +500,67 @@ export const randomMovieDownloadStartMessage = (movie: Movie) => {
 }
 
 // Movie download start message when a quality preference was specified
+// Build the " — finishes in X" suffix for a queue item's time left
+const finishesInSuffix = (timeLeft?: string): string =>
+  timeLeft ? ` — finishes in ${formatTimeLeft(timeLeft)}` : ""
+
+// Reply when a user changes the quality of content that was mid download
+export const randomQualityChangeMessage = (
+  title: string,
+  fromQuality: string | undefined,
+  toQuality: string,
+): string => {
+  const from = fromQuality ? resolveQualityLabel(fromQuality) : "current"
+  const to = resolveQualityLabel(toQuality)
+
+  return pickRandom([
+    `Change of plans! I've cancelled the ${from} download of '${title}' and started hunting for ${to} instead. 🔄`,
+    `No worries — '${title}' is switching from ${from} to ${to}. The old download's been binned and a new search is underway. 🗑️🔍`,
+    `Swapping gears: '${title}' will now be fetched in ${to} instead of ${from}. ⚙️`,
+    `Done! The ${from} download of '${title}' is cancelled and I'm searching for ${to} now. 🎬`,
+    `${to} it is! Scrapped the ${from} download of '${title}' and sent the hounds out for a new copy. 🐕`,
+  ])
+}
+
+// Reply when a user asks for the quality that content is already downloading in
+export const randomAlreadyDownloadingInQualityMessage = (
+  title: string,
+  quality: string,
+  timeLeft?: string,
+): string => {
+  const label = resolveQualityLabel(quality)
+  const eta = finishesInSuffix(timeLeft)
+
+  return pickRandom([
+    `Good news — '${title}' is already downloading in ${label}${eta}. 👍`,
+    `'${title}' is already coming through in ${label}${eta}. Nothing to change! ✅`,
+    `Already on it! '${title}' is downloading in ${label}${eta}. 🍿`,
+    `You're in luck — '${title}' was already grabbed in ${label}${eta}. 🎯`,
+  ])
+}
+
+// Reply when a quality change is requested but the download has already finished and is importing
+export const randomDownloadFinishingMessage = (title: string, quality?: string): string => {
+  const label = quality ? ` in ${resolveQualityLabel(quality)}` : ""
+
+  return pickRandom([
+    `Too late to switch — '${title}' already finished downloading${label} and is being moved into the library. 📦`,
+    `'${title}' has already downloaded${label} and is on its way into the library, so I've left it as is. 🏁`,
+    `That ship has sailed! '${title}' finished downloading${label} and is being imported now. ⛵`,
+  ])
+}
+
+// Reply when a quality change is requested for content that has already been downloaded
+export const randomAlreadyDownloadedInQualityMessage = (title: string, quality?: string): string => {
+  const label = quality ? ` in ${resolveQualityLabel(quality)}` : ""
+
+  return pickRandom([
+    `'${title}' is already in the library${label}, so I've left it as is. 📚`,
+    `No need — '${title}' is already downloaded${label}. Leaving it be. 👌`,
+    `'${title}' has already landed${label}. It's ready to watch! 🍿`,
+  ])
+}
+
 export const randomMovieQualityDownloadStartMessage = (movie: Movie, quality: string) => {
   const label = resolveQualityLabel(quality)
   const title = movie.title

@@ -359,3 +359,30 @@ export const formatTimeLeft = (hhmmss: string): string => {
 
   return parts.join(", ")
 }
+
+// Check if a queue item was downloaded with a torrent client
+export const isTorrentDownload = (download: DownloadStatus): boolean =>
+  download.protocol.toLowerCase().includes("torrent") ||
+  download.downloadClient.toLowerCase().includes("torrent")
+
+// Check if a queue item can't be matched to any content in its Starr app
+export const isUnknownQueueItem = (download: DownloadStatus): boolean =>
+  !download.movieId && !download.episodeId && !download.artistId && !download.albumId
+
+// Format a runtime in minutes to a human readable string. E.g. 130 -> "2h 10m"
+export const formatRuntime = (runtimeMins: number = 0): string => {
+  const hours = Math.floor(runtimeMins / 60)
+  const minutes = runtimeMins % 60
+
+  return hours > 0 ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ""}` : `${minutes}m`
+}
+
+// Truncate text to a maximum length, ending on a whole word with an ellipsis when shortened
+export const truncateText = (text: string = "", maxLength: number): string => {
+  if (text.length <= maxLength) return text
+
+  const shortened = text.slice(0, maxLength)
+  const lastSpace = shortened.lastIndexOf(" ")
+
+  return `${(lastSpace > 0 ? shortened.slice(0, lastSpace) : shortened).trimEnd()}…`
+}

@@ -1,6 +1,8 @@
 import {
   randomEpisodeReadyMessage,
   randomEpisodeStillNotDownloadedMessage,
+  randomGrabbedMessage,
+  randomGrabNotFoundMessage,
   randomMovieReadyMessage,
   randomMovieStillNotDownloadedMessage,
   randomSeriesReadyMessage,
@@ -18,6 +20,8 @@ import { Series } from "../../types/seriesTypes"
 import { getSeriesEpisodes, getSonarrQueue } from "../../shared/SonarrStarrRequests"
 import { Episode } from "../../types/episodeTypes"
 import { getMovie } from "../../shared/RadarrStarrRequests"
+import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
+import logger from "../../logger"
 
 // Asynchronously loop until movie is downloaded. THen notify.
 export const notifyMovieDownloaded = async (
@@ -127,4 +131,53 @@ export const notifyEpisodeDownloaded = async (
     message,
     discordReply(randomEpisodeStillNotDownloadedMessage(series.title, episode), "warn"),
   )
+}
+
+// Notify the requester when released content is grabbed and finishes downloading.
+// Uses Starr app webhooks when enabled, otherwise polls the Starr app until the download completes.
+export const queueDownloadNotifications = async (
+  message: Message,
+  settings: settingsDocType,
+  content: Movie | Series,
+  APIName: "Radarr" | "Sonarr",
+): Promise<void> => {
+  if (!settings.webhooks) {
+    const notify =
+      APIName === "Radarr"
+        ? notifyMovieDownloaded(message, settings, content as Movie)
+        : notifySeriesDownloaded(message, settings, content as Series)
+
+    notify.catch((err) =>
+      logger.error(`queueDownloadNotifications: ${APIName} | Something went wrong: ${err}`),
+    )
+    return
+  }
+
+  const queueNotifications: QueueNotificationType[] = []
+
+  if (settings.webhooks_enabled.includes("Import")) {
+    const author = message.author.toString()
+
+    queueNotifications.push({
+      waitForStatus: "Import",
+      message:
+        APIName === "Radarr"
+          ? randomMovieReadyMessage(author, content.title)
+          : randomSeriesReadyMessage(author, content.title),
+      expiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours - cleaned up silently if no import
+    })
+  }
+
+  if (settings.webhooks_enabled.includes("Grab")) {
+    queueNotifications.push({
+      waitForStatus: "Grab",
+      message: randomGrabbedMessage(content.title),
+      expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 Mins
+      expired_message: randomGrabNotFoundMessage(content.title),
+    })
+  }
+
+  if (queueNotifications.length > 0) {
+    await waitForWebhooks(queueNotifications, APIName, ["Discord"], message, null, content)
+  }
 }

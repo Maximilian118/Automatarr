@@ -455,3 +455,33 @@ export const searchMonitoredSeries = async (
 
   return false
 }
+
+// Change the quality profile of one or more series
+export const updateSeriesQualityProfile = async (
+  settings: settingsDocType,
+  seriesIds: number[],
+  qualityProfileId: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.put(
+      cleanUrl(`${settings.sonarr_URL}/api/${settings.sonarr_API_version}/series/editor`),
+      { seriesIds, qualityProfileId },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.sonarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) return true
+
+    logger.error(
+      `updateSeriesQualityProfile: Unknown error. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`updateSeriesQualityProfile: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
+}

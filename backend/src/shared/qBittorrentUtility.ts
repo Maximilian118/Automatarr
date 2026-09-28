@@ -1,5 +1,6 @@
 import logger from "../logger"
 import { Episode } from "../types/episodeTypes"
+import { ImportHistory, ImportRecord } from "../types/historyTypes"
 import { Movie } from "../types/movieTypes"
 import { qBittorrentPreferences, Torrent } from "../types/qBittorrentTypes"
 import { Series } from "../types/seriesTypes"
@@ -43,7 +44,9 @@ export const resolveEffectiveLimits = (
   return { effectiveRatioLimit, effectiveTimeLimit }
 }
 
-// Check if a torrent has exceeded its seeding requirements
+// Check if a torrent has met its seeding requirements.
+// Mirrors qBittorrent's own behaviour: requirements are met as soon as EITHER the ratio limit
+// or the seeding time limit is reached.
 export const torrentSeedCheck = (
   torrent: Torrent,
   preferences: qBittorrentPreferences,
@@ -55,11 +58,11 @@ export const torrentSeedCheck = (
 
   const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(torrent, preferences)
 
-  // If either limit is null (no limit / seed forever), that dimension can never be exceeded
-  const exceededRatio = effectiveRatioLimit !== null && ratio > effectiveRatioLimit
-  const exceededTime = effectiveTimeLimit !== null && seeding_time_mins > effectiveTimeLimit
+  // If a limit is null (no limit / seed forever), that dimension can never be reached
+  const reachedRatio = effectiveRatioLimit !== null && ratio >= effectiveRatioLimit
+  const reachedTime = effectiveTimeLimit !== null && seeding_time_mins >= effectiveTimeLimit
 
-  if (exceededRatio && exceededTime) {
+  if (reachedRatio || reachedTime) {
     return true
   }
 
@@ -74,6 +77,23 @@ export const torrentSeedCheck = (
   }
 
   return false
+}
+
+// Determine which seeding limit a torrent is still waiting on.
+// Returns null when requirements are met or the torrent has no limits (seeds forever).
+// Time is reported first as, with either-limit semantics, it's the limit most likely to be reached.
+export const seedWaitReason = (
+  torrent: Torrent,
+  preferences: qBittorrentPreferences,
+): "time" | "ratio" | null => {
+  if (torrentSeedCheck(torrent, preferences, undefined, false)) return null
+
+  const { effectiveRatioLimit, effectiveTimeLimit } = resolveEffectiveLimits(torrent, preferences)
+
+  if (effectiveTimeLimit !== null) return "time"
+  if (effectiveRatioLimit !== null) return "ratio"
+
+  return null
 }
 
 // All qBittorrent states that signify a torrent has finished downloading (upload-side states)
@@ -254,12 +274,29 @@ const updatedSeriesItems = (seriesArr: Series[], episodes: Episode[]): Series[] 
   })
 }
 
+// Import histories for the Starr apps that support torrent hash matching
+export type ImportHistories = Partial<Record<"Radarr" | "Sonarr", ImportHistory>>
+
+// Find the import history record for the file currently attached to a movie or episode
+export const getImportRecord = (
+  item: Movie | Episode,
+  importHistories?: ImportHistories,
+): ImportRecord | undefined => {
+  if (!importHistories || !item.hasFile) return
+
+  const history = isMovie(item) ? importHistories.Radarr : importHistories.Sonarr
+  const fileId = isMovie(item) ? item.movieFile?.id : item.episodeFile?.id
+
+  return fileId ? history?.get(fileId) : undefined
+}
+
 // Takes in Starr app library items and compares them to torrents in qBittorrent.
 // For every library item that has a matching torrent, add and populate torrent fields.
 // Return all library items that have a matching torrent with new torrent data.
 export const findLibraryTorrents = (
   activeAPIs: APIData[],
   torrents: Torrent[],
+  importHistories?: ImportHistories,
 ): {
   updatedActiveAPIs: APIData[] // Updated activeAPIs with torrent data included
   unmatchedTorrents: Torrent[] // Array of torrents that could not be matched to a library item
@@ -374,6 +411,9 @@ export const findLibraryTorrents = (
     })
   }
 
+  // Torrents keyed by their uppercase hash to match against Starr app downloadIds
+  const torrentsByHash = new Map(torrents.map((torrent) => [torrent.hash.toUpperCase(), torrent]))
+
   // An Array of Movies with torrent data
   const updatedMovieItems: Movie[] = []
   // An Array of Episodes with torrent data
@@ -384,8 +424,20 @@ export const findLibraryTorrents = (
     const { item, matchStrings, relativePath } = processed
     // Return the torrent type as well
     let torrentType: "Movie" | "Episode" | "Series" = "Movie"
-    // OPTIMIZATION 4: Use efficient matching with pre-processed data
-    const torrentMatches = torrents.filter((torrent) => {
+
+    // Exact match: the torrent hash recorded when the Starr app imported this file
+    const importRecord = getImportRecord(item, importHistories)
+    const hashMatch = importRecord
+      ? torrentsByHash.get(importRecord.downloadId.toUpperCase())
+      : undefined
+
+    if (hashMatch && isEpisode(item)) {
+      torrentType = matchSeasonEpisode(relativePath, hashMatch.processedName) ? "Episode" : "Series"
+    }
+
+    // OPTIMIZATION 4: Use efficient matching with pre-processed data. Fuzzy name matching is only
+    // used when the import history can't identify the torrent.
+    const torrentMatches = hashMatch ? [hashMatch] : torrents.filter((torrent) => {
       // Check if every string in matchStrings can be found in any torrent name
       const stringsMatch = matchStrings.every((str) => torrent.processedName.includes(str))
       // The secondary match criteria. Year for Radarr and S**E** for Sonarr

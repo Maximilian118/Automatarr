@@ -28,7 +28,7 @@ export const validateWaitCommand = async (
 
   const [command, ...rest] = msgArr
 
-  const validCommands = ["!waittime", "!wait"]
+  const validCommands = ["!waittime", "!wait", "!time"]
   if (!validCommands.includes(command.toLowerCase())) {
     return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
   }
@@ -39,7 +39,7 @@ export const validateWaitCommand = async (
     }`
   }
 
-  const validated = await validateTitleAndYear(rest, contentType, settings, data)
+  const validated = await validateTitleAndYear(message, rest, contentType, settings, data)
   if (typeof validated === "string") return validated
 
   return {

@@ -16,6 +16,8 @@ import {
   cleanUrl,
   dataBoilerplate,
   getContentName,
+  isTorrentDownload,
+  isUnknownQueueItem,
   requestSuccess,
 } from "./utility"
 import { commandData, DownloadClient, DownloadStatus, ImportListData, ManualImportResponse } from "../types/types"
@@ -28,6 +30,7 @@ import moment from "moment"
 import { QualityProfile } from "../types/qualityProfileType"
 import { isDocker } from "./fileSystem"
 import { axiosErrorMessage } from "./requestError"
+import { HistoryItem, ImportHistory } from "../types/historyTypes"
 
 // Create a downloadQueue object and retrieve the latest queue data
 export const getQueue = async (
@@ -59,6 +62,57 @@ export const getQueue = async (
   }
 
   return
+}
+
+// Retrieve every "downloadFolderImported" history event for a Radarr or Sonarr API.
+// Returns a Map keyed by the fileId of the imported file so library files can be traced back to
+// the exact download (the downloadId is the torrent hash for torrent clients).
+export const getImportHistory = async (API: APIData): Promise<ImportHistory | undefined> => {
+  if (API.name !== "Radarr" && API.name !== "Sonarr") return
+
+  const importHistory: ImportHistory = new Map()
+  const pageSize = 1000
+  let page = 1
+  let totalRecords = 0
+
+  try {
+    do {
+      const res = await axios.get(
+        cleanUrl(
+          `${API.data.URL}/api/${API.data.API_version}/history?page=${page}&pageSize=${pageSize}&eventType=3&sortKey=date&sortDirection=descending&apikey=${API.data.KEY}`,
+        ),
+      )
+
+      if (!requestSuccess(res.status)) {
+        logger.error(
+          `getImportHistory: ${API.name} Unknown error. Status: ${res.status} - ${res.statusText}`,
+        )
+        return
+      }
+
+      totalRecords = res.data.totalRecords ?? 0
+      const records = (res.data.records ?? []) as HistoryItem[]
+
+      for (const record of records) {
+        const fileId = Number(record.data?.fileId)
+        if (!fileId || !record.downloadId || importHistory.has(fileId)) continue
+
+        importHistory.set(fileId, {
+          downloadId: record.downloadId,
+          downloadClient: record.data.downloadClientName || record.data.downloadClient || "",
+          date: record.date,
+        })
+      }
+
+      if (records.length === 0) break
+      page++
+    } while ((page - 1) * pageSize < totalRecords)
+  } catch (err) {
+    logger.error(`getImportHistory: ${API.name} Error: ${axiosErrorMessage(err)}`)
+    return
+  }
+
+  return importHistory
 }
 
 // Loop through all of the activeAPIs and return all of the latest downloadQueues
@@ -530,33 +584,40 @@ export const getAllMissingwanted = async (
   return results.filter((lib): lib is library => lib !== undefined)
 }
 
+// Optional overrides for how a queue item is removed
+export type DeleteFromQueueOptions = {
+  removeFromClient?: boolean // Remove the download (and its data) from the download client
+  blocklist?: boolean // Blocklist the release. Starr apps search again unless skipRedownload is true
+  skipRedownload?: boolean // Prevent the Starr app from searching again after a blocklist
+}
+
 // Delete a single item from the queue
 export const deleteFromQueue = async (
   download: DownloadStatus,
   API: APIData,
   reason?: string,
+  options: DeleteFromQueueOptions = {},
 ): Promise<DownloadStatus | undefined> => {
   // Ensure we don't delete torrents from qBit here which would bypass seed checks.
   // By setting removeFromClient=false for torrents we let library_cleanup handle the torrent removal from qBit.
   // Unknown torrent items (no movieId/episodeId/artistId/albumId) are also kept in qBit so that
   // library_cleanup's unmatched torrents loop can clean them up after seeding requirements are met.
   // If it's a usenet download then we do want to remove it from the usenet downloader.
-  const isTorrent =
-    download.protocol.toLowerCase().includes("torrent") ||
-    download.downloadClient.toLowerCase().includes("torrent")
+  const isTorrent = isTorrentDownload(download)
 
-  // For torrents, never remove from client - library_cleanup handles torrent removal after seed checks
-  const removeFromClient = !isTorrent
+  // For torrents, never remove from client by default - library_cleanup handles torrent removal after seed checks
+  const removeFromClient = options.removeFromClient ?? !isTorrent
 
-  if (isTorrent) {
-    const isUnknownItem =
-      !download.movieId && !download.episodeId && !download.artistId && !download.albumId
+  // Only append blocklist params when explicitly requested so default behaviour is unchanged
+  const blocklistParams =
+    options.blocklist !== undefined
+      ? `&blocklist=${options.blocklist}&skipRedownload=${options.skipRedownload ?? false}`
+      : ""
 
-    if (isUnknownItem) {
-      logger.warn(
-        `${API.name} | ${download.title} | Unknown torrent item removed from queue but kept in qBittorrent for seed check safety.`,
-      )
-    }
+  if (isTorrent && !removeFromClient && isUnknownQueueItem(download)) {
+    logger.warn(
+      `${API.name} | ${download.title} | Unknown torrent item removed from queue but kept in qBittorrent for seed check safety.`,
+    )
   }
 
   try {
@@ -564,7 +625,7 @@ export const deleteFromQueue = async (
       cleanUrl(
         `${API.data.URL}/api/${API.data.API_version}/queue/${
           download.id
-        }?removeFromClient=${removeFromClient}&apikey=${API.data.KEY}`,
+        }?removeFromClient=${removeFromClient}${blocklistParams}&apikey=${API.data.KEY}`,
       ),
     )
 

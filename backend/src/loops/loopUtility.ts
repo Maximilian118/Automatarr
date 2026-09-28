@@ -1,8 +1,12 @@
 import logger from "../logger"
-import { dataType } from "../models/data"
+import { dataDocType, dataType } from "../models/data"
+import { settingsType } from "../models/settings"
 import { APIData } from "../shared/activeAPIsArr"
 import { isDocker } from "../shared/fileSystem"
+import { deleteqBittorrent, getValidqBitCookie } from "../shared/qBittorrentRequests"
+import { torrentSeedCheck } from "../shared/qBittorrentUtility"
 import { deleteFromQueue } from "../shared/StarrRequests"
+import { isTorrentDownload, isUnknownQueueItem } from "../shared/utility"
 import { DownloadStatus } from "../types/types"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
@@ -93,13 +97,80 @@ export const stalledDownloadRemover = async (
       return
     }
 
-    // Delete the queue item
-    if (await deleteFromQueue(blockedFile, API, stalledCase)) {
+    // Delete the queue item along with the incomplete download (there's nothing worth seeding).
+    // If the content still exists, blocklist the release so the Starr app searches for a different one.
+    if (
+      await deleteFromQueue(blockedFile, API, stalledCase, {
+        removeFromClient: true,
+        blocklist: !isUnknownQueueItem(blockedFile),
+      })
+    ) {
       // Cleanup memory if remove request succeeds
       stalledDownloadAttempts.delete(stallKey)
     } else {
       logger.error(`${API.name} | Stalled | ${blockedFile.title} | Could not be deleted.`)
     }
+  }
+}
+
+// Orphaned torrents that have already been logged as awaiting seed requirements, keyed by downloadId
+const announcedOrphanedTorrents = new Set<string>()
+
+// Check if a queue item is a completed torrent that its Starr app can no longer match to any content.
+// This happens when the content was deleted from the library while its torrent was still seeding.
+export const isOrphanedTorrent = (queueItem: DownloadStatus): boolean =>
+  isTorrentDownload(queueItem) && isUnknownQueueItem(queueItem) && queueItem.sizeleft === 0
+
+// Handle an orphaned torrent in a Starr app's queue.
+// Removing unknown items from the queue has no lasting effect as the Starr app re-reports them while
+// they remain in qBittorrent. Instead, the torrent is deleted from qBittorrent once it has met its
+// seeding requirements, which also clears it from the queue.
+export const orphanedTorrentRemover = async (
+  queueItem: DownloadStatus,
+  API: APIData,
+  settings: settingsType,
+  data: dataDocType,
+): Promise<void> => {
+  const orphanKey = queueItem.downloadId?.toUpperCase() ?? queueItem.title
+
+  // Log only the first sighting of an orphan to avoid spamming the logs every loop
+  const announce = (msg: string) => {
+    if (announcedOrphanedTorrents.has(orphanKey)) return
+    announcedOrphanedTorrents.add(orphanKey)
+    logger.info(`${API.name} | Orphaned torrent | ${queueItem.title} | ${msg}`)
+  }
+
+  if (!settings.qBittorrent_active) {
+    announce("qBittorrent is not connected. Leaving it for manual removal.")
+    return
+  }
+
+  const torrent = data.qBittorrent.torrents.find((t) => t.hash.toUpperCase() === orphanKey)
+
+  if (!torrent) {
+    announce("Not found in qBittorrent yet. Waiting for the next torrent refresh.")
+    return
+  }
+
+  if (!torrentSeedCheck(torrent, data.qBittorrent.preferences, "Orphaned", false)) {
+    announce("Awaiting seeding requirements before deletion.")
+    return
+  }
+
+  if (!isDocker) {
+    logger.info(
+      `${API.name} | Orphaned torrent | ${queueItem.title} | Skipped deletion. Running in development mode. 🧊`,
+    )
+    return
+  }
+
+  const cookie = await getValidqBitCookie(settings, data)
+
+  if (await deleteqBittorrent(settings, cookie, torrent)) {
+    announcedOrphanedTorrents.delete(orphanKey)
+    logger.success(
+      `${API.name} | Orphaned torrent | ${queueItem.title} | Seeding requirements met. Deleted from qBittorrent and the queue. 🔥`,
+    )
   }
 }
 

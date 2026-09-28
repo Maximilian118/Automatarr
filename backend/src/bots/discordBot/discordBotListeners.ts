@@ -78,6 +78,7 @@ export const messageListeners = async (client: Client) => {
       case "list": // List pool for a user
         await handleDiscordCase(message, caseList)
         break
+      case "d":
       case "download": // Download content
         await handleDiscordCase(message, caseDownloadSwitch)
         break
@@ -89,6 +90,7 @@ export const messageListeners = async (client: Client) => {
         await handleDiscordCase(message, caseBlocklist)
         break
       case "waittime":
+      case "time":
       case "wait": // Get the amount of time a download in queue will take
         await handleDiscordCase(message, caseWaitTime)
         break

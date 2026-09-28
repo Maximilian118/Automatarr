@@ -8,7 +8,12 @@ import { saveWithRetry } from "../shared/database"
 import { blocklistAndSearchMovie } from "../shared/RadarrStarrRequests"
 import { blocklistAndSearchEpisode } from "../shared/SonarrStarrRequests"
 import { isDocker } from "../shared/fileSystem"
-import { stalledDownloadRemover, updateLoopData } from "./loopUtility"
+import {
+  isOrphanedTorrent,
+  orphanedTorrentRemover,
+  stalledDownloadRemover,
+  updateLoopData,
+} from "./loopUtility"
 
 const queue_cleaner = async (settings: settingsType): Promise<void> => {
   // Only get data for API's that have been checked and are active
@@ -58,11 +63,11 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
         const errorMsg = blockedFile.errorMessage ? blockedFile.errorMessage.toLowerCase() : ""
 
         const hasMatch =
-          blockedFile.statusMessages.some(
+          (blockedFile.statusMessages ?? []).some(
             (statusMsg) =>
               statusMsg?.title?.toLowerCase().includes(lowerMsg) ||
               statusMsg?.messages?.some((message) => message?.toLowerCase().includes(lowerMsg)),
-          ) || errorMsg.includes(msg)
+          ) || errorMsg.includes(lowerMsg)
 
         if (hasMatch) return `| ${capsFirstLetter(msg)}.`
       }
@@ -88,7 +93,14 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
       const dedupKey = getDedupKey(blockedFile)
       if (deletedKeys.has(dedupKey)) continue
 
-      const oneMessage = blockedFile.statusMessages.length < 2
+      // Completed torrents whose content no longer exists are cleared once seeding requirements are met
+      if (isOrphanedTorrent(blockedFile)) {
+        await orphanedTorrentRemover(blockedFile, API, settings, data)
+        deletedKeys.add(dedupKey)
+        continue
+      }
+
+      const oneMessage = (blockedFile.statusMessages ?? []).length < 2
       const matchedID = msgCheck(blockedFile, [
         `Found matching ${getContentName(
           API,
@@ -105,6 +117,7 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
         "might need to be extracted",
         "download has failed",
         "was not found in the grabbed release",
+        "no files found are eligible for import",
       ])
 
       const stalledCase = msgCheck(blockedFile, ["stalled"])
@@ -169,15 +182,19 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
       await stalledDownloadRemover(blockedFile, stalledCase, API)
 
       // Catch-all: log anything that made it through without matching any expected reason
-      const statusMsgs = blockedFile.statusMessages
+      const statusMsgs = (blockedFile.statusMessages ?? [])
         .flatMap((s) => [s.title, ...(s.messages ?? [])])
         .filter(Boolean)
         .join("; ")
 
-      !stalledCase &&
+      // Items without any messages are transient states (e.g. still queued in the client) and need no action
+      const hasMessages = !!statusMsgs || !!blockedFile.errorMessage
+
+      if (!stalledCase && hasMessages) {
         logger.warn(
           `${API.name} | ${blockedFile.title} has a blocked status of "${statusMsgs}" that was not handled.`,
         )
+      }
     }
   }
 

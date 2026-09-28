@@ -1,9 +1,9 @@
-import { Channel, GuildTextBasedChannel, TextBasedChannel } from "discord.js"
+import { Channel, GuildTextBasedChannel, Message, TextBasedChannel } from "discord.js"
 import { settingsDocType } from "../../../models/settings"
 import { searchRadarr } from "../../../shared/RadarrStarrRequests"
 import { searchSonarr } from "../../../shared/SonarrStarrRequests"
 import { getDiscordClient } from "../discordBot"
-import { discordReply } from "../discordBotUtility"
+import { discordReply, sendSuggestionEmbeds } from "../discordBotUtility"
 import { isTextBasedChannel } from "../discordBotTypeGuards"
 import { Movie } from "../../../types/movieTypes"
 import { MonitorOptions, Series } from "../../../types/seriesTypes"
@@ -22,6 +22,7 @@ const isQualityArg = (str: string): boolean =>
   qualityKeywords.includes(str.toLowerCase().trim())
 
 export const validateTitleAndYear = async (
+  message: Message, // The Discord message that invoked the command
   rest: string[], // The full string of a command after the initial !command
   contentType: "movie" | "series" | "album" | "book", // What content type are we searching for?
   settings: settingsDocType,
@@ -108,6 +109,22 @@ export const validateTitleAndYear = async (
       ? "I've found these in your library: 📚"
       : "Is it any of these you wanted? ⛏️"
 
+    const missingYearMsg = "A 4 digit year must be included after the title. ⚠️\n"
+
+    // Show suggestions as rich embeds with posters. An empty string prevents a second reply.
+    if (
+      foundContentArr.length > 0 &&
+      (await sendSuggestionEmbeds(
+        message,
+        `${missingYearMsg}${suggestionsHeader}`,
+        foundContentArr,
+        contentType === "movie" ? "movie" : "series",
+      ))
+    ) {
+      return ""
+    }
+
+    // Fallback to plain text if embeds couldn't be sent
     const recommendations =
       foundContentArr.length === 0
         ? "I couldn't find any recommendations for that title."
@@ -117,7 +134,7 @@ export const validateTitleAndYear = async (
             .map((c) => `${c.title} ${c.year}`)
             .join("\n")
 
-    return `A 4 digit year must be included after the title. ⚠️\n` + recommendations
+    return missingYearMsg + recommendations
   }
 
   // Step 2: Extract title, year, and trailing arguments

@@ -56,3 +56,13 @@ export interface HistoryItem {
     imdbId?: string
   }
 }
+
+// Minimal record describing where a Starr app file was imported from
+export type ImportRecord = {
+  downloadId: string
+  downloadClient: string
+  date: string
+}
+
+// Import history for one Starr app keyed by the fileId of the imported file
+export type ImportHistory = Map<number, ImportRecord>

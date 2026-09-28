@@ -6,9 +6,11 @@ import {
   findQualityProfileByAlias,
   findRootFolder,
   freeSpaceCheck,
+  getQualityGroup,
   matchedUser,
   noDBPull,
   noDBSave,
+  resolutionToQualityGroup,
   sendDiscordMessage,
 } from "./discordBotUtility"
 import { validateDownload } from "./validate/validateDownload"
@@ -16,6 +18,7 @@ import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimit
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
+  randomAlreadyDownloadedInQualityMessage,
   getMovieStatusMessage,
   randomEpisodesDownloadingMessage,
   randomMovieDownloadStartMessage,
@@ -26,10 +29,6 @@ import {
   randomSeriesQualityMonitorDownloadStartMessage,
   randomSeriesMonitorChangeToAllMessage,
   randomProcessingMessage,
-  randomMovieReadyMessage,
-  randomSeriesReadyMessage,
-  randomGrabbedMessage,
-  randomGrabNotFoundMessage,
   randomReAddedToPoolMessage,
   randomUnreleasedAddedMessage,
   randomUnreleasedMovieReadyMessage,
@@ -43,6 +42,7 @@ import {
   getRadarrQueue,
   searchMovieCommand,
   searchRadarr,
+  updateMovieQualityProfile,
 } from "../../shared/RadarrStarrRequests"
 import {
   downloadSeries,
@@ -53,7 +53,8 @@ import {
   searchMonitoredSeries,
 } from "../../shared/SonarrStarrRequests"
 import logger from "../../logger"
-import { notifyMovieDownloaded, notifySeriesDownloaded } from "./discordBotAsync"
+import { queueDownloadNotifications } from "./discordBotAsync"
+import { handleMovieQualityChange, handleSeriesQualityChange } from "./discordBotQualityChange"
 import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
 import { QualityProfile } from "../../types/qualityProfileType"
@@ -154,19 +155,14 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       )
     }
 
+    // Content that has already been downloaded is left as is, even if a different quality was requested
+    const fileQuality = resolutionToQualityGroup(foundMovie.movieFile.quality?.quality?.resolution)
+    if (quality && fileQuality && fileQuality !== getQualityGroup(quality)) {
+      return randomAlreadyDownloadedInQualityMessage(foundMovie.title, fileQuality)
+    }
+
     return randomAlreadyAddedMessage()
   }
-
-  // If the foundMovie has been added to the library and therefore has an id
-  if (foundMovie.id) {
-    // Check if the movie is in the download queue
-    const queue = await getRadarrQueue(settings)
-    const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
-    if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
-  }
-
-  // Track whether the movie is unreleased (will be used to branch webhook/reply behavior)
-  const isUnreleased = !foundMovie.isAvailable
 
   // Retrieve Data Object
   const data = (await Data.findOne()) as dataDocType
@@ -177,6 +173,32 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       "catastrophic",
     )
   }
+
+  // If the foundMovie has been added to the library and therefore has an id
+  if (foundMovie.id) {
+    // Check if the movie is in the download queue
+    const queue = await getRadarrQueue(settings)
+    const movieQueueItems = queue.filter((movie) => movie.movieId === foundMovie.id)
+
+    if (movieQueueItems.length > 0) {
+      // A quality argument means the user may have changed their mind about the quality mid download
+      if (quality) {
+        return await handleMovieQualityChange(
+          message,
+          settings,
+          data,
+          foundMovie,
+          movieQueueItems,
+          quality,
+        )
+      }
+
+      return getMovieStatusMessage(movieQueueItems[0].status, movieQueueItems[0].timeleft)
+    }
+  }
+
+  // Track whether the movie is unreleased (will be used to branch webhook/reply behavior)
+  const isUnreleased = !foundMovie.isAvailable
 
   // If the user specified a quality argument, find a matching profile by alias.
   // Otherwise, use the default profile from settings.
@@ -218,6 +240,11 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // If the movie exists in the library, just search for it. Otherwise, add and download the movie.
   if (foundMovie.id) {
+    // Apply a newly requested quality before searching
+    if (quality && foundMovie.qualityProfileId !== qualityProfile.id) {
+      await updateMovieQualityProfile(settings, [foundMovie.id], qualityProfile.id)
+    }
+
     const searchRes = await searchMovieCommand(settings, foundMovie)
 
     if (!searchRes) {
@@ -289,36 +316,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     )
   }
 
-  // Released media: queue normal webhooks with standard expiry
-  if (settings.webhooks) {
-    const queueNotifications: QueueNotificationType[] = []
-
-    if (settings.webhooks_enabled.includes("Import")) {
-      queueNotifications.push({
-        waitForStatus: "Import",
-        message: randomMovieReadyMessage(message.author.toString(), movie.title),
-        expiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours - cleaned up silently if no import
-      })
-    }
-
-    if (settings.webhooks_enabled.includes("Grab")) {
-      queueNotifications.push({
-        waitForStatus: "Grab",
-        message: randomGrabbedMessage(movie.title),
-        expiry: new Date(Date.now() + 5 * 60 * 1000),
-        expired_message: randomGrabNotFoundMessage(movie.title),
-      })
-    }
-
-    if (queueNotifications.length > 0) {
-      await waitForWebhooks(queueNotifications, "Radarr", ["Discord"], message, null, movie)
-    }
-  } else {
-    // Start an asynchronous loop waiting for the movie to finish downloading. Then send a notification.
-    notifyMovieDownloaded(message, settings, movie).catch((err) =>
-      logger.error(`notifyMovieDownloaded: Something went wrong: ${err}`),
-    )
-  }
+  // Released media: notify the requester when the movie is grabbed and downloaded
+  await queueDownloadNotifications(message, settings, movie, "Radarr")
 
   // Notify that we've grabbed a movie with quality-aware feedback if applicable
   const movieStartMessage = quality
@@ -438,6 +437,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
           "success",
           `${user.name} | Re-added to pool | ${matchedSeries.title}`,
         )
+      }
+
+      // A quality argument means the user may have changed their mind about the quality
+      if (seriesQuality) {
+        return await handleSeriesQualityChange(message, settings, data, matchedSeries, seriesQuality)
       }
 
       // Series is in the user's pool - return appropriate status message
@@ -628,36 +632,8 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     )
   }
 
-  // Released media: queue normal webhooks with standard expiry
-  if (settings.webhooks) {
-    const queueNotifications: QueueNotificationType[] = []
-
-    if (settings.webhooks_enabled.includes("Import")) {
-      queueNotifications.push({
-        waitForStatus: "Import",
-        message: randomSeriesReadyMessage(message.author.toString(), series.title),
-        expiry: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours - cleaned up silently if no import
-      })
-    }
-
-    if (settings.webhooks_enabled.includes("Grab")) {
-      queueNotifications.push({
-        waitForStatus: "Grab",
-        message: randomGrabbedMessage(series.title),
-        expiry: new Date(Date.now() + 5 * 60 * 1000), // 5 Mins
-        expired_message: randomGrabNotFoundMessage(series.title),
-      })
-    }
-
-    if (queueNotifications.length > 0) {
-      await waitForWebhooks(queueNotifications, "Sonarr", ["Discord"], message, null, series)
-    }
-  } else {
-    // Start an asynchronous loop waiting for the series to finish downloading. Then send a notification.
-    notifySeriesDownloaded(message, settings, series).catch((err) =>
-      logger.error(`notifySeriesDownloaded: Something went wrong: ${err}`),
-    )
-  }
+  // Released media: notify the requester when the series is grabbed and downloaded
+  await queueDownloadNotifications(message, settings, series, "Sonarr")
 
   // Select the appropriate message function based on which arguments were specified
   const hasQuality = !!seriesQuality

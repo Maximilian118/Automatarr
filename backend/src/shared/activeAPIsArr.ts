@@ -125,3 +125,22 @@ export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs>
     }
   }
 }
+
+// Build a minimal APIData object (connection details only) for a single Starr app from settings.
+// Useful when a request needs APIData but the full library data from activeAPIsArr isn't required.
+export const settingsToAPIData = (
+  settings: settingsType,
+  name: "Radarr" | "Sonarr" | "Lidarr",
+): APIData => {
+  const prefix = name.toLowerCase()
+
+  return {
+    name,
+    data: {
+      URL: settings[`${prefix}_URL`],
+      KEY: settings[`${prefix}_KEY`],
+      API_version: settings[`${prefix}_API_version`],
+      active: settings[`${prefix}_active`],
+    },
+  }
+}

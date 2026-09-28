@@ -12,13 +12,14 @@ import logger from "../../logger"
 import { QualityProfile } from "../../types/qualityProfileType"
 import { dataDocType } from "../../models/data"
 import { DownloadStatus, rootFolderData } from "../../types/types"
-import { formatBytes } from "../../shared/utility"
+import { formatBytes, formatRuntime, truncateText } from "../../shared/utility"
 import moment from "moment"
 import { getDiscordClient } from "./discordBot"
 import { WebHookWaitingType } from "../../models/webhook"
 import { isTextBasedChannel } from "./discordBotTypeGuards"
 import { isMovie, isSeries } from "../../types/typeGuards"
 import { Series } from "../../types/seriesTypes"
+import { Movie } from "../../types/movieTypes"
 import { randomQualityNotFoundMessage } from "./discordBotRandomReply"
 
 // Handle errors
@@ -490,6 +491,23 @@ export const qualityAliases: Record<string, string[]> = {
   "480": ["480", "480p", "480i", "sd"],
 }
 
+// Find the quality alias group (e.g. "4k", "1080") that a user's quality argument belongs to
+export const getQualityGroup = (qualityArg: string): string | undefined => {
+  const normalizedArg = qualityArg.toLowerCase().trim()
+
+  return Object.entries(qualityAliases).find(([, aliases]) => aliases.includes(normalizedArg))?.[0]
+}
+
+// Map a Starr app quality resolution (e.g. 2160) to its quality alias group (e.g. "4k")
+export const resolutionToQualityGroup = (resolution?: number): string | undefined => {
+  if (!resolution) return
+  if (resolution >= 2160) return "4k"
+  if (resolution >= 1080) return "1080"
+  if (resolution >= 720) return "720"
+
+  return "480"
+}
+
 // Match a user's quality argument (e.g., "4k", "1080p") to an available quality profile
 export const findQualityProfileByAlias = (
   qualityArg: string,
@@ -503,10 +521,7 @@ export const findQualityProfileByAlias = (
   }
 
   // Find which alias group the user's input belongs to
-  const normalizedArg = qualityArg.toLowerCase().trim()
-  const matchedGroup = Object.entries(qualityAliases).find(([, aliases]) =>
-    aliases.includes(normalizedArg),
-  )
+  const matchedGroup = getQualityGroup(qualityArg)
 
   if (!matchedGroup) {
     const profileNames = qualityProfiles.data.map((qp) => qp.name)
@@ -514,7 +529,7 @@ export const findQualityProfileByAlias = (
   }
 
   // Search all profiles for any whose name contains a keyword from this alias group
-  const [, keywords] = matchedGroup
+  const keywords = qualityAliases[matchedGroup]
   const matchedProfiles = qualityProfiles.data.filter((qp) => {
     const profileNameLower = qp.name.toLowerCase()
     return keywords.some((keyword) => profileNameLower.includes(keyword))
@@ -688,13 +703,8 @@ export const createPoolItemEmbed = (
   
   if (contentType === "movie") {
     // Format runtime from minutes to hours and minutes
-    const runtimeMins = item.runtime || 0
-    const hours = Math.floor(runtimeMins / 60)
-    const minutes = runtimeMins % 60
-    const runtimeStr = hours > 0 
-      ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`
-      : `${minutes}m`
-    
+    const runtimeStr = formatRuntime(item.runtime)
+
     const downloaded = item.hasFile ? "Yes" : "No"
     
     // Get Rotten Tomatoes rating from ratings object
@@ -724,6 +734,78 @@ export const createPoolItemEmbed = (
   }
   
   return embed
+}
+
+// Maximum number of suggestions shown when a user's command is missing a year
+const MAX_SUGGESTIONS = 5
+
+// Accent colour for suggestion embeds. Distinct from the download status colours used by !list
+const SUGGESTION_COLOR = 0x5865f2
+
+// Create an embed for a suggested movie/series offered when a command is missing a year
+export const createSuggestionEmbed = (
+  item: Movie | Series,
+  index: number,
+  contentType: "movie" | "series",
+  command: string,
+): EmbedBuilder => {
+  const details: string[] = []
+
+  if (contentType === "movie") {
+    const rtScore = (item as Movie).ratings?.rottenTomatoes?.value
+    details.push(`**Runtime:** ${formatRuntime(item.runtime)}`, `🍅︎ **${rtScore ? `${rtScore}%` : "N/A"}**`)
+  } else {
+    const series = item as Series
+    details.push(`**Seasons:** ${series.statistics?.seasonCount ?? series.seasons?.length ?? 0}`)
+    if (series.network) details.push(`**Network:** ${series.network}`)
+  }
+
+  // Starr app lookups only include an id when the content is already in the library
+  if (item.id) details.push("📚 In library")
+
+  const description = [
+    truncateText(item.overview, 150),
+    details.join(" ∙ "),
+    `\`${command} ${item.title} ${item.year}\``,
+  ]
+    .filter(Boolean)
+    .join("\n\n")
+
+  const embed = new EmbedBuilder()
+    .setColor(SUGGESTION_COLOR)
+    .setTitle(`${index + 1}. ${item.title} (${item.year})`)
+    .setDescription(description)
+
+  const posterUrl = getPosterImageUrl(item.images)
+  if (posterUrl) embed.setThumbnail(posterUrl)
+
+  return embed
+}
+
+// Send suggestions as rich embeds with poster images.
+// Returns false if the channel can't send embeds so the caller can fall back to plain text.
+export const sendSuggestionEmbeds = async (
+  message: Message,
+  header: string,
+  items: (Movie | Series)[],
+  contentType: "movie" | "series",
+): Promise<boolean> => {
+  if (!("send" in message.channel) || typeof message.channel.send !== "function") return false
+
+  // Suggest using the same command the user typed, e.g. !d, !wait or !stay
+  const command = message.content.trim().split(/\s+/)[0].toLowerCase()
+
+  const embeds = items
+    .slice(0, MAX_SUGGESTIONS)
+    .map((item, i) => createSuggestionEmbed(item, i, contentType, command))
+
+  try {
+    await message.channel.send({ content: header, embeds })
+    return true
+  } catch (err) {
+    logger.error(`sendSuggestionEmbeds: Failed to send suggestions: ${err}`)
+    return false
+  }
 }
 
 // Create embed for webhook notifications

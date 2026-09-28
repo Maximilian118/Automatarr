@@ -37,11 +37,12 @@ export const validateDownload = async (
 
   const [command, ...rest] = msgArr
 
-  if (command.toLowerCase() !== "!download") {
-    return `Invalid command \`${command}\`.`
+  const validCommands = ["!download", "!d"]
+  if (!validCommands.includes(command.toLowerCase())) {
+    return `Invalid command \`${command}\`. Use one of these: ${validCommands.join(", ")}.`
   }
 
-  const validated = await validateTitleAndYear(rest, contentType, settings)
+  const validated = await validateTitleAndYear(message, rest, contentType, settings)
   if (typeof validated === "string") return validated
 
   return {

@@ -111,6 +111,7 @@ const commandRegistry: CommandEntry[] = [
   },
   {
     name: "!download",
+    aliases: ["`!d`"],
     category: "Content",
     shortDescription: "Download content",
     description: `Download content and add it to your pool. Optionally, specify a quality and/or a monitor option in any order after the year. Use "!help Quality" for quality options and "!help Monitor" for monitor options.`,
@@ -137,7 +138,7 @@ const commandRegistry: CommandEntry[] = [
   },
   {
     name: "!waittime",
-    aliases: ["`!wait`"],
+    aliases: ["`!wait`", "`!time`"],
     category: "Content",
     shortDescription: "Download Time",
     description: "Check how long it will take for content in the queue to download.",

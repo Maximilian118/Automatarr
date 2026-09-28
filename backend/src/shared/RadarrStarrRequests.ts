@@ -294,3 +294,33 @@ export const blocklistAndSearchMovie = async (
     logger.error(`blocklistAndSearchMovie: Failed to mark ${latestGrabbed.sourceTitle} as failed.`)
   }
 }
+
+// Change the quality profile of one or more movies
+export const updateMovieQualityProfile = async (
+  settings: settingsDocType,
+  movieIds: number[],
+  qualityProfileId: number,
+): Promise<boolean> => {
+  try {
+    const res = await axios.put(
+      cleanUrl(`${settings.radarr_URL}/api/${settings.radarr_API_version}/movie/editor`),
+      { movieIds, qualityProfileId },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "X-Api-Key": settings.radarr_KEY,
+        },
+      },
+    )
+
+    if (requestSuccess(res.status)) return true
+
+    logger.error(
+      `updateMovieQualityProfile: Unknown error. Status: ${res.status} - ${res.statusText}`,
+    )
+  } catch (err) {
+    logger.error(`updateMovieQualityProfile: ${axiosErrorMessage(err)}`)
+  }
+
+  return false
+}
