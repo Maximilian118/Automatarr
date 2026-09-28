@@ -31,6 +31,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
   const [ models, setModels ] = useState<AIModel[]>([])
   const [ usage, setUsage ] = useState<AIUsage | null>(null)
   const [ keyValid, setKeyValid ] = useState<boolean>(false)
+  const [ keyError, setKeyError ] = useState<string>("") // Why the API key check failed
   const ai = settings.ai_bot
 
   // Load the selectable models and this month's spend once
@@ -43,11 +44,20 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
   useEffect(() => {
     if (!ai.api_key || formErr.ai_bot_api_key) {
       setKeyValid(false)
+      setKeyError("")
       return
     }
 
     const timer = setTimeout(() => {
-      checkClaude(ai.api_key).then(setKeyValid).catch(() => setKeyValid(false))
+      checkClaude(ai.api_key.trim())
+        .then(({ ok, message }) => {
+          setKeyValid(ok)
+          setKeyError(ok ? "" : message)
+        })
+        .catch(() => {
+          setKeyValid(false)
+          setKeyError("Couldn't check the API key.")
+        })
     }, KEY_CHECK_DELAY_MS)
 
     return () => clearTimeout(timer)
@@ -87,6 +97,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
         color={keyValid ? "success" : "primary"}
         type="password"
       />
+      {keyError && <p className="claude-panel-error">{keyError}</p>}
       <MUIAutocomplete
         label="Model"
         options={models.map(modelLabel)}

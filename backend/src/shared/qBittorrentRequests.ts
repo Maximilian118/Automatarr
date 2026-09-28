@@ -28,7 +28,10 @@ export const getqBitCookieFromHeaders = async (
     return response
   }
 
-  const regexedCookie = cookiesInHeader[0].match(/SID=[^;]+/)
+  // qBittorrent 5.1+ names the session cookie QBT_SID_<port> instead of SID
+  const regexedCookie = cookiesInHeader
+    .map((c) => c.match(/(?:QBT_)?SID(?:_\d+)?=[^;]+/))
+    .find((match) => match !== null)
 
   if (!regexedCookie) {
     logger.error(`qBittorrent | Could not find cookie in set-cookie string.`)

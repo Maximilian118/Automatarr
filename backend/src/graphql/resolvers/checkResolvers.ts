@@ -214,7 +214,8 @@ const checkResolvers = {
 
       await saveWithRetry(data, "checkqBittorrent")
       logger.success(`qBittorrent | Login OK!`)
-      return { data: res.status, tokens }
+      // qBittorrent 5+ answers a successful login with 204 rather than 200
+      return { data: 200, tokens }
     } catch (err) {
       logger.error(`qBittorrent | Error: ${axiosErrorMessage(err)}`)
       return { data: status, tokens }

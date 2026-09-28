@@ -136,11 +136,12 @@ export const updateUserPlexUsername = async (
   )
 
 // Check an Anthropic API key works. Free, because it only lists models.
-export const checkClaude = async (KEY: string): Promise<boolean> => {
-  const res = await aiRequest<{ data: number }>(
+// Returns whether it works and, if not, the reason.
+export const checkClaude = async (KEY: string): Promise<{ ok: boolean; message: string }> => {
+  const res = await aiRequest<{ data: number; message: string | null }>(
     "checkClaude",
-    `query CheckClaude($KEY: String) { checkClaude(KEY: $KEY) { data tokens } }`,
+    `query CheckClaude($KEY: String) { checkClaude(KEY: $KEY) { data message tokens } }`,
     { KEY },
   )
-  return Number(res.data) === 200
+  return { ok: Number(res.data) === 200, message: res.message ?? "" }
 }

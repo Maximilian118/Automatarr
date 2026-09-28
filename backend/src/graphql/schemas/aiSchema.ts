@@ -11,6 +11,12 @@ const aiSchema = `
     tokens: [String!]!
   }
 
+  type AICheckStatus {
+    data: Int!
+    message: String
+    tokens: [String!]!
+  }
+
   type AIUsage {
     month: String!
     requests: Int!

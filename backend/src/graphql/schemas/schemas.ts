@@ -44,7 +44,7 @@ const Schema = buildSchema(`
     checkLidarr(URL: String, KEY: String): CheckStatus!
     checkqBittorrent(URL: String, USER: String, PASS: String): CheckStatus!
     checkPlex(URL: String, KEY: String): CheckStatus!
-    checkClaude(KEY: String): CheckStatus!
+    checkClaude(KEY: String): AICheckStatus!
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
     checkWebhooks(webhookURL: String!): StringArr!

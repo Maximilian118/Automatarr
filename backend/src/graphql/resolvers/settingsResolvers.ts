@@ -99,6 +99,7 @@ const settingsResolvers = {
     settings.plex_active = args.settingsInput.plex_active
     Object.assign(settings.discord_bot, args.settingsInput.discord_bot)
     Object.assign(settings.ai_bot, args.settingsInput.ai_bot)
+    settings.ai_bot.api_key = (settings.ai_bot.api_key ?? "").trim() // Pasted keys often carry stray whitespace
     // A safty measure to ensure users can't be touched by this request
     Object.assign(settings.general_bot, {
       ...args.settingsInput.general_bot,

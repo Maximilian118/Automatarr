@@ -25,3 +25,10 @@
   font-size: 0.85rem;
   margin-top: -10px;
 }
+
+// Why the API key check failed
+.claude-panel-error {
+  color: variables.$mui-error;
+  font-size: 0.85rem;
+  margin-top: -10px;
+}

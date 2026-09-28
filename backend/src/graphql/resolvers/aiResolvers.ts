@@ -26,17 +26,20 @@ const aiResolvers = {
   },
 
   // Check an Anthropic API key works. Falls back to the saved key.
-  checkClaude: async (args: { KEY?: string }, req: AuthRequest): Promise<{ data: number; tokens: string[] }> => {
+  checkClaude: async (
+    args: { KEY?: string },
+    req: AuthRequest,
+  ): Promise<{ data: number; message: string; tokens: string[] }> => {
     requireAuth(req)
 
     const settings = (await Settings.findOne()) as settingsDocType | null
-    const key = args.KEY || settings?.ai_bot.api_key
-    if (!key) return { data: 500, tokens: req.tokens }
+    const key = (args.KEY || settings?.ai_bot.api_key || "").trim()
+    if (!key) return { data: 500, message: "No API key entered.", tokens: req.tokens }
 
-    const status = await checkAIKey(key)
-    logger.info(`AI Bot | API key check returned ${status}.`)
+    const { status, message } = await checkAIKey(key)
+    logger.info(`AI Bot | API key check returned ${status}${message ? `: ${message}` : "."}`)
 
-    return { data: status, tokens: req.tokens }
+    return { data: status, message, tokens: req.tokens }
   },
 
   // Token and estimated spend totals for the current month

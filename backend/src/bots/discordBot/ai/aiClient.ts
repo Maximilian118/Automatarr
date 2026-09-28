@@ -93,13 +93,22 @@ export const getAIClient = (aiBot: AIBotType): Anthropic => {
 }
 
 // Check an Anthropic API key works. Listing models is free, so this costs nothing.
-// Returns an HTTP style status code.
-export const checkAIKey = async (apiKey: string): Promise<number> => {
+// Returns an HTTP style status code and, on failure, a reason the user can act on.
+export const checkAIKey = async (apiKey: string): Promise<{ status: number; message: string }> => {
   try {
     await new Anthropic({ apiKey, timeout: 10_000, maxRetries: 0 }).models.list({ limit: 1 })
-    return 200
+    return { status: 200, message: "" }
   } catch (err) {
-    return err instanceof Anthropic.APIError && err.status ? err.status : 500
+    if (err instanceof Anthropic.AuthenticationError) {
+      return { status: 401, message: "Anthropic rejected this API key. Check it was copied in full." }
+    }
+    if (err instanceof Anthropic.APIError) {
+      const reason = /credit balance/i.test(err.message)
+        ? "Your Anthropic account has no credit. Add some under Billing at console.anthropic.com."
+        : err.message
+      return { status: err.status ?? 500, message: reason }
+    }
+    return { status: 500, message: "Couldn't reach the Anthropic API from the server." }
   }
 }
 
