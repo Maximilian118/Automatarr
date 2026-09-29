@@ -1,7 +1,7 @@
 import axios from "axios"
 import { getAxiosErrorMessage, headers } from "./requestUtility"
 import { populateSettings } from "./requestPopulation"
-import { AIModel, AIUsage, BotMemory, BotMemoryPreferences } from "../../types/aiType"
+import { AIModel, AIUsage, BotMemory, BotMemoryPreferences, PlexAccountOption } from "../../types/aiType"
 import { settingsType } from "../../types/settingsType"
 
 // Population fields for a bot memory request
@@ -122,17 +122,26 @@ export const updateBotMemoryPreferences = async (
   return res.data
 }
 
-// Link a bot user to their Plex account name
-export const updateUserPlexUsername = async (
+// Get every Plex account on the server and who each is linked to
+export const getPlexAccounts = async (): Promise<PlexAccountOption[]> => {
+  const res = await aiRequest<{ data: PlexAccountOption[] }>(
+    "getPlexAccounts",
+    `query { getPlexAccounts { data { id name linked_to } tokens } }`,
+  )
+  return res.data
+}
+
+// Link a bot user to a Plex account, or unlink them with null
+export const updateUserPlexLink = async (
   userId: string,
-  plexUsername: string,
+  plexAccountId: number | null,
 ): Promise<settingsType> =>
   aiRequest<settingsType>(
-    "updateUserPlexUsername",
-    `mutation UpdateUserPlexUsername($userId: String!, $plexUsername: String!) {
-      updateUserPlexUsername(userId: $userId, plexUsername: $plexUsername) { ${populateSettings} }
+    "updateUserPlexLink",
+    `mutation UpdateUserPlexLink($userId: String!, $plexAccountId: Int) {
+      updateUserPlexLink(userId: $userId, plexAccountId: $plexAccountId) { ${populateSettings} }
     }`,
-    { userId, plexUsername },
+    { userId, plexAccountId },
   )
 
 // Check an Anthropic API key works. Free, because it only lists models.

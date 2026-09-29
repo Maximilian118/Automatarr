@@ -4,10 +4,11 @@ import { AuthRequest } from "../../middleware/auth"
 import BotMemory, { BotMemoryPreferences, BotMemoryType } from "../../models/botMemory"
 import { AIUsageType } from "../../models/aiUsage"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
-import { saveWithRetry } from "../../shared/database"
 import { AI_MODELS, AIModelConfig, checkAIKey } from "../../bots/discordBot/ai/aiClient"
 import { getMonthlyUsage } from "../../bots/discordBot/ai/aiBudget"
 import { forgetUser } from "../../bots/discordBot/ai/aiMemory"
+import { plexAccountOwner, savePlexLinks } from "../../bots/discordBot/ai/aiPlexLinks"
+import { getCachedPlexAccounts, refreshPlexCache } from "../../shared/plexRequests"
 
 // Throw if the request isn't from a logged in web app user
 const requireAuth = (req: AuthRequest): void => {
@@ -106,25 +107,43 @@ const aiResolvers = {
     return { data: await allMemories(), tokens: req.tokens }
   },
 
-  // Link a bot user to their Plex account name
-  updateUserPlexUsername: async (
-    args: { userId: string; plexUsername: string },
+  // Every Plex account on the server and which bot user each is linked to
+  getPlexAccounts: async (
+    _: unknown,
     req: AuthRequest,
-  ): Promise<settingsType> => {
+  ): Promise<{ data: { id: number; name: string; linked_to: string | null }[]; tokens: string[] }> => {
     requireAuth(req)
 
     const settings = (await Settings.findOne()) as settingsDocType
     if (!settings) throw new Error("No settings object was found.")
 
-    const userIndex = settings.general_bot.users.findIndex((u) => u._id?.toString() === args.userId)
-    if (userIndex === -1) throw new Error("User not found.")
+    // The cache is empty until the first data loop after a restart
+    if (!getCachedPlexAccounts().length) await refreshPlexCache(settings._doc)
 
-    settings.general_bot.users[userIndex].plex_username = args.plexUsername.trim()
-    settings.markModified(`general_bot.users.${userIndex}`)
-    settings.updated_at = moment().format()
-    await saveWithRetry(settings, "updateUserPlexUsername")
+    const data = getCachedPlexAccounts().map((a) => ({
+      id: a.id,
+      name: a.name,
+      linked_to: plexAccountOwner(settings, a.id)?.name ?? null,
+    }))
 
-    return { ...settings._doc, tokens: req.tokens }
+    return { data, tokens: req.tokens }
+  },
+
+  // Link a bot user to a Plex account, or unlink them when no account is given
+  updateUserPlexLink: async (
+    args: { userId: string; plexAccountId?: number | null },
+    req: AuthRequest,
+  ): Promise<settingsType> => {
+    requireAuth(req)
+
+    const account =
+      args.plexAccountId == null ? null : getCachedPlexAccounts().find((a) => a.id === args.plexAccountId)
+    if (account === undefined) throw new Error("Plex account not found.")
+
+    const saved = await savePlexLinks([{ userId: args.userId, account }])
+    if (!saved) throw new Error("Failed to save the Plex link.")
+
+    return { ...saved._doc, tokens: req.tokens }
   },
 }
 

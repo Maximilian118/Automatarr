@@ -10,6 +10,7 @@ export const createAIMessage = async (
   aiBot: AIBotType,
   messages: Anthropic.Beta.BetaMessageParam[],
   tools: Anthropic.Beta.BetaTool[],
+  toolChoice?: Anthropic.Beta.BetaToolChoice, // e.g. { type: "none" } to force a text reply
 ): Promise<Anthropic.Beta.BetaMessage> => {
   const model = getModelConfig(aiBot.model)
   const client = getAIClient(aiBot)
@@ -25,6 +26,7 @@ export const createAIMessage = async (
       },
     ],
     tools,
+    ...(toolChoice ? { tool_choice: toolChoice } : {}),
     messages,
     ...(model.thinking ? { thinking: { type: "adaptive" as const }, output_config: { effort: "low" as const } } : {}),
     ...(model.fallbacks ? { betas: [FALLBACK_BETA], fallbacks: "default" as const } : {}),

@@ -42,6 +42,12 @@ export const findMemory = async (discordId: string): Promise<BotMemoryType | nul
   return memory ? memory.toObject() : null
 }
 
+// Get the memory document for whichever of a bot user's Discord usernames the AI has met
+export const findMemoryByUsernames = async (usernames: string[]): Promise<BotMemoryType | null> => {
+  const memory = await BotMemory.findOne({ username: { $in: usernames } })
+  return memory ? memory.toObject() : null
+}
+
 // Read a user's preferences, falling back to defaults for users the AI hasn't met
 export const getPreferences = async (discordId: string): Promise<BotMemoryPreferences> => {
   const memory = await findMemory(discordId)

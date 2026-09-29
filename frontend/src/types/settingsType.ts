@@ -42,7 +42,8 @@ export type BotUserType = {
   max_movies_overwrite: number | null
   max_series_overwrite: number | null
   pool: PoolType
-  plex_username: string
+  plex_username: string // The linked Plex account's name
+  plex_account_id: number | null // The linked Plex account's ID. Null = not linked
   created_at: string
   updated_at: string
 }

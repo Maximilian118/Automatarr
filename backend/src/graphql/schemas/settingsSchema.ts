@@ -19,6 +19,7 @@ const settingsSchema = `
     max_series_overwrite: Int
     pool: Pool!
     plex_username: String
+    plex_account_id: Int
     created_at: String!
     updated_at: String!
   }

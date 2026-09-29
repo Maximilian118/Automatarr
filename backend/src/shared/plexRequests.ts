@@ -1,7 +1,7 @@
 import axios from "axios"
 import moment from "moment"
 import logger from "../logger"
-import { settingsType } from "../models/settings"
+import { BotUserType, settingsType } from "../models/settings"
 import { cleanUrl } from "./utility"
 import { axiosErrorMessage } from "./requestError"
 
@@ -212,6 +212,17 @@ export const findPlexAccountId = (names: string[]): number | null => {
   const lowered = names.filter(Boolean).map((n) => n.toLowerCase())
   const account = plexCache.accounts.find((a) => lowered.includes(a.name.toLowerCase()))
   return account ? account.id : null
+}
+
+// Every Plex account with access to the server, from the cache
+export const getCachedPlexAccounts = (): PlexAccount[] => plexCache.accounts
+
+// Find the Plex account ID for a bot user. A saved link always wins. Unlinked users are matched by name.
+export const plexAccountForUser = (botUser: BotUserType | undefined, discordUsername: string): number | null => {
+  if (botUser?.plex_account_id != null) return botUser.plex_account_id
+  if (botUser?.plex_username) return findPlexAccountId([botUser.plex_username])
+
+  return findPlexAccountId([botUser?.name ?? "", discordUsername])
 }
 
 // Get cached watch history for a Plex account

@@ -11,10 +11,15 @@ export type ExchangeEntry = {
 type Exchange = {
   entries: ExchangeEntry[]
   lastBotReplyAt: number // When the bot last replied to this user in this channel. 0 = never
+  interrupted: boolean // Whether someone else has spoken in the channel since the bot's last reply
 }
 
-// How long a conversation stays active after the bot's last reply
+// How long a conversation stays active after the bot's last reply once other people are chatting
 export const CONVERSATION_WINDOW_MS = 5 * 60 * 1000
+
+// How long a conversation stays active while nobody else has spoken since the bot's last reply.
+// The user still "has the floor", so their next message is almost certainly for the bot.
+export const FLOOR_WINDOW_MS = 20 * 60 * 1000
 
 // How many entries are kept per exchange. Roughly the last 8 turns.
 const MAX_ENTRIES = 16
@@ -46,7 +51,7 @@ const getExchange = (channelId: string, userId: string): Exchange => {
   let exchange = exchanges.get(key)
 
   if (!exchange) {
-    exchange = { entries: [], lastBotReplyAt: 0 }
+    exchange = { entries: [], lastBotReplyAt: 0, interrupted: false }
     exchanges.set(key, exchange)
   }
 
@@ -70,12 +75,26 @@ export const recordBotReply = (channelId: string, userId: string, text: string):
   const exchange = getExchange(channelId, userId)
   pushEntry(exchange, { role: "bot", text, at: Date.now() })
   exchange.lastBotReplyAt = Date.now()
+  exchange.interrupted = false
 }
 
-// Check whether a user is in an active conversation with Automatarr in a channel
+// Note that a human posted in a channel. Anyone else talking with the bot there loses the floor.
+export const noteChannelMessage = (channelId: string, authorId: string): void => {
+  exchanges.forEach((exchange, key) => {
+    if (key.startsWith(`${channelId}:`) && key !== exchangeKey(channelId, authorId) && exchange.lastBotReplyAt) {
+      exchange.interrupted = true
+    }
+  })
+}
+
+// Check whether a user is in an active conversation with Automatarr in a channel.
+// The window is longer while nobody else has spoken since the bot's last reply.
 export const inConversation = (channelId: string, userId: string): boolean => {
   const exchange = exchanges.get(exchangeKey(channelId, userId))
-  return !!exchange && Date.now() - exchange.lastBotReplyAt < CONVERSATION_WINDOW_MS
+  if (!exchange || !exchange.lastBotReplyAt) return false
+
+  const windowMs = exchange.interrupted ? CONVERSATION_WINDOW_MS : FLOOR_WINDOW_MS
+  return Date.now() - exchange.lastBotReplyAt < windowMs
 }
 
 // End a conversation, e.g. when the user turns to talk to someone else

@@ -3,7 +3,7 @@ import { Message } from "discord.js"
 import moment from "moment"
 import logger from "../../../logger"
 import { settingsDocType } from "../../../models/settings"
-import { matchedUser, sendDiscordMessage } from "../discordBotUtility"
+import { matchedUser, resolveMentions, sendDiscordMessage } from "../discordBotUtility"
 import { randomInCharacterDeflection } from "../discordBotRandomReply"
 import { aiConfigured } from "./aiClient"
 import { budgetExhausted, noteEngagement, rateLimited } from "./aiBudget"
@@ -13,6 +13,7 @@ import { EngageReason } from "./aiGate"
 import { guardReply } from "./aiGuard"
 import { DiscordIdentity, getMemory, touchActivity } from "./aiMemory"
 import { COMMAND_HELP_INSTRUCTIONS } from "./aiPersona"
+import { describePendingProposal } from "./aiPlexLinks"
 import { createAIMessage, responseText, responseToolCalls } from "./aiRequest"
 import { runTool, toolsFor } from "./aiTools"
 import { buildSpeakerProfile } from "./tools/aiInfoTools"
@@ -58,7 +59,13 @@ const replyingTo = async (message: Message): Promise<string> => {
   if (!referenced) return ""
 
   const who = referenced.author.id === message.client.user?.id ? "you" : referenced.author.username
-  return `<replying_to author="${escapeTags(who)}">${escapeTags(referenced.content.slice(0, 300))}</replying_to>`
+  return `<replying_to author="${escapeTags(who)}">${escapeTags(resolveMentions(referenced).slice(0, 300))}</replying_to>`
+}
+
+// The Plex pairings an admin has been shown and not yet confirmed, so "confirm" still works a few messages later
+const pendingPlexLinks = (ctx: ToolContext): string => {
+  const pending = ctx.isAdmin ? describePendingProposal(ctx.identity.id) : ""
+  return pending ? `<pending_plex_links>\n${escapeTags(pending)}\n</pending_plex_links>` : ""
 }
 
 // Build the user turn: who's speaking, where, their recent exchange with the bot and their message
@@ -79,6 +86,7 @@ const buildUserTurn = async (
     `Why you're seeing this: ${reasonText[reason]}`,
     `<speaker>\n${escapeTags(await buildSpeakerProfile(ctx))}\n</speaker>`,
     transcript ? `<recent_conversation>\n${transcript}\n</recent_conversation>` : "",
+    pendingPlexLinks(ctx),
     await replyingTo(message),
     "</context>",
   ]
@@ -91,7 +99,7 @@ const buildUserTurn = async (
       `<usage>\n${escapeTags(failed.usage)}\n</usage>`,
     )
   } else {
-    parts.push(`<message>${escapeTags(message.content)}</message>`)
+    parts.push(`<message>${escapeTags(resolveMentions(message))}</message>`)
   }
 
   return parts.filter(Boolean).join("\n")
@@ -122,7 +130,9 @@ const runConversation = async (ctx: ToolContext, userTurn: string): Promise<stri
   let reply = ""
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await createAIMessage(ctx.settings.ai_bot, messages, tools)
+    // The last round can't call tools, so work done by earlier rounds always ends in a reply
+    const lastRound = i === MAX_ITERATIONS - 1
+    const response = await createAIMessage(ctx.settings.ai_bot, messages, tools, lastRound ? { type: "none" } : undefined)
 
     if (response.stop_reason === "refusal") return randomInCharacterDeflection()
 
@@ -138,7 +148,10 @@ const runConversation = async (ctx: ToolContext, userTurn: string): Promise<stri
       toolResults.push({ type: "tool_result", tool_use_id: call.id, content: result.content, is_error: result.isError })
     }
 
-    if (ctx.silent) return ""
+    if (ctx.silent) {
+      logger.info(`AI Bot | Chose to stay silent for ${ctx.identity.username}.`)
+      return ""
+    }
 
     messages.push({ role: "user", content: toolResults })
     reply = "" // Text before a tool call is preamble. Only the final turn's text is the reply.
@@ -156,7 +169,10 @@ export const respondWithAI = async (
 ): Promise<AIResult> => {
   const aiBot = settings.ai_bot
   if (!aiConfigured(aiBot)) return "unavailable"
-  if (rateLimited(aiBot, message.author.id)) return "limited"
+  if (rateLimited(aiBot, message.author.id)) {
+    logger.info(`AI Bot | ${message.author.username} is rate limited. Not replying.`)
+    return "limited"
+  }
 
   try {
     if (await budgetExhausted(aiBot)) {
@@ -170,7 +186,7 @@ export const respondWithAI = async (
     const userTurn = await buildUserTurn(ctx, reason, failed)
 
     // Record the message after building the transcript so it isn't duplicated in the context
-    if (!failed) recordUserMessage(message.channel.id, message.author.id, message.content)
+    if (!failed) recordUserMessage(message.channel.id, message.author.id, resolveMentions(message))
     checkReturningUser(ctx.identity, await touchActivity(ctx.identity))
 
     if (reason !== "passing" && "sendTyping" in message.channel) {
@@ -181,6 +197,8 @@ export const respondWithAI = async (
 
     if (reply) {
       await sendDiscordMessage(message, reply, { parse: [], repliedUser: false })
+    } else if (!ctx.silent && !ctx.postedByAction) {
+      logger.info(`AI Bot | Came back with an empty reply for ${ctx.identity.username}.`)
     }
 
     return "handled"

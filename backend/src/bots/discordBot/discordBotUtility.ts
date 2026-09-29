@@ -469,21 +469,40 @@ export const matchedDiscordUser = async (
   const guild = message.guild
   if (!guild) return undefined
 
-  const mentionMatch = identifier.match(/^<@!?(\d+)>$/)
+  // A mention like <@123> or a bare user ID
+  const idMatch = identifier.match(/^<@!?(\d+)>$/) ?? identifier.match(/^(\d{15,20})$/)
 
-  if (mentionMatch) {
-    const member = guild.members.cache.get(mentionMatch[1])
+  if (idMatch) {
+    const member = guild.members.cache.get(idMatch[1])
     return member
   }
 
-  const id = identifier.toLowerCase()
+  const id = identifier.replace(/^@/, "").trim().toLowerCase()
 
-  const member = guild.members.cache.find(
+  // Usernames are unique, so they win over display names and nicknames
+  const byUsername = guild.members.cache.find(
     (m) => m.user.username.toLowerCase() === id || m.user.tag.toLowerCase() === id,
   )
+  if (byUsername) return byUsername
 
-  return member
+  return guild.members.cache.find((m) =>
+    [m.displayName, m.nickname, m.user.globalName].some((n) => n?.toLowerCase() === id),
+  )
 }
+
+// Replace user and channel mentions in a message with readable names, e.g. <@123> becomes @Tanox
+export const resolveMentions = (message: Message): string =>
+  message.content
+    .replace(/<@!?(\d+)>/g, (raw, id: string) => {
+      const member = message.mentions.members?.get(id)
+      const user = message.mentions.users.get(id)
+      const name = member?.displayName ?? user?.globalName ?? user?.username
+      return name ? `@${name}` : raw
+    })
+    .replace(/<#(\d+)>/g, (raw, id: string) => {
+      const channel = message.mentions.channels.get(id)
+      return channel && "name" in channel && channel.name ? `#${channel.name}` : raw
+    })
 
 // Check if the passed Discord username exists as a user in Automatarr already
 export const matchedUser = (

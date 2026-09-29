@@ -7,7 +7,7 @@ import { BotUserType, settingsDocType } from "../../../models/settings"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
-import { findPlexAccountId, getCachedPlexHistory } from "../../../shared/plexRequests"
+import { plexAccountForUser, getCachedPlexHistory } from "../../../shared/plexRequests"
 import { getDiscordClient } from "../discordBot"
 import { findChannelByName, getPosterImageUrl, matchedUser } from "../discordBotUtility"
 import { aiConfigured } from "./aiClient"
@@ -105,7 +105,7 @@ export const eligibleMemories = async (
 // Build a person's taste profile from their pool, request history and Plex history
 export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType): Promise<RecipientProfile> => {
   const history = await getRequestHistory(memory.discord_id, 50)
-  const plexAccount = findPlexAccountId([botUser.plex_username, botUser.name, memory.username])
+  const plexAccount = plexAccountForUser(botUser, memory.username)
   const watched = plexAccount !== null ? getCachedPlexHistory(plexAccount) : []
 
   return {

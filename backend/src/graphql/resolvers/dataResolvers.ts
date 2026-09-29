@@ -54,6 +54,10 @@ const dataResolvers = {
       return
     }
 
+    // Plex watch history for the AI bot. Kept in memory rather than the database, and refreshed
+    // even when no Starr apps are active.
+    await refreshPlexCache(settings._doc)
+
     // Only get data for active APIs
     const { data, activeAPIs } = await activeAPIsArr(settings._doc)
 
@@ -82,8 +86,6 @@ const dataResolvers = {
     data.libraries = await getAllLibraries(activeAPIs, data, verboseLogging) // Only makes requests one per hour per API
     // qBittorrent
     data.qBittorrent = await getqBittorrentData(settings._doc, data, verboseLogging)
-    // Plex watch history for the AI bot. Kept in memory rather than the database.
-    await refreshPlexCache(settings._doc)
 
     data.updated_at = moment().format()
     const savedData = (await saveWithRetry(data, "getData")) as dataDocType

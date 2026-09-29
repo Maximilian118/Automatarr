@@ -55,6 +55,7 @@ const Schema = buildSchema(`
     getAIModels: AIModelsReturn!
     getAIUsage: AIUsageReturn!
     getBotMemories: BotMemoriesReturn!
+    getPlexAccounts: PlexAccountsReturn!
   }
 
   type RootMutation {
@@ -73,7 +74,7 @@ const Schema = buildSchema(`
     deleteBotMemoryNote(discord_id: String!, index: Int!): BotMemoriesReturn!
     forgetBotUser(discord_id: String!): BotMemoriesReturn!
     updateBotMemoryPreferences(discord_id: String!, private: Boolean, learning: Boolean, chat: Boolean, recommendations: Boolean): BotMemoriesReturn!
-    updateUserPlexUsername(userId: String!, plexUsername: String!): Settings
+    updateUserPlexLink(userId: String!, plexAccountId: Int): Settings
   }
 
   schema {

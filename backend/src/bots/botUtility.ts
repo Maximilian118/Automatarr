@@ -24,6 +24,7 @@ export const initUser = (
     max_series_overwrite: null,
     pool: initPool,
     plex_username: "",
+    plex_account_id: null,
     created_at: moment().format(),
     updated_at: moment().format(),
   }

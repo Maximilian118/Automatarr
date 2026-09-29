@@ -43,7 +43,8 @@ export type BotUserType = {
   max_movies_overwrite: number | null // Maximum movies this specific user is allowed to have downloaded at the same time
   max_series_overwrite: number | null // Maximum series this specific user is allowed to have downloaded at the same time
   pool: PoolType // Pool of content this user has downloaded
-  plex_username: string // The Plex account name for this user. Empty = match by name
+  plex_username: string // The name of the Plex account linked to this user. Empty = not linked
+  plex_account_id: number | null // The linked Plex account's ID. Null = matched by name until linked
   created_at: string // When user was created.
   updated_at: string // When user was updated.
 }
@@ -178,6 +179,7 @@ const userSchema = new mongoose.Schema<BotUserType>({
   max_series_overwrite: { type: Number, default: 2 },
   pool: { type: poolSchema, default: () => ({}) },
   plex_username: { type: String, default: "" },
+  plex_account_id: { type: Number, default: null },
   created_at: { type: String, default: moment().format() },
   updated_at: { type: String, default: moment().format() },
 })

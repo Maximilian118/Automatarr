@@ -34,3 +34,10 @@ export type BotMemory = {
   last_active_at: string | null
   last_recommended_at: string | null
 }
+
+// A Plex account on the server and the bot user it's linked to, if any
+export type PlexAccountOption = {
+  id: number
+  name: string
+  linked_to: string | null
+}

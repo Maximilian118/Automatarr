@@ -117,6 +117,7 @@ export const populateSettings = `
         }
       }
       plex_username
+      plex_account_id
       created_at
       updated_at
     }

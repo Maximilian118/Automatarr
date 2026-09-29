@@ -1,12 +1,13 @@
-import React, { useState } from "react"
-import { CardContent, Chip, IconButton, Button, TextField, Typography } from "@mui/material"
+import React, { useEffect, useState } from "react"
+import { CardContent, Chip, IconButton, Button, Typography } from "@mui/material"
 import { MovieRounded, TvRounded, Settings } from "@mui/icons-material"
 import { BotUserType, settingsType } from "../../../types/settingsType"
 import { removePoolItem, deleteUser, updateUserStatus, updateUserOverwrites } from "../../../shared/requests/settingsRequests"
 import Toggle from "../../utility/Toggle/Toggle"
 import MUIAutocomplete from "../../utility/MUIAutocomplete/MUIAutocomplete"
 import DraggablePoolItem from "./DraggablePoolItem/DraggablePoolItem"
-import { updateUserPlexUsername } from "../../../shared/requests/aiRequests"
+import { getPlexAccounts, updateUserPlexLink } from "../../../shared/requests/aiRequests"
+import { PlexAccountOption } from "../../../types/aiType"
 import { userOverwriteSelection, userOverwriteToNumber, numberToUserOverwriteString, formatBytes } from "../../../shared/utility"
 import "./_user-card.scss"
 
@@ -62,6 +63,10 @@ const calculateUserTotalStorage = (user: BotUserType): string => {
   return formatBytes(calculateUserTotalStorageBytes(user))
 }
 
+// Label a Plex account for the picker, noting who else it's linked to
+const plexAccountLabel = (account: PlexAccountOption, userName: string): string =>
+  account.linked_to && account.linked_to !== userName ? `${account.name} (${account.linked_to})` : account.name
+
 interface RemovalState {
   itemType: 'movies' | 'series'
   itemIndex: number
@@ -81,6 +86,16 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
   const [contentType, setContentType] = useState<'movies' | 'series'>('movies')
   const [settingsMode, setSettingsMode] = useState<'normal' | 'settings' | 'confirm'>('normal')
   const [deleting, setDeleting] = useState(false)
+  const [plexAccounts, setPlexAccounts] = useState<PlexAccountOption[]>([])
+
+  // Load the server's Plex accounts when the settings view opens
+  useEffect(() => {
+    if (settingsMode !== 'settings' || !settings.plex_active) return
+
+    getPlexAccounts()
+      .then(setPlexAccounts)
+      .catch((error) => console.error("Failed to load Plex accounts:", error))
+  }, [settingsMode, settings.plex_active])
 
   const handleRemoveClick = (itemType: 'movies' | 'series', itemIndex: number) => {
     setRemovalState({
@@ -179,15 +194,19 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
     }
   }
 
-  // Save the user's Plex account name when the field loses focus
-  const handlePlexUsernameSave = async (value: string) => {
-    if (!user._id || value.trim() === (user.plex_username ?? "")) return
+  // Link the user to the picked Plex account, or unlink them when cleared
+  const handlePlexLinkChange = async (label: string | null) => {
+    if (!user._id) return
+
+    const account = plexAccounts.find((a) => plexAccountLabel(a, user.name) === label)
+    const accountId = account ? account.id : null
+    if (accountId === user.plex_account_id) return
 
     try {
-      const updatedSettings = await updateUserPlexUsername(user._id, value)
+      const updatedSettings = await updateUserPlexLink(user._id, accountId)
       onSettingsUpdate(updatedSettings)
     } catch (error) {
-      console.error("Failed to update Plex username:", error)
+      console.error("Failed to update Plex link:", error)
     }
   }
 
@@ -299,11 +318,12 @@ const UserCard: React.FC<UserCardProps> = ({ user, settings, onSettingsUpdate, i
                 setValue={handleSeriesOverwriteChange}
               />
               {settings.plex_active && (
-                <TextField
-                  label="Plex Username"
-                  placeholder="Matched by name if empty"
-                  defaultValue={user.plex_username ?? ""}
-                  onBlur={(e) => handlePlexUsernameSave(e.target.value)}
+                <MUIAutocomplete
+                  label="Plex Account"
+                  placeholder="Not linked"
+                  options={plexAccounts.map((a) => plexAccountLabel(a, user.name))}
+                  value={user.plex_account_id !== null && user.plex_username ? user.plex_username : null}
+                  setValue={handlePlexLinkChange}
                 />
               )}
             </div>

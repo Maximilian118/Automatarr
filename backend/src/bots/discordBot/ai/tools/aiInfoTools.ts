@@ -4,14 +4,15 @@ import { searchRadarr } from "../../../../shared/RadarrStarrRequests"
 import { searchSonarr } from "../../../../shared/SonarrStarrRequests"
 import {
   describeWatchItem,
-  findPlexAccountId,
   getCachedPlexHistory,
   getPlexNowPlaying,
+  plexAccountForUser,
 } from "../../../../shared/plexRequests"
 import { matchedDiscordUser, matchedUser } from "../../discordBotUtility"
 import { describeMovie, describeSeries, searchLibraries } from "../aiMediaFormat"
-import { describePreferences, findMemory } from "../aiMemory"
+import { describePreferences, findMemory, findMemoryByUsernames } from "../aiMemory"
 import { getRequestHistory, topGenres } from "../aiRequestLog"
+import { unlinkedPlexHint } from "./aiPlexTools"
 import { ToolContext, ToolHandler, inputString, inputYear } from "./aiToolTypes"
 
 // Whether personal info about the speaker may be mentioned in this conversation
@@ -27,6 +28,21 @@ const describePool = (user: BotUserType): string => {
     `Movies in pool: ${movies.length ? movies.join(", ") : "none"}`,
     `Series in pool: ${series.length ? series.join(", ") : "none"}`,
   ].join("\n")
+}
+
+// How many recent Plex watches are shared when describing someone else's taste
+const SHARED_WATCH_COUNT = 5
+
+// Describe someone else's taste from their requests and Plex history. Only used for members who aren't private.
+const describeTaste = async (discordId: string | null, botUser: BotUserType): Promise<string[]> => {
+  const genres = discordId ? topGenres(await getRequestHistory(discordId, 20)) : []
+  const accountId = plexAccountForUser(botUser, botUser.ids[0] ?? "")
+  const watched = accountId !== null ? getCachedPlexHistory(accountId).slice(0, SHARED_WATCH_COUNT) : []
+
+  return [
+    genres.length ? `Favourite genres from requests: ${genres.join(", ")}` : "",
+    watched.length ? `Recently watched on Plex: ${watched.map(describeWatchItem).join(", ")}` : "",
+  ].filter(Boolean)
 }
 
 // Build the speaker's own profile. Personal details are withheld when they're private in a shared channel.
@@ -59,12 +75,8 @@ export const buildSpeakerProfile = async (ctx: ToolContext): Promise<string> => 
 }
 
 // Find the Plex account ID linked to the speaker
-const speakerPlexAccount = (ctx: ToolContext): number | null => {
-  const botUser = matchedUser(ctx.settings, ctx.identity.username)
-  if (botUser?.plex_username) return findPlexAccountId([botUser.plex_username])
-
-  return findPlexAccountId([botUser?.name ?? "", ctx.identity.username])
-}
+const speakerPlexAccount = (ctx: ToolContext): number | null =>
+  plexAccountForUser(matchedUser(ctx.settings, ctx.identity.username), ctx.identity.username)
 
 // Look up a title in the cached library
 const lookupTitle: ToolHandler = async (ctx, input) => {
@@ -111,8 +123,19 @@ const getUserProfile: ToolHandler = async (ctx, input) => {
   if (member?.id === ctx.identity.id) return buildSpeakerProfile(ctx)
   if (!botUser) return `${identifier} isn't a registered Automatarr user.`
 
-  // Other people's watch history, habits and memories are never shared
-  return `${botUser.name}\n${describePool(botUser)}\n(Their watch history and anything you remember about them is private.)`
+  const profile = [botUser.name, describePool(botUser)]
+  const memory = member ? await findMemory(member.id) : await findMemoryByUsernames(botUser.ids)
+
+  // Taste is only shared for members who aren't private. Remembered facts are never shared.
+  if (memory?.preferences.private) {
+    profile.push("They keep their viewing private, so their taste and watch history aren't shared.")
+  } else {
+    const taste = await describeTaste(member?.id ?? memory?.discord_id ?? null, botUser)
+    profile.push(...(taste.length ? taste : ["No taste info yet."]))
+  }
+
+  profile.push("(Anything you remember about them is private.)")
+  return profile.join("\n")
 }
 
 // What the speaker is watching on Plex right now
@@ -120,7 +143,7 @@ const plexNowPlaying: ToolHandler = async (ctx) => {
   if (!personalInfoAllowed(ctx)) return "Withheld: the speaker is private and this is a shared channel."
 
   const accountId = speakerPlexAccount(ctx)
-  if (accountId === null) return "Couldn't match the speaker to a Plex account. An admin can set their Plex username in the web app."
+  if (accountId === null) return unlinkedPlexHint(ctx)
 
   const playing = await getPlexNowPlaying(ctx.settings, accountId)
   if (!playing.length) return "They aren't watching anything on Plex right now."
@@ -133,7 +156,7 @@ const plexRecentHistory: ToolHandler = async (ctx) => {
   if (!personalInfoAllowed(ctx)) return "Withheld: the speaker is private and this is a shared channel."
 
   const accountId = speakerPlexAccount(ctx)
-  if (accountId === null) return "Couldn't match the speaker to a Plex account. An admin can set their Plex username in the web app."
+  if (accountId === null) return unlinkedPlexHint(ctx)
 
   const history = getCachedPlexHistory(accountId)
   if (!history.length) return "No recent Plex watch history."

@@ -140,7 +140,7 @@ export const INFO_TOOLS: Tool[] = [
   {
     name: "get_user_profile",
     description:
-      "Get a server member's public info (name and pool). Leave user empty for the speaker, who also gets their own remembered facts and habits.",
+      "Get a server member's profile. Leave user empty for the speaker, who also gets their own remembered facts and habits. For anyone else you get their pool, plus their taste (top genres and recent Plex watches) unless they're private.",
     input_schema: {
       type: "object",
       properties: {
@@ -161,6 +161,48 @@ export const PLEX_TOOLS: Tool[] = [
     name: "plex_recent_history",
     description: "What the speaker has watched recently on Plex.",
     input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "link_my_plex",
+    description:
+      "Link the speaker to their own Plex account, e.g. after they confirm \"that's me\". Only ever links the speaker.",
+    input_schema: {
+      type: "object",
+      properties: { plex_account: { type: "string", description: "The Plex account name." } },
+      required: ["plex_account"],
+    },
+  },
+]
+
+// Plex linking tools only offered to admins when Plex is connected
+export const PLEX_ADMIN_TOOLS: Tool[] = [
+  {
+    name: "propose_plex_links",
+    description:
+      "Admin only. Guess which Plex account belongs to every Automatarr user and hold the proposal for the admin to confirm.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
+    name: "confirm_plex_links",
+    description:
+      "Admin only. Save the pending Plex pairings once the admin confirms, with any corrections they asked for.",
+    input_schema: {
+      type: "object",
+      properties: {
+        changes: {
+          type: "array",
+          description: "Optional corrections. Leave empty to save the proposal as shown.",
+          items: {
+            type: "object",
+            properties: {
+              user: { type: "string", description: "The Automatarr user's name, Discord username or display name." },
+              plex_account: { type: "string", description: "Their Plex account name, or \"none\" to unlink them." },
+            },
+            required: ["user", "plex_account"],
+          },
+        },
+      },
+    },
   },
 ]
 

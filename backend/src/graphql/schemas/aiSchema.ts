@@ -57,5 +57,16 @@ const aiSchema = `
     data: [BotMemory!]!
     tokens: [String!]!
   }
+
+  type PlexAccountOption {
+    id: Int!
+    name: String!
+    linked_to: String
+  }
+
+  type PlexAccountsReturn {
+    data: [PlexAccountOption!]!
+    tokens: [String!]!
+  }
 `
 export default aiSchema

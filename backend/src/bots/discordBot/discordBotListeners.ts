@@ -21,6 +21,7 @@ import { caseRemove } from "./cases/discordBotcaseRemove"
 import { caseSearch } from "./cases/discordBotcaseSearch"
 import { caseHelp } from "./cases/discordBotcaseHelp"
 import { handleAIMessage, noteCommandActivity, resolveInvalidCommand } from "./ai/aiHandlers"
+import { noteChannelMessage } from "./ai/aiContext"
 import logger from "../../logger"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
@@ -33,6 +34,9 @@ export const messageListeners = async (client: Client) => {
   messageListenerFn = async (message: Message) => {
     if (message.author.bot) return
     if (!("send" in message.channel)) return
+
+    // Anyone speaking in a channel takes the floor from others chatting with the AI there
+    noteChannelMessage(message.channel.id, message.author.id)
 
     const prefix = "!"
 
