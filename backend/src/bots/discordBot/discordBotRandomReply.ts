@@ -1341,6 +1341,16 @@ export const randomReducedCapabilitiesMessage = (): string =>
     "I'm a bit lost for words right now. Old-school `!` commands are the way to go until I'm back to my usual self.",
   ])
 
+// Random messages for when a user has been rate limited by the AI layer
+export const randomRateLimitedMessage = (): string =>
+  pickRandom([
+    "Whoa, slow down! My brain needs a breather 🥵 Give me a bit. The `!` commands still work in the meantime.",
+    "You're talking faster than I can buffer 📼 Back shortly. `!help` has you covered until then.",
+    "I need a quick intermission 🍿 Chat again in a bit, or use the classic `!` commands.",
+    "Easy there, I'm only one bot! Let me catch my breath. `!` commands still work if you need something.",
+    "My chatty circuits are overheating 🔥 Give me a moment. Old-school `!` commands are still open for business.",
+  ])
+
 // Random in-character lines used when an AI reply can't be sent as written
 export const randomInCharacterDeflection = (): string =>
   pickRandom([

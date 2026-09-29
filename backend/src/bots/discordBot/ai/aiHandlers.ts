@@ -1,9 +1,11 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../../models/settings"
 import { sendDiscordMessage } from "../discordBotUtility"
+import { randomRateLimitedMessage } from "../discordBotRandomReply"
 import { commandUsageHelp } from "../cases/discordBotcaseHelp"
 import { channelValid } from "../validate/validationUtility"
 import { aiConfigured } from "./aiClient"
+import { claimLimitNotice } from "./aiBudget"
 import { isAICommandMessage } from "./aiCommandMessage"
 import { reducedCapabilitiesNotice } from "./aiFallback"
 import { gateMessage } from "./aiGate"
@@ -39,7 +41,12 @@ export const handleAIMessage = async (message: Message): Promise<void> => {
 
   const result = await respondWithAI(message, settings, reason)
 
-  // Tell the user once in a while that the AI is down. Rate limited users just get silence.
+  // Tell rate limited users once per limit, then stay silent until it clears
+  if (result === "limited" && reason !== "passing" && claimLimitNotice(message.author.id)) {
+    await sendDiscordMessage(message, randomRateLimitedMessage())
+  }
+
+  // Tell the user once in a while that the AI is down
   if (result === "unavailable" && reason !== "passing") {
     const notice = await reducedCapabilitiesNotice(
       { id: message.author.id, username: message.author.username },

@@ -5,20 +5,27 @@ import { AIBotType } from "../../../models/settings"
 import logger from "../../../logger"
 import { getModelConfig, priceUsage } from "./aiClient"
 
-// Maximum AI engagements a single user can trigger per hour
-const USER_HOURLY_CAP = 10
+// Maximum AI engagements a single user can trigger per hour. High enough that only abuse reaches it.
+const USER_HOURLY_CAP = 60
+
+// Maximum AI engagements a single user can trigger within the burst window, to stop spam
+const USER_BURST_CAP = 8
+const BURST_WINDOW_MS = 60 * 1000
 
 // Rough upper bound for the cost of one engagement, used to derive the daily global cap
 const EST_ENGAGEMENT_TOKENS = { input: 4500, output: 150 }
 
 // A busy day may use up to this many days' share of the monthly budget
-const BUSY_DAY_MULTIPLIER = 2
+const BUSY_DAY_MULTIPLIER = 5
 
 // Recent engagement timestamps per Discord user ID
 const userEngagements = new Map<string, number[]>()
 
 // Engagement timestamps across all users for the daily cap
 let globalEngagements: number[] = []
+
+// Users who have already been told they're rate limited during their current limit
+const limitNoticed = new Set<string>()
 
 // The current calendar month key used for usage documents
 const currentMonth = (): string => moment().format("YYYY-MM")
@@ -83,8 +90,10 @@ const withinWindow = (timestamps: number[], windowMs: number): number[] => {
   return timestamps.filter((t) => t > cutoff)
 }
 
-// Check whether a user may trigger another AI engagement right now
-export const rateLimited = (aiBot: AIBotType, discordId: string): boolean => {
+// Check whether a user may trigger another AI engagement right now. Admins are never limited.
+export const rateLimited = (aiBot: AIBotType, discordId: string, isAdmin: boolean): boolean => {
+  if (isAdmin) return false
+
   const hourMs = 60 * 60 * 1000
   const dayMs = 24 * hourMs
 
@@ -92,7 +101,22 @@ export const rateLimited = (aiBot: AIBotType, discordId: string): boolean => {
   userEngagements.set(discordId, userRecent)
   globalEngagements = withinWindow(globalEngagements, dayMs)
 
-  return userRecent.length >= USER_HOURLY_CAP || globalEngagements.length >= dailyGlobalCap(aiBot)
+  const limited =
+    userRecent.length >= USER_HOURLY_CAP ||
+    withinWindow(userRecent, BURST_WINDOW_MS).length >= USER_BURST_CAP ||
+    globalEngagements.length >= dailyGlobalCap(aiBot)
+
+  if (!limited) limitNoticed.delete(discordId)
+
+  return limited
+}
+
+// Claim the one rate limit notice a user gets per limit. True only the first time.
+export const claimLimitNotice = (discordId: string): boolean => {
+  if (limitNoticed.has(discordId)) return false
+
+  limitNoticed.add(discordId)
+  return true
 }
 
 // Record that a user has triggered an AI engagement

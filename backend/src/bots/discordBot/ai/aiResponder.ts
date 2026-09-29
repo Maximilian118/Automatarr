@@ -106,7 +106,11 @@ const buildUserTurn = async (
 }
 
 // Build the tool context for the speaker. Identity and permissions come from Discord only.
-const buildToolContext = async (message: Message, settings: settingsDocType): Promise<ToolContext> => {
+const buildToolContext = async (
+  message: Message,
+  settings: settingsDocType,
+  isAdmin: boolean,
+): Promise<ToolContext> => {
   const identity: DiscordIdentity = { id: message.author.id, username: message.author.username }
   const memory = await getMemory(identity)
 
@@ -114,7 +118,7 @@ const buildToolContext = async (message: Message, settings: settingsDocType): Pr
     message,
     settings,
     identity,
-    isAdmin: !!matchedUser(settings, identity.username)?.admin,
+    isAdmin,
     isDirectMessage: !message.guild,
     preferences: memory.preferences,
     actionsTaken: 0,
@@ -169,7 +173,8 @@ export const respondWithAI = async (
 ): Promise<AIResult> => {
   const aiBot = settings.ai_bot
   if (!aiConfigured(aiBot)) return "unavailable"
-  if (rateLimited(aiBot, message.author.id)) {
+  const isAdmin = !!matchedUser(settings, message.author.username)?.admin
+  if (rateLimited(aiBot, message.author.id, isAdmin)) {
     logger.info(`AI Bot | ${message.author.username} is rate limited. Not replying.`)
     return "limited"
   }
@@ -182,7 +187,7 @@ export const respondWithAI = async (
 
     noteEngagement(message.author.id)
 
-    const ctx = await buildToolContext(message, settings)
+    const ctx = await buildToolContext(message, settings, isAdmin)
     const userTurn = await buildUserTurn(ctx, reason, failed)
 
     // Record the message after building the transcript so it isn't duplicated in the context
