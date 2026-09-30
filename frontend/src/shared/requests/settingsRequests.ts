@@ -152,6 +152,9 @@ export const updateSettings = async (
           $plex_URL: String
           $plex_KEY: String
           $plex_active: Boolean
+          $sabnzbd_URL: String
+          $sabnzbd_KEY: String
+          $sabnzbd_active: Boolean
           $general_bot: generalBot
           $discord_bot: discordBot
           $ai_bot: aiBot
@@ -207,6 +210,9 @@ export const updateSettings = async (
             plex_URL: $plex_URL
             plex_KEY: $plex_KEY
             plex_active: $plex_active
+            sabnzbd_URL: $sabnzbd_URL
+            sabnzbd_KEY: $sabnzbd_KEY
+            sabnzbd_active: $sabnzbd_active
             general_bot: $general_bot
             discord_bot: $discord_bot
             ai_bot: $ai_bot

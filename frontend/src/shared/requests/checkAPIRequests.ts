@@ -6,7 +6,7 @@ import { NavigateFunction } from "react-router-dom"
 import { authCheck, handleResponseTokens, headers } from "./requestUtility"
 
 // Connections that are checked with a URL and an API key/token
-type URLKeyAPI = "Radarr" | "Sonarr" | "Lidarr" | "Plex"
+type URLKeyAPI = "Radarr" | "Sonarr" | "Lidarr" | "Plex" | "SABnzbd"
 
 // Checks if a URL + KEY API connection is working.
 // If settings not passed, check with params in db.
@@ -104,6 +104,14 @@ export const checkPlex = (
   navigate: NavigateFunction,
   settings?: settingsType,
 ): Promise<boolean> => checkURLKeyAPI("Plex", user, setUser, navigate, settings)
+
+// Checks if the SABnzbd connection is working. If settings not passed, check with params in db.
+export const checkSABnzbd = (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => checkURLKeyAPI("SABnzbd", user, setUser, navigate, settings)
 
 // Checks if API connection is working. If settings not passed, check with params in db.
 export const checkqBittorrent = async (

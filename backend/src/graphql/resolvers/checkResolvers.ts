@@ -11,6 +11,7 @@ import { activeAPIsArr } from "../../shared/activeAPIsArr"
 import { initWebhookBody } from "../../types/webhookType"
 import { axiosErrorMessage } from "../../shared/requestError"
 import { checkPlexConnection } from "../../shared/plexRequests"
+import { checkSABnzbdConnection } from "../../shared/sabnzbdRequests"
 
 const checkResolvers = {
   checkRadarr: async (
@@ -252,6 +253,40 @@ const checkResolvers = {
 
     const status = await checkPlexConnection(URL, KEY)
     if (requestSuccess(status)) logger.success("Plex | OK!")
+
+    return { data: status, tokens }
+  },
+  checkSABnzbd: async (
+    args?: { URL?: string; KEY?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const tokens = req?.tokens || []
+    let { URL, KEY } = args || {}
+
+    // If not passed explicitly, fetch from DB
+    if (!URL || !KEY) {
+      const settings = (await Settings.findOne()) as settingsDocType
+
+      if (!settings || !settings.sabnzbd_active) {
+        logger.info("SABnzbd | Inactive.")
+        return { data: 500, tokens }
+      }
+
+      if (!settings.sabnzbd_URL || !settings.sabnzbd_KEY) {
+        logger.warn("SABnzbd | Missing credentials.")
+        return { data: 500, tokens }
+      }
+
+      URL = settings.sabnzbd_URL
+      KEY = settings.sabnzbd_KEY
+    }
+
+    const status = await checkSABnzbdConnection(URL, KEY)
+    if (requestSuccess(status)) logger.success("SABnzbd | OK!")
 
     return { data: status, tokens }
   },

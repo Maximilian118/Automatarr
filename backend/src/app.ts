@@ -19,6 +19,7 @@ import { coreLoops } from "./loops/loops"
 import createWebhookRouter from "./middleware/webhooks"
 import { newWebhook } from "./webhooks/webhookUtility"
 import logsRouter from "./routes/logs"
+import { startDownloadPriority } from "./shared/downloadPriority"
 
 // Read version from package.json
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"))
@@ -177,6 +178,12 @@ const startServer = async () => {
 
     // Check connection to Plex for the AI bot
     await Resolvers.checkPlex()
+
+    // Check connection to SABnzbd for download queue priority
+    await Resolvers.checkSABnzbd()
+
+    // Resume prioritising Discord requests that were still downloading
+    await startDownloadPriority()
 
     // Check Automatarr has the filesystem permissions it needs
     bootPermissions(data)

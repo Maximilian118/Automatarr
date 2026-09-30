@@ -13,6 +13,7 @@ import {
   webhookCleanup,
 } from "../webhooks/webhookUtility"
 import { startStuckNotificationCleanup } from "../webhooks/stuckNotificationCleanup"
+import { nudgeDownloadPriority } from "../shared/downloadPriority"
 
 const createWebhookRouter = () => {
   const router = Router()
@@ -62,6 +63,9 @@ const createWebhookRouter = () => {
         )
         break
     }
+
+    // 6. A grab may belong to a Discord request, so check the download queues straight away
+    if (webhook.eventType === "Grab") nudgeDownloadPriority()
 
     res.status(200).send("Webhook received")
   })

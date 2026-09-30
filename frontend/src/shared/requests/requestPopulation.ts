@@ -79,6 +79,9 @@ export const populateSettings = `
   plex_URL
   plex_KEY
   plex_active
+  sabnzbd_URL
+  sabnzbd_KEY
+  sabnzbd_active
   general_bot {
     max_movies
     movie_pool_expiry

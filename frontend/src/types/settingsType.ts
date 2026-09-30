@@ -128,6 +128,9 @@ export interface settingsType {
   plex_URL: string // URL including port to reach the Plex Media Server
   plex_KEY: string // X-Plex-Token for the Plex Media Server
   plex_active: boolean // Has Plex connection been tested and therefore should be included in requests?
+  sabnzbd_URL: string // URL including port to reach the SABnzbd API
+  sabnzbd_KEY: string // API key for SABnzbd
+  sabnzbd_active: boolean // Has SABnzbd connection been tested and therefore should be included in requests?
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
   ai_bot: AIBotType // Claude API conversational layer settings

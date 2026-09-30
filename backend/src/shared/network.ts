@@ -13,6 +13,7 @@ export const isOnCorrectLAN = async (
       ([key, value]) =>
         key.endsWith("URL") &&
         key !== "qBittorrent_URL" &&
+        key !== "sabnzbd_URL" &&
         value &&
         typeof value === "string" &&
         value.trim() !== "",

@@ -28,6 +28,8 @@ import {
   randomSeriesQualityDownloadStartMessage,
   randomSeriesQualityMonitorDownloadStartMessage,
   randomSeriesMonitorChangeToAllMessage,
+  randomMovieQueueMessage,
+  randomSeriesQueueMessage,
   randomProcessingMessage,
   randomReAddedToPoolMessage,
   randomUnreleasedAddedMessage,
@@ -54,6 +56,7 @@ import {
 } from "../../shared/SonarrStarrRequests"
 import logger from "../../logger"
 import { queueDownloadNotifications } from "./discordBotAsync"
+import { registerDownloadPriority } from "../../shared/downloadPriority"
 import { handleMovieQualityChange, handleSeriesQualityChange } from "./discordBotQualityChange"
 import { isSeriesReleased, sortTMDBSearchArray } from "../botUtility"
 import { Movie } from "../../types/movieTypes"
@@ -321,10 +324,15 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Released media: notify the requester when the movie is grabbed and downloaded
   await queueDownloadNotifications(message, settings, movie, "Radarr")
 
-  // Notify that we've grabbed a movie with quality-aware feedback if applicable
-  const movieStartMessage = quality
-    ? randomMovieQualityDownloadStartMessage(movie, quality)
-    : randomMovieDownloadStartMessage(movie)
+  // Move the movie to the front of the download queue and find out if it has to wait for anyone
+  const queueConflict = await registerDownloadPriority(message, movie, "movie")
+
+  // Notify that we've grabbed a movie with queue and quality-aware feedback if applicable
+  const movieStartMessage =
+    randomMovieQueueMessage(movie, queueConflict, quality) ??
+    (quality
+      ? randomMovieQualityDownloadStartMessage(movie, quality)
+      : randomMovieDownloadStartMessage(movie))
 
   return discordReply(
     movieStartMessage,
@@ -525,8 +533,12 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
     // Save the updated settings
     if (!(await saveWithRetry(settings, "caseDownloadSeries - add to pool"))) return noDBSave()
 
+    // Move the series to the front of the download queue and find out if it has to wait for anyone
+    const queueConflict = await registerDownloadPriority(message, matchedSeries, "series")
+
     return discordReply(
-      randomSeriesMonitorChangeToAllMessage(foundSeries.title),
+      randomSeriesQueueMessage(matchedSeries, queueConflict) ??
+        randomSeriesMonitorChangeToAllMessage(foundSeries.title),
       "success",
       `${user.name} requested ${foundSeries.title} with ${monitor}, updated to "all"`,
     )
@@ -637,6 +649,11 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   // Released media: notify the requester when the series is grabbed and downloaded
   await queueDownloadNotifications(message, settings, series, "Sonarr")
 
+  // Move the series to the front of the download queue and find out if it has to wait for anyone.
+  // Future-only series have nothing to download yet.
+  const queueConflict =
+    monitor === "future" ? null : await registerDownloadPriority(message, series, "series")
+
   // Select the appropriate message function based on which arguments were specified
   const hasQuality = !!seriesQuality
   const hasMonitor = monitor !== "all"
@@ -653,7 +670,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   return discordReply(
-    seriesStartMessage,
+    randomSeriesQueueMessage(series, queueConflict, seriesQuality, monitor) ?? seriesStartMessage,
     "success",
     `${user.name} | Started Series Download | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
   )

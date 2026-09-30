@@ -402,3 +402,53 @@ export const deleteqBittorrent = async (
 
   return false
 }
+
+// Get specific torrents straight from qBittorrent, without the data-collection throttle.
+// Returns null if the request fails.
+export const getqBittorrentTorrentsByHash = async (
+  settings: settingsType,
+  cookie: string,
+  hashes: string[],
+): Promise<Torrent[] | null> => {
+  try {
+    const res = await axios.get(
+      cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/info`),
+      {
+        params: { hashes: hashes.join("|") },
+        headers: { cookie },
+      },
+    )
+
+    return res.data as Torrent[]
+  } catch (err) {
+    logger.error(`getqBittorrentTorrentsByHash: ${axiosErrorMessage(err)}`)
+    return null
+  }
+}
+
+// Move a torrent to the top of the qBittorrent download queue. Requires Torrent Queueing.
+export const topPrioqBittorrent = async (
+  settings: settingsType,
+  cookie: string,
+  hash: string,
+): Promise<boolean> => {
+  try {
+    await axios.post(
+      cleanUrl(
+        `${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/torrents/topPrio`,
+      ),
+      new URLSearchParams({ hashes: hash }),
+      {
+        headers: {
+          cookie,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      },
+    )
+
+    return true
+  } catch (err) {
+    logger.error(`topPrioqBittorrent: ${hash} | ${axiosErrorMessage(err)}`)
+    return false
+  }
+}

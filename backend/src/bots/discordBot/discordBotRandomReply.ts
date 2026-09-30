@@ -6,6 +6,7 @@ import { Episode } from "../../types/episodeTypes"
 import { Movie } from "../../types/movieTypes"
 import { MonitorOptions, Series } from "../../types/seriesTypes"
 import { getQualityGroup } from "./discordBotUtility"
+import { QueueConflict } from "../../types/downloadPriorityTypes"
 
 // Display-friendly labels for each quality group
 const qualityLabels: Record<string, string> = {
@@ -1360,3 +1361,69 @@ export const randomInCharacterDeflection = (): string =>
     "My circuits say no. My heart says ask me about a film instead 🎬",
     "That's above my pay grade, and I'm paid in disk space. Got a film in mind?",
   ])
+
+// Describe a requested quality as a suffix, e.g. " in 4K"
+const qualitySuffix = (quality?: string): string =>
+  quality ? ` in ${resolveQualityLabel(quality)}` : ""
+
+// Describe how much of a series a monitor option downloads, e.g. "season 1 of "
+const monitorScopes: Partial<Record<MonitorOptions, string>> = {
+  firstSeason: "season 1 of ",
+  lastSeason: "the latest season of ",
+  pilot: "the pilot of ",
+  recent: "the recent episodes of ",
+  missing: "the missing episodes of ",
+  existing: "the existing episodes of ",
+}
+
+// Movie download start message when the download queue is shared with other users.
+// Returns null when there's no conflict so the normal start message is used instead.
+export const randomMovieQueueMessage = (
+  movie: Movie,
+  conflict: QueueConflict | null,
+  quality?: string,
+): string | null => {
+  const title = `'${movie.title}'${qualitySuffix(quality)}`
+
+  if (conflict?.ahead) {
+    return pickRandom([
+      `${title} is lined up and starts straight after ${conflict.ahead}. 🍿`,
+      `Got it! ${title} is next in line, right after ${conflict.ahead}. 🎬`,
+      `${title} is queued up behind ${conflict.ahead} and starts downloading straight after. ⏭️`,
+      `${title} is on deck! Just ${conflict.ahead} to get through first, then it's all yours. 🎞️`,
+      `Nearly your turn: ${title} downloads right after ${conflict.ahead}. Hang tight! ⏳`,
+    ])
+  }
+
+  if (conflict?.bumped) {
+    return pickRandom([
+      `${title} jumped the queue ahead of ${conflict.bumped}. Films go first! 🚀`,
+      `Skipping the line! ${title} is downloading now, ahead of ${conflict.bumped}. 🏃`,
+      `${title} is first in line. Films get priority, so it went ahead of ${conflict.bumped}. 🎬`,
+      `Straight to the front! ${title} is downloading ahead of ${conflict.bumped}. Films are quick, series can wait. ⚡`,
+    ])
+  }
+
+  return null
+}
+
+// Series download start message when the download queue is shared with other users.
+// Returns null when there's no conflict so the normal start message is used instead.
+export const randomSeriesQueueMessage = (
+  series: Series,
+  conflict: QueueConflict | null,
+  quality?: string,
+  monitor?: MonitorOptions,
+): string | null => {
+  if (!conflict?.ahead) return null
+
+  const scope = monitor ? (monitorScopes[monitor] ?? "") : ""
+  const title = `${scope}'${series.title}'${qualitySuffix(quality)}`
+
+  return pickRandom([
+    `${title} is lined up and starts straight after ${conflict.ahead}. 📺`,
+    `Got it! ${title} is queued behind ${conflict.ahead}, then the episodes start rolling in. 🚚`,
+    `${title} is next up once the queue gets through ${conflict.ahead}. Snacks at the ready! 🍪`,
+    `Binge incoming! ${title} starts downloading right after ${conflict.ahead}. 🛋️`,
+  ])
+}

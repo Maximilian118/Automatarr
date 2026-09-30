@@ -101,6 +101,9 @@ const settingsSchema = `
     plex_URL: String!
     plex_KEY: String!
     plex_active: Boolean!
+    sabnzbd_URL: String!
+    sabnzbd_KEY: String!
+    sabnzbd_active: Boolean!
     general_bot: GeneralBot!
     discord_bot: DiscordBot!
     ai_bot: AIBot!
@@ -202,6 +205,9 @@ const settingsSchema = `
     plex_URL: String
     plex_KEY: String
     plex_active: Boolean
+    sabnzbd_URL: String
+    sabnzbd_KEY: String
+    sabnzbd_active: Boolean
     general_bot: generalBot
     discord_bot: discordBot
     ai_bot: aiBot

@@ -1,6 +1,6 @@
 import React, { FormEvent, HTMLInputTypeAttribute, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Tv } from "lucide-react"
+import { Newspaper, Tv } from "lucide-react"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
@@ -43,11 +43,12 @@ const Connections: React.FC = () => {
     }
   }, [localLoading, loading, setLoading])
 
-  const MUITextFieldHelper = (name: keyof settingsType, type?: HTMLInputTypeAttribute) => (
+  const MUITextFieldHelper = (name: keyof settingsType, type?: HTMLInputTypeAttribute, label?: string) => (
     <MUITextField 
       name={name} 
       value={settings[name] as string} 
       formErr={formErr}
+      label={label}
       onChange={(e) => updateInput(e, setSettings, setFormErr)}
       color={settings[`${name.split('_')[0]}_active` as keyof settingsType] ? "success" : "primary"}
       type={type}
@@ -93,6 +94,17 @@ const Connections: React.FC = () => {
           {MUITextFieldHelper("qBittorrent_URL")}
           {MUITextFieldHelper("qBittorrent_username")}
           {MUITextFieldHelper("qBittorrent_password", "password")}
+        </InputPanel>
+        <InputPanel
+          title="SABnzbd"
+          startIcon={<Newspaper aria-hidden="true"/>}
+          status={settings.sabnzbd_active ? "Connected" : "Disconnected"}
+          description={`
+            Optional. Lets Automatarr move downloads requested through Discord to the front of the SABnzbd queue.
+          `}
+        >
+          {MUITextFieldHelper("sabnzbd_URL", undefined, "SABnzbd URL")}
+          {MUITextFieldHelper("sabnzbd_KEY", "password", "SABnzbd API key")}
         </InputPanel>
         <InputPanel
           title="Plex"
