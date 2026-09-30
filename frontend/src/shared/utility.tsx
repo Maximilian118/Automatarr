@@ -59,7 +59,7 @@ export const multilineText = (string: string, className?: string) => {
 
     if (!trimmed) {
       // Render vertical space between paragraphs
-      return <div key={index} style={{ height: '1em' }} />
+      return <div key={index} className="multiline-gap" aria-hidden="true" />
     }
 
     return (

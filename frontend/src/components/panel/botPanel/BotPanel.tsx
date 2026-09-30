@@ -1,7 +1,8 @@
-import React, { ReactNode } from "react"
-import { statusColours } from "../panelUtility"
+import React, { ReactNode, useId } from "react"
 import { Switch } from "@mui/material"
 import { multilineText } from "../../../shared/utility"
+import StatusBadge from "../StatusBadge/StatusBadge"
+import "../_panel.scss"
 
 interface BotPanelType {
   children: ReactNode
@@ -23,26 +24,30 @@ export const BotPanel: React.FC<BotPanelType> = ({
   active,
   onToggle,
 }) => {
+  const headingId = useId()
+
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onToggle(event.target.checked)
   }
 
   return (
-    <div className="panel">
+    <section className="panel" aria-labelledby={headingId}>
       <div className="panel-top">
         <div className="panel-top-left">
-          {typeof startIcon === "string" ? <img alt="API Symbol" src={startIcon} /> : startIcon}
-          {title && <h2>{title}</h2>}
+          {typeof startIcon === "string" ? <img alt="" src={startIcon} /> : startIcon}
+          {title && <h2 id={headingId}>{title}</h2>}
         </div>
-        <Switch
-          checked={active}
-          onChange={handleSwitchChange}
-          inputProps={{ 'aria-label': 'controlled' }}
-        />
+        <div className="panel-top-right">
+          {status && <StatusBadge status={status} />}
+          <Switch
+            checked={active}
+            onChange={handleSwitchChange}
+            inputProps={{ 'aria-label': `Enable ${title}` }}
+          />
+        </div>
       </div>
       {description && multilineText(description, "panel-description")}
-      {status && <p style={{ color: statusColours(status) }}>{status}</p>}
       {children}
-    </div>
+    </section>
   )
 }

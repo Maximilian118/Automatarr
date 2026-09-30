@@ -6,6 +6,7 @@ import logger from "../logger"
 import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
 import moment from "moment"
 import { axiosErrorMessage } from "./requestError"
+import { recordActivity } from "./activity"
 import { isDocker } from "./fileSystem"
 
 // Retreive qBittorrent cookie from check request headers
@@ -382,6 +383,12 @@ export const deleteqBittorrent = async (
 
     if (requestSuccess(res.status)) {
       logger.info(`Torrent deleted: ${torrent.name} 🔥`)
+      recordActivity({
+        action: "torrent",
+        app: "qBittorrent",
+        title: torrent.name,
+        bytes: torrent.size,
+      })
 
       return true
     } else {

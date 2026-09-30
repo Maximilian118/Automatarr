@@ -1,0 +1,58 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Fixed-height box Nivo measures itself against
+.trend-chart {
+  width: 100%;
+  height: 300px;
+
+  @include mixins.phone-only {
+    height: 240px;
+  }
+}
+
+// Hover/touch tooltip listing every series for a day
+.trend-tooltip {
+  min-width: 200px;
+  padding: var(--space-3);
+  background: variables.$basin;
+  color: variables.$ink;
+  border: 1px solid variables.$line;
+  border-radius: var(--radius-control);
+
+  .trend-tooltip-date {
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .trend-tooltip-swatch {
+    width: 12px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .trend-tooltip-label {
+    color: variables.$ink-muted;
+  }
+
+  .trend-tooltip-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}

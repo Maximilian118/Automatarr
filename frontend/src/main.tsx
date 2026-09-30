@@ -1,7 +1,10 @@
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { ThemeProvider, createTheme } from '@mui/material/styles'
+import '@fontsource-variable/bricolage-grotesque/standard.css'
+import '@fontsource-variable/atkinson-hyperlegible-next/wght.css'
 import App from './App.tsx'
+import ThemeModeProvider from './components/theme/ThemeModeProvider/ThemeModeProvider'
+import { applyTheme, readStoredPreference, resolveTheme, systemPrefersDark } from './shared/theme/themeMode'
 import axios from 'axios'
 import { getAuthCallbacks } from './shared/authCallbacks'
 import { logout } from './shared/localStorage'
@@ -36,17 +39,13 @@ axios.interceptors.response.use(
   },
 )
 
-// MUI style
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-  },
-})
+// Apply the saved or system theme before the first paint to avoid a flash of the wrong theme
+applyTheme(resolveTheme(readStoredPreference(), systemPrefersDark()))
 
 createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
-    <ThemeProvider theme={theme}>
+    <ThemeModeProvider>
       <App/>
-    </ThemeProvider>
+    </ThemeModeProvider>
   </BrowserRouter>
 )

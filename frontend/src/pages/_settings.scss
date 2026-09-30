@@ -1,0 +1,36 @@
+@use "../scss/variables";
+
+// Small headings that split a settings panel into groups
+.settings-subheading {
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  font-weight: 700;
+  margin-bottom: calc(-1 * var(--space-2));
+
+  &.settings-subheading-spaced {
+    margin-top: var(--space-3);
+  }
+}
+
+// Confirmation question shown before a backup restore
+.settings-restore-question {
+  font-weight: 700;
+  color: var(--outflow);
+}
+
+// "Add connections" button with each Starr app's webhook status beside it
+.settings-webhook-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+
+  .api-connection-yes {
+    color: var(--good);
+  }
+
+  .api-connection-no {
+    color: var(--outflow);
+  }
+}

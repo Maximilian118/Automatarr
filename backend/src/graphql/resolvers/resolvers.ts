@@ -6,6 +6,8 @@ import settingsResolvers from "./settingsResolvers"
 import userResolvers from "./userResolvers"
 import statsResolvers from "./statsResolvers"
 import aiResolvers from "./aiResolvers"
+import activityResolvers from "./activityResolvers"
+import dashboardResolvers from "./dashboardResolvers"
 
 const Resolvers = {
   ...settingsResolvers,
@@ -16,6 +18,8 @@ const Resolvers = {
   ...userResolvers,
   ...statsResolvers,
   ...aiResolvers,
+  ...activityResolvers,
+  ...dashboardResolvers,
 }
 
 export default Resolvers

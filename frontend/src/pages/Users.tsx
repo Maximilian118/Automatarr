@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useContext } from "react"
-import { Alert, CircularProgress } from "@mui/material"
 import { getSettings } from "../shared/requests/settingsRequests"
 import { settingsType } from "../types/settingsType"
 import UserCards from "../components/UserCards/UserCards"
-import StorageChart from "../components/utility/StorageChart/StorageChart"
+import PoolStorage from "../components/PoolStorage/PoolStorage"
 import AppContext from "../context"
 import Footer from "../components/footer/Footer"
 import AIMemories from "../components/AIMemories/AIMemories"
+import PageHeader from "../components/ui/PageHeader/PageHeader"
+import CenteredLoading from "../components/utility/CenteredLoading/CenteredLoading"
 
+// Everyone who can request content: their pools, limits, storage and what the assistant remembers
 const Users: React.FC = () => {
   const { loading, setLoading } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(true)
@@ -39,19 +41,31 @@ const Users: React.FC = () => {
     setSettings(newSettings)
   }
 
+  const header = (
+    <PageHeader
+      title="Users"
+      description="Everything a person keeps in their pool is protected from cleanup. Drag titles between people, or use the move button on each title."
+    />
+  )
+
   if (localLoading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <CircularProgress />
-      </div>
+      <main>
+        {header}
+        <CenteredLoading/>
+      </main>
     )
   }
 
   if (!settings) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <Alert severity="error">Failed to load user data</Alert>
-      </div>
+      <main>
+        {header}
+        <div className="page-message" role="alert">
+          <h2>Users couldn't be loaded</h2>
+          <p>Automatarr didn't respond. Check it's running, then reload this page.</p>
+        </div>
+      </main>
     )
   }
 
@@ -59,7 +73,8 @@ const Users: React.FC = () => {
 
   return (
     <main>
-      <StorageChart users={users}/>
+      {header}
+      <PoolStorage users={users}/>
       <UserCards
         users={users}
         settings={settings}

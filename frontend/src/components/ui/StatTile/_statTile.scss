@@ -1,0 +1,45 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  @include mixins.surface;
+
+  dd {
+    margin: 0;
+  }
+
+  .stat-tile-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: variables.$ink-muted;
+    font-weight: 600;
+  }
+
+  .stat-tile-icon {
+    display: inline-flex;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .stat-tile-value {
+    @include mixins.display(var(--step-3), 700);
+    color: variables.$ink;
+  }
+
+  .stat-tile-detail {
+    color: variables.$ink-muted;
+  }
+
+  &.stat-tile-inflow .stat-tile-icon { color: var(--inflow); }
+  &.stat-tile-outflow .stat-tile-icon { color: var(--outflow); }
+  &.stat-tile-threshold .stat-tile-icon { color: var(--threshold); }
+  &.stat-tile-good .stat-tile-icon { color: var(--good); }
+}

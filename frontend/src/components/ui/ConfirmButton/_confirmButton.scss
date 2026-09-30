@@ -1,0 +1,18 @@
+@use "../../../scss/variables";
+
+.confirm-button {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  .confirm-button-question {
+    font-weight: 700;
+    color: variables.$ink;
+  }
+
+  .confirm-button-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+}

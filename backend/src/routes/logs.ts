@@ -1,139 +1,103 @@
-import express from "express"
-import fs from "fs"
-import path from "path"
-import { Tail } from "tail"
-import moment from "moment"
+import express, { NextFunction, Request, Response } from "express"
+import { logDirectory } from "../logger"
+import { AuthRequest } from "../middleware/auth"
+import {
+  followLogs,
+  listLogFiles,
+  makeCursor,
+  parseCursor,
+  readBackward,
+  readForward,
+  readNewest,
+  todayLogDate,
+} from "../shared/logReader"
 
 const router = express.Router()
 
-// Get log directory
-const logDirectory = path.join(__dirname, "..", "..", "..", "automatarr_logs")
+// Page size bounds for log requests
+const defaultLimit = 200
+const maxLimit = 1000
 
-// Get current log file name
-const getCurrentLogFileName = (): string => {
-  const today = moment().format("DD-MM-YYYY")
-  return `combined-${today}.log`
-}
+// How often to send a keep-alive comment on the live stream
+const heartbeatMs = 30000
 
-// Parse a log line into structured format
-const parseLogLine = (line: string) => {
-  // Match format: [DD-MM-YYYY HH:mm:ss] [EMOJI LEVEL] message
-  const logRegex = /^\[([^\]]+)\] \[([^\]]+)\] (.+)$/
-  const match = line.match(logRegex)
-  
-  if (match) {
-    const [, timestamp, levelWithEmoji, message] = match
-    // Extract level from emoji+level format (e.g., "✅ SUCCESS" -> "SUCCESS")
-    const level = levelWithEmoji.split(" ").slice(1).join(" ")
-    
-    return {
-      timestamp: moment(timestamp, "DD-MM-YYYY HH:mm:ss").toISOString(),
-      level: level.toLowerCase(),
-      message: message.trim()
-    }
+// Reject any request that isn't from a logged in web app user
+router.use((req: Request, res: Response, next: NextFunction) => {
+  if (!(req as AuthRequest).isAuth) {
+    res.status(401).json({ message: "Unauthorised" })
+    return
   }
-  
-  // If line doesn't match expected format, return as-is
-  return {
-    timestamp: new Date().toISOString(),
-    level: "info",
-    message: line
-  }
-}
 
-// Read recent logs from file
-const readRecentLogs = async (lines: number = 100): Promise<any[]> => {
-  const logFile = path.join(logDirectory, getCurrentLogFileName())
-  
+  next()
+})
+
+// A page of log entries: the newest page, the page before a cursor, or the page after a cursor
+router.get("/", async (req: Request, res: Response) => {
+  const { tokens } = req as AuthRequest
+  const requested = Number(req.query.limit)
+  const limit = Number.isFinite(requested) && requested > 0 ? Math.min(requested, maxLimit) : defaultLimit
+  const before = parseCursor(req.query.before)
+  const after = parseCursor(req.query.after)
+
   try {
-    if (!fs.existsSync(logFile)) {
-      return []
-    }
-    
-    const data = fs.readFileSync(logFile, "utf8")
-    const allLines = data.split("\n").filter(line => line.trim() !== "")
-    
-    // Get last N lines
-    const recentLines = allLines.slice(-lines)
-    
-    return recentLines.map(parseLogLine)
-  } catch (error) {
-    console.error("Error reading log file:", error)
-    return []
-  }
-}
+    const files = await listLogFiles(logDirectory)
 
-// GET /api/logs - Get recent log entries
-router.get("/", async (req, res) => {
-  try {
-    const lines = parseInt(req.query.lines as string) || 100
-    const logs = await readRecentLogs(lines)
-    
-    res.json({
-      logs,
-      total: logs.length
-    })
-  } catch (error) {
-    console.error("Error fetching logs:", error)
-    res.status(500).json({ error: "Failed to fetch logs" })
+    const page = before
+      ? await readBackward(files, before, limit)
+      : after
+        ? await readForward(files, after, limit)
+        : await readNewest(files, limit)
+
+    res.json({ ...page, tokens: tokens ?? [] })
+  } catch (err) {
+    res.status(500).json({ message: `Failed to read logs: ${err}` })
   }
 })
 
-// GET /api/logs/stream - Stream real-time logs via Server-Sent Events
-router.get("/stream", (req, res) => {
-  // Set headers for Server-Sent Events
+// A live stream of new log entries from a cursor onwards, as server-sent events
+router.get("/stream", async (req: Request, res: Response) => {
+  const { tokens } = req as AuthRequest
+  const lastEventId = parseCursor(req.get("Last-Event-ID"))
+  const from = lastEventId ?? parseCursor(req.query.from)
+
   res.writeHead(200, {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
-    "Connection": "keep-alive",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Cache-Control"
+    Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
   })
+  res.flushHeaders()
 
-  const logFile = path.join(logDirectory, getCurrentLogFileName())
-  
-  // Create tail instance to watch log file
-  let tail: any = null
-  
-  try {
-    // Only start tailing if file exists
-    if (fs.existsSync(logFile)) {
-      tail = new Tail(logFile, { follow: true, fromBeginning: false })
-      
-      tail.on("line", (line: string) => {
-        if (line.trim()) {
-          const logEntry = parseLogLine(line)
-          res.write(`data: ${JSON.stringify(logEntry)}\n\n`)
-        }
-      })
-      
-      tail.on("error", (error: any) => {
-        console.error("Tail error:", error)
-      })
-    }
-  } catch (error) {
-    console.error("Error setting up log tail:", error)
+  // Hand refreshed login tokens to the client before any entries
+  if (tokens && tokens.length > 0) {
+    res.write(`event: tokens\ndata: ${JSON.stringify(tokens)}\n\n`)
   }
-  
-  // Send heartbeat every 30 seconds to keep connection alive
-  const heartbeat = setInterval(() => {
-    res.write(": heartbeat\n\n")
-  }, 30000)
-  
-  // Clean up on client disconnect
-  req.on("close", () => {
-    if (tail) {
-      tail.unwatch()
-    }
+
+  // Without a cursor, start from the end of the newest file so only new entries are sent
+  let start = from
+  if (!start) {
+    const newest = await readNewest(await listLogFiles(logDirectory), 1)
+    start = parseCursor(newest.after) ?? { date: todayLogDate(), offset: 0 }
+  }
+
+  // On reconnect, resume from the last entry the client received but don't send it again
+  const stop = followLogs(
+    logDirectory,
+    start,
+    (entry) => res.write(`id: ${entry.id}\ndata: ${JSON.stringify(entry)}\n\n`),
+    lastEventId ? makeCursor(lastEventId.date, lastEventId.offset) : undefined,
+  )
+
+  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), heartbeatMs)
+
+  // Stop following and clear timers when the client goes away
+  const cleanup = (): void => {
+    stop()
     clearInterval(heartbeat)
-  })
-  
-  req.on("error", () => {
-    if (tail) {
-      tail.unwatch()
-    }
-    clearInterval(heartbeat)
-  })
+  }
+
+  req.on("close", cleanup)
+  req.on("error", cleanup)
 })
 
 export default router

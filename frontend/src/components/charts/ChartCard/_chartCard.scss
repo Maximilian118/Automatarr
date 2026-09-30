@@ -1,0 +1,113 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.chart-card {
+  @include mixins.surface;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+
+  @include mixins.phone-only {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .chart-card-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .chart-card-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    svg {
+      width: 26px;
+      height: 26px;
+      color: variables.$accent;
+    }
+  }
+
+  .chart-card-headline {
+    color: variables.$ink-muted;
+
+    strong {
+      @include mixins.display(var(--step-3), 750);
+      color: variables.$ink;
+      margin-right: var(--space-1);
+    }
+  }
+
+  .chart-card-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .chart-card-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    color: variables.$ink-muted;
+    font-size: var(--step--1);
+    font-weight: 600;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+  }
+
+  // Line swatch, echoing the 2px lines on the chart
+  .chart-card-swatch {
+    width: 16px;
+    height: 4px;
+    border-radius: 2px;
+  }
+
+  .chart-card-toggle {
+    @include mixins.focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target);
+    padding: 0 var(--space-3);
+    border: 1px solid variables.$line-soft;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: variables.$ink;
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 700;
+    cursor: pointer;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @include mixins.hover {
+      background: var(--hover-wash);
+    }
+  }
+
+  &.chart-card-wide {
+    grid-column: 1 / -1;
+  }
+
+  .chart-card-empty {
+    color: variables.$ink-muted;
+    padding: var(--space-6) 0;
+  }
+}

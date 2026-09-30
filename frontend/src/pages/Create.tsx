@@ -1,15 +1,14 @@
 import React, { FormEvent, useContext, useEffect, useState } from "react"
-import Footer from "../components/footer/Footer"
 import AppContext from "../context"
-import InputPanel from "../components/panel/inputPanel/InputPanel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initUserErrors } from "../shared/init"
 import { UserErrorType } from "../types/userType"
-import { Button, CircularProgress } from "@mui/material"
-import { AccountCircle, ArrowBackIos, Send } from "@mui/icons-material"
+import { ArrowLeft, UserPlus } from "lucide-react"
 import { updateInput } from "../shared/formValidation"
 import { createUser } from "../shared/requests/userRequests"
 import { useNavigate } from "react-router-dom"
+import AuthLayout from "../components/auth/AuthLayout/AuthLayout"
+import Button from "../components/ui/Button/Button"
 
 const Create: React.FC = () => {
   const { user, setUser, loading, setLoading } = useContext(AppContext)
@@ -18,10 +17,10 @@ const Create: React.FC = () => {
 
   const navigate = useNavigate()
 
-  // Update settings object in db on submit
+  // Create the admin account
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     await createUser(user, setUser, setFormErr, setLocalLoading, navigate)
   }
 
@@ -33,68 +32,49 @@ const Create: React.FC = () => {
   }, [localLoading, loading, setLoading])
 
   return (
-    <>
-      <form onSubmit={e => onSubmitHandler(e)} className="login-form">
-        <img 
-          alt="Automatarr Logo" 
-          src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped_circle.webp" 
-        />
-        <InputPanel 
-          title="Create Account" 
-          startIcon={<AccountCircle/>}
-        >
-          <MUITextField 
-            name={"name"} 
-            value={user.name} 
-            formErr={formErr}
-            onChange={(e) => updateInput(e, setUser, setFormErr)}
-          />
-          <MUITextField 
-            name={"password"} 
-            value={user.password} 
-            formErr={formErr}
-            onChange={(e) => {
-              setUser(prevUser => {
-                return {
-                  ...prevUser,
-                  password: e.target.value || "",
-                }
-              })
-
-              if (formErr.password) {
-                setFormErr(prevErrs => {
-                  return {
-                    ...prevErrs,
-                    password: "",
-                  }
-                })
-              }
-            }}
-            onBlur={e => updateInput(e, setUser, setFormErr, false)}
-            type="password"
-            minLength={8}
-          />
-        </InputPanel>
-        <div className="button-bar">
-          <Button 
-            variant="contained"
-            sx={{ margin: "20px 0" }}
-            startIcon={<ArrowBackIos color="inherit"/>}
-            onClick={() => navigate(-1)}
-          >Back</Button>
-          <Button 
-            type="submit"
-            variant="contained"
-            sx={{ margin: "20px 0" }}
-            endIcon={localLoading ? 
-              <CircularProgress size={20} color="inherit"/> : 
-              <Send color="inherit"/>
+    <AuthLayout
+      title="Create the admin account"
+      intro={<p>Automatarr has one admin. You'll be shown a recovery key next; keep it safe, it's the only way back in if you forget your password.</p>}
+      onSubmit={e => onSubmitHandler(e)}
+      actions={
+        <>
+          <Button variant="secondary" icon={<ArrowLeft aria-hidden="true"/>} onClick={() => navigate(-1)}>Back</Button>
+          <Button type="submit" loading={localLoading} icon={<UserPlus aria-hidden="true"/>}>Create account</Button>
+        </>
+      }
+    >
+      <MUITextField
+        name={"name"}
+        value={user.name}
+        formErr={formErr}
+        onChange={(e) => updateInput(e, setUser, setFormErr)}
+      />
+      <MUITextField
+        name={"password"}
+        value={user.password}
+        formErr={formErr}
+        onChange={(e) => {
+          setUser(prevUser => {
+            return {
+              ...prevUser,
+              password: e.target.value || "",
             }
-          >Submit</Button>
-        </div>
-      </form>
-      <Footer/>
-    </>
+          })
+
+          if (formErr.password) {
+            setFormErr(prevErrs => {
+              return {
+                ...prevErrs,
+                password: "",
+              }
+            })
+          }
+        }}
+        onBlur={e => updateInput(e, setUser, setFormErr, false)}
+        type="password"
+        minLength={8}
+      />
+    </AuthLayout>
   )
 }
 

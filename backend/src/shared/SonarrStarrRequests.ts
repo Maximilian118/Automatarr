@@ -7,6 +7,7 @@ import { DownloadStatus } from "../types/types"
 import { Episode, EpisodeFile } from "../types/episodeTypes"
 import { HistoryItem } from "../types/historyTypes"
 import { axiosErrorMessage } from "./requestError"
+import { recordActivity } from "./activity"
 
 // Get sonarr library
 export const getSonarrLibrary = async (
@@ -311,6 +312,11 @@ export const deleteEpisodeFile = async (
     )
 
     if (requestSuccess(res.status)) {
+      recordActivity({
+        action: "episode_file",
+        app: "Sonarr",
+        title: `Episode file ${episodeFileID}`,
+      })
       return true
     }
 

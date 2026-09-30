@@ -3,8 +3,9 @@ import Modal, { ModalAction } from "../Modal"
 import MUITextField from "../../utility/MUITextField/MUITextField"
 import MUIAutocomplete from "../../utility/MUIAutocomplete/MUIAutocomplete"
 import Toggle from "../../utility/Toggle/Toggle"
-import { Button, CircularProgress } from "@mui/material"
-import { Check, Close } from "@mui/icons-material"
+import Button from "../../ui/Button/Button"
+import ConfirmButton from "../../ui/ConfirmButton/ConfirmButton"
+import { CircleCheck, CircleX, FlaskConical, Trash2 } from "lucide-react"
 import "./_import_list_modal.scss"
 
 // The form state for an import list modal
@@ -60,10 +61,10 @@ const ImportListModal: React.FC<ImportListModalProps> = ({
   onQualityProfileChange,
 }) => {
   const isEdit = mode === "edit"
-  const title = isEdit ? "Edit Import List" : "New Import List"
+  const title = isEdit ? "Edit import list" : "New import list"
   const isRadarr = apiName === "Radarr"
 
-  // Test button state
+  // Test button state. The result stays visible until the URL changes
   const [testState, setTestState] = useState<"idle" | "loading" | "pass" | "fail">("idle")
 
   // Reset test state when modal opens or URL changes
@@ -77,51 +78,54 @@ const ImportListModal: React.FC<ImportListModalProps> = ({
     setTestState("loading")
     const success = await onTest()
     setTestState(success ? "pass" : "fail")
-    setTimeout(() => setTestState("idle"), 4000)
   }
 
-  // Build action buttons
-  const actions: ModalAction[] = []
-
-  // Delete button (left-aligned, edit mode only)
-  if (isEdit && onDelete) {
-    actions.push({
-      label: actionLoading ? "Deleting..." : "Delete",
-      onClick: onDelete,
-      variant: "outlined",
-      color: "error",
-      disabled: actionLoading,
-      align: "left",
-    })
-  }
-
-  // Save/Add button (right-aligned, contained)
-  actions.push({
-    label: isEdit ? "Save" : "Add",
+  // Save/Add button (right-aligned, primary)
+  const actions: ModalAction[] = [{
+    label: isEdit ? "Save list" : "Add list",
     onClick: onSave,
     variant: "contained",
     disabled: actionLoading,
     loading: actionLoading,
     align: "right",
-  })
+  }]
+
+  // Delete asks first: removing a list can make its titles eligible for Library Cleanup
+  const deleteButton = isEdit && onDelete ? (
+    <ConfirmButton
+      label="Delete"
+      confirmLabel="Delete list"
+      question={`Delete ${form.name || "this list"}? Titles that only this list protects can then be removed by Library Cleanup.`}
+      icon={<Trash2 aria-hidden="true" />}
+      loading={actionLoading}
+      disabled={actionLoading}
+      onConfirm={onDelete}
+    />
+  ) : undefined
 
   // Test button rendered as custom right action (left of Save)
   const testButton = onTest ? (
     <Button
-      className={`import-list-test-btn modal-action-cancel ${testState === "pass" ? "test-pass" : ""} ${testState === "fail" ? "test-fail" : ""}`}
-      variant="contained"
+      variant="secondary"
       onClick={handleTest}
+      loading={testState === "loading"}
       disabled={!form.url || testState === "loading" || actionLoading}
+      icon={<FlaskConical aria-hidden="true" />}
     >
-      {testState === "idle" && "Test"}
-      {testState === "loading" && <CircularProgress size={18} color="inherit" />}
-      {testState === "pass" && <Check />}
-      {testState === "fail" && <Close />}
+      Test
     </Button>
   ) : undefined
 
   return (
-    <Modal open={open} onClose={onClose} title={title} icon={apiLogos[apiName]} actions={actions} customRightActions={testButton}>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={title}
+      icon={apiLogos[apiName]}
+      actions={actions}
+      customLeftActions={deleteButton}
+      customRightActions={testButton}
+    >
       <div className="import-list-field-group">
         <Toggle
           name="Enabled"
@@ -146,6 +150,10 @@ const ImportListModal: React.FC<ImportListModalProps> = ({
         value={form.url}
         onChange={(e) => onFormChange("url", e.target.value)}
       />
+      <p className={`import-list-test-result test-${testState}`} aria-live="polite">
+        {testState === "pass" && <><CircleCheck aria-hidden="true" /> The list URL works.</>}
+        {testState === "fail" && <><CircleX aria-hidden="true" /> {apiName} couldn't read this list. Check the URL.</>}
+      </p>
       <MUIAutocomplete
         label="Quality Profile"
         options={qualityProfileOptions}

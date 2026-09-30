@@ -20,6 +20,15 @@ interface UserTypeWithTokens extends UserType {
 }
 
 const userResolvers = {
+  // Whether the single admin account has been created. Public, so the login page knows to offer "Create account"
+  hasAccount: async (): Promise<boolean> => {
+    try {
+      return !!(await User.exists({}))
+    } catch (err) {
+      logger.error(`Auth | hasAccount | ${err}`)
+      return true
+    }
+  },
   createUser: async ({
     name,
     password,

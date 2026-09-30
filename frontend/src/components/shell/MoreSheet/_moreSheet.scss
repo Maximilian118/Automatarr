@@ -1,0 +1,110 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Bottom sheet anchored above the phone's home indicator
+.more-sheet {
+  margin: auto 0 0;
+  width: 100%;
+  max-width: 100%;
+  max-height: 85dvh;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid variables.$line-soft;
+  border-radius: var(--radius-surface) var(--radius-surface) 0 0;
+  background: variables.$basin;
+  color: variables.$ink;
+  animation: sheet-up 240ms var(--ease-out);
+
+  &::backdrop {
+    background: var(--scrim);
+  }
+
+  .more-sheet-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom));
+  }
+
+  .more-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    h2 {
+      font-size: var(--step-2);
+    }
+  }
+
+  .more-sheet-close {
+    @include mixins.touch-target;
+    @include mixins.focus-ring;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-control);
+    color: variables.$ink;
+    cursor: pointer;
+
+    svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+  }
+
+  .more-sheet-link {
+    @include mixins.focus-ring(-2px);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 56px;
+    width: 100%;
+    padding: 0 var(--space-4);
+    border: 1px solid variables.$line-soft;
+    border-radius: var(--radius-control);
+    background: variables.$basin-raised;
+    color: variables.$ink;
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+
+    svg {
+      width: 22px;
+      height: 22px;
+      color: variables.$accent;
+    }
+
+    &[aria-current="page"] {
+      border-color: variables.$accent;
+      box-shadow: inset 4px 0 0 variables.$accent;
+    }
+  }
+
+  .more-sheet-logout svg {
+    color: var(--outflow);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

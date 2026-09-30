@@ -4,12 +4,13 @@ import { settingsErrorType, settingsType, tidyPaths } from "../../../types/setti
 import MUIAutocomplete from "../MUIAutocomplete/MUIAutocomplete"
 import { getChildPaths } from "../../../shared/requests/fileSystemRequests"
 import TidyPath from "./TidyPath/TidyPath"
-import { Add, ArrowLeft, CheckBox, Clear } from "@mui/icons-material"
+import { ChevronLeft, Plus, SquareCheck, X } from "lucide-react"
 import EditPath from "./EditPath/EditPath"
 import { shortPath } from "../../../shared/utility"
 import { CircularProgress, IconButton } from "@mui/material"
 import { UserType } from "../../../types/userType"
 import { NavigateFunction } from "react-router-dom"
+import Button from "../../ui/Button/Button"
 
 interface TidyPathPickerType {
   label: string
@@ -92,27 +93,29 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
 
   // A back button for edit view
   const backBtn = (
-    <div 
+    <button
+      type="button"
       className="tidy-path-picker-back"
       onClick={() => setEditPath(null)}
+      disabled={disabled}
     >
-      <ArrowLeft/>
-      <p>Back</p>
-    </div>
+      <ChevronLeft aria-hidden="true"/>
+      <span>Back</span>
+    </button>
   )
 
   // A demo of what the tick boxes mean
   const tickedDemo = (
     <div className="ticked-path-demo">
-      <CheckBox/>
-      <p>= Allowed</p>
+      <SquareCheck aria-hidden="true"/>
+      <span>= kept</span>
     </div>
   )
 
   // An add button
   const addbtn = (
-    <IconButton className="edit-path-add" size="small">
-      <Add/>
+    <IconButton className="edit-path-add" size="small" aria-label="Watch this folder">
+      <Plus aria-hidden="true"/>
     </IconButton>
   )
 
@@ -123,8 +126,9 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
       size="small" 
       color="error"
       onClick={() => editPath && deletePathHandler(editPath.path)}
+      aria-label={editPath ? `Stop watching ${editPath.path}` : "Stop watching this folder"}
     >
-      <Clear/>
+      <X aria-hidden="true"/>
     </IconButton>
   )
 
@@ -132,8 +136,8 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
   const editAdornment = () => {
     if (loading && editPath) {
       return (
-        <div style={{ height: 20, margin: "0 7px 0 4px" }}>
-          <CircularProgress size={20}/>
+        <div className="tidy-path-picker-spinner">
+          <CircularProgress size={20} aria-label="Loading folders"/>
         </div>
       )
     }
@@ -159,6 +163,18 @@ const TidyPathPicker: React.FC<TidyPathPickerType> = ({
         noInteract={!!editPath}
         loading={loading && !editPath}
       />
+      {/* Keyboard and touch friendly way to watch the folder currently being browsed */}
+      {!editPath && value && !paths.some((p) => p.path === value) && (
+        <Button
+          variant="secondary"
+          className="tidy-path-picker-watch"
+          icon={<Plus aria-hidden="true"/>}
+          disabled={disabled}
+          onClick={() => addPathHandler(value)}
+        >
+          Watch {shortPath(value)}
+        </Button>
+      )}
       {editPath ? 
         <EditPath 
           editPath={editPath}

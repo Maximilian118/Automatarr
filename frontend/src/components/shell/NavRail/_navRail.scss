@@ -1,0 +1,180 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Hidden on phones, compact on tablets, full width with labels on desktops
+.nav-rail {
+  display: none;
+
+  @include mixins.tablet-up {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    width: variables.$rail-compact-width;
+    padding: var(--space-4) var(--space-2);
+    background: variables.$basin;
+    border-right: 1px solid variables.$line-soft;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+
+  @include mixins.desktop-up {
+    width: variables.$rail-width;
+    padding: var(--space-5) var(--space-4);
+  }
+
+  nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.nav-rail-brand {
+  @include mixins.focus-ring;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  color: variables.$ink;
+  border-radius: var(--radius-control);
+  padding: var(--space-1);
+
+  img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .nav-rail-wordmark {
+    display: none;
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 750;
+    font-variation-settings: "wdth" 80;
+    letter-spacing: -0.03em;
+  }
+
+  @include mixins.desktop-up {
+    flex-direction: row;
+    padding: var(--space-1) var(--space-2);
+
+    .nav-rail-wordmark {
+      display: inline;
+    }
+  }
+}
+
+// Group labels are only visible where there is room for them
+.nav-rail-group-label {
+  @include mixins.visually-hidden;
+
+  @include mixins.desktop-up {
+    position: static !important;
+    width: auto;
+    height: auto;
+    margin: 0 0 var(--space-1);
+    padding: 0 var(--space-3);
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 700;
+    color: variables.$ink-muted;
+  }
+}
+
+.nav-rail-link {
+  @include mixins.focus-ring(-2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-height: 56px;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: variables.$ink-muted;
+  font-family: var(--font-body);
+  font-size: var(--step--1);
+  font-weight: 600;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  position: relative;
+
+  svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+
+  @include mixins.hover {
+    background: var(--hover-wash);
+    color: variables.$ink;
+  }
+
+  // Current page: filled background plus a waterline bar, so it never depends on colour alone
+  &[aria-current="page"] {
+    background: variables.$basin-sunken;
+    color: variables.$ink;
+
+    &::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 12px;
+      bottom: 12px;
+      width: 4px;
+      border-radius: 2px;
+      background: variables.$accent;
+    }
+  }
+
+  @include mixins.desktop-up {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-3);
+    min-height: var(--target);
+    padding: 0 var(--space-3);
+    font-size: var(--step-0);
+    text-align: left;
+  }
+}
+
+.nav-rail-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  .nav-rail-theme-full {
+    display: none;
+  }
+
+  @include mixins.desktop-up {
+    .nav-rail-theme-full {
+      display: block;
+    }
+
+    .nav-rail-theme-compact {
+      display: none;
+    }
+  }
+}

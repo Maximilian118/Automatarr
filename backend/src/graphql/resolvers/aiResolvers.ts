@@ -1,6 +1,6 @@
 import moment from "moment"
 import logger from "../../logger"
-import { AuthRequest } from "../../middleware/auth"
+import { AuthRequest, requireAuth } from "../../middleware/auth"
 import BotMemory, { BotMemoryPreferences, BotMemoryType } from "../../models/botMemory"
 import { AIUsageType } from "../../models/aiUsage"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
@@ -9,11 +9,6 @@ import { getMonthlyUsage } from "../../bots/discordBot/ai/aiBudget"
 import { forgetUser } from "../../bots/discordBot/ai/aiMemory"
 import { plexAccountOwner, savePlexLinks } from "../../bots/discordBot/ai/aiPlexLinks"
 import { getCachedPlexAccounts, refreshPlexCache } from "../../shared/plexRequests"
-
-// Throw if the request isn't from a logged in web app user
-const requireAuth = (req: AuthRequest): void => {
-  if (!req.isAuth) throw new Error("Unauthorised")
-}
 
 // Every stored memory, most recently active first
 const allMemories = async (): Promise<BotMemoryType[]> =>

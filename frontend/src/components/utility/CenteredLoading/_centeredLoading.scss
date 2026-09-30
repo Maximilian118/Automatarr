@@ -1,7 +1,8 @@
-@use '../../../scss/mixins';
-
+// Spinner centred in whatever space it is given
 .centered-loading {
   width: 100%;
-  height: 100%;
-  @include mixins.flexbox;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

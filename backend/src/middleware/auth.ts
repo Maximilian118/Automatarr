@@ -87,3 +87,8 @@ export const auth = async (req: AuthRequest, res: Response, next: NextFunction):
   req._id = user._id.toString()
   return next()
 }
+
+// Throw if the request isn't from a logged in web app user
+export const requireAuth = (req: AuthRequest): void => {
+  if (!req.isAuth) throw new Error("Unauthorised")
+}

@@ -1,106 +1,113 @@
-@use 'sass:color';
 @use '../../../scss/variables';
 @use '../../../scss/mixins';
 
+// Card for a single import list. The title button's ::after covers the card so the whole card is clickable
 .list-card {
-  @include mixins.flexbox-start-column;
-  align-items: stretch;
-  gap: 12px;
-  background: variables.$off-black;
-  border-radius: 4px;
-  padding: 14px 18px;
-  width: 260px;
-  flex: 0 0 260px;
-  cursor: pointer;
-  transition: background variables.$trans-speed;
-  box-sizing: border-box;
+  @include mixins.surface;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-width: 0;
+  transition: border-color variables.$trans-speed;
 
-  &:hover {
-    background: color.adjust(variables.$off-black, $lightness: 5%);
+  &:has(.list-card-open:focus-visible) {
+    outline: 3px solid variables.$focus;
+    outline-offset: 2px;
+  }
+
+  @include mixins.hover {
+    border-color: variables.$accent;
   }
 
   &.error {
-    background: rgba(variables.$mui-error, 0.15);
-
-    &:hover {
-      background: rgba(variables.$mui-error, 0.22);
-    }
+    border-color: var(--outflow);
+    border-width: 2px;
   }
 
   .list-card-header {
-    @include mixins.flexbox-start;
-
-    .list-card-status {
-      font-size: 10px;
-      margin-right: 8px;
-      flex-shrink: 0;
-
-      &.enabled {
-        color: variables.$mui-success;
-      }
-
-      &.disabled {
-        color: variables.$mui-error;
-      }
-    }
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
 
     h3 {
-      color: white;
-      font-size: 0.9rem;
-      font-weight: 500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-size: var(--step-1);
+      min-width: 0;
+    }
+  }
+
+  .list-card-open {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-surface);
+    }
+  }
+
+  // On/off shown as a word inside a pill, never colour alone
+  .list-card-status {
+    flex-shrink: 0;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid currentColor;
+    font-size: var(--step--1);
+    font-weight: 700;
+
+    &.enabled {
+      color: var(--good);
+    }
+
+    &.disabled {
+      color: variables.$ink-muted;
     }
   }
 
   .list-card-meta {
+    list-style: none;
+    margin: 0;
+    padding: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-
-    .list-card-tag {
-      font-size: 0.7rem;
-      color: variables.$mui-off-white;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 2px 8px;
-      border-radius: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 220px;
-    }
-
-    .list-card-error-tag {
-      font-size: 0.7rem;
-      color: variables.$mui-error;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 2px 8px;
-      border-radius: 3px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
-    }
+    gap: var(--space-1);
   }
-}
 
-// Tooltip styling (matching SegmentBar tooltip)
-.list-card-tooltip {
-  background: #1a1a1a !important;
-  padding: 10px 14px !important;
-  border-radius: 6px !important;
-  font-size: 0.75rem !important;
-}
+  .list-card-tag {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: variables.$basin-sunken;
+    color: variables.$ink-muted;
+    font-size: var(--step--1);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
 
-.list-card-tooltip-arrow {
-  color: #1a1a1a !important;
-}
+  .list-card-error {
+    display: flex;
+    gap: var(--space-2);
+    color: var(--outflow);
+    font-size: var(--step--1);
+    font-weight: 700;
 
-/* Styles for mobile devices */
-@media only screen and (max-width: 700px) {
-  .list-card {
-    width: 100% !important;
-    flex: 0 0 auto !important;
+    svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
   }
 }

@@ -30,6 +30,7 @@ import moment from "moment"
 import { QualityProfile } from "../types/qualityProfileType"
 import { isDocker } from "./fileSystem"
 import { axiosErrorMessage } from "./requestError"
+import { recordActivity } from "./activity"
 import { HistoryItem, ImportHistory } from "../types/historyTypes"
 
 // Create a downloadQueue object and retrieve the latest queue data
@@ -635,6 +636,7 @@ export const deleteFromQueue = async (
           reason && ` ${reason}`
         } 🔥`,
       )
+      recordActivity({ action: "queue", app: API.name, title: download.title, reason })
       return download
     } else {
       logger.error(
@@ -662,6 +664,12 @@ export const deleteFromLibrary = async (
 
     if (requestSuccess(res.status)) {
       logger.info(`${API.name}: ${libraryItem.title} deleted! 🔥`)
+      recordActivity({
+        action: "library",
+        app: API.name,
+        title: libraryItem.title,
+        bytes: libraryItem.statistics?.sizeOnDisk,
+      })
       return true
     } else {
       logger.error(`deleteFromLibrary: Unkown error. Status: ${res.status}`)

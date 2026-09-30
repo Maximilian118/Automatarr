@@ -1,49 +1,75 @@
 @use '../../../scss/variables';
 @use '../../../scss/mixins';
 
+// Folder picker: an autocomplete on top with the watched folders listed underneath
 .tidy-path-picker {
   width: 100%;
-  height: 200px;
-  @include mixins.flexbox-start-column;
+  height: 260px;
+  display: flex;
+  flex-direction: column;
 
   .tidy-path-picker-back {
-    height: 28px;
+    @include mixins.focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-height: 36px;
+    padding: 0 var(--space-2) 0 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: variables.$ink;
+    font-family: var(--font-body);
+    font-weight: 700;
     pointer-events: all;
     cursor: pointer;
-    @include mixins.flexbox-start;
     flex-shrink: 0;
 
     svg {
-      color: white;
+      width: 20px;
+      height: 20px;
     }
   }
 
   .ticked-path-demo {
-    @include mixins.flexbox-end;
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
     flex-shrink: 0;
-    
-    .MuiSvgIcon-root {
-      color: variables.$mui-success;
+    color: variables.$ink-muted;
+    font-size: var(--step--1);
+
+    svg {
       width: 18px;
       height: 18px;
+      color: var(--good);
     }
+  }
 
-    p {
-      margin-left: 3px;
-    }
+  .tidy-path-picker-spinner {
+    display: flex;
+    align-items: center;
+    height: 20px;
+    margin: 0 7px 0 4px;
+  }
+
+  .tidy-path-picker-watch {
+    align-self: flex-start;
+    margin: var(--space-2) 0;
+    flex-shrink: 0;
   }
 
   .tidy-path-paths {
     width: 100%;
     flex-grow: 1;
-    @include mixins.flexbox-start-column;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
-    border: 1px solid variables.$mui-border;
+    border: 1px solid variables.$line;
     border-top: none;
-    border-bottom-left-radius: 4px;
-    border-bottom-right-radius: 4px;
-    padding: 0;
-    box-sizing: border-box;
+    border-bottom-left-radius: var(--radius-control);
+    border-bottom-right-radius: var(--radius-control);
+    background: variables.$basin-raised;
   }
 
   .short-path {
@@ -58,7 +84,7 @@
 
 .tidy-error {
   .tidy-path-paths {
-    border-color: variables.$mui-error;
+    border-color: var(--outflow);
   }
 }
 
@@ -68,13 +94,13 @@
   }
 
   .MuiInputBase-root {
-    @include mixins.flexbox-space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding-right: 7px !important;
 
     .edit-path-delete {
       pointer-events: all;
-      padding: 2px;
-      margin-right: 3px;
     }
   }
 }
@@ -82,29 +108,14 @@
 .tidy-disabled {
   .tidy-path-picker-back {
     pointer-events: none;
-
-    p, svg {
-      color: variables.$mui-disabled;
-    }
-  }
-
-  .ticked-path-demo {
-    p, svg {
-      color: variables.$mui-disabled !important;
-    }
+    color: variables.$ink-muted;
   }
 
   .tidy-path-paths {
     overflow-y: hidden;
   }
 
-  .MuiInputBase-root { 
-    .edit-path-delete {
-      pointer-events: none;
-
-      svg {
-        color: variables.$mui-disabled;
-      }
-    }
+  .MuiInputBase-root .edit-path-delete {
+    pointer-events: none;
   }
 }

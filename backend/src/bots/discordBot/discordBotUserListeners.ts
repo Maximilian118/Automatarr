@@ -176,7 +176,7 @@ export const caseSuperUser = async (message: Message): Promise<string> => {
   // Extract params while checking if <discord_username> exists on the server
   const action = msgArr[1]
   const guildMember = await matchedDiscordUser(message, msgArr[2])
-  if (!guildMember) return `The user \`${msgArr[3]}\` does not exist in this server.`
+  if (!guildMember) return `The user \`${msgArr[2]}\` does not exist in this server.`
   const username = guildMember.user.username
 
   // The owner has targeted themseves

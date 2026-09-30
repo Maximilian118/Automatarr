@@ -1,81 +1,57 @@
 @use '../../../scss/variables';
-@use '../../../scss/mixins';
 
-// Horizontal segmented bar
+.segment-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Proportional bar with 2px gaps between segments
 .segment-bar {
-  width: 100%;
-  height: 18px;
-  border-radius: 4px;
-  overflow: hidden;
   display: flex;
   gap: 2px;
+  height: 10px;
+  border-radius: 5px;
+  overflow: hidden;
 
   &.segment-bar-empty {
-    background: rgba(255, 255, 255, 0.06);
+    background: variables.$basin-sunken;
   }
 
   .segment-bar-section {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    min-width: 0;
-    box-sizing: border-box;
-
-    span {
-      font-size: 0.65rem;
-      font-weight: 600;
-      color: white;
-      white-space: nowrap;
-      line-height: 1;
-      width: 100%;
-      padding: 0 8px;
-      box-sizing: border-box;
-    }
+    min-width: 4px;
   }
 }
 
-// Tooltip styling (rendered in a portal)
-.segment-bar-tooltip {
-  background: #1a1a1a !important;
-  padding: 10px 14px !important;
-  border-radius: 6px !important;
-  max-width: none !important;
-}
-
-.segment-bar-tooltip-arrow {
-  color: #1a1a1a !important;
-}
-
-.segment-bar-tooltip-content {
+// Every segment's name and count, always visible
+.segment-bar-legend {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  font-size: var(--step--1);
 
-  .segment-bar-tooltip-row {
+  div {
     display: flex;
     align-items: center;
-    gap: 8px;
-
-    .segment-bar-tooltip-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .segment-bar-tooltip-label {
-      font-size: 0.75rem;
-      color: variables.$mui-off-white;
-      flex: 1;
-    }
-
-    .segment-bar-tooltip-value {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: white;
-      margin-left: 12px;
-    }
+    gap: var(--space-1);
   }
+
+  dt {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: variables.$ink-muted;
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 700;
+  }
+}
+
+.segment-bar-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
 }

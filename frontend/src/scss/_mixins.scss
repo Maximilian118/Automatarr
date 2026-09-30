@@ -58,13 +58,87 @@
   align-items: center;
 }
 
-// Responsive grid layout with fixed-width columns centered on the page
+// Responsive grid whose columns stretch between a minimum width and an equal share of the row
 @mixin grid-layout($col-width: 420px) {
   display: grid;
-  grid-template-columns: repeat(auto-fit, $col-width);
-  justify-content: center;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, $col-width), 1fr));
   gap: variables.$grid-gap;
   align-items: start;
   width: 100%;
   box-sizing: border-box;
+}
+
+// Apply styles from the tablet breakpoint upwards
+@mixin tablet-up {
+  @media (min-width: variables.$bp-tablet) {
+    @content;
+  }
+}
+
+// Apply styles from the desktop breakpoint upwards
+@mixin desktop-up {
+  @media (min-width: variables.$bp-desktop) {
+    @content;
+  }
+}
+
+// Apply styles below the tablet breakpoint
+@mixin phone-only {
+  @media (max-width: calc(variables.$bp-tablet - 1px)) {
+    @content;
+  }
+}
+
+// Hover styles only for devices that can actually hover, so touch screens never get stuck states
+@mixin hover {
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      @content;
+    }
+  }
+}
+
+// Visible, high-contrast keyboard focus ring (WCAG 2.4.13)
+@mixin focus-ring($offset: 2px) {
+  &:focus-visible {
+    outline: 3px solid variables.$focus;
+    outline-offset: $offset;
+  }
+}
+
+// Guarantee a 44px hit area without forcing the visual size
+@mixin touch-target {
+  position: relative;
+  min-width: var(--target);
+  min-height: var(--target);
+}
+
+// Card-like surface used for panels and chart cards
+@mixin surface {
+  background: variables.$basin;
+  border: 1px solid variables.$line-soft;
+  border-radius: var(--radius-surface);
+}
+
+// Visually hide content while keeping it available to screen readers
+@mixin visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// Display type used for headings and hero figures
+@mixin display($size: var(--step-3), $weight: 700) {
+  font-family: var(--font-display);
+  font-size: $size;
+  font-weight: $weight;
+  font-variation-settings: "wdth" 88;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }

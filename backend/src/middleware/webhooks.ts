@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express"
 import logger from "../logger"
-import { settingsDocType } from "../models/settings"
+import Settings from "../models/settings"
 import { StarrWebhookType } from "../types/webhookType"
 import {
   handleRadarrWebhook,
@@ -14,14 +14,17 @@ import {
 } from "../webhooks/webhookUtility"
 import { startStuckNotificationCleanup } from "../webhooks/stuckNotificationCleanup"
 
-const createWebhookRouter = (settings: settingsDocType) => {
+const createWebhookRouter = () => {
   const router = Router()
 
   router.all("/", async (req: Request, res: Response): Promise<void> => {
     const { token } = req.query
     const webhook = req.body as StarrWebhookType
 
-    if (!settings.webhooks_enabled) {
+    // Read settings per request so toggling webhooks or regenerating the token applies without a restart
+    const settings = await Settings.findOne()
+
+    if (!settings || !settings.webhooks) {
       logger.warn(`Webhook | API: ${webhook.instanceName} | Webhooks disabled!`)
       res.status(403).send("Webhooks disabled")
       return

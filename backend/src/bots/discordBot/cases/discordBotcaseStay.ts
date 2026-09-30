@@ -1,6 +1,7 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../../models/settings"
-import { matchedUser, noDBPull } from "../discordBotUtility"
+import { discordReply, matchedUser, noDBPull } from "../discordBotUtility"
+import { checkUserMovieLimit, checkUserSeriesLimit } from "../discordBotUserLimits"
 import { validateStayCommand } from "../validate/validateStayCommand"
 import {
   randomNotFoundMessage,
@@ -74,6 +75,10 @@ export const caseStay = async (message: Message): Promise<string> => {
     const movieMatch = user.pool.movies.find((m) => m.tmdbId === foundMovie.tmdbId)
     if (movieMatch) return `${foundMovie.title} is already in your pool silly goose!`
 
+    // Keeping content counts towards the same pool limit as downloading it
+    const { limitError: movieLimitError } = checkUserMovieLimit(user, settings)
+    if (movieLimitError) return discordReply(movieLimitError, "info")
+
     // Add the movie to the user pool
     settings.general_bot.users = settings.general_bot.users.map((u) => {
       if (u._id === user._id) {
@@ -122,6 +127,10 @@ export const caseStay = async (message: Message): Promise<string> => {
     // Check if this series is already in the users pool
     const seriesMatch = user.pool.series.find((m) => m.tmdbId === foundSeries.tmdbId)
     if (seriesMatch) return `${foundSeries.title} is already in your pool silly goose!`
+
+    // Keeping content counts towards the same pool limit as downloading it
+    const { limitError: seriesLimitError } = checkUserSeriesLimit(user, settings)
+    if (seriesLimitError) return discordReply(seriesLimitError, "info")
 
     // Add the movie to the user pool
     settings.general_bot.users = settings.general_bot.users.map((u) => {

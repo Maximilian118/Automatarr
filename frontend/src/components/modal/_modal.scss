@@ -1,89 +1,92 @@
 @use '../../scss/variables';
 @use '../../scss/mixins';
 
-// Base modal styling (applied globally since Dialog renders in a portal)
+// Dialog renders in a portal, so these styles are global
 .modal-paper {
-  background: variables.$off-black !important;
-  background-image: none !important;
-  color: white !important;
-  border-radius: 8px !important;
+  color: variables.$ink;
 }
 
 .modal-header {
-  @include mixins.flexbox-space-between;
-  padding: 16px 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-5) 0;
 
   .modal-title {
-    @include mixins.flexbox-start;
-    gap: 10px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
 
     img {
-      height: 24px;
-      width: 24px;
-      border-radius: 4px;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
     }
 
     svg {
-      height: 24px;
-      width: 24px;
-      color: white;
+      width: 26px;
+      height: 26px;
+      color: variables.$accent;
     }
 
     h2 {
-      color: white;
-      font-size: 1.2rem;
+      font-size: var(--step-2);
     }
   }
 
-  .MuiIconButton-root {
-    color: variables.$mui-off-white;
+  .modal-close {
+    @include mixins.touch-target;
+    @include mixins.focus-ring;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-control);
+    color: variables.$ink;
+    cursor: pointer;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    @include mixins.hover {
+      background: var(--hover-wash);
+    }
   }
 }
 
-.modal-content {
-  @include mixins.flexbox-start-column;
-  padding: 16px 24px 24px !important;
+.modal-content.MuiDialogContent-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-5);
 
-  >:not(:last-child) {
-    margin-bottom: 20px;
-  }
-
-  .MuiTextField-root {
+  .MuiTextField-root,
+  .MuiAutocomplete-root {
     width: 100%;
   }
 
   .modal-actions {
-    width: 100%;
-    @include mixins.flexbox-space-between;
-    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1px solid variables.$line-soft;
 
-    .MuiButton-root {
-      text-transform: none;
-    }
-
-    // Delete button — red background, white text
-    .modal-action-danger {
-      background: variables.$mui-error !important;
-      color: white !important;
-
-      &:hover {
-        background: darken(#F44336, 10%) !important;
-      }
-    }
-
-    // Subtle dark background buttons (test, etc) — white text
-    .modal-action-cancel {
-      background: rgba(255, 255, 255, 0.08) !important;
-      color: white !important;
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.14) !important;
-      }
+    .modal-actions-left,
+    .modal-actions-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-2);
     }
 
     .modal-actions-right {
-      @include mixins.flexbox-end;
-      gap: 8px;
       margin-left: auto;
     }
   }

@@ -1,17 +1,17 @@
-@use '../../../../scss/mixins';
 @use '../../../../scss/variables';
 
+// List of a watched folder's children with a checkbox each
 .edit-path {
   width: 100%;
   flex-grow: 1;
-  @include mixins.flexbox-start-column;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
-  border: 1px solid variables.$mui-border;
+  border: 1px solid variables.$line;
   border-top: none;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  padding: 0;
-  box-sizing: border-box;
+  border-bottom-left-radius: var(--radius-control);
+  border-bottom-right-radius: var(--radius-control);
+  background: variables.$basin-raised;
   position: relative;
 }
 

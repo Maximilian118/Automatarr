@@ -1,7 +1,25 @@
+@use '../../../scss/variables';
+
+// Full-width labelled switch row
 .toggle {
   width: 100%;
-  height: 56px;
+  min-height: 52px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+
+  .toggle-label {
+    color: variables.$ink;
+    font-weight: 600;
+  }
+
+  &.toggle-disabled {
+    cursor: not-allowed;
+
+    .toggle-label {
+      color: variables.$ink-muted;
+    }
+  }
 }

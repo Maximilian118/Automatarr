@@ -1,90 +1,81 @@
-import React, { FormEvent, useContext, useState } from "react"
-import Footer from "../components/footer/Footer"
+import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import InputPanel from "../components/panel/inputPanel/InputPanel"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { initUserErrors } from "../shared/init"
 import { UserErrorType } from "../types/userType"
-import { Button, CircularProgress } from "@mui/material"
-import { LoginOutlined, Send } from "@mui/icons-material"
+import { LogIn } from "lucide-react"
 import { updateInput } from "../shared/formValidation"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { login } from "../shared/requests/userRequests"
+import { hasAccount } from "../shared/requests/authRequests"
+import AuthLayout from "../components/auth/AuthLayout/AuthLayout"
+import Button from "../components/ui/Button/Button"
 
 const Login: React.FC = () => {
   const { user, setUser } = useContext(AppContext)
   const [ localLoading, setLocalLoading ] = useState<boolean>(false)
   const [ formErr, setFormErr ] = useState<UserErrorType>(initUserErrors())
+  const [ accountExists, setAccountExists ] = useState<boolean>(true)
 
   const navigate = useNavigate()
 
-  // Update settings object in db on submit
+  // Only offer "Create account" before the admin account exists
+  useEffect(() => {
+    hasAccount().then(setAccountExists)
+  }, [])
+
+  // Log in with the entered name and password
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     await login(user, setUser, setFormErr, setLocalLoading, navigate)
   }
 
   return (
-    <>
-      <form onSubmit={e => onSubmitHandler(e)} className="login-form">
-        <img 
-          alt="Automatarr Logo"
-          src="https://automatarr.s3.eu-west-2.amazonaws.com/automatarr_logo_cropped_circle.webp" 
-        />
-        <InputPanel 
-          title="Login" 
-          startIcon={<LoginOutlined/>}
-          bottom={(
-            <>
-              <p className="create" onClick={() => navigate("/create")}>Create Account</p>
-              <p className="forgot" onClick={() => navigate("/forgot")}>Forgot password?</p>
-            </>
-          )}
-        >
-          <MUITextField 
-            name={"name"} 
-            value={user.name} 
-            formErr={formErr}
-            onChange={(e) => updateInput(e, setUser, setFormErr)}
-          />
-          <MUITextField 
-            name={"password"} 
-            value={user.password} 
-            formErr={formErr}
-            onChange={(e) => {
-              setUser(prevUser => {
-                return {
-                  ...prevUser,
-                  password: e.target.value || "",
-                }
-              })
+    <AuthLayout
+      title="Log in"
+      onSubmit={e => onSubmitHandler(e)}
+      actions={
+        <Button type="submit" loading={localLoading} icon={<LogIn aria-hidden="true"/>}>Log in</Button>
+      }
+      links={
+        <>
+          {!accountExists && <Link to="/create">Create the admin account</Link>}
+          <Link to="/forgot">Forgot your password?</Link>
+        </>
+      }
+    >
+      <MUITextField
+        name={"name"}
+        value={user.name}
+        formErr={formErr}
+        onChange={(e) => updateInput(e, setUser, setFormErr)}
+      />
+      <MUITextField
+        name={"password"}
+        value={user.password}
+        formErr={formErr}
+        onChange={(e) => {
+          setUser(prevUser => {
+            return {
+              ...prevUser,
+              password: e.target.value || "",
+            }
+          })
 
-              if (formErr.password) {
-                setFormErr(prevErrs => {
-                  return {
-                    ...prevErrs,
-                    password: "",
-                  }
-                })
+          if (formErr.password) {
+            setFormErr(prevErrs => {
+              return {
+                ...prevErrs,
+                password: "",
               }
-            }}
-            type="password"
-            error={!!formErr.password}
-          />
-        </InputPanel>
-        <Button 
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ? 
-            <CircularProgress size={20} color="inherit"/> : 
-            <Send color="inherit"/>
+            })
           }
-        >Submit</Button>
-      </form>
-      <Footer/>
-    </>
+        }}
+        type="password"
+        error={!!formErr.password}
+      />
+    </AuthLayout>
   )
 }
 

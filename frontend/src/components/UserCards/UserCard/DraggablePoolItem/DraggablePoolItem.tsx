@@ -1,40 +1,35 @@
 import React, { useState } from "react"
 import { useDraggable } from "@dnd-kit/core"
-import { Typography, IconButton, Button, Collapse } from "@mui/material"
-import { Clear, CheckCircle } from "@mui/icons-material"
-import { formatBytes } from "../../../../shared/utility"
+import { Menu, MenuItem } from "@mui/material"
+import { ArrowRightLeft, GripVertical, X } from "lucide-react"
+import { poolItemBytes, PoolItemType } from "../../../../shared/userUtility"
+import { formatSize } from "../../../../shared/format"
+import { TransferTarget } from "../../UserCards"
 import "./_draggable-pool-item.scss"
+
+// The fields of a pool movie or series that the row needs
+interface PoolItem {
+  title: string
+  year: number
+  sizeOnDisk?: number
+  seasons?: { statistics?: { sizeOnDisk?: number } }[]
+}
 
 interface DraggablePoolItemProps {
   userId: string
-  itemType: "movies" | "series"
+  itemType: PoolItemType
   itemIndex: number
-  item: any
+  item: PoolItem
   removing: boolean
   isBeingRemoved: boolean
-  onRemoveClick: (itemType: "movies" | "series", itemIndex: number) => void
+  onRemoveClick: (itemType: PoolItemType, itemIndex: number) => void
   onConfirmRemove: () => void
   onCancelRemove: () => void
+  moveTargets: TransferTarget[]
+  onMove: (destUserId: string) => void
 }
 
-// Calculate the storage size for a single pool item
-const getItemStorage = (item: any, itemType: "movies" | "series"): string => {
-  if (itemType === "movies") {
-    return formatBytes(item.sizeOnDisk || 0)
-  }
-
-  // For series, calculate total size from all seasons
-  let totalBytes = 0
-  if (item.seasons) {
-    item.seasons.forEach((season: any) => {
-      if (season.statistics && season.statistics.sizeOnDisk) {
-        totalBytes += season.statistics.sizeOnDisk
-      }
-    })
-  }
-  return formatBytes(totalBytes)
-}
-
+// One title in a pool. Drag it by the handle onto another card, or use "Move to" for keyboard and touch
 const DraggablePoolItem: React.FC<DraggablePoolItemProps> = ({
   userId,
   itemType,
@@ -45,70 +40,80 @@ const DraggablePoolItem: React.FC<DraggablePoolItemProps> = ({
   onRemoveClick,
   onConfirmRemove,
   onCancelRemove,
+  moveTargets,
+  onMove,
 }) => {
-  const [hovered, setHovered] = useState(false)
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const label = `${item.title} (${item.year})`
 
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, isDragging } = useDraggable({
     id: `${userId}-${itemType}-${itemIndex}`,
     data: { sourceUserId: userId, itemType, itemIndex, item },
   })
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`draggable-pool-item ${isDragging ? "dragging" : ""}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      {...listeners}
-      {...attributes}
-    >
-      <Typography variant="body2" className="item-title">
-        <span className={`title-text ${hovered ? "fade-out" : "fade-in"}`}>
-          {item.title} ({item.year})
-        </span>
-        <span className={`storage-text ${hovered ? "fade-in" : "fade-out"}`}>
-          {getItemStorage(item, itemType)}
-        </span>
-      </Typography>
+    <li ref={setNodeRef} className={`draggable-pool-item${isDragging ? " dragging" : ""}${isBeingRemoved ? " confirming" : ""}`}>
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        className="pool-item-handle"
+        {...listeners}
+        {...attributes}
+        aria-label={`Drag ${label} to another user`}
+      >
+        <GripVertical aria-hidden="true" />
+      </button>
 
-      <div className="item-actions">
-        <Collapse in={isBeingRemoved} orientation="horizontal">
-          <div className="action-buttons">
-            <Button
-              size="small"
-              variant="contained"
-              color="error"
-              onClick={onConfirmRemove}
-              disabled={removing}
-              startIcon={<CheckCircle />}
-              className="confirm-button"
-            >
-              Yes
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              onClick={onCancelRemove}
-              disabled={removing}
-              className="confirm-button"
-            >
-              No
-            </Button>
-          </div>
-        </Collapse>
-
-        <Collapse in={!isBeingRemoved} orientation="horizontal">
-          <IconButton
-            size="small"
-            color="error"
-            onClick={() => onRemoveClick(itemType, itemIndex)}
-            className="delete-button"
-          >
-            <Clear />
-          </IconButton>
-        </Collapse>
+      <div className="pool-item-text">
+        <span className="item-title">{label}</span>
+        <span className="item-size">{formatSize(poolItemBytes(item, itemType))}</span>
       </div>
-    </div>
+
+      {isBeingRemoved ? (
+        <div className="pool-item-confirm" role="group" aria-label={`Remove ${label}?`}>
+          <button type="button" className="pool-item-action pool-item-danger" onClick={onConfirmRemove} disabled={removing}>
+            Remove
+          </button>
+          <button type="button" className="pool-item-action" onClick={onCancelRemove} disabled={removing} autoFocus>
+            Keep
+          </button>
+        </div>
+      ) : (
+        <div className="pool-item-actions">
+          {moveTargets.length > 0 && (
+            <button
+              type="button"
+              className="pool-item-icon"
+              aria-haspopup="menu"
+              aria-expanded={Boolean(menuAnchor)}
+              onClick={(e) => setMenuAnchor(e.currentTarget)}
+            >
+              <ArrowRightLeft aria-hidden="true" />
+              <span className="visually-hidden">Move {label} to another user</span>
+            </button>
+          )}
+          <button type="button" className="pool-item-icon pool-item-remove" onClick={() => onRemoveClick(itemType, itemIndex)}>
+            <X aria-hidden="true" />
+            <span className="visually-hidden">Remove {label} from this pool</span>
+          </button>
+        </div>
+      )}
+
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+        <MenuItem disabled>Move to</MenuItem>
+        {moveTargets.map((target) => (
+          <MenuItem
+            key={target.id}
+            onClick={() => {
+              setMenuAnchor(null)
+              onMove(target.id)
+            }}
+          >
+            {target.name}
+          </MenuItem>
+        ))}
+      </Menu>
+    </li>
   )
 }
 

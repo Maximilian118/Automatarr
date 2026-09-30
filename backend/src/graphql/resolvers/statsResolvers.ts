@@ -1,6 +1,7 @@
 import Stats, { StatsDocType } from "../../models/stats"
 import logger from "../../logger"
 import moment from "moment"
+import { AuthRequest } from "../../middleware/auth"
 
 interface StatsQueryInput {
   hours_back?: number
@@ -8,7 +9,16 @@ interface StatsQueryInput {
 }
 
 const statsResolvers = {
-  getStats: async (statsInput?: StatsQueryInput): Promise<StatsDocType | null> => {
+  getStats: async (
+    args: { statsInput?: StatsQueryInput },
+    req: AuthRequest,
+  ): Promise<StatsDocType | null> => {
+    if (!req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const { statsInput } = args
+
     try {
       logger.info("statsResolvers | getStats | Fetching stats data...")
       
@@ -39,9 +49,9 @@ const statsResolvers = {
           filteredDataPoints = filteredDataPoints.slice(-limit)
         }
         
-        // Create a new stats object with filtered data points
+        // Create a plain copy of the stats document with only the filtered data points
         stats = {
-          ...stats,
+          ...stats.toObject(),
           data_points: filteredDataPoints,
         } as StatsDocType
       }

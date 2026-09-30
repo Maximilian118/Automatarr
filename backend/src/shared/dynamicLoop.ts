@@ -1,9 +1,13 @@
 import logger from "../logger"
 import Settings, { settingsDocType, settingsType } from "../models/settings"
 import { minsToMillisecs } from "./utility"
+import { withActivitySource } from "./activity"
 
 // A global Set to track active loops
 const activeLoops = new Set<keyof settingsType>()
+
+// When each loop last started and finished in this process. Read-only for status reporting.
+export const loopRunTimes = new Map<string, { started: Date; finished: Date | null }>()
 
 // Dynamically loop based on up-to-date settings
 export const dynamicLoop = async (
@@ -54,8 +58,17 @@ export const dynamicLoop = async (
 
     // If we're not skipping execution
     if (!skipFirst) {
-      // Execute whatever is in the content function
-      await content(settings._doc)
+      const runName = String(loop_name).replace(/_loop$/, "")
+      const started = new Date()
+      loopRunTimes.set(runName, { started, finished: null })
+
+      // Execute whatever is in the content function, attributing any removals to this loop.
+      // The finish time is recorded even if the content throws; the error still propagates as before.
+      try {
+        await withActivitySource(runName, () => content(settings._doc))
+      } finally {
+        loopRunTimes.set(runName, { started, finished: new Date() })
+      }
     }
 
     // Log wait time for next interval

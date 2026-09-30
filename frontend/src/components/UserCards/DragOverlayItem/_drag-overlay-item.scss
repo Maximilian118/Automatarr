@@ -1,12 +1,14 @@
+@use '../../../scss/variables';
+
+// Floating label that follows the pointer while dragging
 .drag-overlay-item {
-  background-color: #1976d2;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: variables.$accent;
+  color: var(--accent-ink);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  font-weight: 700;
   white-space: nowrap;
-  max-width: 250px;
+  max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   pointer-events: none;

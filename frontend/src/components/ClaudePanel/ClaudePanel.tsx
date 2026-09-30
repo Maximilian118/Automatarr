@@ -1,6 +1,6 @@
 import React, { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { LinearProgress } from "@mui/material"
-import { AutoAwesome } from "@mui/icons-material"
+import { Sparkles } from "lucide-react"
 import "./_claudePanel.scss"
 import { BotPanel } from "../panel/botPanel/BotPanel"
 import MUITextField from "../utility/MUITextField/MUITextField"
@@ -75,7 +75,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
   return (
     <BotPanel
       title="Claude AI"
-      startIcon={<AutoAwesome/>}
+      startIcon={<Sparkles aria-hidden="true"/>}
       description={`
         Optional. Lets Automatarr chat with people in any channel, work out what they meant when a ! command is malformed, remember what they like and make the odd recommendation.
 
@@ -97,7 +97,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
         color={keyValid ? "success" : "primary"}
         type="password"
       />
-      {keyError && <p className="claude-panel-error">{keyError}</p>}
+      <p className="claude-panel-error" aria-live="polite">{keyError}</p>
       <MUIAutocomplete
         label="Model"
         options={models.map(modelLabel)}
@@ -120,11 +120,12 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
         }}
       />
       <div className="claude-panel-usage">
-        <p>Spent this month: <strong>${spent.toFixed(2)}</strong> of ${ai.monthly_budget.toFixed(2)}{usage ? ` · ${usage.requests} requests` : ""}</p>
+        <p id="claude-panel-spend">Spent this month: <strong>${spent.toFixed(2)}</strong> of ${ai.monthly_budget.toFixed(2)}{usage ? `, across ${usage.requests.toLocaleString()} requests` : ""}</p>
         <LinearProgress
           variant="determinate"
           value={budgetUsed}
           color={budgetUsed >= 90 ? "error" : "primary"}
+          aria-labelledby="claude-panel-spend"
         />
       </div>
       <Toggle

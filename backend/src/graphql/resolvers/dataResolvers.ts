@@ -18,6 +18,7 @@ import { getCommandLists } from "../../shared/miscRequests"
 import { getqBittorrentData } from "../../shared/qBittorrentRequests"
 import { saveWithRetry } from "../../shared/database"
 import { refreshPlexCache } from "../../shared/plexRequests"
+import { withActivitySource } from "../../shared/activity"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -101,7 +102,7 @@ const dataResolvers = {
     // Pass the fresh data directly to avoid race conditions with database reads
     if (savedData && settings.storage_cleaner) {
       const { default: storage_cleaner } = await import("../../loops/storage_cleaner")
-      await storage_cleaner(settings._doc, savedData)
+      await withActivitySource("storage_cleaner", () => storage_cleaner(settings._doc, savedData))
     }
 
     // Queue anything that just became watchable, then maybe recommend one of them to someone

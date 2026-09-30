@@ -5,7 +5,7 @@ import fs from "fs"
 import DailyRotateFile from "winston-daily-rotate-file"
 
 // Create log directory if it doesn't exist
-const logDirectory = path.join(__dirname, "..", "..", "automatarr_logs")
+export const logDirectory = path.join(__dirname, "..", "..", "automatarr_logs")
 if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory)
 }

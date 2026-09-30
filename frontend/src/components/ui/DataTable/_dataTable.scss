@@ -1,0 +1,47 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Scroll container so wide tables never force the page to scroll sideways
+.data-table-wrap {
+  @include mixins.focus-ring;
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid variables.$line-soft;
+  border-radius: var(--radius-control);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+
+  th,
+  td {
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    border-bottom: 1px solid variables.$line-soft;
+    white-space: nowrap;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: variables.$basin-raised;
+    color: variables.$ink-muted;
+    font-weight: 700;
+  }
+
+  tbody th {
+    font-weight: 600;
+  }
+
+  .numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}

@@ -6,6 +6,7 @@ import axios from "axios"
 import { DownloadStatus, SearchCommandResponseType } from "../types/types"
 import { HistoryItem } from "../types/historyTypes"
 import { axiosErrorMessage } from "./requestError"
+import { recordActivity } from "./activity"
 
 // Get the Radarr Queue in circumstances where the API object isn't available
 export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
@@ -190,6 +191,7 @@ export const deleteMovieFile = async (
     )
 
     if (requestSuccess(res.status)) {
+      recordActivity({ action: "movie_file", app: "Radarr", title: `Movie file ${movieFileID}` })
       return true
     }
 

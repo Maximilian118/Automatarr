@@ -1,0 +1,86 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+.app-shell-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  // Leave room for the fixed bottom bar on phones
+  @include mixins.phone-only {
+    padding-bottom: calc(variables.$bottom-bar-height + env(safe-area-inset-bottom));
+  }
+}
+
+// Brand bar shown on phones only, where there is no rail
+.app-shell-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 0;
+
+  img {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-shell-wordmark {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 750;
+    font-variation-settings: "wdth" 80;
+    letter-spacing: -0.03em;
+  }
+
+  @include mixins.tablet-up {
+    display: none;
+  }
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+// Thin progress line across the top of the viewport while anything is loading
+.app-shell-progress.MuiLinearProgress-root {
+  position: fixed;
+  z-index: 1300;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 0;
+}
+
+// Hidden until focused by keyboard
+.skip-link {
+  position: absolute;
+  z-index: 1500;
+  left: var(--space-4);
+  top: -100px;
+  padding: var(--space-3) var(--space-4);
+  background: variables.$accent;
+  color: var(--accent-ink);
+  font-weight: 700;
+  border-radius: var(--radius-control);
+  text-decoration: none;
+
+  &:focus {
+    top: var(--space-4);
+  }
+}

@@ -1,0 +1,75 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Fixed bar along the bottom edge on phones only
+.bottom-bar {
+  position: fixed;
+  z-index: 1200;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: variables.$basin;
+  border-top: 1px solid variables.$line-soft;
+
+  @include mixins.tablet-up {
+    display: none;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0 var(--space-1);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: variables.$bottom-bar-height;
+  }
+
+  li {
+    display: flex;
+  }
+}
+
+.bottom-bar-link {
+  @include mixins.focus-ring(-3px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: var(--target);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: variables.$ink-muted;
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  // The current page gets a pill behind its icon plus bolder ink, so it never depends on colour alone
+  &[aria-current="page"],
+  &.is-current {
+    color: variables.$ink;
+    font-weight: 750;
+
+    svg {
+      padding: 2px 14px;
+      width: 52px;
+      height: 28px;
+      border-radius: var(--radius-pill);
+      background: variables.$basin-sunken;
+      color: variables.$accent;
+      box-sizing: border-box;
+    }
+  }
+}

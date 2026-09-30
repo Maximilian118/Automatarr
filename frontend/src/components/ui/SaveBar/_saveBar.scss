@@ -1,0 +1,17 @@
+@use "../../../scss/variables";
+
+.save-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+
+  .save-bar-status {
+    color: variables.$ink-muted;
+  }
+
+  .save-bar-failed {
+    color: var(--outflow);
+    font-weight: 700;
+  }
+}

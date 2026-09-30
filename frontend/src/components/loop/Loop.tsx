@@ -1,4 +1,4 @@
-import React, { Dispatch, SetStateAction } from "react"
+import React, { Dispatch, ReactNode, SetStateAction, useId } from "react"
 import { Switch } from '@mui/material'
 import './_loop.scss'
 import { settingsType } from "../../types/settingsType"
@@ -12,18 +12,24 @@ interface LoopType {
   params?: JSX.Element
   disabled?: boolean
   disabledText?: string
+  status?: ReactNode
 }
 
-const Loop: React.FC<LoopType> = ({ 
-  title, 
-  loop, 
-  settings, 
-  setSettings, 
-  desc, 
+// A card for one automation loop: on/off switch, what it does, when it last ran, and its options
+const Loop: React.FC<LoopType> = ({
+  title,
+  loop,
+  settings,
+  setSettings,
+  desc,
   params,
   disabled,
   disabledText,
+  status,
 }) => {
+  const headingId = useId()
+  const descId = useId()
+
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSettings(prevSettings => {
       return {
@@ -34,26 +40,27 @@ const Loop: React.FC<LoopType> = ({
   }
 
   return (
-    <div className="loop">
+    <section className={`loop${disabled ? " loop-disabled" : ""}`} aria-labelledby={headingId}>
       <div className="title-and-toggle">
         <div className="loop-title">
-          <h4>{title}</h4>
-          {disabled && disabledText && <h4 className="disabled-text">{`- ${disabledText}`}</h4>}
+          <h3 id={headingId}>{title}</h3>
+          {disabled && disabledText && <p className="disabled-text">{disabledText}</p>}
         </div>
-          <Switch
-            checked={disabled ? false : settings[loop] as boolean}
-            onChange={handleSwitchChange}
-            inputProps={{ 'aria-label': 'controlled' }}
-            disabled={disabled}
-          />
+        <Switch
+          checked={disabled ? false : settings[loop] as boolean}
+          onChange={handleSwitchChange}
+          inputProps={{ 'aria-label': `Run ${title}`, 'aria-describedby': desc ? descId : undefined }}
+          disabled={disabled}
+        />
       </div>
-      {desc && <p>{desc}</p>}
+      {desc && <p id={descId} className="loop-desc">{desc}</p>}
+      {status && <div className="loop-status">{status}</div>}
       {params && (
         <div className="loop-params">
           {params}
         </div>
       )}
-    </div>
+    </section>
   )
 }
 

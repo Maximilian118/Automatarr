@@ -1,0 +1,149 @@
+// Reservoir design tokens.
+// Every colour is exposed as a CSS custom property so SCSS, MUI and Nivo all read from one source.
+// Text pairs meet WCAG AAA (7:1) on every surface they are used on; boundaries and chart marks meet 3:1.
+
+// Light theme values
+@mixin light-tokens {
+  color-scheme: light;
+
+  // Surfaces
+  --abyss: #EEF4F6;
+  --basin: #FFFFFF;
+  --basin-raised: #F6FAFB;
+  --basin-sunken: #E3ECF0;
+  --scrim: rgba(11, 36, 51, 0.48);
+
+  // Ink
+  --ink: #0B2433;
+  --ink-muted: #34505F;
+  --ink-inverse: #FFFFFF;
+
+  // Lines
+  --line: #6F8A99;
+  --line-soft: #C9D7DE;
+
+  // Flow colours (text-safe)
+  --inflow: #004E5A;
+  --outflow: #8C2715;
+  --threshold: #664500;
+  --good: #175429;
+
+  // Water body used by the reservoir tank
+  --water-top: #4FB8C9;
+  --water-deep: #0B6F82;
+
+  // Chart series (validated as a categorical set against --basin)
+  --series-downloaded: #0088A3;
+  --series-queued: #5B45C4;
+  --series-deleted: #C2412B;
+
+  // Interaction
+  --accent: #004E5A;
+  --accent-ink: #FFFFFF;
+  --accent-hover: #003C45;
+  --focus: #7A3E00;
+  --hover-wash: rgba(0, 78, 90, 0.08);
+}
+
+// Dark theme values (stepped separately for the dark surface, not inverted)
+@mixin dark-tokens {
+  color-scheme: dark;
+
+  // Surfaces
+  --abyss: #0C1B26;
+  --basin: #12283A;
+  --basin-raised: #173041;
+  --basin-sunken: #0A1721;
+  --scrim: rgba(3, 10, 15, 0.72);
+
+  // Ink
+  --ink: #EAF4F8;
+  --ink-muted: #B6CCD8;
+  --ink-inverse: #0C1B26;
+
+  // Lines
+  --line: #5C8299;
+  --line-soft: #244157;
+
+  // Flow colours (text-safe)
+  --inflow: #5FD8E6;
+  --outflow: #FFA293;
+  --threshold: #F2C14E;
+  --good: #86E0A2;
+
+  // Water body used by the reservoir tank
+  --water-top: #5FD8E6;
+  --water-deep: #0E6A7C;
+
+  // Chart series (validated as a categorical set against --basin)
+  --series-downloaded: #11A3B5;
+  --series-queued: #8C7CF0;
+  --series-deleted: #E8604F;
+
+  // Interaction
+  --accent: #5FD8E6;
+  --accent-ink: #0C1B26;
+  --accent-hover: #8CE4EE;
+  --focus: #F2C14E;
+  --hover-wash: rgba(95, 216, 230, 0.1);
+}
+
+// Theme-independent tokens
+:root {
+  // Type families
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible Next Variable", "Atkinson Hyperlegible Next", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+
+  // Modular type scale (ratio 1.25)
+  --step--1: 0.875rem;
+  --step-0: 1rem;
+  --step-1: 1.25rem;
+  --step-2: 1.563rem;
+  --step-3: 1.953rem;
+  --step-4: 2.441rem;
+  --step-5: 3.052rem;
+  --step-6: 3.815rem;
+
+  // Spacing scale (4px base)
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  // Radii express hierarchy: controls are tight, surfaces are soft, the tank is round
+  --radius-control: 10px;
+  --radius-surface: 18px;
+  --radius-pill: 999px;
+
+  // Minimum hit area (WCAG 2.5.5 AAA)
+  --target: 44px;
+
+  // Motion
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration: 180ms;
+}
+
+// Light is the default, overridden by the OS preference unless the viewer forced light
+:root {
+  @include light-tokens;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    @include dark-tokens;
+  }
+}
+
+// The viewer's explicit choice always wins
+:root[data-theme="dark"] {
+  @include dark-tokens;
+}
+
+:root[data-theme="light"] {
+  @include light-tokens;
+}

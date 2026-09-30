@@ -1,17 +1,16 @@
-import { Button, CircularProgress, TextField } from "@mui/material"
+import { CircularProgress, TextField } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { ArrowBackIos, Close, Done, Logout, Person, Restore, Send, Settings as SettingsIcon, SettingsBackupRestore, Webhook } from "@mui/icons-material"
+import { ArchiveRestore, Check, Cog, History, UserRound, Webhook, X } from "lucide-react"
 import InputPanel from "../components/panel/inputPanel/InputPanel"
 import Footer from "../components/footer/Footer"
-import { logout } from "../shared/localStorage"
 import { useNavigate } from "react-router-dom"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import { EventType, settingsErrorType, settingsType} from "../types/settingsType"
 import { initSettingsErrors, initUserErrors } from "../shared/init"
 import Toggle from "../components/utility/Toggle/Toggle"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
-import { anyStarrActive, capsFirstLetter, numberSelection, stringSelectionToNumber, toStringWithCap, webhookURL } from "../shared/utility"
+import { anyStarrActive, capsFirstLetter, formHasErr, numberSelection, stringSelectionToNumber, toStringWithCap, webhookURL } from "../shared/utility"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { inputLabel, updateInput } from "../shared/formValidation"
 import { UserErrorType } from "../types/userType"
@@ -19,6 +18,11 @@ import { updateUser } from "../shared/requests/userRequests"
 import { checkWebhooks } from "../shared/requests/checkAPIRequests"
 import LoopTime from "../components/loop/looptime/Looptime"
 import { getBackupFile, getBackupFiles } from "../shared/requests/miscRequests"
+import PageHeader from "../components/ui/PageHeader/PageHeader"
+import SaveBar from "../components/ui/SaveBar/SaveBar"
+import Button from "../components/ui/Button/Button"
+import { useSaveFeedback } from "../shared/hooks/useSaveFeedback"
+import "./_settings.scss"
 
 const Settings: React.FC = () => {
   const { settings, setSettings, user, setUser, loading, setLoading } = useContext(AppContext)
@@ -34,6 +38,7 @@ const Settings: React.FC = () => {
   const [ backupBtnClicked, setBackupBtnClicked ] = useState<boolean>(false)
 
   const navigate = useNavigate()
+  const saveFeedback = useSaveFeedback(settings.updated_at, localLoading, "Settings")
 
   useEffect(() => {
     const onPageLoadHandler = async () => {
@@ -55,6 +60,7 @@ const Settings: React.FC = () => {
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    saveFeedback.beginSave(!formHasErr(formErr))
     await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
     await updateUser(user, setUser, setUserFormErr, setLocalLoading, navigate)
   }
@@ -89,19 +95,33 @@ const Settings: React.FC = () => {
     />
   )
 
-  const apiConnection = (src: string, link: string, connected: boolean) => (
-    <div className="api-connection">
-      <img alt="API Symbol" src={src} onClick={() => window.open(link, '_blank')}/>
-      {webhooksLoading ? <CircularProgress size={20}/> : connected ? <Done color="success"/> : <Close color="error"/>}
-    </div>
+  // A Starr app's logo linking to its web UI, with whether its webhook is connected
+  const apiConnection = (name: string, src: string, link: string, connected: boolean) => (
+    <a className="api-connection" href={link} target="_blank" rel="noopener noreferrer">
+      <img alt="" src={src}/>
+      {webhooksLoading ? (
+        <CircularProgress size={18} aria-hidden="true"/>
+      ) : connected ? (
+        <Check aria-hidden="true" className="api-connection-yes"/>
+      ) : (
+        <X aria-hidden="true" className="api-connection-no"/>
+      )}
+      <span className="visually-hidden">
+        {name}: {webhooksLoading ? "checking" : connected ? "webhook connected" : "webhook not connected"} (opens {name} in a new tab)
+      </span>
+    </a>
   )
 
   return (
       <form onSubmit={e => onSubmitHandler(e)}>
+        <PageHeader
+          title="Settings"
+          description="Backups, your admin account, notifications from your Starr apps, and a few advanced switches."
+        />
         <div className="grid-layout">
         <InputPanel
           title="Backups"
-          startIcon={<SettingsBackupRestore/>}
+          startIcon={<History aria-hidden="true"/>}
           description={`Backup your settings and user pool data to the path assigned in the docker-compose.yml file.`}
           checked={settings.backups}
           onToggle={() => {
@@ -113,7 +133,7 @@ const Settings: React.FC = () => {
             })
           }}
         >
-          <h4>Backup Frequency</h4>
+          <h3 className="settings-subheading">Backup frequency</h3>
           <LoopTime
             loop={"backups_loop" as keyof settingsType}
             settings={settings}
@@ -123,7 +143,7 @@ const Settings: React.FC = () => {
             maxUnit="weeks"
             minUnit="hours"
           />
-          <h4>Retention Period</h4>
+          <h3 className="settings-subheading">Keep backups for</h3>
           <LoopTime
             loop={"backups_rotation_date" as keyof settingsType}
             settings={settings}
@@ -132,7 +152,7 @@ const Settings: React.FC = () => {
             setFormErr={setFormErr}
             minUnit="weeks"
           />
-          <h4 style={{ marginTop: 30 }}>Restore</h4>
+          <h3 className="settings-subheading settings-subheading-spaced">Restore</h3>
           <MUIAutocomplete
             label={`Restore File${backupFileErr ? `: ${backupFileErr}` : ""}`}
             options={backupFileNames}
@@ -142,26 +162,26 @@ const Settings: React.FC = () => {
             loading={backupFileLoading}
             error={!!backupFileErr}
           />
-          <div className="model-row" style={{ justifyContent: backupBtnClicked ? "space-between" : "center" }}>
+          {backupBtnClicked && (
+            <p className="settings-restore-question" role="alert">
+              Restore {backupFileName}? Your current settings and user pools are replaced by the backup.
+            </p>
+          )}
+          <div className="button-bar">
             {backupBtnClicked && (
-              <>
-                <h4 style={{ width: "auto" }}>Are you sure?!</h4>
-                <Button
-                  variant="contained"
-                  color={"error"}
-                  endIcon={<ArrowBackIos color="inherit"/>}
-                  onClick={() => {
-                    setBackupFileName(null)
-                    setBackupBtnClicked(false)
-                  }}
-                >Back</Button>
-              </>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setBackupFileName(null)
+                  setBackupBtnClicked(false)
+                }}
+              >Cancel</Button>
             )}
             <Button
-              variant="contained"
-              color={backupFileErr ? "error" : "primary"}
+              variant={backupBtnClicked ? "danger" : "secondary"}
               disabled={backupFileLoading || backupFileNames.length === 0 || !backupFileName}
-              endIcon={<Restore/>}
+              loading={backupFileLoading}
+              icon={<ArchiveRestore aria-hidden="true"/>}
               onClick={async () => {
                 if (!backupFileName) {
                   console.log("No backup file name")
@@ -185,12 +205,12 @@ const Settings: React.FC = () => {
                   setBackupBtnClicked
                 )
               }}
-            >Restore</Button>
+            >{backupBtnClicked ? "Yes, restore" : "Restore"}</Button>
           </div>
         </InputPanel>
         <InputPanel 
-          title="User Settings" 
-          startIcon={<Person/>}
+          title="Your account" 
+          startIcon={<UserRound aria-hidden="true"/>}
         >
           <Toggle 
             name="Lockout Security:" 
@@ -300,7 +320,7 @@ const Settings: React.FC = () => {
         </InputPanel>
         <InputPanel
           title="Webhooks" 
-          startIcon={<Webhook/>}
+          startIcon={<Webhook aria-hidden="true"/>}
           description={`Webhooks allow you to send specific notifications through your bots.
 
             For example, the "Imported" notification will alert users when a movie they've downloaded is ready to watch.
@@ -317,7 +337,7 @@ const Settings: React.FC = () => {
             setSettings(prevSettings => {
               return {
                 ...prevSettings,
-                webhooks_active: !prevSettings.webhooks,
+                webhooks: !prevSettings.webhooks,
               }
             })
           
@@ -331,26 +351,24 @@ const Settings: React.FC = () => {
             }
           }}
         >
-          <div className="button-bar" style={{ width: "100%", justifyContent: "space-between", marginBottom: 39.5 }}>
+          <div className="settings-webhook-bar">
             <Button 
-              variant="contained"
-              endIcon={localLoading ? 
-                <CircularProgress size={20} color="inherit"/> : 
-                <Webhook color="inherit"/>
-              }
+              variant="secondary"
+              loading={webhooksLoading}
+              icon={<Webhook aria-hidden="true"/>}
               disabled={!anyStarrAct || webhookURLInvalid}
               onClick={async () => setWebhooksConnected(await checkWebhooks(user, setUser, setWebhooksLoading, navigate, webhookURL(settings)))}
-            >Add Connections</Button>
+            >Add connections</Button>
             <div className="api-connections-bar">
-              {apiConnection("https://radarr.video/img/logo.png", settings.radarr_URL, webhooksConnected.includes("Radarr"))}
-              {apiConnection("https://sonarr.tv/img/logo.png", settings.sonarr_URL, webhooksConnected.includes("Sonarr"))}
-              {apiConnection("https://lidarr.audio/img/logo.png", settings.lidarr_URL, webhooksConnected.includes("Lidarr"))}
+              {apiConnection("Radarr", "https://radarr.video/img/logo.png", settings.radarr_URL, webhooksConnected.includes("Radarr"))}
+              {apiConnection("Sonarr", "https://sonarr.tv/img/logo.png", settings.sonarr_URL, webhooksConnected.includes("Sonarr"))}
+              {apiConnection("Lidarr", "https://lidarr.audio/img/logo.png", settings.lidarr_URL, webhooksConnected.includes("Lidarr"))}
             </div>
           </div>
           <TextField
             fullWidth
             value={webhookURL(settings)}
-            label={settings.webhooks ? inputLabel("webhooks_token", formErr, "Webhook URL") : ""}
+            label={inputLabel("webhooks_token", formErr, "Webhook URL")}
             slotProps={{ input: {readOnly: true } }}
             error={webhookURLInvalid && settings.webhooks}
             disabled={!anyStarrAct || !settings.webhooks}
@@ -360,7 +378,7 @@ const Settings: React.FC = () => {
         </InputPanel>
         <InputPanel
           title="Advanced"
-          startIcon={<SettingsIcon/>}
+          startIcon={<Cog aria-hidden="true"/>}
           description={`Advanced system settings for experienced users. These settings control internal system behavior and should be used with caution.`}
         >
           <Toggle
@@ -396,27 +414,7 @@ const Settings: React.FC = () => {
         </InputPanel>
         </div>
         <div className="page-bottom">
-          <div className="button-bar">
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{ margin: "20px 0" }}
-              endIcon={localLoading ?
-                <CircularProgress size={20} color="inherit"/> :
-                <Send color="inherit"/>
-              }
-            >Submit</Button>
-            <Button
-              variant="contained"
-              sx={{ margin: "20px 0" }}
-              endIcon={localLoading ?
-                <CircularProgress size={20} color="inherit"/> :
-                <Logout color="inherit"/>
-              }
-              color="error"
-              onClick={() => logout(setUser, navigate)}
-            >Logout</Button>
-          </div>
+          <SaveBar loading={localLoading} status={saveFeedback.status} savedAt={saveFeedback.savedAt}/>
           <Footer/>
         </div>
       </form>

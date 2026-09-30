@@ -66,7 +66,7 @@ if (!fs.existsSync(databasePath)) {
 }
 
 const startServer = async () => {
-  const db_IP = "0.0.0.0"
+  const db_IP = process.env.DB_BIND_IP || "127.0.0.1" // Local-only by default. Set DB_BIND_IP=0.0.0.0 to reach the database from outside the container
   const db_PORT = process.env.DB_PORT || "27020"
   const backend_IP = "0.0.0.0"
   const backend_PORT = "8091"
@@ -139,7 +139,7 @@ const startServer = async () => {
   isOnCorrectLAN(bootSettings)
 
   // Intercept webhooks
-  app.use("/graphql/webhooks", createWebhookRouter(bootSettings))
+  app.use("/graphql/webhooks", createWebhookRouter())
 
   // Set up GraphQL
   app.use(
@@ -147,7 +147,7 @@ const startServer = async () => {
     graphqlHTTP({
       schema: Schema,
       rootValue: Resolvers,
-      graphiql: true,
+      graphiql: process.env.NODE_ENV === "development",
     }),
   )
 

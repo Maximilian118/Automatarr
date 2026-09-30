@@ -1,0 +1,130 @@
+@use "../../scss/variables";
+@use "../../scss/mixins";
+
+.pool-storage {
+  @include mixins.surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+
+  @include mixins.phone-only {
+    padding: var(--space-4);
+  }
+
+  .pool-storage-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    svg {
+      width: 28px;
+      height: 28px;
+      color: variables.$accent;
+    }
+  }
+
+  // Whole-drive split: pools, other content and free space, separated by 2px gaps
+  .pool-storage-split {
+    display: flex;
+    gap: 2px;
+    height: 20px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .segment-pools { background: var(--series-downloaded); }
+  .segment-other { background: var(--line); }
+  .segment-free {
+    background: variables.$basin-sunken;
+    box-shadow: inset 0 0 0 1px variables.$line;
+  }
+
+  .pool-storage-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-6);
+    margin: 0;
+
+    dt {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      color: variables.$ink-muted;
+      font-weight: 600;
+    }
+
+    dd {
+      margin: 0 0 0 calc(12px + var(--space-2));
+      font-weight: 700;
+    }
+
+    .pool-storage-share {
+      color: variables.$ink-muted;
+      font-weight: 600;
+    }
+  }
+
+  .pool-storage-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  // Ranked per-person bars: name, bar, value
+  .pool-storage-ranking {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+
+    li {
+      display: grid;
+      grid-template-columns: minmax(80px, 160px) 1fr auto;
+      align-items: center;
+      gap: var(--space-3);
+
+      @include mixins.phone-only {
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "name value" "bar bar";
+        row-gap: var(--space-1);
+
+        .pool-storage-name { grid-area: name; }
+        .pool-storage-bar { grid-area: bar; }
+        .pool-storage-value { grid-area: value; }
+      }
+    }
+  }
+
+  .pool-storage-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .pool-storage-bar {
+    height: 12px;
+    border-radius: 0 4px 4px 0;
+    background: variables.$basin-sunken;
+
+    span {
+      display: block;
+      height: 100%;
+      border-radius: 0 4px 4px 0;
+      background: var(--series-downloaded);
+    }
+  }
+
+  .pool-storage-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .pool-storage-empty,
+  .pool-storage-note {
+    color: variables.$ink-muted;
+  }
+}

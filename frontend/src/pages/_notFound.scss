@@ -1,0 +1,42 @@
+@use "../scss/mixins";
+@use "../scss/variables";
+
+// Empty tank beside a short explanation; stacked on phones
+.not-found {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: var(--space-6);
+
+  @include mixins.tablet-up {
+    grid-template-columns: minmax(200px, 320px) 1fr;
+    align-items: center;
+  }
+
+  .not-found-tank {
+    max-width: 280px;
+  }
+
+  .not-found-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+
+    h1 {
+      @include mixins.display(var(--step-6), 800);
+    }
+
+    p {
+      color: variables.$ink-muted;
+      font-size: var(--step-1);
+    }
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--target);
+      font-weight: 700;
+    }
+  }
+}

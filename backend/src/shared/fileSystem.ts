@@ -5,6 +5,7 @@ import logger from "../logger"
 import { checkPermissions } from "./permissions"
 import { execSync } from "child_process"
 import { axiosErrorMessage } from "./requestError"
+import { recordActivity } from "./activity"
 
 // Check if code is running in a Docker container or not
 export const isDocker = (() => {
@@ -17,6 +18,10 @@ export const isDocker = (() => {
     return false
   }
 })()
+
+// Remove the /host_fs prefix Docker paths carry so recorded paths match what the user sees on their machine
+const hostPath = (fullPath: string): string =>
+  isDocker && fullPath.startsWith("/host_fs") ? fullPath.slice("/host_fs".length) || "/" : fullPath
 
 // Delete a file or directory from the filesystem of the machine
 export const deleteFromMachine = (dirOrFilePath: string): boolean => {
@@ -44,10 +49,21 @@ export const deleteFromMachine = (dirOrFilePath: string): boolean => {
       // Use rmSync with recursive option to delete non-empty directories
       fs.rmSync(dirOrFilePath, { recursive: true, force: true })
       logger.info(`deleteFromMachine: Successfully deleted directory: ${dirOrFilePath}`)
+      recordActivity({
+        action: "folder",
+        title: path.basename(dirOrFilePath),
+        path: hostPath(dirOrFilePath),
+      })
     } else {
       // Otherwise, delete as a file
       fs.unlinkSync(dirOrFilePath)
       logger.info(`deleteFromMachine: Successfully deleted file: ${dirOrFilePath}`)
+      recordActivity({
+        action: "file",
+        title: path.basename(dirOrFilePath),
+        path: hostPath(dirOrFilePath),
+        bytes: stats.size,
+      })
     }
 
     return true
@@ -143,10 +159,23 @@ export const deleteFailedDownloads = async (paths: string[]): Promise<DeleteFail
                   // Delete directory recursively
                   await fs.promises.rm(childPath, { recursive: true, force: true })
                   logger.info(`deleteFailedDownloads: Deleted directory: ${childPath}`)
+                  recordActivity({
+                    action: "folder",
+                    title: child,
+                    path: hostPath(childPath),
+                    reason: "Failed download",
+                  })
                 } else if (stats.isFile()) {
                   // Delete file
                   await fs.promises.unlink(childPath)
                   logger.info(`deleteFailedDownloads: Deleted file: ${childPath}`)
+                  recordActivity({
+                    action: "file",
+                    title: child,
+                    path: hostPath(childPath),
+                    bytes: stats.size,
+                    reason: "Failed download",
+                  })
                 }
 
                 deletions++

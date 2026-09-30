@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.7.0
+
+### Redesigned web app ("Reservoir")
+
+The whole frontend has a new look built around what Automatarr does: keeping the drive from overflowing.
+
+- **Dashboard** replaces Stats. The drive is drawn as a tank filled to its current level, with the line where bot requests pause. Beside it: used and free space, the library change and removals over 30 days, recent arrivals as a poster rail, and 30-day charts.
+- **Light and dark themes**, following the device setting, with a System / Light / Dark switch in the navigation.
+- **New navigation**: a side rail on desktop (compact on tablets) and a bottom bar with a "More" sheet on phones.
+- **Save feedback everywhere**: every Save shows a toast and a persistent "Saved at" note, or explains why it failed.
+- **Accessibility (WCAG AAA target)**: 7:1 text contrast in both themes, 44px touch targets, visible keyboard focus, reduced-motion support, confirmation before destructive actions (import list delete, AI "Forget", note delete), real labels on every switch, a table view for every chart, and a "Move to…" menu so pool items can move between users without dragging.
+- Fonts (Bricolage Grotesque, Atkinson Hyperlegible Next) and the logo are bundled, so nothing is loaded from third-party CDNs.
+- Pages load on demand, cutting the initial download from about 1 MB to about 420 KB.
+
+### Charts fixed
+
+- Charts used the day of the month as the x value, so Aug 27 and Sep 27 landed in the same slot and lines doubled back across the chart. They now use real dates on a time axis; missing days show as gaps.
+- "Removed" now sums every hour of the day (it previously showed only the last hour, so it was almost always 0). Queues show the day's peak.
+- Storage is labelled in binary units (TiB) with round ticks, a capacity line and a "Requests pause" line.
+- The per-user storage chart is now a ranked bar list with every value written out, plus a whole-drive split of pool, other library content and free space.
+
+### New: Activity
+
+- A record of everything Automatarr removes (files, folders, library entries, torrents, queue items), with the loop or Discord command that removed it, size freed and reason. Kept for 90 days, filterable by source.
+- Recording happens only after a removal has already succeeded and can never throw or delay the loop. No deletion logic was changed.
+- The Loops page shows each loop's last run, next run and removals in the past 24 hours.
+
+### New: Logs viewer
+
+- Scroll up to load older lines, across previous days' log files; scroll down to load newer ones. At the bottom it follows new lines live; scrolled up, a "Jump to latest (n new)" button appears.
+- Lines are coloured by level with a text label, grouped under date separators, and multi-line messages (stack traces) stay together.
+- The stream reconnects on its own and follows the new day's file after midnight.
+- Reverse proxies must now forward `/api` as well as `/graphql` (see the NGINX examples in the README).
+
+### Security and fixes
+
+- The logs API and the stats query now require login.
+- GraphiQL is only enabled when `NODE_ENV=development`.
+- The embedded database listens on 127.0.0.1 only. Set `DB_BIND_IP=0.0.0.0` to reach it from outside the container.
+- The webhook on/off setting is now enforced, and changes to it apply without a restart.
+- The Webhooks toggle in Settings now actually switches webhooks on and off.
+- `!test` is admin-only, as the help text always said.
+- `!stay` now counts towards a user's pool limit, like `!download`.
+- `!superuser` names the right user when the user can't be found.
+- The login page only offers "Create account" before the admin account exists.
+
 ## v0.6.0
 
 ### Lists Tab

@@ -1,82 +1,110 @@
-.draggable-pool-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  cursor: grab;
+@use '../../../../scss/variables';
+@use '../../../../scss/mixins';
 
-  &:not(:last-child) {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  }
+// A single row in a user's pool
+.draggable-pool-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-1) 2px 0;
+  border-radius: var(--radius-control);
+  background: variables.$basin-raised;
+  border: 1px solid transparent;
 
   &.dragging {
     opacity: 0.4;
   }
 
+  &.confirming {
+    border-color: var(--outflow);
+  }
+
+  .pool-item-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    padding-block: var(--space-1);
+
+    .item-title {
+      font-weight: 600;
+      overflow-wrap: anywhere;
+    }
+
+    .item-size {
+      color: variables.$ink-muted;
+      font-size: var(--step--1);
+    }
+  }
+
+  .pool-item-actions,
+  .pool-item-confirm {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+}
+
+// Shared look for the handle and icon buttons
+.pool-item-handle,
+.pool-item-icon {
+  @include mixins.touch-target;
+  @include mixins.focus-ring(-2px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-control);
+  color: variables.$ink-muted;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  @include mixins.hover {
+    background: var(--hover-wash);
+    color: variables.$ink;
+  }
+}
+
+.pool-item-handle {
+  cursor: grab;
+  touch-action: none;
+
   &:active {
     cursor: grabbing;
   }
+}
 
-  .item-title {
-    flex-grow: 1;
-    margin-right: 8px;
-    color: white;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-    position: relative;
-    height: 1.5em;
+.pool-item-remove {
+  @include mixins.hover {
+    color: var(--outflow);
+  }
+}
 
-    .title-text,
-    .storage-text {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      transition: opacity 0.1s ease;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+// Text buttons used while confirming a removal
+.pool-item-action {
+  @include mixins.focus-ring;
+  min-height: var(--target);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  border: 1px solid variables.$line;
+  background: transparent;
+  color: variables.$ink;
+  font-family: var(--font-body);
+  font-weight: 700;
+  cursor: pointer;
 
-    .title-text {
-      color: white;
-    }
-
-    .storage-text {
-      color: white;
-      font-weight: 500;
-    }
-
-    .fade-in {
-      opacity: 1;
-    }
-
-    .fade-out {
-      opacity: 0;
-    }
+  &.pool-item-danger {
+    border-color: var(--outflow);
+    color: var(--outflow);
   }
 
-  .item-actions {
-    display: flex;
-    justify-content: flex-end;
-    flex-shrink: 0;
-
-    .action-buttons {
-      display: flex;
-      gap: 4px;
-    }
-
-    .delete-button {
-      min-width: auto;
-      width: 28px;
-      height: 28px;
-    }
-
-    .confirm-button {
-      min-width: auto;
-      padding: 0 8px;
-    }
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 }

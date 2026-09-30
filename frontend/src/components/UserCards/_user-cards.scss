@@ -1,29 +1,28 @@
 @use '../../scss/variables';
+@use '../../scss/mixins';
 
-.users-cards {
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// Responsive grid of user cards
+.users-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  @include mixins.grid-layout(320px);
 
-  // Mobile responsive
-  @media (max-width: 768px) {
-    padding: 20px 24px 24px;
-    align-items: flex-start;
-    margin-top: variables.$nav-height;
+  > li {
+    display: flex;
+    min-width: 0;
   }
 }
 
-.users-grid {
+// Shown when nobody has been approved yet
+.users-empty {
+  @include mixins.surface;
+  padding: var(--space-6);
   display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-2);
 
-  // Mobile responsive
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 16px;
-    width: 100%;
+  p {
+    color: variables.$ink-muted;
   }
 }

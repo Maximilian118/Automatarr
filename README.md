@@ -114,6 +114,14 @@ server {
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
   }
+
+  location /api {
+    proxy_pass http://192.168.x.x:8091/api;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+  }
 }
 ```
 
@@ -146,7 +154,26 @@ location /graphql {
 }
 ```
 
-The /graphql location is required so the frontend can reach the backend through the same domain.
+Add a second custom location the same way for the logs page:
+
+```nginx
+Location: /api
+Scheme: http
+Forward Hostname/IP: 192.168.x.x (Same IP)
+Forward Port: 8091
+```
+
+```nginx
+location /api {
+  proxy_pass http://192.168.x.x:8091/api;
+  proxy_set_header Host $host;
+  proxy_set_header X-Real-IP $remote_addr;
+  proxy_buffering off;
+  proxy_read_timeout 1h;
+}
+```
+
+The /graphql and /api locations are required so the frontend can reach the backend through the same domain.
 
 ✅ That’s it! You can now access the app securely at https://example.yourdomain.com.
 

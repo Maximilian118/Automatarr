@@ -2,6 +2,7 @@ import Resolvers from "../graphql/resolvers/resolvers"
 import { settingsDocType } from "../models/settings"
 import { dynamicLoop } from "../shared/dynamicLoop"
 import { collectStats } from "../shared/statsCollector"
+import { withActivitySource } from "../shared/activity"
 import backups from "./backups"
 import permissions_change from "./permissions_change"
 import queue_cleaner from "./queue_cleaner"
@@ -58,32 +59,32 @@ export const coreLoops = async (skipFirst?: boolean): Promise<void> => {
 export const coreLoopsOnce = async (settings: settingsDocType): Promise<void> => {
   // Check for monitored content in libraries that has not been downloaded and is wanted missing.
   if (settings.content_search) {
-    await content_search(settings._doc)
+    await withActivitySource("content_search", () => content_search(settings._doc))
   }
   // Check if any items in queues can not be automatically imported. If so, handle it depending on why.
   if (settings.queue_cleaner) {
-    await queue_cleaner(settings._doc)
+    await withActivitySource("queue_cleaner", () => queue_cleaner(settings._doc))
   }
   // Check for any failed downloads and delete them from the file system.
   if (settings.failed_cleanup) {
-    await failed_cleanup(settings._doc)
+    await withActivitySource("failed_cleanup", () => failed_cleanup(settings._doc))
   }
   // Note: user_pool_content_checker now runs at the end of getData to ensure fresh library data
   // Note: storage_cleaner now runs at the end of getData to ensure fresh library data
   // Check for any failed downloads and delete them from the file system.
   if (settings.library_cleanup) {
-    await library_cleanup(settings._doc)
+    await withActivitySource("library_cleanup", () => library_cleanup(settings._doc))
   }
   // Remove all unwanted files and directories in the provided paths.
   if (settings.tidy_directories) {
-    await tidy_directories(settings._doc)
+    await withActivitySource("tidy_directories", () => tidy_directories(settings._doc))
   }
   // Change ownership of Starr app root folders to users preference. (Useful to change ownership to Plex user)
   if (settings.permissions_change) {
-    await permissions_change(settings._doc)
+    await withActivitySource("permissions_change", () => permissions_change(settings._doc))
   }
   // Backup the settings and user pool data
   if (settings.backups) {
-    await backups(settings)
+    await withActivitySource("backups", () => backups(settings))
   }
 }

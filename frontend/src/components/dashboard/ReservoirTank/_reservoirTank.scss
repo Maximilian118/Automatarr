@@ -1,0 +1,88 @@
+@use "../../../scss/variables";
+
+.reservoir-tank {
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  overflow: visible;
+
+  .tank-body {
+    fill: variables.$basin-sunken;
+  }
+
+  .tank-outline {
+    fill: none;
+    stroke: variables.$line;
+    stroke-width: 2;
+  }
+
+  .tank-water-top {
+    stop-color: var(--water-top);
+  }
+
+  .tank-water-deep {
+    stop-color: var(--water-deep);
+  }
+
+  // The water rises from empty once, then the surface drifts for a few seconds and settles
+  .tank-water-rise {
+    animation: tank-rise 1.6s var(--ease-out) both;
+  }
+
+  .tank-water {
+    animation: tank-drift 2.4s linear 0.6s 2;
+  }
+
+  .tank-graduation {
+    stroke: variables.$ink;
+    stroke-opacity: 0.35;
+    stroke-width: 2;
+  }
+
+  .tank-limit {
+    line {
+      stroke: var(--threshold);
+      stroke-width: 2.5;
+      stroke-dasharray: 7 5;
+    }
+
+    text {
+      fill: var(--threshold);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+    }
+  }
+
+  .tank-level {
+    line {
+      stroke: variables.$ink;
+      stroke-width: 2.5;
+    }
+
+    text {
+      fill: variables.$ink;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 700;
+    }
+  }
+}
+
+@keyframes tank-rise {
+  from {
+    transform: translateY(260px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes tank-drift {
+  from {
+    transform: none;
+  }
+  to {
+    transform: translateX(156px);
+  }
+}

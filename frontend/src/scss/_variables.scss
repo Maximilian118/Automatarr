@@ -1,17 +1,38 @@
-// colours
-$white-hover: #C1C1C1;
-$off-black: #0f0f0f;
-$mui-success: #66bb6a;
-$mui-error: #F44336;
-$mui-disabled: #757575;
-$mui-hover: #90caf9;
-$mui-off-white: rgba(255, 255, 255, 0.7);
-$mui-border: rgba(255, 255, 255, 0.23);
+// Legacy colour names mapped onto the Reservoir tokens so existing component styles follow the theme
+$white-hover: var(--ink);
+$off-black: var(--basin);
+$mui-success: var(--good);
+$mui-error: var(--outflow);
+$mui-disabled: var(--ink-muted);
+$mui-hover: var(--accent);
+$mui-off-white: var(--ink-muted);
+$mui-border: var(--line);
 
-// layout
+// Surfaces & ink
+$abyss: var(--abyss);
+$basin: var(--basin);
+$basin-raised: var(--basin-raised);
+$basin-sunken: var(--basin-sunken);
+$ink: var(--ink);
+$ink-muted: var(--ink-muted);
+$line: var(--line);
+$line-soft: var(--line-soft);
+$accent: var(--accent);
+$focus: var(--focus);
+
+// Layout
 $nav-height: 56px;
+$rail-width: 232px;
+$rail-compact-width: 96px;
+$bottom-bar-height: 68px;
 $grid-gap: 24px;
 $grid-padding: 24px;
+$content-max: 1440px;
+$measure: 72ch;
 
-// transitions
-$trans-speed: 0.2s ease;
+// Breakpoints
+$bp-tablet: 768px;
+$bp-desktop: 1200px;
+
+// Transitions
+$trans-speed: var(--duration) var(--ease-out);

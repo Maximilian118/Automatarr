@@ -1,0 +1,105 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Two columns on wide screens (brand + form), stacked on phones
+.auth-layout > main.auth-page {
+  max-width: 1080px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: var(--space-6);
+
+  @include mixins.tablet-up {
+    grid-template-columns: 1fr minmax(360px, 440px);
+    align-items: center;
+    column-gap: var(--space-8);
+  }
+
+  .site-footer {
+    grid-column: 1 / -1;
+  }
+}
+
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+
+  .auth-logo {
+    width: clamp(120px, 28vw, 220px);
+    height: auto;
+    animation: auth-logo-turn 40s linear infinite;
+  }
+
+  .auth-wordmark {
+    @include mixins.display(clamp(2.5rem, 8vw, 4.75rem), 780);
+    font-variation-settings: "wdth" 76;
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+  }
+
+  .auth-tagline {
+    color: variables.$ink-muted;
+    font-size: var(--step-1);
+    max-width: 30ch;
+  }
+}
+
+.auth-form {
+  @include mixins.surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-5);
+
+  h1 {
+    @include mixins.display(var(--step-4), 750);
+  }
+
+  .auth-intro p {
+    color: variables.$ink-muted;
+  }
+
+  .auth-fields {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+
+    .MuiTextField-root {
+      width: 100%;
+    }
+  }
+
+  .auth-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+
+    .btn-primary {
+      flex: 1;
+    }
+  }
+
+  .auth-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: var(--target);
+      font-weight: 600;
+    }
+  }
+}
+
+@keyframes auth-logo-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}

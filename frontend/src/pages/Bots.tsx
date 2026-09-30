@@ -1,7 +1,6 @@
-import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Send, SettingsSuggest } from "@mui/icons-material"
+import { SlidersHorizontal } from "lucide-react"
 import { getDiscordChannels, getQualityProfiles, getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
 import Footer from "../components/footer/Footer"
 import { BotPanel } from "../components/panel/botPanel/BotPanel"
@@ -11,11 +10,14 @@ import { botsErrType } from "../types/botType"
 import { updateInput } from "../shared/formValidation"
 import MUIAutocomplete from "../components/utility/MUIAutocomplete/MUIAutocomplete"
 import InputPanel from "../components/panel/inputPanel/InputPanel"
-import { formatBytes, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
+import { formatBytes, formHasErr, numberSelection, parseBytes, stringSelectionToNumber, toStringWithCap } from "../shared/utility"
 import { QualityProfile } from "../types/qualityProfileType"
 import { useNavigate } from "react-router-dom"
 import { AvailableBots } from "../types/settingsType"
 import ClaudePanel from "../components/ClaudePanel/ClaudePanel"
+import PageHeader from "../components/ui/PageHeader/PageHeader"
+import SaveBar from "../components/ui/SaveBar/SaveBar"
+import { useSaveFeedback } from "../shared/hooks/useSaveFeedback"
 
 const Bots: React.FC = () => {
   const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -28,6 +30,7 @@ const Bots: React.FC = () => {
   const [ autoInitOptions, setAutoInitOptions ] = useState<AvailableBots[]>([])
 
   const navigate = useNavigate()
+  const saveFeedback = useSaveFeedback(settings.updated_at, localLoading, "Bot settings")
 
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
@@ -47,6 +50,7 @@ const Bots: React.FC = () => {
   // Update settings object in db on submit
   const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    saveFeedback.beginSave(!formHasErr(formErr))
     await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
   }
 
@@ -66,10 +70,14 @@ const Bots: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
+      <PageHeader
+        title="Bots"
+        description="How people ask for content. Set pool limits for everyone, connect Discord, and switch on the Claude assistant."
+      />
       <div className="grid-layout">
       <InputPanel
         title="General"
-        startIcon={<SettingsSuggest/>}
+        startIcon={<SlidersHorizontal aria-hidden="true"/>}
         description={`
           Users must be approved by an admin before accessing the bots, at which point a content pool is created for them.
 
@@ -77,7 +85,7 @@ const Bots: React.FC = () => {
 
           An admin can assign Super Users, who have double the general limit.
 
-          Limits for a user can be overwitten by an admin to increase or reduce their pool size at any time.
+          Limits for a user can be overridden by an admin to increase or reduce their pool size at any time.
 
           Content in pools cannot be removed via loops.
         `}
@@ -300,15 +308,7 @@ const Bots: React.FC = () => {
       />
       </div>
       <div className="page-bottom">
-        <Button
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ?
-            <CircularProgress size={20} color="inherit"/> :
-            <Send color="inherit"/>
-          }
-        >Submit</Button>
+        <SaveBar loading={localLoading} status={saveFeedback.status} savedAt={saveFeedback.savedAt}/>
         <Footer/>
       </div>
     </form>

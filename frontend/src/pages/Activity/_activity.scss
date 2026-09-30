@@ -1,0 +1,168 @@
+@use "../../scss/variables";
+@use "../../scss/mixins";
+
+// Filter by source: pressed-state pills with a count each
+.activity-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+
+  .activity-filter-option {
+    @include mixins.focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--target);
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-pill);
+    border: 1px solid variables.$line;
+    background: transparent;
+    color: variables.$ink;
+    font-family: var(--font-body);
+    font-weight: 700;
+    cursor: pointer;
+
+    span {
+      color: variables.$ink-muted;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &[aria-pressed="true"] {
+      background: variables.$accent;
+      border-color: variables.$accent;
+      color: var(--accent-ink);
+
+      span {
+        color: var(--accent-ink);
+      }
+    }
+
+    @include mixins.hover {
+      border-color: variables.$accent;
+    }
+  }
+}
+
+.activity-feed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.activity-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+
+  // Day headings stay visible while scrolling through that day
+  .activity-day-heading {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: var(--space-2) 0;
+    background: variables.$abyss;
+    font-size: var(--step-1);
+  }
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.activity-item {
+  @include mixins.surface;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+
+  @include mixins.phone-only {
+    grid-template-columns: auto 1fr;
+
+    .activity-meta {
+      grid-column: 2;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+    }
+  }
+
+  .activity-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: variables.$basin-sunken;
+    color: var(--outflow);
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .activity-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .activity-title {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+
+  .activity-what,
+  .activity-reason {
+    color: variables.$ink-muted;
+  }
+
+  .activity-path {
+    color: variables.$ink-muted;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    overflow-wrap: anywhere;
+  }
+
+  .activity-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-1);
+    font-size: var(--step--1);
+
+    time {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .activity-source {
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    background: variables.$basin-sunken;
+    color: variables.$ink-muted;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+.activity-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4) 0;
+
+  p {
+    color: variables.$ink-muted;
+  }
+}

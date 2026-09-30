@@ -1,0 +1,110 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+// Fixed stack of toasts: above the bottom bar on phones, bottom-right on larger screens
+.toast-region {
+  position: fixed;
+  z-index: 1400;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: calc(variables.$bottom-bar-height + var(--space-4) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+
+  @include mixins.tablet-up {
+    left: auto;
+    right: var(--space-5);
+    bottom: var(--space-5);
+    width: min(420px, calc(100vw - 2 * var(--space-5)));
+  }
+}
+
+.toast-stack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.toast {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  background: variables.$basin;
+  color: variables.$ink;
+  border: 1px solid variables.$line;
+  border-left-width: 6px;
+  border-radius: var(--radius-control);
+  animation: toast-in 220ms var(--ease-out);
+
+  &.toast-success { border-left-color: var(--good); }
+  &.toast-error { border-left-color: var(--outflow); }
+  &.toast-info { border-left-color: var(--accent); }
+
+  .toast-icon {
+    display: flex;
+    padding-top: 10px;
+
+    svg {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  &.toast-success .toast-icon { color: var(--good); }
+  &.toast-error .toast-icon { color: var(--outflow); }
+  &.toast-info .toast-icon { color: var(--accent); }
+
+  .toast-text {
+    padding-block: 10px;
+  }
+
+  .toast-title {
+    font-weight: 700;
+  }
+
+  .toast-message {
+    color: variables.$ink-muted;
+  }
+
+  .toast-dismiss {
+    @include mixins.touch-target;
+    @include mixins.focus-ring(-2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-control);
+    color: variables.$ink-muted;
+    cursor: pointer;
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    @include mixins.hover {
+      background: var(--hover-wash);
+      color: variables.$ink;
+    }
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

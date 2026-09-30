@@ -2,124 +2,69 @@
 @use '../../scss/mixins';
 
 .lists-page {
-  // API sections
+  // One section per Starr app
   .lists-section {
-    width: 100%;
-    @include mixins.flexbox-start-column;
-    align-items: flex-start;
-    padding: 0 40px;
-    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
 
-    >:not(:last-child) {
-      margin-bottom: 16px;
-    }
-
-    // Section header with API logo, center stats, and new button
     .lists-section-header {
-      width: 100%;
-      @include mixins.flexbox-space-between;
-      position: relative;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3) var(--space-5);
 
       .lists-section-title {
-        @include mixins.flexbox-start;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
 
         img {
-          height: 28px;
-          width: 28px;
-          margin-right: 12px;
-          border-radius: 4px;
-        }
-
-        h2 {
-          color: white;
-        }
-      }
-
-      // Aggregate stats centered absolutely so left/right widths don't affect position
-      .lists-section-stats {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        @include mixins.flexbox;
-        gap: 16px;
-
-        .lists-stat {
-          @include mixins.flexbox;
-          gap: 4px;
-
-          .lists-stat-dot {
-            font-size: 10px;
-
-            &.downloaded {
-              color: variables.$mui-success;
-            }
-
-            &.downloading {
-              color: #ffa726;
-            }
-
-            &.missing {
-              color: variables.$mui-error;
-            }
-          }
-
-          span {
-            font-size: 0.8rem;
-            color: variables.$mui-off-white;
-            white-space: nowrap;
-          }
-
-          .lists-stat-size {
-            font-weight: 500;
-            color: white;
-          }
+          width: 32px;
+          height: 32px;
+          border-radius: 6px;
         }
       }
 
       .lists-new-btn {
-        color: white;
-        text-transform: none;
-        font-size: 1.2rem;
-        padding: 6px 16px;
+        margin-left: auto;
+      }
+    }
+
+    // Totals across all of this app's lists, each labelled
+    .lists-section-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2) var(--space-5);
+      margin: 0;
+
+      div {
+        display: flex;
+        flex-direction: column;
+      }
+
+      dt {
+        color: variables.$ink-muted;
+        font-size: var(--step--1);
+        font-weight: 600;
+      }
+
+      dd {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: var(--step-1);
+        font-weight: 700;
       }
     }
 
     .lists-inactive,
     .lists-empty {
-      color: variables.$mui-off-white;
-    }
-
-    .lists-loading {
-      width: 100%;
-      @include mixins.flexbox;
-      padding: 20px 0;
-    }
-
-    // Responsive grid of compact cards
-    .lists-grid {
-      width: 100%;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      color: variables.$ink-muted;
     }
   }
 
-}
-
-
-/* Styles for mobile devices */
-@media only screen and (max-width: 700px) {
-  .lists-page {
-    .lists-section {
-      padding: 0 16px;
-
-      .lists-section-header .lists-section-stats {
-        display: none;
-      }
-
-      .lists-grid {
-        flex-direction: column;
-      }
-    }
+  .lists-grid {
+    @include mixins.grid-layout(280px);
   }
 }

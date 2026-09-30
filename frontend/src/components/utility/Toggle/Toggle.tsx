@@ -9,21 +9,21 @@ interface ToggleType {
   disabled?: boolean
 }
 
+// A labelled switch. The whole row is the label, so tapping the text toggles it too
 const Toggle: React.FC<ToggleType> = ({ name, checked, onToggle, disabled }) => {
   const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      onToggle(event.target.checked)
-    }
+    onToggle(event.target.checked)
+  }
 
   return (
-    <div className="toggle">
-      <p>{name}</p>
+    <label className={`toggle${disabled ? " toggle-disabled" : ""}`}>
+      <span className="toggle-label">{name.replace(/:\s*$/, "")}</span>
       <Switch
         checked={checked}
         onChange={handleSwitchChange}
-        inputProps={{ 'aria-label': 'controlled' }}
         disabled={disabled}
       />
-    </div>
+    </label>
   )
 }
 

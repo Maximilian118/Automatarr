@@ -14,6 +14,7 @@ import { caseMonitor } from "../../cases/discordBotcaseMonitor"
 import { caseBlocklist } from "../../cases/discordBotcaseBlocklist"
 import { buildCommandMessage } from "../aiCommandMessage"
 import { ToolContext, ToolHandler, ToolInput, inputString, inputYear } from "./aiToolTypes"
+import { withActivitySource } from "../../../../shared/activity"
 
 // Only one action per engagement so the channel doesn't fill with command output
 const MAX_ACTIONS_PER_ENGAGEMENT = 1
@@ -114,7 +115,8 @@ const runAction = (name: string): ToolHandler => async (ctx: ToolContext, input:
   logger.bot(`AI Bot | ${ctx.identity.username} | Running \`${command}\` ${target ? `in #${target.name}` : ""}`)
 
   try {
-    const reply = await action.run(synthetic)
+    // Attribute any removals an AI action makes to the Discord bot
+    const reply = await withActivitySource("discord", () => action.run(synthetic))
     await sendDiscordMessage(synthetic, reply)
 
     return reply

@@ -3,32 +3,34 @@
 // Monthly spend summary with a budget progress bar
 .claude-panel-usage {
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 
   p {
-    color: variables.$mui-off-white;
-    margin-bottom: 8px;
+    color: variables.$ink-muted;
 
     strong {
-      color: white;
+      color: variables.$ink;
     }
-  }
-
-  .MuiLinearProgress-root {
-    height: 6px;
-    border-radius: 3px;
   }
 }
 
 // Small explanatory text under a setting
 .claude-panel-note {
-  color: variables.$mui-off-white;
-  font-size: 0.85rem;
-  margin-top: -10px;
+  color: variables.$ink-muted;
+  font-size: var(--step--1);
+  margin-top: calc(-1 * var(--space-3));
 }
 
-// Why the API key check failed
+// Why the API key check failed. Kept in the DOM so screen readers hear it when it appears
 .claude-panel-error {
-  color: variables.$mui-error;
-  font-size: 0.85rem;
-  margin-top: -10px;
+  color: var(--outflow);
+  font-size: var(--step--1);
+  font-weight: 700;
+  margin-top: calc(-1 * var(--space-3));
+
+  &:empty {
+    margin: 0;
+  }
 }

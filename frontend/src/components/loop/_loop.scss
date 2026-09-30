@@ -1,43 +1,55 @@
 @use '../../scss/mixins';
 @use '../../scss/variables';
 
+// One automation loop card
 .loop {
+  @include mixins.surface;
   width: 100%;
-  @include mixins.flexbox-start-column;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+
+  @include mixins.phone-only {
+    padding: var(--space-4);
+  }
 
   .title-and-toggle {
-    width: 100%;
-    @include mixins.flexbox-space-between;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
 
     .loop-title {
-      width: 100%;
-      @include mixins.flexbox-start;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      padding-top: 6px;
 
-      h4 {
-        width: auto;
+      h3 {
+        font-size: var(--step-2);
+        font-weight: 700;
       }
 
       .disabled-text {
-        padding-left: 5px;
-        color: variables.$mui-disabled;
-        font-size: 0.75rem;
-        white-space: nowrap;
+        color: variables.$ink-muted;
+        font-size: var(--step--1);
+        font-weight: 600;
       }
     }
   }
 
-  p {
-    width: 100%;
+  .loop-desc {
+    color: variables.$ink-muted;
   }
 
   .loop-params {
-    width: 100%;
-    @include mixins.flexbox-start-column;
-    align-items: start;
-
-    >* {
-      margin-top: 20px;
-      max-width: 265px;
-    }
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+    padding-top: var(--space-3);
+    border-top: 1px solid variables.$line-soft;
   }
 }

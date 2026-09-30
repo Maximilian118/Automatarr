@@ -1,17 +1,41 @@
+@use "./tokens";
 @use "./variables";
 @use "mixins";
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
-h1, h2, h3, h4, h5, h6, p, img {
-  margin: 0;
-  user-select: none;
-  color: white;
+// Predictable sizing everywhere
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
+h1, h2, h3, h4, h5, h6, p, figure {
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: variables.$ink;
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 88;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h1 { font-size: var(--step-4); font-weight: 750; }
+h2 { font-size: var(--step-2); font-weight: 650; }
+h3 { font-size: var(--step-1); font-weight: 650; }
+h4, h5, h6 { font-size: var(--step-0); font-weight: 650; }
+
+p {
+  color: variables.$ink;
+  max-width: variables.$measure;
+}
+
+// Links are always underlined so they never rely on colour alone
 a {
+  color: variables.$accent;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
   cursor: pointer;
-  text-decoration: none;
-  color: white;
+  @include mixins.focus-ring;
 }
 
 html, body {
@@ -20,146 +44,159 @@ html, body {
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Roboto', sans-serif;
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: variables.$ink;
+  background: variables.$abyss;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: black;
+  overflow-x: hidden;
+}
 
-  #root {
-    min-height: 100%;
-    @include mixins.flexbox-column;
+::selection {
+  background: variables.$accent;
+  color: var(--accent-ink);
+}
 
-    // Consistent layout for all pages: margin-top for nav spacing, padding for content spacing
-    main, form {
-      margin-top: variables.$nav-height;
-      padding: 20px variables.$grid-padding;
-      @include mixins.flexbox-start-column;
-      flex-shrink: 0;
-      width: 100%;
-      box-sizing: border-box;
+// A consistent focus ring for every focusable element, including MUI inputs
+:focus-visible {
+  outline: 3px solid variables.$focus;
+  outline-offset: 2px;
+}
 
-      >:not(:last-child) {
-        margin-bottom: 20px;
-      }
-    }
-
-    // Responsive grid layout for panel-based pages (420px fixed-width columns)
-    .grid-layout {
-      @include mixins.grid-layout(420px);
-      > * { margin-bottom: 0; }
-    }
-
-    // Section header that spans all grid columns for grouping cards
-    .grid-section-header {
-      grid-column: 1 / -1;
-      @include mixins.flexbox-start-column;
-      align-items: flex-start;
-      margin-bottom: 0;
-
-      .section-title {
-        @include mixins.flexbox-start;
-        margin-bottom: 8px;
-
-        svg {
-          height: 30px;
-          width: 30px;
-          margin-right: 9px;
-          color: white;
-        }
-      }
-
-      p {
-        color: variables.$mui-off-white;
-        margin: 0;
-      }
-    }
-
-    // Responsive grid layout for graph-based pages (800px fixed-width columns)
-    .grid-layout-graphs {
-      @include mixins.grid-layout(800px);
-      > * { margin-bottom: 0; }
-    }
-
-    // Ensure pages fill viewport height so footer stays at the bottom
-    main, form {
-      flex-grow: 1;
-      min-height: calc(100vh - variables.$nav-height);
-    }
-
-    .login-form {
-      justify-content: center;
-      flex-grow: 1;
-      margin-top: 0;
-      padding: 0;
-      
-      img {
-        width: 300px;
-        animation: spin 20s linear infinite;
-      }
-    }
-
-    .button-bar {
-      width: 420px;
-      @include mixins.flexbox-space-evenly;
-    }
-
-    // Groups action buttons and footer together at the bottom of the page
-    .page-bottom {
-      margin-top: auto;
-      flex-shrink: 0;
-      @include mixins.flexbox-column;
-      width: 100%;
-    }
-
-    // Standalone footer pushed to the bottom when not inside .page-bottom
-    main > footer, form > footer {
-      margin-top: auto;
-      flex-shrink: 0;
-    }
+// Honour the reduced motion preference everywhere (WCAG 2.3.3)
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* Styles for mobile devices */
-@media only screen and (max-width: 768px) {
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  html, body {
-    overflow-x: hidden;
-  }
-  
-  body {
-    #root {
-      main, form {
-        padding: 20px 0;
-      }
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
-      .grid-layout, .grid-layout-graphs {
-        grid-template-columns: 1fr;
-        gap: 0;
-      }
+// Shared page shell: every routed page renders a <main> or <form> as its root
+.app-content > main,
+.app-content > form,
+.auth-layout > main,
+.auth-layout > form {
+  width: 100%;
+  min-width: 0;
+  max-width: variables.$content-max;
+  margin: 0 auto;
+  padding: var(--space-6) variables.$grid-padding var(--space-7);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-6);
+  flex-grow: 1;
 
-      .login-form {
-        justify-content: flex-start;
-
-        img {
-          width: 240px;
-          margin: 40px 0 60px;
-        }
-      }
-    }
+  @include mixins.phone-only {
+    padding: var(--space-5) var(--space-4) var(--space-6);
+    gap: var(--space-5);
   }
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+// Responsive grid for panel-based pages
+.grid-layout {
+  @include mixins.grid-layout(380px);
+}
+
+// Responsive grid for chart-based pages
+.grid-layout-graphs {
+  @include mixins.grid-layout(560px);
+}
+
+// Section header that spans all grid columns for grouping cards
+.grid-section-header {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+
+  &:first-child {
+    padding-top: 0;
   }
-  to {
-    transform: rotate(360deg);
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    svg {
+      width: 28px;
+      height: 28px;
+      color: variables.$accent;
+      flex-shrink: 0;
+    }
+
+    h2, h3, h4, h5, h6 {
+      font-size: var(--step-2);
+    }
+  }
+
+  p {
+    color: variables.$ink-muted;
+  }
+}
+
+// Row of actions, e.g. submit buttons
+.button-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+// Groups the primary page action and the footer together at the bottom of the page
+.page-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+// Footers placed directly in a page sit at the bottom
+.app-content > main > .site-footer,
+.app-content > form > .site-footer {
+  margin-top: auto;
+}
+
+// Hide content visually while keeping it available to assistive technology
+.visually-hidden {
+  @include mixins.visually-hidden;
+}
+
+// Vertical gap between paragraphs produced by multilineText()
+.multiline-gap {
+  height: 1em;
+}
+
+// A full-width message block for errors and empty states
+.page-message {
+  @include mixins.surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6);
+
+  p {
+    color: variables.$ink-muted;
   }
 }

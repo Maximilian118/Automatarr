@@ -1,7 +1,6 @@
-import { Button, CircularProgress } from "@mui/material"
 import React, { FormEvent, HTMLInputTypeAttribute, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { LiveTv, Send } from "@mui/icons-material"
+import { Tv } from "lucide-react"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
@@ -10,6 +9,10 @@ import Footer from "../components/footer/Footer"
 import MUITextField from "../components/utility/MUITextField/MUITextField"
 import { updateInput } from "../shared/formValidation"
 import { useNavigate } from "react-router-dom"
+import PageHeader from "../components/ui/PageHeader/PageHeader"
+import SaveBar from "../components/ui/SaveBar/SaveBar"
+import { useSaveFeedback } from "../shared/hooks/useSaveFeedback"
+import { formHasErr } from "../shared/utility"
 
 const Connections: React.FC = () => {
   const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -17,7 +20,8 @@ const Connections: React.FC = () => {
   const [ formErr, setFormErr ] = useState<settingsErrorType>(initSettingsErrors())
 
   const navigate = useNavigate()
-  
+  const saveFeedback = useSaveFeedback(settings.updated_at, localLoading, "Connections")
+
   // Get latest settings from db on page load if settings has not been populated
   useEffect(() => {
     if (!settings.updated_at) {
@@ -26,10 +30,11 @@ const Connections: React.FC = () => {
   }, [user, setUser, settings, setSettings, navigate])
 
   // Update settings object in db on submit
-    const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
-    }
+  const onSubmitHandler = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    saveFeedback.beginSave(!formHasErr(formErr))
+    await updateSettings(setLocalLoading, settings, setSettings, user, setUser, navigate, formErr)
+  }
 
   // On localLoading change, change global loading as well
   useEffect(() => {
@@ -51,6 +56,10 @@ const Connections: React.FC = () => {
 
   return (
     <form onSubmit={e => onSubmitHandler(e)}>
+      <PageHeader
+        title="Connections"
+        description="Where Automatarr finds your apps. Each service is checked when you save, and its status updates straight away."
+      />
       <div className="grid-layout">
         <InputPanel
           title="Radarr"
@@ -87,7 +96,7 @@ const Connections: React.FC = () => {
         </InputPanel>
         <InputPanel
           title="Plex"
-          startIcon={<LiveTv/>}
+          startIcon={<Tv aria-hidden="true"/>}
           status={settings.plex_active ? "Connected" : "Disconnected"}
           description={`
             Optional. Lets the Claude AI bot see what people are watching so it can chat about it and make better recommendations.
@@ -98,15 +107,7 @@ const Connections: React.FC = () => {
         </InputPanel>
       </div>
       <div className="page-bottom">
-        <Button
-          type="submit"
-          variant="contained"
-          sx={{ margin: "20px 0" }}
-          endIcon={localLoading ?
-            <CircularProgress size={20} color="inherit"/> :
-            <Send color="inherit"/>
-          }
-        >Submit</Button>
+        <SaveBar loading={localLoading} status={saveFeedback.status} savedAt={saveFeedback.savedAt} label="Save and check connections"/>
         <Footer/>
       </div>
     </form>

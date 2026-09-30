@@ -1,0 +1,124 @@
+@use "../../scss/variables";
+@use "../../scss/mixins";
+
+.dashboard {
+  .dashboard-error {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    border: 2px solid var(--outflow);
+    border-radius: var(--radius-control);
+    color: var(--outflow);
+    font-weight: 700;
+
+    svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    p {
+      color: inherit;
+    }
+  }
+}
+
+// The reservoir hero: the tank on the left, figures on the right; stacked on phones
+.dashboard-hero {
+  @include mixins.surface;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background:
+    radial-gradient(120% 90% at 0% 100%, color-mix(in srgb, var(--water-deep) 22%, transparent) 0%, transparent 60%),
+    variables.$basin;
+
+  @include mixins.tablet-up {
+    grid-template-columns: minmax(220px, 340px) 1fr;
+    align-items: center;
+    padding: var(--space-6);
+  }
+
+  .dashboard-hero-tank {
+    display: flex;
+    justify-content: center;
+  }
+
+  .dashboard-hero-figures {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .dashboard-hero-used {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2) var(--space-3);
+
+    strong {
+      @include mixins.display(clamp(2.75rem, 9vw, 4.5rem), 800);
+      font-variation-settings: "wdth" 78;
+      letter-spacing: -0.035em;
+    }
+
+    span {
+      color: variables.$ink-muted;
+      font-size: var(--step-1);
+    }
+  }
+
+  .dashboard-hero-free {
+    font-size: var(--step-2);
+    font-weight: 700;
+    color: var(--inflow);
+  }
+
+  .dashboard-hero-warning {
+    display: flex;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    border: 2px solid var(--threshold);
+    border-radius: var(--radius-control);
+    color: variables.$ink;
+    font-weight: 600;
+
+    svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+      color: var(--threshold);
+    }
+  }
+}
+
+.dashboard-flow {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+
+  .stat-tile {
+    background: variables.$basin-raised;
+  }
+}
+
+.dashboard-charts {
+  @include mixins.grid-layout(480px);
+}
+
+.dashboard-system {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  .dashboard-system-grid {
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-3);
+  }
+}

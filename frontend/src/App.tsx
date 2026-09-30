@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import AppContext from './context'
 import "./scss/base.scss"
-import Nav from './components/nav/Nav'
 import Router from './Router'
+import AppShell from './components/shell/AppShell/AppShell'
+import ToastProvider from './components/toast/ToastProvider/ToastProvider'
 import { initData, initSettings } from './shared/init'
 import { settingsType } from './types/settingsType'
 import { dataType } from './types/dataType'
@@ -35,12 +36,23 @@ const App: React.FC = () => {
         // 401 is handled by the interceptor; other errors are non-fatal on startup.
       })
     }
+    // Runs once on load only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
     <AppContext.Provider value={{ user, setUser, settings, setSettings, data, setData, loading, setLoading }}>
-      {user.token && <Nav loading={loading}/>}
-      <Router user={user}/>
+      <ToastProvider>
+        {user.token ? (
+          <AppShell loading={loading}>
+            <Router user={user}/>
+          </AppShell>
+        ) : (
+          <div className="auth-layout">
+            <Router user={user}/>
+          </div>
+        )}
+      </ToastProvider>
     </AppContext.Provider>
   )
 }

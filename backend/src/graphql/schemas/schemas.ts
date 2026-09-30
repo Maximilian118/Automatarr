@@ -13,6 +13,8 @@ import userSchema from "./userSchema"
 import statsSchema from "./statsSchema"
 import importListSchema from "./importListSchema"
 import aiSchema from "./aiSchema"
+import activitySchema from "./activitySchema"
+import dashboardSchema from "./dashboardSchema"
 
 const Schema = buildSchema(`
   ${miscSchema}
@@ -29,10 +31,13 @@ const Schema = buildSchema(`
   ${statsSchema}
   ${importListSchema}
   ${aiSchema}
+  ${activitySchema}
+  ${dashboardSchema}
 
   type RootQuery {
     login(name: String!, password: String!): User!
     forgot(recovery_key: String!): User!
+    hasAccount: Boolean!
     getSettings: Settings
     getChildPaths(path: String): StringArr!
     getDiscordChannels(server_name: String!): StringArr!
@@ -56,6 +61,9 @@ const Schema = buildSchema(`
     getAIUsage: AIUsageReturn!
     getBotMemories: BotMemoriesReturn!
     getPlexAccounts: PlexAccountsReturn!
+    getActivity(before: String, limit: Int, source: String): ActivityPage!
+    getLoopStatus: LoopStatusResult!
+    getRecentArrivals(limit: Int): RecentArrivalsResult!
   }
 
   type RootMutation {

@@ -3,6 +3,7 @@ import { sendDiscordMessage } from "./discordBotUtility"
 import { adminCheck } from "./discordBotUtility"
 import logger from "../../logger"
 import { randomCrashedMessage } from "./discordBotRandomReply"
+import { withActivitySource } from "../../shared/activity"
 
 type CaseFunction = (message: Message) => Promise<string>
 
@@ -20,7 +21,8 @@ export const handleDiscordCase = async (
       }
     }
 
-    const reply = await caseFn(message)
+    // Attribute any removals a command makes to the Discord bot
+    const reply = await withActivitySource("discord", () => caseFn(message))
     await sendDiscordMessage(message, reply)
   } catch (err) {
     logger.error(`Command failed: ${message.content}`, err)

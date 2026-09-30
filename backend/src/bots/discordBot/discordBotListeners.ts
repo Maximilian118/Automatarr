@@ -120,7 +120,7 @@ export const messageListeners = async (client: Client) => {
         await handleDiscordCase(message, caseSearch)
         break
       case "test": // Test webhook notifications
-        await handleDiscordCase(message, caseTest)
+        await handleDiscordCase(message, caseTest, true)
         break
       default: // Unknown command. The AI works out what they meant if it's available.
         await handleDiscordCase(message, (m) =>
