@@ -1,0 +1,185 @@
+@use "../../scss/variables";
+@use "../../scss/mixins";
+
+// The logs page fills the viewport so the viewer can take all remaining height
+.logs-page {
+  min-height: 0;
+}
+
+.logs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+
+  .logs-toolbar-actions {
+    min-width: 260px;
+  }
+}
+
+// Live indicator: a word plus an icon, so state never depends on colour
+.logs-live {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid variables.$line;
+  color: variables.$ink-muted;
+  font-weight: 700;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &.is-live {
+    border-color: var(--good);
+    color: var(--good);
+  }
+}
+
+.logs-frame {
+  position: relative;
+}
+
+// Scroll container for the virtual list
+.logs-viewer {
+  @include mixins.focus-ring;
+  height: calc(100dvh - 300px);
+  min-height: 320px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: variables.$basin-sunken;
+  border: 1px solid variables.$line-soft;
+  border-radius: var(--radius-surface);
+
+  @include mixins.phone-only {
+    height: calc(100dvh - 360px);
+  }
+}
+
+.logs-canvas {
+  position: relative;
+  width: 100%;
+}
+
+.logs-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+// Date separator between days
+.logs-day {
+  margin: var(--space-2) var(--space-3) var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: variables.$basin;
+  border: 1px solid variables.$line-soft;
+  font-weight: 700;
+  width: fit-content;
+  max-width: none;
+}
+
+// One log line: time, level, message
+.logs-line {
+  display: grid;
+  grid-template-columns: auto 7.5em 1fr;
+  gap: var(--space-3);
+  padding: 3px var(--space-4);
+  max-width: none;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+
+  @include mixins.phone-only {
+    grid-template-columns: auto 1fr;
+
+    .logs-message {
+      grid-column: 1 / -1;
+    }
+  }
+
+  time {
+    color: variables.$ink-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .logs-level {
+    font-weight: 700;
+  }
+
+  .logs-message {
+    color: variables.$ink;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+
+  &.level-catastrophic,
+  &.level-error {
+    background: color-mix(in srgb, var(--outflow) 10%, transparent);
+
+    .logs-level {
+      color: var(--outflow);
+    }
+  }
+
+  &.level-warn .logs-level {
+    color: var(--threshold);
+  }
+
+  &.level-success .logs-level {
+    color: var(--good);
+  }
+
+  &.level-loop .logs-level,
+  &.level-bot .logs-level {
+    color: var(--inflow);
+  }
+
+  &.level-info .logs-level,
+  &.level-debug .logs-level {
+    color: variables.$ink-muted;
+  }
+}
+
+.logs-edge {
+  padding: var(--space-2) var(--space-4);
+  color: variables.$ink-muted;
+  font-size: var(--step--1);
+  max-width: none;
+}
+
+// Small floating notice while a page of lines loads
+.logs-loading {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background: variables.$basin;
+  border: 1px solid variables.$line;
+  font-size: var(--step--1);
+  font-weight: 700;
+  pointer-events: none;
+
+  &.at-top {
+    top: var(--space-3);
+  }
+
+  &.at-bottom {
+    bottom: var(--space-3);
+  }
+}
+
+// Floating button back to the newest line
+.logs-jump.btn {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+}
