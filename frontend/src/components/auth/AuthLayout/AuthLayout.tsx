@@ -1,5 +1,5 @@
 import React, { FormEvent, ReactNode } from "react"
-import logo from "../../../assets/logo.webp"
+import logoCircle from "../../../assets/logo-circle.webp"
 import Footer from "../../footer/Footer"
 import "./_authLayout.scss"
 
@@ -16,7 +16,7 @@ interface AuthLayoutProps {
 const AuthLayout: React.FC<AuthLayoutProps> = ({ title, intro, onSubmit, children, actions, links }) => (
   <main className="auth-page">
     <div className="auth-brand">
-      <img src={logo} alt="" className="auth-logo" width={220} height={165} />
+      <img src={logoCircle} alt="" className="auth-logo" width={220} height={220} />
       <p className="auth-wordmark">automatarr</p>
       <p className="auth-tagline">Downloads flow in. Cleanups flow out. Your storage never overflows.</p>
     </div>

@@ -33,7 +33,7 @@ const AppShell: React.FC<AppShellProps> = ({ children, loading }) => {
       <NavRail onLogout={handleLogout} />
       <div className="app-shell-main">
         <header className="app-shell-topbar">
-          <img src={logo} alt="" width={32} height={32} />
+          <img src={logo} alt="" width={42} height={32} />
           <span className="app-shell-wordmark">automatarr</span>
         </header>
         <div className="app-content" id="content" tabIndex={-1}>

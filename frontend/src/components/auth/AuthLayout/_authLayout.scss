@@ -28,9 +28,12 @@
   align-items: flex-start;
   gap: var(--space-3);
 
+  // The circle sits centred on a wider transparent canvas; cropping to a square keeps the spin centred
   .auth-logo {
     width: clamp(120px, 28vw, 220px);
     height: auto;
+    aspect-ratio: 1;
+    object-fit: cover;
     animation: auth-logo-turn 40s linear infinite;
   }
 

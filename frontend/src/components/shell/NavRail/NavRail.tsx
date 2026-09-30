@@ -14,7 +14,7 @@ interface NavRailProps {
 const NavRail: React.FC<NavRailProps> = ({ onLogout }) => (
   <aside className="nav-rail">
     <NavLink to="/" className="nav-rail-brand" aria-label="Automatarr dashboard">
-      <img src={logo} alt="" width={40} height={40} />
+      <img src={logo} alt="" width={53} height={40} />
       <span className="nav-rail-wordmark">automatarr</span>
     </NavLink>
     <nav aria-label="Main">
