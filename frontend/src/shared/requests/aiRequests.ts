@@ -1,7 +1,7 @@
 import axios from "axios"
 import { getAxiosErrorMessage, headers } from "./requestUtility"
 import { populateSettings } from "./requestPopulation"
-import { AIModel, AIUsage, BotMemory, BotMemoryPreferences, PlexAccountOption } from "../../types/aiType"
+import { AIModel, AIUsage, BotMemory, BotMemoryPreferences, NicknameTarget, PlexAccountOption } from "../../types/aiType"
 import { settingsType } from "../../types/settingsType"
 
 // Population fields for a bot memory request
@@ -13,6 +13,8 @@ const populateBotMemories = `
       text
       created_at
     }
+    nicknames
+    bot_nicknames
     preferences {
       private
       learning
@@ -62,7 +64,7 @@ export const getAIUsage = async (): Promise<AIUsage> => {
     "getAIUsage",
     `query {
       getAIUsage {
-        data { month requests input_tokens output_tokens cache_read_tokens cache_write_tokens cost_usd }
+        data { month requests input_tokens output_tokens cache_read_tokens cache_write_tokens web_searches cost_usd }
         tokens
       }
     }`,
@@ -87,6 +89,22 @@ export const deleteBotMemoryNote = async (discord_id: string, index: number): Pr
       deleteBotMemoryNote(discord_id: $discord_id, index: $index) { ${populateBotMemories} }
     }`,
     { discord_id, index },
+  )
+  return res.data
+}
+
+// Delete one nickname. target "them" is what Automatarr calls the user, "you" is what the user calls Automatarr.
+export const deleteBotNickname = async (
+  discord_id: string,
+  target: NicknameTarget,
+  index: number,
+): Promise<BotMemory[]> => {
+  const res = await aiRequest<{ data: BotMemory[] }>(
+    "deleteBotNickname",
+    `mutation DeleteBotNickname($discord_id: String!, $target: String!, $index: Int!) {
+      deleteBotNickname(discord_id: $discord_id, target: $target, index: $index) { ${populateBotMemories} }
+    }`,
+    { discord_id, target, index },
   )
   return res.data
 }

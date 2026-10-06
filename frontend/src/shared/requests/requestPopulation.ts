@@ -146,6 +146,7 @@ export const populateSettings = `
     chat
     command_help
     recommendations
+    web_search
   }
   lockout
   lockout_attempts

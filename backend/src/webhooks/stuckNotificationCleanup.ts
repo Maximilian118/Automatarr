@@ -2,10 +2,10 @@ import { Collection, Message, TextChannel } from "discord.js"
 import Settings, { settingsDocType } from "../models/settings"
 import logger from "../logger"
 import { getDiscordClient } from "../bots/discordBot/discordBot"
-import { getMovie } from "../shared/RadarrStarrRequests"
-import { getSonarrSeries } from "../shared/SonarrStarrRequests"
+import { getMovie, getRadarrQueue } from "../shared/RadarrStarrRequests"
+import { getSonarrQueue, getSonarrSeries } from "../shared/SonarrStarrRequests"
 import { sendDiscordNotification } from "../bots/discordBot/discordBotUtility"
-import { WebHookWaitingType } from "../models/webhook"
+import WebHook, { DiscordDataType, WebHookType, WebHookWaitingType } from "../models/webhook"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import {
@@ -21,6 +21,33 @@ const SERIES_GRACE_PERIOD = 2 * 60 * 60 * 1000 // 2 hours
 // "Not Found" grace periods - how long to wait before marking as missing
 const MOVIE_NOT_FOUND_PERIOD = 8 * 60 * 60 * 1000 // 8 hours
 const SERIES_NOT_FOUND_PERIOD = 24 * 60 * 60 * 1000 // 24 hours
+
+// Work out who a stuck notification is for. The message was posted by the bot, so its author is never
+// the requester. Uses the waiting webhook that still tracks the message, then any mention in the embed.
+// Author fields are left empty when nobody can be found, which skips the follow-up ping.
+const requesterFor = async (message: Message): Promise<DiscordDataType> => {
+  const base = { guildId: message.guild?.id ?? "", channelId: message.channel.id, messageId: message.id }
+
+  const webhook = (await WebHook.findOne().lean()) as WebHookType | null
+  const tracked = webhook?.waiting.find((w) => w.sentMessageId === message.id && w.discordData?.authorId)?.discordData
+  if (tracked) {
+    return { ...base, authorId: tracked.authorId, authorUsername: tracked.authorUsername, authorMention: tracked.authorMention }
+  }
+
+  const id = message.embeds[0]?.description?.match(/<@!?(\d+)>/)?.[1]
+  return {
+    ...base,
+    authorId: id ?? "",
+    authorUsername: id ? (message.client.users.cache.get(id)?.username ?? id) : "unknown",
+    authorMention: id ? `<@${id}>` : "",
+  }
+}
+
+// Check whether Radarr or Sonarr is still downloading something, so a slow download isn't marked "Not Found"
+const stillInQueue = async (settings: settingsDocType, type: "movie" | "series", id: number): Promise<boolean> => {
+  const queue = type === "movie" ? await getRadarrQueue(settings, false) : await getSonarrQueue(settings, false)
+  return queue.some((q) => (type === "movie" ? q.movieId === id : q.seriesId === id))
+}
 
 // Check if a Discord message is a "downloading" webhook notification
 const isDownloadingNotification = (message: Message): boolean => {
@@ -256,6 +283,8 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           continue
         }
 
+        const requester = await requesterFor(message)
+
         if (movieData.hasFile) {
           // Movie is downloaded but notification is still showing "downloading"
           logger.warn(
@@ -266,31 +295,21 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           const webhookNotification: WebHookWaitingType = {
             APIName: "Radarr",
             bots: ["Discord"],
-            discordData: {
-              guildId: message.guild?.id ?? "",
-              channelId: message.channel.id,
-              authorId: message.author.id,
-              authorUsername: message.author.username,
-              authorMention: message.author.toString(),
-              messageId: message.id,
-            },
+            discordData: requester,
             whatsappData: null,
             content: movieData.movie,
             seasons: [],
             episodes: [],
             waitForStatus: "Import",
             status: "ready",
-            message: randomMovieReadyMessage(
-              message.author.toString(),
-              movieData.movie.title,
-            ),
+            message: randomMovieReadyMessage(requester.authorMention || "folks", movieData.movie.title),
             sentMessageId: message.id, // This will edit the existing message
             created_at: new Date(),
           }
 
           // Send the "Ready" notification (will edit the existing message)
           await sendDiscordNotification(webhookNotification)
-        } else if (messageAge >= MOVIE_NOT_FOUND_PERIOD) {
+        } else if (messageAge >= MOVIE_NOT_FOUND_PERIOD && !(await stillInQueue(settings, "movie", movieData.movie.id))) {
           // Movie not downloaded and grace period exceeded - mark as "Not Found"
           logger.warn(
             `stuckNotificationCleanup | Found stuck "Downloading" notification for movie "${title}" (${year}) in channel "${movieChannelName}". Movie has not been downloaded after ${Math.floor(messageAge / 60000)} minutes. Marking as "Not Found".`,
@@ -300,14 +319,7 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           const webhookNotification: WebHookWaitingType = {
             APIName: "Radarr",
             bots: ["Discord"],
-            discordData: {
-              guildId: message.guild?.id ?? "",
-              channelId: message.channel.id,
-              authorId: message.author.id,
-              authorUsername: message.author.username,
-              authorMention: message.author.toString(),
-              messageId: message.id,
-            },
+            discordData: requester,
             whatsappData: null,
             content: movieData.movie,
             seasons: [],
@@ -363,6 +375,8 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           continue
         }
 
+        const requester = await requesterFor(message)
+
         if (seriesData.isComplete) {
           // Series is downloaded but notification is still showing "downloading"
           logger.warn(
@@ -373,31 +387,21 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           const webhookNotification: WebHookWaitingType = {
             APIName: "Sonarr",
             bots: ["Discord"],
-            discordData: {
-              guildId: message.guild?.id ?? "",
-              channelId: message.channel.id,
-              authorId: message.author.id,
-              authorUsername: message.author.username,
-              authorMention: message.author.toString(),
-              messageId: message.id,
-            },
+            discordData: requester,
             whatsappData: null,
             content: seriesData.series,
             seasons: [],
             episodes: [],
             waitForStatus: "Import",
             status: "ready",
-            message: randomSeriesReadyMessage(
-              message.author.toString(),
-              seriesData.series.title,
-            ),
+            message: randomSeriesReadyMessage(requester.authorMention || "folks", seriesData.series.title),
             sentMessageId: message.id, // This will edit the existing message
             created_at: new Date(),
           }
 
           // Send the "Ready" notification (will edit the existing message)
           await sendDiscordNotification(webhookNotification)
-        } else if (messageAge >= SERIES_NOT_FOUND_PERIOD) {
+        } else if (messageAge >= SERIES_NOT_FOUND_PERIOD && !(await stillInQueue(settings, "series", seriesData.series.id))) {
           // Series not downloaded and grace period exceeded - mark as "Not Found"
           logger.warn(
             `stuckNotificationCleanup | Found stuck "Downloading" notification for series "${title}" (${year}) in channel "${seriesChannelName}". Series has not been downloaded after ${Math.floor(messageAge / 60000)} minutes. Marking as "Not Found".`,
@@ -407,14 +411,7 @@ export const cleanupStuckNotifications = async (): Promise<void> => {
           const webhookNotification: WebHookWaitingType = {
             APIName: "Sonarr",
             bots: ["Discord"],
-            discordData: {
-              guildId: message.guild?.id ?? "",
-              channelId: message.channel.id,
-              authorId: message.author.id,
-              authorUsername: message.author.username,
-              authorMention: message.author.toString(),
-              messageId: message.id,
-            },
+            discordData: requester,
             whatsappData: null,
             content: seriesData.series,
             seasons: [],

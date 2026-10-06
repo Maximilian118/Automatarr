@@ -13,7 +13,11 @@ export type ToolContext = {
   isDirectMessage: boolean // Whether this conversation is happening in a DM
   preferences: BotMemoryPreferences // The speaker's privacy preferences
   actionsTaken: number // Content changing actions run so far this engagement
+  lookupsTaken: number // Read-only actions (lists, searches, stats) run so far this engagement
+  webLookupsTaken: number // Web lookups run so far this engagement
+  toolsUsed: number // Tools of any kind run so far this engagement
   postedByAction: boolean // Whether an action tool already posted a reply to the channel
+  heldReply: string // An action's reply held back so the AI can fold it into its own single reply
   silent: boolean // Set when the model chooses to stay silent
 }
 

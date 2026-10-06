@@ -1,7 +1,15 @@
 import { BotMemoryPreferences } from "../../../../models/botMemory"
 import logger from "../../../../logger"
 import { matchedDiscordUser } from "../../discordBotUtility"
-import { describePreferences, findMemory, forgetUser, rememberNote, updatePreferences } from "../aiMemory"
+import {
+  describePreferences,
+  findMemory,
+  forgetNote,
+  forgetUser,
+  rememberNote,
+  setNickname,
+  updatePreferences,
+} from "../aiMemory"
 import { getRequestHistory } from "../aiRequestLog"
 import { ToolContext, ToolHandler, ToolInput, inputBoolean, inputString } from "./aiToolTypes"
 
@@ -27,6 +35,30 @@ const remember: ToolHandler = async (ctx, input) => {
   return rememberNote(ctx.identity, fact)
 }
 
+// Forget one remembered fact about the speaker
+const forgetFact: ToolHandler = async (ctx, input) => {
+  const fact = inputString(input, "fact", 200)
+  if (!fact) return "Nothing to forget."
+
+  return forgetNote(ctx.identity, fact)
+}
+
+// Usernames and display names of everyone on the server, so nobody's name becomes a bot nickname
+const serverMemberNames = (ctx: ToolContext): string[] =>
+  [...(ctx.message.guild?.members.cache.values() ?? [])].flatMap((m) => [m.user.username, m.displayName])
+
+// Add or remove a nickname for the speaker, or for Automatarr as the speaker calls it
+const setNicknameTool: ToolHandler = async (ctx, input) => {
+  const target = input.for === "them" || input.for === "you" ? input.for : null
+  const nickname = inputString(input, "nickname", 40)
+  if (!target || !nickname) return "Not saved. Say who the nickname is for (them or you) and what it is."
+
+  const result = await setNickname(ctx.identity, target, nickname, inputBoolean(input, "remove") === true, serverMemberNames(ctx))
+  logger.bot(`AI Bot | ${ctx.identity.username} | Nickname for ${target} "${nickname}": ${result}`)
+
+  return result
+}
+
 // Change the speaker's own preferences
 const setMyPreferences: ToolHandler = async (ctx, input) => {
   const changes = preferenceChanges(input)
@@ -44,7 +76,7 @@ const forgetMe: ToolHandler = async (ctx) => {
   await forgetUser(ctx.identity.id)
   logger.bot(`AI Bot | Forgot everything about ${ctx.identity.username}`)
 
-  return "Done. Their remembered facts and request history are wiped. Their preferences were kept."
+  return "Done. Their remembered facts, nicknames and request history are wiped. Their preferences were kept."
 }
 
 // Privately DM the speaker everything stored about them
@@ -55,6 +87,8 @@ const sendMyDataByDM: ToolHandler = async (ctx) => {
   const text = [
     "🤐 **Here's everything I remember about you:**",
     `**Preferences:** ${describePreferences(ctx.preferences)}`,
+    `**What I call you:** ${memory?.nicknames?.length ? memory.nicknames.join(", ") : "just your name"}`,
+    `**What you call me:** ${memory?.bot_nicknames?.length ? memory.bot_nicknames.join(", ") : "Automatarr"}`,
     `**Notes:** ${memory?.notes.length ? memory.notes.map((n) => `\n• ${n.text}`).join("") : "nothing yet"}`,
     `**Recent requests:** ${history.length ? history.map((h) => `\n• ${h.action} ${h.title} (${h.year})`).join("") : "none logged"}`,
     "",
@@ -95,6 +129,8 @@ const setUserPreferences: ToolHandler = async (ctx, input) => {
 // Handlers for every self and admin tool, keyed by tool name
 export const SELF_HANDLERS: Record<string, ToolHandler> = {
   remember,
+  forget_fact: forgetFact,
+  set_nickname: setNicknameTool,
   set_my_preferences: setMyPreferences,
   forget_me: forgetMe,
   send_my_data_by_dm: sendMyDataByDM,

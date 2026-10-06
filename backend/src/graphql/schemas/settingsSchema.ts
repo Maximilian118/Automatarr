@@ -59,6 +59,7 @@ const settingsSchema = `
     chat: Boolean!
     command_help: Boolean!
     recommendations: Boolean!
+    web_search: Boolean!
   }
 
   type Settings {
@@ -163,6 +164,7 @@ const settingsSchema = `
     chat: Boolean
     command_help: Boolean
     recommendations: Boolean
+    web_search: Boolean
   }
 
   input settingsInput {

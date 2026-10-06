@@ -4,12 +4,14 @@ import "./_aiMemories.scss"
 import { BotMemory, BotMemoryPreferences } from "../../types/aiType"
 import {
   deleteBotMemoryNote,
+  deleteBotNickname,
   forgetBotUser,
   getBotMemories,
   updateBotMemoryPreferences,
 } from "../../shared/requests/aiRequests"
 import ConfirmButton from "../ui/ConfirmButton/ConfirmButton"
 import { useToast } from "../../shared/toast/useToast"
+import NicknameTags from "./NicknameTags/NicknameTags"
 
 // Preference flags shown as toggle buttons, with the label describing the flag when it is on
 const preferenceChips: { key: keyof BotMemoryPreferences; label: string; inverted?: boolean }[] = [
@@ -84,6 +86,26 @@ const AIMemories: React.FC = () => {
                 )
               })}
             </div>
+            <NicknameTags
+              label="Called"
+              nicknames={memory.nicknames}
+              disabled={busy === memory.discord_id}
+              onRemove={(index) => update(
+                memory.discord_id,
+                () => deleteBotNickname(memory.discord_id, "them", index),
+                "Couldn't remove the nickname",
+              )}
+            />
+            <NicknameTags
+              label="Calls Automatarr"
+              nicknames={memory.bot_nicknames}
+              disabled={busy === memory.discord_id}
+              onRemove={(index) => update(
+                memory.discord_id,
+                () => deleteBotNickname(memory.discord_id, "you", index),
+                "Couldn't remove the nickname",
+              )}
+            />
             {memory.notes.length === 0 ? (
               <p className="ai-memory-empty">Nothing remembered yet.</p>
             ) : (
@@ -133,7 +155,7 @@ const AIMemories: React.FC = () => {
               <ConfirmButton
                 label="Forget"
                 confirmLabel={`Forget ${memory.username}`}
-                question={`Forget everything about ${memory.username}? Their notes and request history are wiped; their preferences stay.`}
+                question={`Forget everything about ${memory.username}? Their notes, nicknames and request history are wiped; their preferences stay.`}
                 icon={<Trash2 aria-hidden="true"/>}
                 loading={busy === memory.discord_id}
                 onConfirm={() => update(memory.discord_id, () => forgetBotUser(memory.discord_id), `Couldn't forget ${memory.username}`)}

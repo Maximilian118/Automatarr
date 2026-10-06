@@ -120,7 +120,7 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
         }}
       />
       <div className="claude-panel-usage">
-        <p id="claude-panel-spend">Spent this month: <strong>${spent.toFixed(2)}</strong> of ${ai.monthly_budget.toFixed(2)}{usage ? `, across ${usage.requests.toLocaleString()} requests` : ""}</p>
+        <p id="claude-panel-spend">Spent this month: <strong>${spent.toFixed(2)}</strong> of ${ai.monthly_budget.toFixed(2)}{usage ? `, across ${usage.requests.toLocaleString()} requests` : ""}{usage?.web_searches ? ` and ${usage.web_searches.toLocaleString()} web searches` : ""}</p>
         <LinearProgress
           variant="determinate"
           value={budgetUsed}
@@ -145,6 +145,14 @@ const ClaudePanel: React.FC<ClaudePanelType> = ({ settings, setSettings, formErr
       />
       <p className="claude-panel-note">
         Rare by design: at most once every few days to once a month across the whole server, when something new lands that someone will love or when someone comes back after a while. They go to the movie or series channel, or by DM for private users.
+      </p>
+      <Toggle
+        name="Web lookups"
+        checked={ai.web_search}
+        onToggle={(value) => updateAI({ web_search: value })}
+      />
+      <p className="claude-panel-note">
+        Lets Automatarr check film and TV sites for things it isn't sure about, like release dates, cast and news. Each lookup costs about $0.02, and web searches are capped at 60 a month.
       </p>
     </BotPanel>
   )

@@ -9,7 +9,10 @@ import { axiosErrorMessage } from "./requestError"
 import { recordActivity } from "./activity"
 
 // Get the Radarr Queue in circumstances where the API object isn't available
-export const getRadarrQueue = async (settings: settingsDocType): Promise<DownloadStatus[]> => {
+export const getRadarrQueue = async (
+  settings: settingsDocType,
+  logSuccess: boolean = true,
+): Promise<DownloadStatus[]> => {
   try {
     const res = await axios.get(
       cleanUrl(
@@ -18,7 +21,7 @@ export const getRadarrQueue = async (settings: settingsDocType): Promise<Downloa
     )
 
     if (requestSuccess(res.status)) {
-      logger.success(`Radarr | Retrieving Queue.`)
+      if (logSuccess) logger.success(`Radarr | Retrieving Queue.`)
 
       return res.data.records as DownloadStatus[]
     } else {

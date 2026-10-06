@@ -21,6 +21,8 @@ export type BotMemoryType = {
   discord_id: string // Discord snowflake ID. Stable even if the user changes their username
   username: string // The last known Discord username for this user
   notes: BotMemoryNote[] // Facts the AI has learnt about this user
+  nicknames: string[] // What this user likes to be called
+  bot_nicknames: string[] // What this user calls Automatarr. Wakes the bot for this user only
   preferences: BotMemoryPreferences // User controlled privacy and interaction preferences
   last_active_at: string | null // The last time this user interacted with the AI or a ! command
   last_recommended_at: string | null // The last time the AI sent this user a recommendation
@@ -63,6 +65,8 @@ const botMemorySchema = new mongoose.Schema<BotMemoryType>({
   discord_id: { type: String, required: true, unique: true },
   username: { type: String, required: true },
   notes: { type: [noteSchema], default: [] },
+  nicknames: { type: [String], default: [] },
+  bot_nicknames: { type: [String], default: [] },
   preferences: { type: preferencesSchema, default: initBotMemoryPreferences },
   last_active_at: { type: String, default: null },
   last_recommended_at: { type: String, default: null },

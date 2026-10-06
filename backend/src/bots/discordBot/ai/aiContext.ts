@@ -32,16 +32,41 @@ const MAX_ENTRY_LENGTH = 400
 
 const exchanges = new Map<string, Exchange>()
 
+// Things that happened for a user outside the chat, like a download finishing or command output
+// posted in another channel. Keyed by user only, so the bot knows about them wherever they chat next.
+type UserEvent = { text: string; at: number }
+
+// How many events are kept per user, and for how long
+const MAX_EVENTS = 5
+const EVENT_WINDOW_MS = 12 * 60 * 60 * 1000
+
+const userEvents = new Map<string, UserEvent[]>()
+
+// A user's own recent messages that the bot didn't respond to. If they then address the bot,
+// these give it the lead-up, e.g. a nickname it didn't recognise yet. Held briefly, never persisted.
+type Aside = { text: string; at: number }
+
+// How many unanswered messages are kept per user per channel, and for how long
+const MAX_ASIDES = 3
+const ASIDE_WINDOW_MS = 10 * 60 * 1000
+
+const asides = new Map<string, Aside[]>()
+
 // Build the map key for a user in a channel
 const exchangeKey = (channelId: string, userId: string): string => `${channelId}:${userId}`
 
-// Discard exchanges nobody has touched for a while
+// Discard exchanges nobody has touched for a while, and asides that have gone stale
 const pruneExchanges = (): void => {
   const cutoff = Date.now() - PRUNE_AFTER_MS
 
   exchanges.forEach((exchange, key) => {
     const last = exchange.entries[exchange.entries.length - 1]
     if (!last || last.at < cutoff) exchanges.delete(key)
+  })
+
+  const asideCutoff = Date.now() - ASIDE_WINDOW_MS
+  asides.forEach((list, key) => {
+    if (!list.some((a) => a.at > asideCutoff)) asides.delete(key)
   })
 }
 
@@ -101,6 +126,41 @@ export const inConversation = (channelId: string, userId: string): boolean => {
 export const endConversation = (channelId: string, userId: string): void => {
   const exchange = exchanges.get(exchangeKey(channelId, userId))
   if (exchange) exchange.lastBotReplyAt = 0
+}
+
+// Note something that happened for a user outside their chat with the bot
+export const recordUserEvent = (userId: string, text: string): void => {
+  const cutoff = Date.now() - EVENT_WINDOW_MS
+  const list = (userEvents.get(userId) ?? []).filter((e) => e.at > cutoff)
+
+  list.push({ text: text.slice(0, MAX_ENTRY_LENGTH), at: Date.now() })
+  userEvents.set(userId, list.slice(-MAX_EVENTS))
+}
+
+// Get a user's recent events, oldest first, with how long ago each happened
+export const getUserEvents = (userId: string): { text: string; at: number }[] => {
+  const cutoff = Date.now() - EVENT_WINDOW_MS
+  return (userEvents.get(userId) ?? []).filter((e) => e.at > cutoff)
+}
+
+// Note a message from a user that the bot didn't respond to
+export const recordAside = (channelId: string, userId: string, text: string): void => {
+  pruneExchanges()
+
+  const key = exchangeKey(channelId, userId)
+  const list = [...(asides.get(key) ?? []), { text: text.slice(0, MAX_ENTRY_LENGTH), at: Date.now() }]
+  asides.set(key, list.slice(-MAX_ASIDES))
+}
+
+// Get a user's recent unanswered messages in a channel, oldest first
+export const getAsides = (channelId: string, userId: string): string[] => {
+  const cutoff = Date.now() - ASIDE_WINDOW_MS
+  return (asides.get(exchangeKey(channelId, userId)) ?? []).filter((a) => a.at > cutoff).map((a) => a.text)
+}
+
+// Clear a user's unanswered messages once the bot has replied, so they aren't shown twice
+export const clearAsides = (channelId: string, userId: string): void => {
+  asides.delete(exchangeKey(channelId, userId))
 }
 
 // Get a user's recent exchange with Automatarr in a channel, oldest first

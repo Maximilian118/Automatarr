@@ -21,8 +21,9 @@ import { isTextBasedChannel } from "./discordBotTypeGuards"
 import { isMovie, isSeries } from "../../types/typeGuards"
 import { Series } from "../../types/seriesTypes"
 import { Movie } from "../../types/movieTypes"
-import { randomQualityNotFoundMessage } from "./discordBotRandomReply"
-import { recordBotReply } from "./ai/aiContext"
+import { randomProcessingMessage, randomQualityNotFoundMessage } from "./discordBotRandomReply"
+import { isAICommandMessage } from "./ai/aiCommandMessage"
+import { recordBotReply, recordUserEvent } from "./ai/aiContext"
 
 // Handle errors
 export const handleDiscordErrors = (client: Client) => {
@@ -109,6 +110,27 @@ export const sendDiscordMessage = async (
   }
 }
 
+// Let a user know a slow command is underway. Skipped for commands the AI runs, because the AI
+// already shows a typing indicator and replies once at the end. Not recorded in the AI's history,
+// since "working on it" tells it nothing.
+export const sendProcessingMessage = async (message: Message): Promise<void> => {
+  if (isAICommandMessage(message)) return
+  if (!("send" in message.channel) || typeof message.channel.send !== "function") return
+
+  try {
+    await message.channel.send(randomProcessingMessage())
+  } catch (err) {
+    logger.error(`sendProcessingMessage: Failed to send message: ${err}`)
+  }
+}
+
+// Note a sent notification for the user who asked for the download, so the AI knows about it
+// next time they chat, e.g. that a film has landed
+const noteNotificationForAI = (webhookMatch: WebHookWaitingType, message: string): void => {
+  const userId = webhookMatch.discordData?.authorId
+  if (userId) recordUserEvent(userId, `A notification about ${webhookMatch.content.title} was posted for them: "${message}"`)
+}
+
 export const sendDiscordNotification = async (
   webhookMatch: WebHookWaitingType,
   expired?: boolean,
@@ -183,7 +205,8 @@ export const sendDiscordNotification = async (
 
         if (shouldSendFollowUp && webhookMatch.discordData.authorMention) {
           try {
-            const followUpMessage = `${webhookMatch.discordData.authorMention}, ${message}`
+            const { authorMention } = webhookMatch.discordData
+            const followUpMessage = message.includes(authorMention) ? message : `${authorMention}, ${message}`
             await textBasedChannel.send(followUpMessage)
 
             logger.bot(
@@ -199,6 +222,7 @@ export const sendDiscordNotification = async (
           }
         }
 
+        noteNotificationForAI(webhookMatch, message)
         return { success: true, messageId: webhookMatch.sentMessageId }
       } catch (editErr) {
         logger.warn(
@@ -220,6 +244,7 @@ export const sendDiscordNotification = async (
         } | ${sentMessage.id}`,
       )
 
+      noteNotificationForAI(webhookMatch, message)
       return { success: true, messageId: sentMessage.id }
     }
   } catch (err) {
@@ -865,8 +890,11 @@ export const createWebhookEmbed = (
                     waitForStatus === "Upgrade" ? "Better Quality" :
                     waitForStatus === "Expired" ? "Not Found" : waitForStatus
 
+  // The timestamp shows when this status was reached. A Downloading embed edited to Ready keeps
+  // its original post time, so without it the Ready looks like it arrived at request time.
   const embed = new EmbedBuilder()
     .setColor(color)
+    .setTimestamp()
     .setDescription(`**${statusText}**\n\n**${content.title}${
       'year' in content ? ` (${content.year})` :
       'firstAired' in content && content.firstAired ? ` (${new Date(content.firstAired as string).getFullYear()})` : ''
@@ -886,11 +914,14 @@ export const createWebhookEmbed = (
     }
   }
 
-  // Add detailed metadata fields
-  let fieldData = []
+  // Add detailed metadata fields. Short facts sit side by side, longer ones get a full row.
+  // Quality and size only appear when the file details are known, never as placeholders.
+  const fields: { name: string; value: string; inline: boolean }[] = []
+  const addField = (name: string, value: string | number | undefined, inline: boolean) => {
+    if (value !== undefined && value !== "") fields.push({ name, value: String(value), inline })
+  }
 
   if (isMovie(content)) {
-    // Movie metadata
     const runtimeMins = content.runtime || 0
     const hours = Math.floor(runtimeMins / 60)
     const minutes = runtimeMins % 60
@@ -898,67 +929,41 @@ export const createWebhookEmbed = (
       ? `${hours}h${minutes > 0 ? ` ${minutes}m` : ''}`
       : `${minutes}m`
 
-    // First row: Quality, Runtime, Size (inline=true for 3 columns)
-    fieldData.push(`**Quality**\nBluray-1080p`)
-    fieldData.push(`**Runtime**\n${runtimeStr}`)
-    fieldData.push(`**Size**\n12.34 GiB`)
-
-    // Everything else in single column (inline=false) - Rating removed
+    addField("Quality", content.movieFile?.quality?.quality?.name, true)
+    addField("Runtime", runtimeStr, true)
+    addField("Size", content.movieFile?.size ? formatBytes(content.movieFile.size) : undefined, true)
 
     if (content.overview) {
-      fieldData.push(`**Synopsis**\n${content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview}`)
+      addField("Synopsis", content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview, false)
     }
 
     // Ratings
-    let ratingsText = ''
-    if (content.ratings) {
-      const ratings = content.ratings
-      if (ratings.tmdb?.value) {
-        ratingsText += `TMDb: ${ratings.tmdb.value.toFixed(1)}`
-      }
-      if (ratings.imdb?.value) {
-        ratingsText += `${ratingsText ? ' ∙ ' : ''}IMDb: ${ratings.imdb.value.toFixed(1)}/10`
-      }
-      if (ratings.rottenTomatoes?.value) {
-        ratingsText += `${ratingsText ? ' ∙ ' : ''}🍅 ${ratings.rottenTomatoes.value}%`
-      }
-      if (ratingsText) {
-        fieldData.push(`**Ratings**\n${ratingsText}`)
-      }
-    }
+    const ratings = content.ratings
+    const ratingsText = [
+      ratings?.tmdb?.value ? `TMDb: ${ratings.tmdb.value.toFixed(1)}` : "",
+      ratings?.imdb?.value ? `IMDb: ${ratings.imdb.value.toFixed(1)}/10` : "",
+      ratings?.rottenTomatoes?.value ? `🍅 ${ratings.rottenTomatoes.value}%` : "",
+    ].filter(Boolean).join(' ∙ ')
+    addField("Ratings", ratingsText, false)
 
   } else if (isSeries(content)) {
-    // Series metadata
     const seasons = content.seasons ? content.seasons.length : 0
 
-    // First row: Quality, Seasons, Episodes (inline=true for 3 columns)
-    fieldData.push(`**Quality**\nBluray-1080p`)
-    fieldData.push(`**Seasons**\n${seasons}`)
-
-    if (content.statistics?.totalEpisodeCount) {
-      fieldData.push(`**Episodes**\n${content.statistics.totalEpisodeCount}`)
-    } else {
-      fieldData.push(`**Episodes**\nUnknown`)
-    }
-
-    // Everything else in single column (inline=false) - Rating removed
+    addField("Seasons", seasons, true)
+    addField("Episodes", content.statistics?.totalEpisodeCount || "Unknown", true)
+    addField("Size", content.statistics?.sizeOnDisk ? formatBytes(content.statistics.sizeOnDisk) : undefined, true)
 
     if (content.overview) {
-      fieldData.push(`**Synopsis**\n${content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview}`)
+      addField("Synopsis", content.overview.length > 400 ? content.overview.substring(0, 400) + '...' : content.overview, false)
     }
 
     // Ratings - Series use a different rating structure
     if (content.ratings && content.ratings.value) {
-      fieldData.push(`**Ratings**\nIMDb: ${content.ratings.value.toFixed(1)}/10`)
+      addField("Ratings", `IMDb: ${content.ratings.value.toFixed(1)}/10`, false)
     }
   }
 
-  // Add fields with optimized layout for narrower appearance
-  fieldData.forEach((field, index) => {
-    const [name, value] = field.split('\n', 2)
-    const isInlineField = index < 3 // First 3 fields are inline
-    embed.addFields({ name: name.replace(/\*\*/g, ''), value: value, inline: isInlineField })
-  })
+  if (fields.length) embed.addFields(fields)
 
   return embed
 }

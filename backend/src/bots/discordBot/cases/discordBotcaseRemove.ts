@@ -7,11 +7,11 @@ import {
   noDBPull,
   noDBSave,
   normalizeForComparison,
-  sendDiscordMessage,
+  sendProcessingMessage,
 } from "../discordBotUtility"
 import { validateRemoveCommand } from "../validate/validateRemoveCommand"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "../discordBotUserLimits"
-import { randomProcessingMessage, randomRemovalSuccessMessage } from "../discordBotRandomReply"
+import { randomRemovalSuccessMessage } from "../discordBotRandomReply"
 import { saveWithRetry } from "../../../shared/database"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
@@ -29,7 +29,7 @@ export const caseRemove = async (message: Message): Promise<string> => {
   if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // Only show a processing message once the command is known to be valid
-  await sendDiscordMessage(message, randomProcessingMessage())
+  await sendProcessingMessage(message)
 
   const { channel, poolItemTitle, contentTitle, contentYear, contentType } = parsed
 

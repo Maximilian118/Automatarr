@@ -21,9 +21,9 @@ export const AI_MODELS: AIModelConfig[] = [
     inputPerM: 1,
     outputPerM: 5,
     thinking: false,
-    cacheable: false, // Haiku 4.5 needs a 4096 token prefix to cache. Our static prompt is shorter.
+    cacheable: true, // Haiku 4.5 only caches a prefix of 4096+ tokens. Shorter prefixes just aren't cached, at no cost.
     fallbacks: false,
-    maxTokens: 300,
+    maxTokens: 500,
   },
   {
     id: "claude-sonnet-5",
@@ -50,6 +50,9 @@ export const AI_MODELS: AIModelConfig[] = [
 // Beta header for server-side refusal fallbacks
 export const FALLBACK_BETA = "server-side-fallback-2026-07-01"
 
+// USD charged per web search, on top of the tokens its results add
+export const WEB_SEARCH_PRICE = 0.01
+
 // Cache write and read multipliers relative to the base input price
 const CACHE_WRITE_MULTIPLIER = 1.25
 const CACHE_READ_MULTIPLIER = 0.1
@@ -65,8 +68,10 @@ export const priceUsage = (modelId: string, usage: Anthropic.Beta.BetaUsage): nu
   const output = usage.output_tokens ?? 0
   const cacheWrite = usage.cache_creation_input_tokens ?? 0
   const cacheRead = usage.cache_read_input_tokens ?? 0
+  const searches = usage.server_tool_use?.web_search_requests ?? 0
 
   return (
+    searches * WEB_SEARCH_PRICE +
     (input * model.inputPerM +
       cacheWrite * model.inputPerM * CACHE_WRITE_MULTIPLIER +
       cacheRead * model.inputPerM * CACHE_READ_MULTIPLIER +

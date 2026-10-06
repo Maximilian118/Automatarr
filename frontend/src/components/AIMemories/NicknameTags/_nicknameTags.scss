@@ -1,0 +1,62 @@
+@use '../../../scss/variables';
+@use '../../../scss/mixins';
+
+// A labelled row of removable nickname tags on an AI memory card
+.nickname-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+
+  .nickname-tags-label {
+    color: variables.$ink-muted;
+    font-size: var(--step--1);
+    font-weight: 700;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    padding-left: var(--space-3);
+    border-radius: var(--radius-pill);
+    background: variables.$basin-raised;
+    overflow-wrap: anywhere;
+  }
+
+  button {
+    @include mixins.touch-target;
+    @include mixins.focus-ring(-2px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    border-radius: var(--radius-pill);
+    color: variables.$ink-muted;
+    cursor: pointer;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    @include mixins.hover {
+      color: var(--outflow);
+      background: var(--hover-wash);
+    }
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+}

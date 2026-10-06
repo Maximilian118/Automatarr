@@ -85,6 +85,7 @@ export type AIBotType = {
   chat: boolean // Allow conversational replies outside of ! commands
   command_help: boolean // Allow the AI to work out what a malformed or unknown ! command meant
   recommendations: boolean // Allow rare, event-based recommendations
+  web_search: boolean // Allow capped web lookups for film and TV facts
 }
 
 // Main settingsType

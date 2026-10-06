@@ -1,9 +1,10 @@
+import moment from "moment"
 import { dataDocType } from "../../../models/data"
 import { settingsDocType } from "../../../models/settings"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
-import { normalizeForComparison } from "../discordBotUtility"
+import { resolutionToQualityGroup } from "../discordBotUtility"
 
 // Get the cached Radarr and Sonarr libraries from the Data document
 export const getLibraries = (data: dataDocType | null): { movies: Movie[]; series: Series[] } => ({
@@ -35,64 +36,163 @@ const movieRatings = (movie: Movie): string =>
     .filter(Boolean)
     .join(", ") || "no ratings"
 
+// Format a Radarr or Sonarr date for the model, e.g. "31 Jul 2026". Empty if missing or invalid.
+const formatDate = (date?: string): string => {
+  const parsed = date ? moment(date) : null
+  return parsed?.isValid() ? parsed.format("D MMM YYYY") : ""
+}
+
+// Describe a dated release milestone in the past or future tense, e.g. "digital release due 14 Oct 2026"
+const describeMilestone = (label: string, date?: string): string => {
+  const formatted = formatDate(date)
+  if (!formatted) return ""
+
+  return moment(date).isAfter(moment()) ? `${label} due ${formatted}` : `${label} ${formatted}`
+}
+
+// Plain English for each Radarr release status
+const releaseStages: Record<Movie["status"], string> = {
+  announced: "announced, not in cinemas yet",
+  inCinemas: "in cinemas now",
+  released: "released",
+}
+
+// Which release Radarr waits for before grabbing, by its minimum availability setting
+const availabilityLabels: Record<string, string> = {
+  announced: "first",
+  inCinemas: "cinema",
+  released: "digital or physical",
+}
+
+// Whether Automatarr can grab a film that's in the library but not downloaded. Empty otherwise.
+const grabStatus = (movie: Movie): string => {
+  if (!movie.id || movie.hasFile || movie.isAvailable === undefined) return ""
+
+  return movie.isAvailable
+    ? "release is out, waiting for a good copy to download"
+    : `can't be grabbed until its ${availabilityLabels[movie.minimumAvailability] ?? "official"} release`
+}
+
+// Describe where a film is in its release cycle and whether Automatarr can grab it yet,
+// using the dates Radarr already tracks. Lets the model answer "is it out yet?" without guessing.
+// Skipped for downloaded films, where it's no longer useful.
+const movieRelease = (movie: Movie): string => {
+  if (movie.hasFile) return ""
+
+  const stage = releaseStages[movie.status] ?? ""
+
+  const milestones = [
+    describeMilestone("cinemas", movie.inCinemas),
+    describeMilestone("digital release", movie.digitalRelease),
+    describeMilestone("physical release", movie.physicalRelease),
+  ].filter(Boolean)
+
+  const parts = [stage, ...milestones, grabStatus(movie)].filter(Boolean)
+  return parts.length ? `release: ${parts.join(", ")}` : ""
+}
+
+// Extra facts a description can carry beyond the library item itself
+export type DescribeExtras = {
+  settings?: settingsDocType // Adds who has it in their pool
+  queue?: string // Live download status, e.g. "downloading in 1080p, 22 minutes left"
+  watched?: boolean // The speaker has watched it on Plex
+  overviewLength?: number // How much of the overview to include. 0 leaves it out
+}
+
+// Default overview length, short enough to keep a list of results cheap
+const OVERVIEW_LENGTH = 200
+
+// Turn a Starr resolution into a quality label, e.g. 2160 gives "4K" and 1080 gives "1080p"
+export const qualityLabel = (resolution?: number): string => {
+  const group = resolutionToQualityGroup(resolution)
+  if (!group) return ""
+  return group === "4k" ? "4K" : `${group}p`
+}
+
+// Describe whether a movie is downloaded, downloading, or waiting
+const movieStatus = (movie: Movie, queue?: string): string => {
+  if (!movie.id) return "not in library"
+  if (movie.hasFile) {
+    const quality = qualityLabel(movie.movieFile?.quality?.quality?.resolution)
+    return `in library, downloaded${quality ? ` in ${quality}` : ""}`
+  }
+  return queue ? `in library, ${queue}` : "in library, not downloaded yet"
+}
+
+// Describe how much of a series is downloaded, plus anything downloading now
+const seriesStatus = (series: Series, queue?: string): string => {
+  if (!series.id) return "not in library"
+  const percent = series.statistics?.percentOfEpisodes
+  const downloaded = percent !== undefined ? `${Math.round(percent)}% downloaded` : "download status unknown"
+  return `in library, ${downloaded}${queue ? `, ${queue}` : ""}`
+}
+
+// The facts shared by films and series at the end of a description
+const commonTail = (item: Movie | Series, extras: DescribeExtras, owners: string[]): string[] => {
+  const overviewLength = extras.overviewLength ?? OVERVIEW_LENGTH
+
+  return [
+    extras.watched ? "the speaker has watched it on Plex" : "",
+    owners.length ? `in pools of: ${owners.join(", ")}` : "",
+    overviewLength && item.overview ? `overview: ${truncateText(item.overview, overviewLength)}` : "",
+  ]
+}
+
 // Describe a movie compactly for the model
-export const describeMovie = (movie: Movie, settings?: settingsDocType): string => {
-  const owners = settings && movie.id ? poolOwners(settings, "movie", movie) : []
+export const describeMovie = (movie: Movie, extras: DescribeExtras = {}): string => {
+  const owners = extras.settings && movie.id ? poolOwners(extras.settings, "movie", movie) : []
 
   return [
     `Movie: ${movie.title} (${movie.year})`,
-    movie.id ? (movie.hasFile ? "in library, downloaded" : "in library, not downloaded yet") : "not in library",
+    movieStatus(movie, extras.queue),
+    movieRelease(movie),
     movieRatings(movie),
     movie.genres?.length ? `genres: ${movie.genres.slice(0, 4).join(", ")}` : "",
     movie.runtime ? `${movie.runtime} mins` : "",
-    owners.length ? `in pools of: ${owners.join(", ")}` : "",
-    movie.overview ? `overview: ${truncateText(movie.overview, 200)}` : "",
+    ...commonTail(movie, extras, owners),
   ]
     .filter(Boolean)
     .join(" | ")
 }
 
 // Describe a series compactly for the model
-export const describeSeries = (series: Series, settings?: settingsDocType): string => {
-  const owners = settings && series.id ? poolOwners(settings, "series", series) : []
-  const percent = series.statistics?.percentOfEpisodes
+export const describeSeries = (series: Series, extras: DescribeExtras = {}): string => {
+  const owners = extras.settings && series.id ? poolOwners(extras.settings, "series", series) : []
 
   return [
     `Series: ${series.title} (${series.year})`,
-    series.id
-      ? `in library, ${percent !== undefined ? `${Math.round(percent)}% downloaded` : "download status unknown"}`
-      : "not in library",
+    seriesStatus(series, extras.queue),
     series.ratings?.value ? `rating ${series.ratings.value}/10` : "no rating",
     series.network ? `network: ${series.network}` : "",
     series.status ? `status: ${series.status}` : "",
+    describeMilestone("next episode", series.nextAiring),
     series.statistics?.seasonCount ? `${series.statistics.seasonCount} seasons` : "",
     series.genres?.length ? `genres: ${series.genres.slice(0, 4).join(", ")}` : "",
-    owners.length ? `in pools of: ${owners.join(", ")}` : "",
-    series.overview ? `overview: ${truncateText(series.overview, 200)}` : "",
+    ...commonTail(series, extras, owners),
   ]
     .filter(Boolean)
     .join(" | ")
 }
 
-// Check whether a library item matches a title and optional year
-const matchesTitle = (item: { title: string; year: number }, title: string, year?: number): boolean => {
-  const itemTitle = normalizeForComparison(item.title)
-  const wanted = normalizeForComparison(title)
-  const titleMatch = itemTitle === wanted || itemTitle.includes(wanted)
+// A title's rating on a 0 to 10 scale, from Rotten Tomatoes or IMDb for films and TVDB for series. 0 if unrated.
+export const ratingOutOf10 = (type: "movie" | "series", item: Movie | Series): number => {
+  if (type === "series") return (item as Series).ratings?.value ?? 0
 
-  return titleMatch && (!year || Number(item.year) === Number(year))
+  const ratings = (item as Movie).ratings
+  return ratings?.rottenTomatoes?.value ? ratings.rottenTomatoes.value / 10 : (ratings?.imdb?.value ?? 0)
 }
 
-// Search the cached libraries for a title. Returns up to three matches of each type.
-export const searchLibraries = (
-  data: dataDocType | null,
-  title: string,
-  year?: number,
-): { movies: Movie[]; series: Series[] } => {
-  const { movies, series } = getLibraries(data)
+// Describe a movie or series by content type
+export const describeItem = (type: "movie" | "series", item: Movie | Series, extras: DescribeExtras = {}): string =>
+  type === "movie" ? describeMovie(item as Movie, extras) : describeSeries(item as Series, extras)
 
-  return {
-    movies: movies.filter((m) => matchesTitle(m, title, year)).slice(0, 3),
-    series: series.filter((s) => matchesTitle(s, title, year)).slice(0, 3),
-  }
-}
+// A one line summary for browsing lists: title, ratings and genres only
+export const describeBrief = (type: "movie" | "series", item: Movie | Series): string =>
+  [
+    `${item.title} (${item.year})`,
+    type === "movie" ? "film" : "series",
+    type === "movie" ? movieRatings(item as Movie) : (item as Series).ratings?.value ? `rating ${(item as Series).ratings.value}/10` : "",
+    item.genres?.length ? item.genres.slice(0, 3).join(", ") : "",
+  ]
+    .filter(Boolean)
+    .join(" | ")

@@ -24,6 +24,7 @@ const aiSchema = `
     output_tokens: Int!
     cache_read_tokens: Int!
     cache_write_tokens: Int!
+    web_searches: Int!
     cost_usd: Float!
   }
 
@@ -48,6 +49,8 @@ const aiSchema = `
     discord_id: String!
     username: String!
     notes: [BotMemoryNote!]!
+    nicknames: [String!]!
+    bot_nicknames: [String!]!
     preferences: BotMemoryPreferences!
     last_active_at: String
     last_recommended_at: String

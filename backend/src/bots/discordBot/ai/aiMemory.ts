@@ -11,6 +11,25 @@ import logger from "../../../logger"
 export const MAX_NOTES = 20
 export const MAX_NOTE_LENGTH = 200
 
+// Limits for nicknames, in either direction
+const MAX_NICKNAMES = 5
+const MIN_NICKNAME_LENGTH = 3
+const MAX_NICKNAME_LENGTH = 24
+
+// Words too common to wake the bot. "yo bro" in a chat with friends shouldn't summon Automatarr.
+const GENERIC_BOT_NICKNAMES = new Set([
+  "bot", "bro", "man", "mate", "dude", "buddy", "pal", "lad", "boss", "chief", "sir", "friend",
+  "hey", "hello", "you", "guys", "everyone", "here", "there", "the", "and", "yes", "nah", "yeah",
+])
+
+// Which way a nickname goes: what Automatarr calls the user, or what the user calls Automatarr
+export type NicknameTarget = "them" | "you"
+
+// In-memory copy of every user's nicknames for the bot, so the gate can check them for free.
+// Loaded once on first use and kept up to date on every write.
+const botNicknameCache = new Map<string, string[]>()
+let botNicknamesLoaded: Promise<void> | null = null
+
 // Minimal identity needed to look up or create a memory document
 export type DiscordIdentity = {
   id: string // Discord snowflake ID
@@ -26,6 +45,8 @@ export const getMemory = async (identity: DiscordIdentity): Promise<BotMemoryTyp
       $setOnInsert: {
         discord_id: identity.id,
         notes: [],
+        nicknames: [],
+        bot_nicknames: [],
         preferences: initBotMemoryPreferences(),
         created_at: moment().format(),
       },
@@ -92,6 +113,124 @@ export const rememberNote = async (identity: DiscordIdentity, text: string): Pro
   return "Saved."
 }
 
+// Remove the remembered fact that best matches the given text. Returns a short status for the model.
+export const forgetNote = async (identity: DiscordIdentity, text: string): Promise<string> => {
+  const memory = await findMemory(identity.id)
+  const wanted = text.trim().toLowerCase()
+  if (!memory?.notes.length || !wanted) return "Nothing to forget."
+
+  const match =
+    memory.notes.find((n) => n.text.toLowerCase() === wanted) ??
+    memory.notes.find((n) => n.text.toLowerCase().includes(wanted) || wanted.includes(n.text.toLowerCase()))
+  if (!match) return `No remembered fact matches "${text}". Their facts are: ${memory.notes.map((n) => n.text).join("; ")}`
+
+  await BotMemory.updateOne(
+    { discord_id: identity.id },
+    { $pull: { notes: { text: match.text } }, $set: { updated_at: moment().format() } },
+  )
+
+  return `Forgot "${match.text}".`
+}
+
+// Tidy a nickname: collapse whitespace and drop anything that could ping or format in Discord
+const cleanNickname = (nickname: string): string =>
+  nickname.replace(/[@#<>`*_~|\r\n]/g, " ").replace(/\s+/g, " ").trim()
+
+// Reduce a name to lowercase letters and digits so "Auto-Man!" and "automan" compare equal
+export const nameKey = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]/g, "")
+
+// Check a nickname is safe to use. Bot nicknames wake the bot, so they're held to a stricter standard.
+// Returns a reason it was rejected, or an empty string if it's fine.
+const nicknameProblem = (nickname: string, target: NicknameTarget, memberNames: string[]): string => {
+  const key = nameKey(nickname)
+
+  if (key.length < MIN_NICKNAME_LENGTH || nickname.length > MAX_NICKNAME_LENGTH) {
+    return `Nicknames must be ${MIN_NICKNAME_LENGTH} to ${MAX_NICKNAME_LENGTH} characters.`
+  }
+
+  if (target === "you") {
+    if (GENERIC_BOT_NICKNAMES.has(key)) return `"${nickname}" is too common a word to answer to.`
+    if (memberNames.some((name) => nameKey(name) === key)) return `"${nickname}" is someone on the server's name.`
+  }
+
+  return ""
+}
+
+// Add or remove a nickname for a user, or for Automatarr as that user calls it.
+// memberNames are the server members' usernames and display names, which can't become bot nicknames.
+// Returns a short status for the model.
+export const setNickname = async (
+  identity: DiscordIdentity,
+  target: NicknameTarget,
+  nickname: string,
+  remove: boolean,
+  memberNames: string[],
+): Promise<string> => {
+  const memory = await getMemory(identity)
+  const field = target === "them" ? "nicknames" : "bot_nicknames"
+  const who = target === "them" ? "what you call them" : "what they call you"
+  const cleaned = cleanNickname(nickname)
+  const existing = memory[field] ?? []
+  const others = existing.filter((n) => nameKey(n) !== nameKey(cleaned))
+
+  if (!remove && target === "them" && !memory.preferences.learning) {
+    return "Not saved. This user has asked you not to learn about them."
+  }
+
+  if (!remove) {
+    const problem = nicknameProblem(cleaned, target, memberNames)
+    if (problem) return `Not saved. ${problem}`
+    if (others.length >= MAX_NICKNAMES) return `Not saved. They already have ${MAX_NICKNAMES} for ${who}: ${others.join(", ")}.`
+  } else if (others.length === existing.length) {
+    return `"${cleaned}" isn't in ${who}.`
+  }
+
+  const updated = remove ? others : [...others, cleaned]
+
+  await BotMemory.updateOne(
+    { discord_id: identity.id },
+    { $set: { [field]: updated, updated_at: moment().format() } },
+  )
+
+  if (target === "you") botNicknameCache.set(identity.id, updated.map(nameKey))
+
+  return `${remove ? "Removed" : "Saved"}. ${who[0].toUpperCase()}${who.slice(1)}: ${updated.length ? updated.join(", ") : "nothing yet"}.`
+}
+
+// Remove a nickname by its position in the list, e.g. from the web app. Keeps the gate's cache in step.
+export const removeNicknameAt = async (discordId: string, target: NicknameTarget, index: number): Promise<void> => {
+  const memory = await findMemory(discordId)
+  if (!memory) throw new Error("Memory not found.")
+
+  const field = target === "them" ? "nicknames" : "bot_nicknames"
+  const updated = (memory[field] ?? []).filter((_, i) => i !== index)
+
+  await BotMemory.updateOne({ discord_id: discordId }, { $set: { [field]: updated, updated_at: moment().format() } })
+  if (target === "you") botNicknameCache.set(discordId, updated.map(nameKey))
+}
+
+// Load every user's bot nicknames into the cache. Only runs once.
+const loadBotNicknames = (): Promise<void> => {
+  if (!botNicknamesLoaded) {
+    botNicknamesLoaded = BotMemory.find({ "bot_nicknames.0": { $exists: true } }, { discord_id: 1, bot_nicknames: 1 })
+      .then((memories) => {
+        memories.forEach((m) => botNicknameCache.set(m.discord_id, m.bot_nicknames.map(nameKey)))
+      })
+      .catch((err) => {
+        botNicknamesLoaded = null
+        logger.error(`AI Bot | Failed to load bot nicknames: ${err}`)
+      })
+  }
+
+  return botNicknamesLoaded
+}
+
+// Get the nicknames a user calls Automatarr, as name keys. Free after the first call.
+export const getBotNicknames = async (discordId: string): Promise<string[]> => {
+  await loadBotNicknames()
+  return botNicknameCache.get(discordId) ?? []
+}
+
 // Merge preference changes into a user's stored preferences
 export const updatePreferences = async (
   identity: DiscordIdentity,
@@ -112,8 +251,9 @@ export const updatePreferences = async (
 export const forgetUser = async (discordId: string): Promise<void> => {
   await BotMemory.updateOne(
     { discord_id: discordId },
-    { $set: { notes: [], updated_at: moment().format() } },
+    { $set: { notes: [], nicknames: [], bot_nicknames: [], updated_at: moment().format() } },
   )
+  botNicknameCache.delete(discordId)
   await RequestLog.deleteMany({ discord_id: discordId })
 }
 

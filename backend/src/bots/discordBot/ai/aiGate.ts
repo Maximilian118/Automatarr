@@ -2,26 +2,49 @@ import { Message } from "discord.js"
 import logger from "../../../logger"
 import { settingsDocType } from "../../../models/settings"
 import { endConversation, inConversation } from "./aiContext"
-import { getPreferences } from "./aiMemory"
+import { getBotNicknames, getPreferences, nameKey } from "./aiMemory"
 
 // Why the AI decided to engage with a message
 // direct = the bot was addressed, conversation = an active back-and-forth, passing = name mentioned in passing
 export type EngageReason = "direct" | "conversation" | "passing"
 
-// Names the bot answers to, lowercased
-const botNames = (message: Message): string[] =>
-  ["automatarr", message.client.user?.username.toLowerCase() ?? ""].filter(Boolean)
+// Where the bot's name sits in a message, as word positions. start and end are the same for a one word name.
+type NameSpan = { start: number; end: number }
 
-// Strip punctuation and emoji from a word so "automatarr," and "automatarr!" still match
-const cleanWord = (word: string): string => word.toLowerCase().replace(/[^a-z0-9]/g, "")
+// Longest run of words a name can span, e.g. "the auto man"
+const MAX_NAME_WORDS = 3
+
+// Names the bot answers to from this author, as name keys: its own names plus any nicknames
+// this author gave it. Other people's nicknames for the bot don't wake it.
+const botNames = async (message: Message): Promise<string[]> =>
+  [
+    "automatarr",
+    nameKey(message.client.user?.username ?? ""),
+    ...(await getBotNicknames(message.author.id)),
+  ].filter(Boolean)
 
 // Split a message into words
 const messageWords = (message: Message): string[] => message.content.trim().split(/\s+/)
 
-// Find where the bot's name appears in a message. Returns -1 if it doesn't.
-const nameIndex = (message: Message, words: string[]): number => {
-  const names = botNames(message)
-  return words.findIndex((w) => names.includes(cleanWord(w)))
+// Check whether a name key is one of the bot's names, allowing a trailing "s" so "automatarr's"
+// and "autobros" still count
+const isBotName = (key: string, names: string[]): boolean =>
+  names.includes(key) || (key.endsWith("s") && names.includes(key.slice(0, -1)))
+
+// Find where one of the bot's names appears in a message. Joining neighbouring words lets
+// "auto man" match the nickname "automan", and punctuation is ignored so "automatarr!" still matches.
+const findName = (words: string[], names: string[]): NameSpan | null => {
+  const keys = words.map(nameKey)
+
+  for (let start = 0; start < keys.length; start++) {
+    let joined = ""
+    for (let end = start; end < Math.min(keys.length, start + MAX_NAME_WORDS); end++) {
+      joined += keys[end]
+      if (isBotName(joined, names)) return { start, end }
+    }
+  }
+
+  return null
 }
 
 // IDs of the humans mentioned in a message, other than the author
@@ -48,19 +71,14 @@ const opensByAddressingHuman = (message: Message, words: string[]): boolean => {
 // Check whether the bot's name is used as a form of address,
 // e.g. "Automatarr, grab me X" or "thanks automatarr", rather than talked about mid-sentence.
 // A message that opens by addressing a human ("@Tanox automatarr's alive") is talking about the bot, not to it.
-const nameUsedAsAddress = (message: Message): boolean => {
-  const words = messageWords(message)
-  const idx = nameIndex(message, words)
-  if (idx === -1) return false
+const nameUsedAsAddress = (message: Message, words: string[], name: NameSpan | null): boolean => {
+  if (!name) return false
 
   const humanIdx = humanMentionIndex(message, words)
-  if (humanIdx !== -1 && humanIdx <= 1 && humanIdx < idx) return false
+  if (humanIdx !== -1 && humanIdx <= 1 && humanIdx < name.start) return false
 
-  return idx <= 2 || idx >= words.length - 2
+  return name.start <= 2 || name.end >= words.length - 2
 }
-
-// Check whether the bot's name appears anywhere in the message
-const nameMentioned = (message: Message): boolean => nameIndex(message, messageWords(message)) !== -1
 
 // Check whether a message is aimed at another human rather than the bot.
 // Talking about someone mid-sentence ("what does @Tanox like?") doesn't count.
@@ -81,7 +99,7 @@ const addressedToSomeoneElse = async (message: Message): Promise<boolean> => {
 }
 
 // Check whether a message directly addresses the bot
-const directlyAddressed = async (message: Message): Promise<boolean> => {
+const directlyAddressed = async (message: Message, words: string[], name: NameSpan | null): Promise<boolean> => {
   const botId = message.client.user?.id
   if (!message.guild) return true // Direct messages
   if (botId && message.mentions.users.has(botId)) return true
@@ -91,13 +109,15 @@ const directlyAddressed = async (message: Message): Promise<boolean> => {
     if (referenced && referenced.author.id === botId) return true
   }
 
-  return nameUsedAsAddress(message)
+  return nameUsedAsAddress(message, words, name)
 }
 
 // Decide whether the AI should engage with a message. Returns null when it should be ignored.
 const decideEngagement = async (
   message: Message,
   settings: settingsDocType,
+  words: string[],
+  name: NameSpan | null,
 ): Promise<EngageReason | null> => {
   if (message.author.bot) return null
   if (!message.content.trim()) return null
@@ -108,7 +128,7 @@ const decideEngagement = async (
 
   // Direct address always engages, even alongside a human mention,
   // and so a muted user can still ask to be unmuted
-  if (await directlyAddressed(message)) return "direct"
+  if (await directlyAddressed(message, words, name)) return "direct"
 
   // A message aimed at another human ends any conversation with the bot
   if (await addressedToSomeoneElse(message)) {
@@ -125,7 +145,7 @@ const decideEngagement = async (
   // Outside a conversation, a message that mentions a human is between humans
   if (mentionedHumanIds(message).length) return null
 
-  if (nameMentioned(message)) return "passing"
+  if (name) return "passing"
 
   return null
 }
@@ -136,9 +156,11 @@ export const gateMessage = async (
   message: Message,
   settings: settingsDocType,
 ): Promise<EngageReason | null> => {
-  const reason = await decideEngagement(message, settings)
+  const words = messageWords(message)
+  const name = message.author.bot ? null : findName(words, await botNames(message))
+  const reason = await decideEngagement(message, settings, words, name)
 
-  if (!reason && nameMentioned(message)) {
+  if (!reason && name) {
     logger.info(`AI Bot | Ignored a message from ${message.author.username} that mentions the bot's name.`)
   }
 

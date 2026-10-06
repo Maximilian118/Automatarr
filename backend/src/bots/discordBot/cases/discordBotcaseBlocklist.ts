@@ -5,7 +5,7 @@ import {
   matchedDiscordUser,
   matchedUser,
   noDBPull,
-  sendDiscordMessage,
+  sendProcessingMessage,
 } from "../discordBotUtility"
 import { validateBlocklistCommand } from "../validate/validateBlocklistCommand"
 import {
@@ -15,7 +15,6 @@ import {
   randomSeriesReadyMessage,
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
-  randomProcessingMessage,
 } from "../discordBotRandomReply"
 import Data, { dataDocType } from "../../../models/data"
 import {
@@ -60,7 +59,7 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
   if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // Only show a processing message once the command is known to be valid
-  await sendDiscordMessage(message, randomProcessingMessage())
+  await sendProcessingMessage(message)
 
   const {
     contentType,

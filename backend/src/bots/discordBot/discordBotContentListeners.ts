@@ -11,7 +11,7 @@ import {
   noDBPull,
   noDBSave,
   resolutionToQualityGroup,
-  sendDiscordMessage,
+  sendProcessingMessage,
 } from "./discordBotUtility"
 import { validateDownload } from "./validate/validateDownload"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
@@ -30,7 +30,6 @@ import {
   randomSeriesMonitorChangeToAllMessage,
   randomMovieQueueMessage,
   randomSeriesQueueMessage,
-  randomProcessingMessage,
   randomReAddedToPoolMessage,
   randomUnreleasedAddedMessage,
   randomUnreleasedMovieReadyMessage,
@@ -92,7 +91,7 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
 
 // Download a movie and add it to the users pool
 const caseDownloadMovie = async (message: Message, settings: settingsDocType): Promise<string> => {
-  await sendDiscordMessage(message, randomProcessingMessage())
+  await sendProcessingMessage(message)
 
   // Check if Radarr is connected
   if (!settings.radarr_active) {
@@ -343,7 +342,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
 // Download a series and add it to the users pool
 const caseDownloadSeries = async (message: Message, settings: settingsDocType): Promise<string> => {
-  await sendDiscordMessage(message, randomProcessingMessage())
+  await sendProcessingMessage(message)
 
   // Check if Sonarr is connected
   if (!settings.sonarr_active) {

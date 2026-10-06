@@ -19,6 +19,7 @@ import { getqBittorrentData } from "../../shared/qBittorrentRequests"
 import { saveWithRetry } from "../../shared/database"
 import { refreshPlexCache } from "../../shared/plexRequests"
 import { withActivitySource } from "../../shared/activity"
+import { rebuildTitleIndex } from "../../bots/discordBot/ai/aiTitleIndex"
 
 const dataResolvers = {
   newData: async (): Promise<dataType> => {
@@ -85,6 +86,7 @@ const dataResolvers = {
     data.missingWanteds = await getAllMissingwanted(activeAPIs, data, verboseLogging)
     const previousLibraries = data.libraries // Kept to spot new arrivals for AI recommendations
     data.libraries = await getAllLibraries(activeAPIs, data, verboseLogging) // Only makes requests one per hour per API
+    rebuildTitleIndex(data.libraries) // Lets the AI match titles in memory for free
     // qBittorrent
     data.qBittorrent = await getqBittorrentData(settings._doc, data, verboseLogging)
 

@@ -9,14 +9,13 @@ import {
   freeSpaceCheck,
   matchedUser,
   noDBPull,
-  sendDiscordMessage,
+  sendProcessingMessage,
   seriesMatches,
 } from "../discordBotUtility"
 import { validateMonitorCommand } from "../validate/validateMonitorCommand"
 import { checkUserSeriesLimit } from "../discordBotUserLimits"
 import {
   randomNotFoundMessage,
-  randomProcessingMessage,
   randomMonitorUpgradeMessage,
   randomMonitorDowngradeMessage,
   randomMonitorAddedToPoolMessage,
@@ -52,7 +51,7 @@ export const caseMonitor = async (message: Message): Promise<string> => {
   if (typeof parsed === "string") return resolveInvalidCommand(message, parsed)
 
   // Only show a processing message once the command is known to be valid
-  await sendDiscordMessage(message, randomProcessingMessage())
+  await sendProcessingMessage(message)
 
   const { searchString, year, newMonitor } = parsed
 

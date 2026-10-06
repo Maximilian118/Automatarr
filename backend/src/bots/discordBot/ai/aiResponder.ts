@@ -4,24 +4,29 @@ import moment from "moment"
 import logger from "../../../logger"
 import { settingsDocType } from "../../../models/settings"
 import { matchedUser, resolveMentions, sendDiscordMessage } from "../discordBotUtility"
-import { randomInCharacterDeflection } from "../discordBotRandomReply"
-import { aiConfigured } from "./aiClient"
+import { randomAcknowledgement, randomInCharacterDeflection } from "../discordBotRandomReply"
+import { aiConfigured, getModelConfig } from "./aiClient"
 import { budgetExhausted, noteEngagement, rateLimited } from "./aiBudget"
-import { getExchangeEntries, recordUserMessage } from "./aiContext"
+import { clearAsides, getAsides, getExchangeEntries, getUserEvents, recordAside, recordUserMessage } from "./aiContext"
 import { describeAIError } from "./aiFallback"
 import { EngageReason } from "./aiGate"
-import { guardReply } from "./aiGuard"
+import { guardReply, trimToCleanEnding } from "./aiGuard"
 import { DiscordIdentity, getMemory, touchActivity } from "./aiMemory"
 import { COMMAND_HELP_INSTRUCTIONS } from "./aiPersona"
 import { describePendingProposal } from "./aiPlexLinks"
 import { createAIMessage, responseText, responseToolCalls } from "./aiRequest"
+import { speakerDownloads } from "./aiDownloads"
+import { ensureTitleIndex, titlesInMessage } from "./aiTitleIndex"
 import { runTool, toolsFor } from "./aiTools"
-import { buildSpeakerProfile } from "./tools/aiInfoTools"
+import { buildSpeakerProfile, describeFoundTitles } from "./tools/aiInfoTools"
 import { checkReturningUser } from "./aiRecommendationTriggers"
 import { ToolContext } from "./tools/aiToolTypes"
 
 // Maximum request round trips per engagement, so tool loops can't run away
 const MAX_ITERATIONS = 3
+
+// A request cut off by the token ceiling mid tool call, or before writing anything, is retried once with this much more room
+const CUT_OFF_RETRY_MULTIPLIER = 2
 
 // What happened when the AI tried to respond
 // handled = replied or deliberately stayed silent, limited = rate capped, unavailable = API or budget problem
@@ -68,16 +73,61 @@ const pendingPlexLinks = (ctx: ToolContext): string => {
   return pending ? `<pending_plex_links>\n${escapeTags(pending)}\n</pending_plex_links>` : ""
 }
 
-// Build the user turn: who's speaking, where, their recent exchange with the bot and their message
+// Turn the speaker's recent exchange with the bot into real alternating turns, so the model
+// follows the thread the way a conversation actually went. Neighbouring lines from the same side merge.
+const historyTurns = (message: Message): Anthropic.Beta.BetaMessageParam[] => {
+  const turns: Anthropic.Beta.BetaMessageParam[] = []
+
+  getExchangeEntries(message.channel.id, message.author.id).forEach((entry) => {
+    const role = entry.role === "bot" ? "assistant" : "user"
+    const text = escapeTags(entry.text)
+    const last = turns[turns.length - 1]
+
+    if (last?.role === role) last.content = `${last.content}\n${text}`
+    else turns.push({ role, content: text })
+  })
+
+  // The conversation must open with the user. If it opens with the bot, show that an earlier bit was cut.
+  if (turns[0]?.role === "assistant") turns.unshift({ role: "user", content: "[earlier messages]" })
+
+  return turns
+}
+
+// Facts looked up in code before the model is called, so common questions need no tool round:
+// library titles named in the message (or in what they said just before), and what the speaker
+// has downloading right now. Both are left out when empty, so ordinary chat costs nothing extra.
+const prefetchedFacts = async (ctx: ToolContext, asides: string[]): Promise<string[]> => {
+  await ensureTitleIndex()
+
+  const named = titlesInMessage([...asides, resolveMentions(ctx.message)].join("\n"))
+  const botUser = matchedUser(ctx.settings, ctx.identity.username)
+  const [matches, downloads] = await Promise.all([
+    describeFoundTitles(ctx, named, false),
+    speakerDownloads(ctx.settings, ctx.identity.id, botUser),
+  ])
+
+  return [
+    matches.length
+      ? `<library_matches note="Library titles named in their messages, looked up for you. Rely on these facts, and only call find_title if they don't answer it.">\n${escapeTags(matches.join("\n"))}\n</library_matches>`
+      : "",
+    downloads.length
+      ? `<your_downloads note="What the speaker has downloading right now.">\n${escapeTags(downloads.join("\n"))}\n</your_downloads>`
+      : "",
+  ]
+}
+
+// Build the user turn: who's speaking, where, what happened recently and their message
 const buildUserTurn = async (
   ctx: ToolContext,
   reason: EngageReason | "command_help",
   failed?: FailedCommand,
 ): Promise<string> => {
   const { message } = ctx
-  const transcript = getExchangeEntries(message.channel.id, message.author.id)
-    .map((e) => `[${e.role === "bot" ? "you" : "them"}] ${escapeTags(e.text)}`)
+  const events = getUserEvents(message.author.id)
+    .map((e) => `[${moment(e.at).fromNow()}] ${escapeTags(e.text)}`)
     .join("\n")
+  const asideTexts = getAsides(message.channel.id, message.author.id)
+  const asides = asideTexts.map((text) => `[them] ${escapeTags(text)}`).join("\n")
 
   const parts = [
     "<context>",
@@ -85,7 +135,9 @@ const buildUserTurn = async (
     `Where: ${describeWhere(message)}`,
     `Why you're seeing this: ${reasonText[reason]}`,
     `<speaker>\n${escapeTags(await buildSpeakerProfile(ctx))}\n</speaker>`,
-    transcript ? `<recent_conversation>\n${transcript}\n</recent_conversation>` : "",
+    events ? `<recent_events note="Things that happened for them outside this chat, newest last.">\n${events}\n</recent_events>` : "",
+    asides ? `<said_just_before note="Their own messages from the last few minutes that you didn't reply to. Context only, they may not have been meant for you.">\n${asides}\n</said_just_before>` : "",
+    ...(await prefetchedFacts(ctx, asideTexts)),
     pendingPlexLinks(ctx),
     await replyingTo(message),
     "</context>",
@@ -122,23 +174,50 @@ const buildToolContext = async (
     isDirectMessage: !message.guild,
     preferences: memory.preferences,
     actionsTaken: 0,
+    lookupsTaken: 0,
+    webLookupsTaken: 0,
+    toolsUsed: 0,
     postedByAction: false,
+    heldReply: "",
     silent: false,
   }
 }
 
 // Run the tool loop and return the final reply text. Empty = nothing to say.
-const runConversation = async (ctx: ToolContext, userTurn: string): Promise<string> => {
+const runConversation = async (
+  ctx: ToolContext,
+  history: Anthropic.Beta.BetaMessageParam[],
+  userTurn: string,
+): Promise<string> => {
   const tools = toolsFor(ctx)
-  const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: userTurn }]
+  const messages: Anthropic.Beta.BetaMessageParam[] = [...history, { role: "user", content: userTurn }]
   let reply = ""
+  let retriedCutOff = false
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     // The last round can't call tools, so work done by earlier rounds always ends in a reply
     const lastRound = i === MAX_ITERATIONS - 1
-    const response = await createAIMessage(ctx.settings.ai_bot, messages, tools, lastRound ? { type: "none" } : undefined)
+    const request = (maxTokens?: number) =>
+      createAIMessage(ctx.settings.ai_bot, messages, tools, {
+        toolChoice: lastRound ? { type: "none" } : undefined,
+        historyLength: history.length,
+        maxTokens,
+      })
+
+    let response = await request()
+
+    // Cut off mid tool call or before saying anything: retry once with more room rather than
+    // sending a lead-in like "Let me check..." with nothing after it
+    const cutOff = response.stop_reason === "max_tokens" && (responseToolCalls(response).length || !responseText(response))
+    if (cutOff && !retriedCutOff) {
+      retriedCutOff = true
+      response = await request(getModelConfig(ctx.settings.ai_bot.model).maxTokens * CUT_OFF_RETRY_MULTIPLIER)
+    }
 
     if (response.stop_reason === "refusal") return randomInCharacterDeflection()
+
+    // A reply cut off by the token ceiling is trimmed back to its last complete thought
+    if (response.stop_reason === "max_tokens") return trimToCleanEnding(responseText(response))
 
     reply = responseText(response)
     const toolCalls = responseToolCalls(response)
@@ -148,6 +227,7 @@ const runConversation = async (ctx: ToolContext, userTurn: string): Promise<stri
 
     const toolResults: Anthropic.Beta.BetaToolResultBlockParam[] = []
     for (const call of toolCalls) {
+      ctx.toolsUsed++
       const result = await runTool(ctx, tools, call.name, call.input)
       toolResults.push({ type: "tool_result", tool_use_id: call.id, content: result.content, is_error: result.isError })
     }
@@ -164,6 +244,24 @@ const runConversation = async (ctx: ToolContext, userTurn: string): Promise<stri
   return reply
 }
 
+// What to send when the model came back with no text, so the user is never left hanging.
+// A held action reply always goes out as written, since the action already happened.
+// Otherwise, if a tool did something, a short acknowledgement.
+const fallbackReply = (ctx: ToolContext): string => {
+  if (ctx.heldReply) return ctx.heldReply
+  if (ctx.silent) return ""
+  if (ctx.toolsUsed && !ctx.postedByAction) {
+    logger.info(`AI Bot | Came back with an empty reply after a tool for ${ctx.identity.username}. Sent an acknowledgement.`)
+    return randomAcknowledgement()
+  }
+  return ""
+}
+
+// Hold on to a message the AI couldn't answer, so it's still in context when the user next gets a reply
+const keepForLater = (message: Message, failed?: FailedCommand): void => {
+  if (!failed) recordAside(message.channel.id, message.author.id, resolveMentions(message))
+}
+
 // Respond to a message with the AI. Returns what happened so callers can fall back to legacy behaviour.
 export const respondWithAI = async (
   message: Message,
@@ -176,18 +274,23 @@ export const respondWithAI = async (
   const isAdmin = !!matchedUser(settings, message.author.username)?.admin
   if (rateLimited(aiBot, message.author.id, isAdmin)) {
     logger.info(`AI Bot | ${message.author.username} is rate limited. Not replying.`)
+    keepForLater(message, failed)
     return "limited"
   }
+
+  let ctx: ToolContext | undefined
 
   try {
     if (await budgetExhausted(aiBot)) {
       logger.warn("AI Bot | Monthly budget reached.")
+      keepForLater(message, failed)
       return "unavailable"
     }
 
     noteEngagement(message.author.id)
 
-    const ctx = await buildToolContext(message, settings, isAdmin)
+    ctx = await buildToolContext(message, settings, isAdmin)
+    const history = historyTurns(message)
     const userTurn = await buildUserTurn(ctx, reason, failed)
 
     // Record the message after building the transcript so it isn't duplicated in the context
@@ -198,7 +301,8 @@ export const respondWithAI = async (
       await message.channel.sendTyping().catch(() => undefined)
     }
 
-    const reply = guardReply(await runConversation(ctx, userTurn))
+    const reply = guardReply(await runConversation(ctx, history, userTurn)) || fallbackReply(ctx)
+    clearAsides(message.channel.id, message.author.id)
 
     if (reply) {
       await sendDiscordMessage(message, reply, { parse: [], repliedUser: false })
@@ -209,6 +313,13 @@ export const respondWithAI = async (
     return "handled"
   } catch (err) {
     logger.error(`AI Bot | ${describeAIError(err)}`)
+
+    // An action already ran and its reply was held for the AI. Send it as written so it isn't lost.
+    if (ctx?.heldReply) {
+      await sendDiscordMessage(message, ctx.heldReply, { parse: [], repliedUser: false })
+      return "handled"
+    }
+
     return "unavailable"
   }
 }

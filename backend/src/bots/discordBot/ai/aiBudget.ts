@@ -42,8 +42,8 @@ export const getMonthlyUsage = async (): Promise<AIUsageType> => {
   return usage.toObject()
 }
 
-// Add the tokens and estimated cost of a response to this month's totals
-export const recordUsage = async (modelId: string, usage: Anthropic.Beta.BetaUsage): Promise<void> => {
+// Add the tokens and estimated cost of a response to this month's totals. Returns the estimated cost.
+export const recordUsage = async (modelId: string, usage: Anthropic.Beta.BetaUsage): Promise<number> => {
   const cost = priceUsage(modelId, usage)
 
   try {
@@ -56,6 +56,7 @@ export const recordUsage = async (modelId: string, usage: Anthropic.Beta.BetaUsa
           output_tokens: usage.output_tokens ?? 0,
           cache_read_tokens: usage.cache_read_input_tokens ?? 0,
           cache_write_tokens: usage.cache_creation_input_tokens ?? 0,
+          web_searches: usage.server_tool_use?.web_search_requests ?? 0,
           cost_usd: cost,
         },
         $set: { updated_at: moment().format() },
@@ -65,6 +66,8 @@ export const recordUsage = async (modelId: string, usage: Anthropic.Beta.BetaUsa
   } catch (err) {
     logger.error(`AI Bot | Failed to record usage: ${err}`)
   }
+
+  return cost
 }
 
 // Check whether this month's estimated spend has reached the configured budget

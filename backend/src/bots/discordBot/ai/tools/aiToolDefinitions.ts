@@ -4,15 +4,15 @@ type Tool = Anthropic.Beta.BetaTool
 
 // Shared schema pieces
 const titleYear = {
-  title: { type: "string", description: "The film or series title, without the year." },
-  year: { type: "integer", description: "The 4 digit release year." },
+  title: { type: "string", description: "Title without the year." },
+  year: { type: "integer", description: "4 digit year." },
 }
 
 const contentType = {
   type: {
     type: "string",
     enum: ["movie", "series"],
-    description: "Whether it's a film or a series. Decides which channel the command runs in.",
+    description: "Picks the channel it runs in.",
   },
 }
 
@@ -23,10 +23,10 @@ const titleYearTypeRequired = ["title", "year", "type"]
 const preferenceFlags = {
   private: {
     type: "boolean",
-    description: "true = never mention their personal info in shared channels.",
+    description: "true = keep personal info out of shared channels.",
   },
-  learning: { type: "boolean", description: "false = stop remembering new things about them." },
-  chat: { type: "boolean", description: "false = only reply when they address you directly." },
+  learning: { type: "boolean", description: "false = stop remembering things." },
+  chat: { type: "boolean", description: "false = only reply when addressed." },
   recommendations: { type: "boolean", description: "false = no unprompted recommendations." },
 }
 
@@ -35,48 +35,40 @@ const preferenceFlags = {
 export const ACTION_TOOLS: Tool[] = [
   {
     name: "download",
-    description: "Download a film or series and add it to the speaker's pool. Same as !download.",
+    description:
+      "Download into the speaker's pool (!download). Only pass quality if they named one.",
     input_schema: {
       type: "object",
       properties: {
         ...titleYearType,
-        quality: { type: "string", description: "Optional quality, e.g. 4k, 1080p, 720p." },
+        quality: { type: "string", description: "e.g. 4k, 1080p, 720p." },
         monitor: {
           type: "string",
-          description: "Optional series monitor option: all, future, missing, existing, recent, pilot, firstSeason, lastSeason.",
+          description: "Series: all, future, missing, existing, recent, pilot, firstSeason, lastSeason.",
         },
+        confirm_switch: { type: "boolean", description: "true once they've confirmed switching a running download's quality." },
       },
       required: titleYearTypeRequired,
     },
   },
   {
     name: "remove",
-    description: "Remove a film or series from the speaker's own pool. Same as !remove.",
+    description: "Remove a title from the speaker's own pool (!remove).",
     input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "list_pool",
-    description: "Post the speaker's pool of films or series. Same as !list.",
+    description: "Post the speaker's pool (!list).",
     input_schema: { type: "object", properties: contentType, required: ["type"] },
   },
   {
-    name: "search_library",
-    description: "Post which users have a title in their pools. Same as !search.",
-    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
-  },
-  {
-    name: "wait_time",
-    description: "Post how long a download has left. Same as !waittime.",
-    input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
-  },
-  {
     name: "stay",
-    description: "Keep a title in the library a while longer. Same as !stay.",
+    description: "Keep a title in the library a while longer (!stay).",
     input_schema: { type: "object", properties: titleYearType, required: titleYearTypeRequired },
   },
   {
     name: "monitor",
-    description: "Change which episodes of a series are downloaded. Same as !monitor. Series only.",
+    description: "Change which episodes of a series are downloaded (!monitor).",
     input_schema: {
       type: "object",
       properties: {
@@ -91,20 +83,19 @@ export const ACTION_TOOLS: Tool[] = [
   },
   {
     name: "blocklist",
-    description:
-      "Mark a bad download as a dud, blocklist it and find another. Same as !blocklist. Series need an episode.",
+    description: "Mark a bad download as a dud and find another (!blocklist). Series need an episode.",
     input_schema: {
       type: "object",
       properties: {
         ...titleYearType,
-        episode: { type: "string", description: "For series only, e.g. S02E04." },
+        episode: { type: "string", description: "Series only, e.g. S02E04." },
       },
       required: titleYearTypeRequired,
     },
   },
   {
     name: "stats",
-    description: "Post the speaker's pool stats. Same as !stats.",
+    description: "Post the speaker's pool stats (!stats).",
     input_schema: { type: "object", properties: {} },
   },
 ]
@@ -112,40 +103,62 @@ export const ACTION_TOOLS: Tool[] = [
 // Read-only tools that return information to you without posting anything
 export const INFO_TOOLS: Tool[] = [
   {
-    name: "lookup_title",
+    name: "find_title",
     description:
-      "Look up a film or series in the server's library: whether it's downloaded, ratings, genres and who has it in their pool.",
+      "Find any film or series, in the library or not. Gives year, downloaded and quality, download progress, release dates, whether it can be grabbed yet, ratings, who has it, and if the speaker watched it.",
     input_schema: {
       type: "object",
       properties: {
         title: titleYear.title,
-        year: { type: "integer", description: "Optional release year to narrow it down." },
+        year: { type: "integer", description: "Optional, narrows it down." },
+        type: { type: "string", enum: ["movie", "series"], description: "Optional. Leave out if unsure." },
       },
       required: ["title"],
     },
   },
   {
-    name: "lookup_media",
+    name: "browse_library",
     description:
-      "Look up any film or series, even if it's not in the library. Returns titles, years, overviews and ratings from TMDB/TVDB.",
+      "List what's downloaded on the server, best for the speaker first, e.g. unseen sci-fi, a franchise or recent arrivals.",
     input_schema: {
       type: "object",
       properties: {
-        title: titleYear.title,
         type: { type: "string", enum: ["movie", "series"] },
+        genre: { type: "string", description: "e.g. Science Fiction." },
+        keyword: { type: "string", description: "Franchise or title word." },
+        recent_days: { type: "integer", description: "Added in the last N days." },
+        min_rating: { type: "number", description: "Out of 10." },
+        unseen: { type: "boolean", description: "Leave out what the speaker has seen." },
       },
-      required: ["title", "type"],
     },
   },
   {
     name: "get_user_profile",
     description:
-      "Get a server member's profile. Leave user empty for the speaker, who also gets their own remembered facts and habits. For anyone else you get their pool, plus their taste (top genres and recent Plex watches) unless they're private.",
+      "A member's pool, plus taste (top genres, recent Plex watches) unless private. Empty user = the speaker.",
     input_schema: {
       type: "object",
       properties: {
-        user: { type: "string", description: "Optional Discord username, display name or mention." },
+        user: { type: "string", description: "Username, display name or mention." },
       },
+    },
+  },
+]
+
+// Web tools, only offered when an admin has switched on web lookups
+export const WEB_TOOLS: Tool[] = [
+  {
+    name: "web_lookup",
+    description:
+      "Search film and TV sites for what find_title can't answer: cast, news, box office, streaming. One per message.",
+    input_schema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "A specific question." },
+        title: { type: "string", description: "Optional title it's about." },
+        year: { type: "integer", description: "Optional year of that title." },
+      },
+      required: ["question"],
     },
   },
 ]
@@ -165,7 +178,7 @@ export const PLEX_TOOLS: Tool[] = [
   {
     name: "link_my_plex",
     description:
-      "Link the speaker to their own Plex account, e.g. after they confirm \"that's me\". Only ever links the speaker.",
+      "Link the speaker to their own Plex account once they confirm it's theirs.",
     input_schema: {
       type: "object",
       properties: { plex_account: { type: "string", description: "The Plex account name." } },
@@ -218,8 +231,31 @@ export const SELF_TOOLS: Tool[] = [
     },
   },
   {
+    name: "forget_fact",
+    description: "Forget one remembered fact about the speaker.",
+    input_schema: {
+      type: "object",
+      properties: { fact: { type: "string", description: "As it appears in their profile." } },
+      required: ["fact"],
+    },
+  },
+  {
+    name: "set_nickname",
+    description:
+      "Add or remove a nickname. \"them\": what you call the speaker. \"you\": what the speaker calls you, which also gets your attention.",
+    input_schema: {
+      type: "object",
+      properties: {
+        for: { type: "string", enum: ["them", "you"] },
+        nickname: { type: "string", description: "e.g. Captain or Robo." },
+        remove: { type: "boolean", description: "true to remove it." },
+      },
+      required: ["for", "nickname"],
+    },
+  },
+  {
     name: "set_my_preferences",
-    description: "Change the speaker's own privacy and interaction preferences. Only include what they asked to change.",
+    description: "Change the speaker's preferences. Only include what they asked to change.",
     input_schema: { type: "object", properties: preferenceFlags },
   },
   {

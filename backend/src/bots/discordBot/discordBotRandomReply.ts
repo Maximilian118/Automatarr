@@ -1187,7 +1187,11 @@ export const randomSadComment = (mention: string): string => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomRemovalSuccessMessage = (poolItemTitle: string, contentType: string): string => {
+// Show a "<title> <year>" pool key as "<title> (<year>)" for people to read
+const displayTitleYear = (titleYear: string): string => titleYear.replace(/ (\d{4})$/, " ($1)")
+
+export const randomRemovalSuccessMessage = (poolItemKey: string, contentType: string): string => {
+  const poolItemTitle = displayTitleYear(poolItemKey)
   const messages = [
     `I've removed ${poolItemTitle} from your ${contentType} pool. More space for fun!`,
     `Gone! ${poolItemTitle} has been booted from your ${contentType} stash.`,
@@ -1427,3 +1431,13 @@ export const randomSeriesQueueMessage = (
     `Binge incoming! ${title} starts downloading right after ${conflict.ahead}. 🛋️`,
   ])
 }
+
+// Random in-character acknowledgements for when the AI did what was asked but had nothing to add
+export const randomAcknowledgement = (): string =>
+  pickRandom([
+    "Locked in 👌",
+    "Sorted.",
+    "Done and dusted.",
+    "Noted, consider it handled.",
+    "On it, all taken care of.",
+  ])

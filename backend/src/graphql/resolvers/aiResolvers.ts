@@ -6,13 +6,16 @@ import { AIUsageType } from "../../models/aiUsage"
 import Settings, { settingsDocType, settingsType } from "../../models/settings"
 import { AI_MODELS, AIModelConfig, checkAIKey } from "../../bots/discordBot/ai/aiClient"
 import { getMonthlyUsage } from "../../bots/discordBot/ai/aiBudget"
-import { forgetUser } from "../../bots/discordBot/ai/aiMemory"
+import { forgetUser, removeNicknameAt } from "../../bots/discordBot/ai/aiMemory"
 import { plexAccountOwner, savePlexLinks } from "../../bots/discordBot/ai/aiPlexLinks"
 import { getCachedPlexAccounts, refreshPlexCache } from "../../shared/plexRequests"
 
-// Every stored memory, most recently active first
-const allMemories = async (): Promise<BotMemoryType[]> =>
-  BotMemory.find().sort({ last_active_at: -1 }).lean()
+// Every stored memory, most recently active first.
+// Memories saved before nicknames existed get empty lists, since lean() skips schema defaults.
+const allMemories = async (): Promise<BotMemoryType[]> => {
+  const memories = await BotMemory.find().sort({ last_active_at: -1 }).lean()
+  return memories.map((m) => ({ ...m, nicknames: m.nicknames ?? [], bot_nicknames: m.bot_nicknames ?? [] }))
+}
 
 const aiResolvers = {
   // The Claude models selectable in the web app
@@ -64,6 +67,20 @@ const aiResolvers = {
     memory.updated_at = moment().format()
     await memory.save()
     logger.info(`AI Bot | Deleted a remembered note for ${memory.username}`)
+
+    return { data: await allMemories(), tokens: req.tokens }
+  },
+
+  // Delete one nickname. target "them" is what the bot calls the user, "you" is what the user calls the bot.
+  deleteBotNickname: async (
+    args: { discord_id: string; target: string; index: number },
+    req: AuthRequest,
+  ): Promise<{ data: BotMemoryType[]; tokens: string[] }> => {
+    requireAuth(req)
+    if (args.target !== "them" && args.target !== "you") throw new Error("Unknown nickname target.")
+
+    await removeNicknameAt(args.discord_id, args.target, args.index)
+    logger.info(`AI Bot | Deleted a nickname for Discord user ${args.discord_id}`)
 
     return { data: await allMemories(), tokens: req.tokens }
   },

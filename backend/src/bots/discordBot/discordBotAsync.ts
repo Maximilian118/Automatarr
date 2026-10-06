@@ -36,7 +36,8 @@ export const notifyMovieDownloaded = async (
   while (Date.now() - start < timeoutMs) {
     const downloaded = await getMovie(settings, movie.id)
 
-    if (downloaded) {
+    // Radarr returns the movie whether or not it has a file yet, so only a file means it's ready
+    if (downloaded?.hasFile) {
       await sendDiscordMessage(
         message,
         randomMovieReadyMessage(message.author.toString(), movie.title),

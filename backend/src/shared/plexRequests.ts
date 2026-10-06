@@ -51,12 +51,14 @@ type PlexMediaContainer = {
 type PlexCache = {
   accounts: PlexAccount[]
   history: Record<number, PlexWatchItem[]> // Keyed by Plex account ID
+  watched: Record<number, Set<string>> // Watched title keys per Plex account ID, see watchedKey
   updated_at: string | null
 }
 
 const plexCache: PlexCache = {
   accounts: [],
   history: {},
+  watched: {},
   updated_at: null,
 }
 
@@ -65,6 +67,21 @@ const movieMetaCache = new Map<string, { year: number | null; tmdbId: number | n
 
 // How many history items to keep per Plex account
 const HISTORY_LIMIT = 15
+
+// How far back each account's watched set reaches. Only compact title keys are kept, so it stays small.
+const WATCHED_LIMIT = 1000
+
+// Reduce a title to lowercase letters and digits, with accents folded, so titles compare reliably
+export const titleKey = (title: string): string =>
+  title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]/g, "")
+
+// The key a watched film or series is stored under, e.g. "movie:thefly" or "series:community"
+export const watchedKey = (type: "movie" | "series", title: string): string => `${type}:${titleKey(title)}`
 
 // Headers required for every Plex request
 const plexHeaders = (token: string) => ({
@@ -186,20 +203,42 @@ const getPlexHistory = async (settings: settingsType, accountId: number): Promis
   return Promise.all(items.slice(0, HISTORY_LIMIT).map((item) => toWatchItem(settings, item)))
 }
 
-// Refresh the in-memory Plex cache with accounts and recent history for every account
+// Get the set of films and series a Plex account has watched, from a long stretch of its history.
+// Raw history entries are used as they are, so no per-item metadata requests are needed.
+const getPlexWatched = async (settings: settingsType, accountId: number): Promise<Set<string>> => {
+  const container = await plexGet(settings.plex_URL, settings.plex_KEY, "/status/sessions/history/all", {
+    sort: "viewedAt:desc",
+    accountID: accountId,
+    "X-Plex-Container-Start": 0,
+    "X-Plex-Container-Size": WATCHED_LIMIT,
+  })
+
+  const keys = (container.Metadata ?? []).flatMap((item) => {
+    if (item.type === "movie" && item.title) return [watchedKey("movie", item.title)]
+    if (item.type === "episode" && item.grandparentTitle) return [watchedKey("series", item.grandparentTitle)]
+    return []
+  })
+
+  return new Set(keys)
+}
+
+// Refresh the in-memory Plex cache with accounts, recent history and watched sets for every account
 export const refreshPlexCache = async (settings: settingsType): Promise<void> => {
   if (!settings.plex_active || !settings.plex_URL || !settings.plex_KEY) return
 
   try {
     const accounts = await getPlexAccounts(settings)
     const history: Record<number, PlexWatchItem[]> = {}
+    const watched: Record<number, Set<string>> = {}
 
     for (const account of accounts) {
       history[account.id] = await getPlexHistory(settings, account.id)
+      watched[account.id] = await getPlexWatched(settings, account.id)
     }
 
     plexCache.accounts = accounts
     plexCache.history = history
+    plexCache.watched = watched
     plexCache.updated_at = moment().format()
     logger.info(`Plex | Cached watch history for ${accounts.length} accounts.`)
   } catch (err) {
@@ -228,6 +267,10 @@ export const plexAccountForUser = (botUser: BotUserType | undefined, discordUser
 // Get cached watch history for a Plex account
 export const getCachedPlexHistory = (accountId: number): PlexWatchItem[] =>
   plexCache.history[accountId] ?? []
+
+// Check whether a Plex account has watched a film or any episode of a series
+export const hasWatchedOnPlex = (accountId: number | null, type: "movie" | "series", title: string): boolean =>
+  accountId !== null && !!plexCache.watched[accountId]?.has(watchedKey(type, title))
 
 // Get what a Plex account is watching right now
 export const getPlexNowPlaying = async (

@@ -88,6 +88,7 @@ export type AIBotType = {
   chat: boolean // Allow conversational replies outside of ! commands
   command_help: boolean // Allow the AI to work out what a malformed or unknown ! command meant
   recommendations: boolean // Allow rare, event-based recommendations
+  web_search: boolean // Allow capped web lookups for film and TV facts
 }
 
 // Main settingsType
@@ -222,6 +223,7 @@ const aiBotSchema = new mongoose.Schema<AIBotType>({
   chat: { type: Boolean, default: true },
   command_help: { type: Boolean, default: true },
   recommendations: { type: Boolean, default: false },
+  web_search: { type: Boolean, default: false },
 })
 
 const settingsSchema = new mongoose.Schema<settingsType>(

@@ -82,6 +82,7 @@ const Schema = buildSchema(`
     testImportList(input: ImportListTestInput!): ImportListMutationReturn!
     deleteBotMemoryNote(discord_id: String!, index: Int!): BotMemoriesReturn!
     forgetBotUser(discord_id: String!): BotMemoriesReturn!
+    deleteBotNickname(discord_id: String!, target: String!, index: Int!): BotMemoriesReturn!
     updateBotMemoryPreferences(discord_id: String!, private: Boolean, learning: Boolean, chat: Boolean, recommendations: Boolean): BotMemoriesReturn!
     updateUserPlexLink(userId: String!, plexAccountId: Int): Settings
   }
