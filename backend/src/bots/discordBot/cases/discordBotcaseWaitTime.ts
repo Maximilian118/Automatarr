@@ -5,16 +5,37 @@ import { validateWaitCommand } from "../validate/validateWaitCommand"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
-  getMovieStatusMessage,
-  randomEpisodesDownloadingMessage,
+  downloadStateMessage,
+  notDownloadingMessage,
 } from "../discordBotRandomReply"
 import Data, { dataDocType } from "../../../models/data"
-import { getRadarrQueue, searchRadarr } from "../../../shared/RadarrStarrRequests"
-import { getSonarrLibrary, getSonarrQueue, searchSonarr } from "../../../shared/SonarrStarrRequests"
+import { getMovie, searchRadarr } from "../../../shared/RadarrStarrRequests"
+import { getSonarrLibrary, searchSonarr } from "../../../shared/SonarrStarrRequests"
+import {
+  DownloadContentType,
+  getDownloadSnapshot,
+  libraryItemStatus,
+  searchingKeys,
+  stateFor,
+} from "../../../shared/downloadStatus"
 import { sortTMDBSearchArray } from "../../botUtility"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
+
+// Say where a library title is in the download queue, or why nothing is downloading for it
+const liveWaitMessage = async (
+  settings: settingsDocType,
+  type: DownloadContentType,
+  item: Movie | Series,
+): Promise<string> => {
+  const [snapshot, searching] = await Promise.all([getDownloadSnapshot(settings, [type]), searchingKeys()])
+  const state = stateFor(snapshot, type, item.id)
+  if (state) return downloadStateMessage(state)
+
+  const { text } = libraryItemStatus(type, item, snapshot, searching)
+  return text ? notDownloadingMessage(item.title, text) : randomAlreadyAddedMessage()
+}
 
 // Check the wait time for a movie or series download
 export const caseWaitTime = async (message: Message): Promise<string> => {
@@ -57,15 +78,14 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
     // Grab the first movie in the array
     const foundMovie = sortedMoviesArr[0]
 
-    // Check if the movie is already downloaded
-    if (foundMovie.movieFile) {
-      return randomAlreadyAddedMessage()
-    }
+    // Not in the library at all, so there's nothing to wait for
+    if (!foundMovie.id) return randomNotFoundMessage()
 
-    // Check if the movie is in the download queue
-    const queue = await getRadarrQueue(settings)
-    const movieInQueue = queue.find((movie) => movie.movieId === foundMovie.id)
-    if (movieInQueue) return getMovieStatusMessage(movieInQueue.status, movieInQueue.timeleft)
+    // The lookup can carry a stale file record, so ask Radarr whether the file is really there
+    const libraryMovie = (await getMovie(settings, foundMovie.id)) ?? foundMovie
+    if (libraryMovie.hasFile) return randomAlreadyAddedMessage()
+
+    return liveWaitMessage(settings, "movie", libraryMovie)
   }
 
   // If user is in series channel
@@ -109,14 +129,7 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
         return randomAlreadyAddedMessage()
       }
 
-      // Check download Queue and see if any episodes for this series are currently being downloaded
-      const queue = await getSonarrQueue(settings)
-      const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
-      const lastEpisode = episodesInQueue.at(-1)
-
-      if (episodesInQueue.length > 0) {
-        return randomEpisodesDownloadingMessage(episodesInQueue.length, lastEpisode?.timeleft)
-      }
+      return liveWaitMessage(settings, "series", matchedSeries)
     }
   }
 

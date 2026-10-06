@@ -141,6 +141,7 @@ export const queueDownloadNotifications = async (
   settings: settingsDocType,
   content: Movie | Series,
   APIName: "Radarr" | "Sonarr",
+  alreadyGrabbed: boolean = false, // Already in the download queue, so only the "ready" notification is wanted
 ): Promise<void> => {
   if (!settings.webhooks) {
     const notify =
@@ -169,7 +170,7 @@ export const queueDownloadNotifications = async (
     })
   }
 
-  if (settings.webhooks_enabled.includes("Grab")) {
+  if (settings.webhooks_enabled.includes("Grab") && !alreadyGrabbed) {
     queueNotifications.push({
       waitForStatus: "Grab",
       message: randomGrabbedMessage(content.title),

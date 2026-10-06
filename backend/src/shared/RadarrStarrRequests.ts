@@ -5,6 +5,7 @@ import logger from "../logger"
 import axios from "axios"
 import { DownloadStatus, SearchCommandResponseType } from "../types/types"
 import { HistoryItem } from "../types/historyTypes"
+import { grabToBlocklist } from "./starrHistory"
 import { axiosErrorMessage } from "./requestError"
 import { recordActivity } from "./activity"
 
@@ -180,6 +181,7 @@ export const getMovie = async (
 export const deleteMovieFile = async (
   settings: settingsType,
   movieFileID: number,
+  movieTitle?: string, // Names the movie in the activity log
 ): Promise<boolean> => {
   try {
     const res = await axios.delete(
@@ -194,7 +196,7 @@ export const deleteMovieFile = async (
     )
 
     if (requestSuccess(res.status)) {
-      recordActivity({ action: "movie_file", app: "Radarr", title: `Movie file ${movieFileID}` })
+      recordActivity({ action: "movie_file", app: "Radarr", title: movieTitle ?? `Movie file ${movieFileID}` })
       return true
     }
 
@@ -271,33 +273,31 @@ export const markMovieAsFailed = async (
   return false
 }
 
-// Helper function to blocklist and start the search for another movie
+// Helper function to blocklist and start the search for another movie.
+// With a download ID, that exact release is blocklisted. Otherwise the movie's latest grab is.
 export const blocklistAndSearchMovie = async (
   settings: settingsType,
   movieID?: number,
+  downloadId?: string,
 ): Promise<HistoryItem | undefined> => {
   if (!movieID) {
     logger.error(`blocklistAndSearchMovie: No movieID passed.`)
     return
   }
 
-  const history = await getMovieHistory(settings, movieID)
+  const grab = grabToBlocklist(await getMovieHistory(settings, movieID), downloadId)
 
-  if (history.length === 0) {
-    logger.warn(`blocklistAndSearchMovie: No movie history found for movieID ${movieID}`)
+  if (!grab) {
+    logger.warn(`blocklistAndSearchMovie: No grab in the history of movieID ${movieID} to blocklist.`)
     return
   }
 
-  const latestGrabbed = history
-    .filter((entry) => entry.eventType === "grabbed")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-
-  if (await markMovieAsFailed(settings, latestGrabbed.id)) {
-    logger.success(`Radarr | ${latestGrabbed.sourceTitle} blocklisted and new search started.`)
-    return latestGrabbed
-  } else {
-    logger.error(`blocklistAndSearchMovie: Failed to mark ${latestGrabbed.sourceTitle} as failed.`)
+  if (await markMovieAsFailed(settings, grab.id)) {
+    logger.success(`Radarr | ${grab.sourceTitle} blocklisted and new search started.`)
+    return grab
   }
+
+  logger.error(`blocklistAndSearchMovie: Failed to mark ${grab.sourceTitle} as failed.`)
 }
 
 // Change the quality profile of one or more movies

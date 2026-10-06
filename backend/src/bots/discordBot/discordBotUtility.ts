@@ -1,3 +1,4 @@
+import type { PoolItemStatus } from "./discordBotPoolStatus"
 import {
   Client,
   Guild,
@@ -720,65 +721,71 @@ export const getBackdropImageUrl = (images: any[]): string | null => {
   return null
 }
 
-// Create embed for movie/series pool item
-// Determine color based on download status for list command
-const getListItemStatusColor = (item: any, contentType: "movie" | "series"): number => {
-  if (contentType === "movie") {
-    // Movies: Green if downloaded, Red if not downloaded
-    return item.hasFile ? 0x32cd32 : 0xff4444  // Green : Red
-  } else {
-    // Series: Green if 100%, Orange if partial, Red if 0%
-    const downloadedPercent = item.statistics?.percentOfEpisodes || 0
-    if (downloadedPercent >= 100) {
-      return 0x32cd32 // Green for complete
-    } else if (downloadedPercent > 0) {
-      return 0xff8c00 // Orange for partial
-    } else {
-      return 0xff4444 // Red for not downloaded
-    }
-  }
+// Colours for !list items: done, on its way, and stuck or waiting
+const LIST_DONE_COLOR = 0x32cd32 // Green
+const LIST_ACTIVE_COLOR = 0xff8c00 // Orange
+const LIST_WAITING_COLOR = 0xff4444 // Red
+
+// Determine the colour of a !list item. Live status wins when it's known, otherwise the stored snapshot is used.
+const getListItemStatusColor = (
+  item: Movie | Series,
+  contentType: "movie" | "series",
+  status?: PoolItemStatus,
+): number => {
+  if (status) return status.downloaded ? LIST_DONE_COLOR : status.active ? LIST_ACTIVE_COLOR : LIST_WAITING_COLOR
+
+  if (contentType === "movie") return (item as Movie).hasFile ? LIST_DONE_COLOR : LIST_WAITING_COLOR
+
+  // Series: green if complete, orange if partial, red if nothing downloaded yet
+  const downloadedPercent = (item as Series).statistics?.percentOfEpisodes || 0
+  if (downloadedPercent >= 100) return LIST_DONE_COLOR
+  return downloadedPercent > 0 ? LIST_ACTIVE_COLOR : LIST_WAITING_COLOR
 }
 
+// Create embed for movie/series pool item. With a live status, films that aren't downloaded show what's
+// happening instead of a bare "No", e.g. "Downloading 45%, 20m left" or "Queued (#3 in line)".
 export const createPoolItemEmbed = (
-  item: any,
+  item: Movie | Series,
   index: number,
   contentType: "movie" | "series",
-  color?: number // Made optional since we'll calculate it based on status
+  status?: PoolItemStatus,
 ): EmbedBuilder => {
-  // Use provided color or calculate based on download status
-  const embedColor = color ?? getListItemStatusColor(item, contentType)
-
   const embed = new EmbedBuilder()
-    .setColor(embedColor)
+    .setColor(getListItemStatusColor(item, contentType, status))
     .setTitle(`${index + 1}. ${item.title} (${item.year})`)
-  
-  let description = ""
-  
-  if (contentType === "movie") {
-    // Format runtime from minutes to hours and minutes
-    const runtimeStr = formatRuntime(item.runtime)
 
-    const downloaded = item.hasFile ? "Yes" : "No"
-    
+  let description = ""
+
+  if (contentType === "movie") {
+    const movie = item as Movie
+    // Format runtime from minutes to hours and minutes
+    const runtimeStr = formatRuntime(movie.runtime)
+    const downloaded = status ? status.downloaded : movie.hasFile
+    const downloadLine = downloaded
+      ? "**Downloaded:** Yes"
+      : `**Status:** ${status?.text || "Not downloaded"}`
+
     // Get Rotten Tomatoes rating from ratings object
-    const rtScore = item.ratings?.rottenTomatoes?.value 
-      ? `${item.ratings.rottenTomatoes.value}%`
+    const rtScore = movie.ratings?.rottenTomatoes?.value
+      ? `${movie.ratings.rottenTomatoes.value}%`
       : "N/A"
-    
-    description = `**Runtime:** ${runtimeStr}\n**Downloaded:** ${downloaded}\n🍅︎ **${rtScore}**`
+
+    description = `**Runtime:** ${runtimeStr}\n${downloadLine}\n🍅︎ **${rtScore}**`
   } else {
+    const series = item as Series
     // Series info
-    const seasons = item.seasons ? item.seasons.length : 0
-    const downloadedPercent = item.statistics?.percentOfEpisodes || 0
+    const seasons = series.seasons ? series.seasons.length : 0
+    const downloadedPercent = series.statistics?.percentOfEpisodes || 0
     // Format monitor status for user-friendly display
-    const rawMonitorStatus = item.monitorNewItems || "all"
+    const rawMonitorStatus = series.monitorNewItems || "all"
     const monitorDisplay =
       rawMonitorStatus === "all"
         ? "All Seasons"
         : rawMonitorStatus.charAt(0).toUpperCase() + rawMonitorStatus.slice(1)
-    description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%`
+    const statusLine = status?.text ? `\n**Status:** ${status.text}` : ""
+    description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%${statusLine}`
   }
-  
+
   embed.setDescription(description)
   
   const posterUrl = getPosterImageUrl(item.images)

@@ -7,6 +7,29 @@ import { updateLoopData } from "./loopUtility"
 import { checkPermissions } from "../shared/permissions"
 import Data, { dataType } from "../models/data"
 
+// Folders changed this recently are never treated as orphans. A film or series added since the library
+// was last fetched (or while a fetch failed) has a fresh folder that the library doesn't know about yet.
+const ORPHAN_GRACE_MS = 6 * 60 * 60 * 1000
+
+// Check whether a folder, or anything directly inside it, changed within the grace period
+const recentlyChanged = (dir: string): boolean => {
+  try {
+    const cutoff = Date.now() - ORPHAN_GRACE_MS
+    if (fs.statSync(dir).mtimeMs > cutoff) return true
+
+    return fs.readdirSync(dir).some((entry) => {
+      try {
+        return fs.statSync(path.join(dir, entry)).mtimeMs > cutoff
+      } catch {
+        return false
+      }
+    })
+  } catch {
+    // If the folder can't be read, leave it alone
+    return true
+  }
+}
+
 const storage_cleaner = async (_settings: settingsType, passedData?: dataType): Promise<void> => {
   if (process.env.NODE_ENV === "development") {
     logger.info("storage_cleaner bypassed. In Development mode. 🔧")
@@ -163,6 +186,11 @@ const storage_cleaner = async (_settings: settingsType, passedData?: dataType): 
             isOrphaned = !knownMovieDirectories.has(diskDir)
           } else if (rootFolder.name === "Sonarr") {
             isOrphaned = !knownSeriesDirectories.has(diskDir)
+          }
+
+          if (isOrphaned && recentlyChanged(fullPath)) {
+            logger.info(`storage_cleaner | Not in the library but recently changed, skipped for now: ${fullPath}`)
+            continue
           }
 
           if (isOrphaned) {

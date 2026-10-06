@@ -138,7 +138,7 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
           // Add the deleted queue item to the blocklist
           if (API.name === "Radarr" && !deleteCase.includes("upgrade")) {
             if (deleted.movieId) {
-              await blocklistAndSearchMovie(settings, deleted.movieId)
+              await blocklistAndSearchMovie(settings, deleted.movieId, deleted.downloadId)
             } else {
               logger.info(
                 `Radarr | ${deleted.title} has no movieId - skipping blocklist and search.`,
@@ -146,7 +146,7 @@ const queue_cleaner = async (settings: settingsType): Promise<void> => {
             }
           } else if (API.name === "Sonarr" && !deleteCase.includes("upgrade")) {
             if (deleted.episodeId) {
-              await blocklistAndSearchEpisode(settings, deleted.episodeId)
+              await blocklistAndSearchEpisode(settings, deleted.episodeId, deleted.downloadId)
             } else {
               logger.info(
                 `Sonarr | ${deleted.title} has no episodeId - skipping blocklist and search.`,

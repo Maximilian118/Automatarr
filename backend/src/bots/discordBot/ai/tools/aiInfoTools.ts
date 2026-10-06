@@ -14,7 +14,7 @@ import {
 } from "../../../../shared/plexRequests"
 import { matchedDiscordUser, matchedUser } from "../../discordBotUtility"
 import { describeBrief, describeItem, ratingOutOf10 } from "../aiMediaFormat"
-import { describeQueue, fetchQueues, queueItemsFor } from "../aiDownloads"
+import { getDownloadSnapshot, queueStatusText, searchingKeys } from "../../../../shared/downloadStatus"
 import { RecipientProfile, buildProfile, hasSeen, isDownloaded, scoreFor } from "../aiRecommendations"
 import {
   IndexContentType,
@@ -179,13 +179,14 @@ export const describeFoundTitles = async (
   withOverview: boolean,
 ): Promise<string[]> => {
   const waiting = found.filter(awaitingDownload)
-  const queues = waiting.length ? await fetchQueues(ctx.settings, [...new Set(waiting.map((r) => r.type))]) : null
+  const snapshot = waiting.length ? await getDownloadSnapshot(ctx.settings, [...new Set(waiting.map((r) => r.type))]) : null
+  const searching = waiting.length ? await searchingKeys() : new Set<string>()
   const plexAccount = personalInfoAllowed(ctx) ? speakerPlexAccount(ctx) : null
 
   return found.map((r) =>
     describeItem(r.type, r.item, {
       settings: ctx.settings,
-      queue: queues && r.item.id ? describeQueue(r.type, queueItemsFor(queues, r.type, r.item.id)) : "",
+      queue: snapshot && awaitingDownload(r) ? queueStatusText(snapshot, searching, r.type, r.item.id).toLowerCase() : "",
       watched: hasWatchedOnPlex(plexAccount, r.type, r.item.title),
       overviewLength: withOverview ? SHORT_OVERVIEW_LENGTH : 0,
     }),

@@ -98,7 +98,7 @@ export const resetSABnzbdPriorities = async (
 
 // Get a valid qBittorrent cookie, saving it to the database if it had to be renewed.
 // Only the qBittorrent cookie fields are read and written so the rest of the data object is untouched.
-const getPriorityqBitCookie = async (
+export const getPriorityqBitCookie = async (
   settings: settingsType,
   forceRenew: boolean,
 ): Promise<string> => {

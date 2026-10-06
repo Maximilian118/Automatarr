@@ -1,5 +1,5 @@
 import { Message } from "discord.js"
-import Settings, { settingsDocType } from "../../models/settings"
+import Settings, { BotUserType, settingsDocType } from "../../models/settings"
 import {
   discordReply,
   findQualityProfile,
@@ -19,8 +19,8 @@ import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
   randomAlreadyDownloadedInQualityMessage,
-  getMovieStatusMessage,
-  randomEpisodesDownloadingMessage,
+  downloadStateMessage,
+  notDownloadingMessage,
   randomMovieDownloadStartMessage,
   randomMovieQualityDownloadStartMessage,
   randomSeriesDownloadStartMessage,
@@ -40,7 +40,6 @@ import { saveWithRetry } from "../../shared/database"
 import {
   downloadMovie,
   getMovie,
-  getRadarrQueue,
   searchMovieCommand,
   searchRadarr,
   updateMovieQualityProfile,
@@ -48,7 +47,6 @@ import {
 import {
   downloadSeries,
   getSonarrLibrary,
-  getSonarrQueue,
   searchSonarr,
   updateSeriesMonitor,
   searchMonitoredSeries,
@@ -65,6 +63,7 @@ import { channelValid } from "./validate/validationUtility"
 import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUtility"
 import { resolveInvalidCommand } from "./ai/aiHandlers"
 import { logRequest } from "./ai/aiRequestLog"
+import { downloadState, getDownloadSnapshot, recordsFor } from "../../shared/downloadStatus"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -90,6 +89,20 @@ export const caseDownloadSwitch = async (message: Message): Promise<string> => {
 }
 
 // Download a movie and add it to the users pool
+// Add a movie to a user's pool and save the settings. Returns false if the save failed.
+const addMovieToPool = async (
+  settings: settingsDocType,
+  userId: BotUserType["_id"],
+  movie: Movie,
+  context: string,
+): Promise<boolean> => {
+  settings.general_bot.users = settings.general_bot.users.map((u) =>
+    u._id === userId ? { ...u, pool: { ...u.pool, movies: [...(u.pool.movies || []), movie] } } : u,
+  )
+
+  return !!(await saveWithRetry(settings, context))
+}
+
 const caseDownloadMovie = async (message: Message, settings: settingsDocType): Promise<string> => {
   await sendProcessingMessage(message)
 
@@ -129,39 +142,31 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // Grab the first movie in the array
   const foundMovie = sortedMoviesArr[0]
 
+  // The lookup can carry a stale file record, so ask Radarr whether the file is really there.
+  // A film in the library without a file carries on below to the queue check and a search.
+  const libraryMovie = foundMovie.id ? ((await getMovie(settings, foundMovie.id)) ?? foundMovie) : foundMovie
+  const inUserPool = user.pool.movies.some((m) => m.tmdbId === foundMovie.tmdbId)
+
   // Check if the movie is already downloaded
-  if (foundMovie.movieFile) {
-    // Check if the movie is in the user's pool - if not, re-add it
-    const inUserPool = user.pool.movies.some((m) => m.tmdbId === foundMovie.tmdbId)
-
+  if (libraryMovie.hasFile && libraryMovie.movieFile) {
+    // Check if the movie is in the user's pool - if not, add it
     if (!inUserPool) {
-      settings.general_bot.users = settings.general_bot.users.map((u) => {
-        if (u._id === user._id) {
-          return {
-            ...u,
-            pool: {
-              ...u.pool,
-              movies: [...(u.pool.movies || []), foundMovie],
-            },
-          }
-        }
-        return u
-      })
-
-      if (!(await saveWithRetry(settings, "caseDownloadMovie - re-add to pool"))) return noDBSave()
-      await logRequest(message, "movie", foundMovie, "readd")
+      if (!(await addMovieToPool(settings, user._id, libraryMovie, "caseDownloadMovie - re-add to pool"))) {
+        return noDBSave()
+      }
+      await logRequest(message, "movie", libraryMovie, "readd")
 
       return discordReply(
-        randomReAddedToPoolMessage(foundMovie.title),
+        randomReAddedToPoolMessage(libraryMovie.title),
         "success",
-        `${user.name} | Re-added to pool | ${foundMovie.title}`,
+        `${user.name} | Added downloaded movie to pool | ${libraryMovie.title}`,
       )
     }
 
     // Content that has already been downloaded is left as is, even if a different quality was requested
-    const fileQuality = resolutionToQualityGroup(foundMovie.movieFile.quality?.quality?.resolution)
+    const fileQuality = resolutionToQualityGroup(libraryMovie.movieFile.quality?.quality?.resolution)
     if (quality && fileQuality && fileQuality !== getQualityGroup(quality)) {
-      return randomAlreadyDownloadedInQualityMessage(foundMovie.title, fileQuality)
+      return randomAlreadyDownloadedInQualityMessage(libraryMovie.title, fileQuality)
     }
 
     return randomAlreadyAddedMessage()
@@ -180,8 +185,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   // If the foundMovie has been added to the library and therefore has an id
   if (foundMovie.id) {
     // Check if the movie is in the download queue
-    const queue = await getRadarrQueue(settings)
-    const movieQueueItems = queue.filter((movie) => movie.movieId === foundMovie.id)
+    const snapshot = await getDownloadSnapshot(settings, ["movie"])
+    const movieQueueItems = recordsFor(snapshot, "movie", foundMovie.id)
 
     if (movieQueueItems.length > 0) {
       // A quality argument means the user may have changed their mind about the quality mid download
@@ -196,7 +201,17 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
         )
       }
 
-      return getMovieStatusMessage(movieQueueItems[0].status, movieQueueItems[0].timeleft)
+      // Someone else's download: add it to this user's pool too and tell them when it's ready
+      if (!inUserPool) {
+        if (!(await addMovieToPool(settings, user._id, libraryMovie, "caseDownloadMovie - join download"))) {
+          return noDBSave()
+        }
+        await logRequest(message, "movie", libraryMovie, "download")
+        await queueDownloadNotifications(message, settings, libraryMovie, "Radarr", true)
+      }
+
+      const state = downloadState(movieQueueItems, snapshot)
+      return state ? downloadStateMessage(state) : randomAlreadyAddedMessage()
     }
   }
 
@@ -273,22 +288,8 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
   const alreadyInPool = user.pool.movies.some((m) => m.tmdbId === movie.tmdbId)
   if (alreadyInPool) return randomAlreadyAddedMessage()
 
-  // Add the movie to the users pool
-  settings.general_bot.users = settings.general_bot.users.map((u) => {
-    if (u._id === user._id) {
-      return {
-        ...u,
-        pool: {
-          ...u.pool,
-          movies: [...(u.pool.movies || []), movie],
-        },
-      }
-    }
-    return u
-  })
-
-  // Save the new pool data to the database
-  if (!(await saveWithRetry(settings, "caseDownloadMovie"))) return noDBSave()
+  // Add the movie to the users pool and save it
+  if (!(await addMovieToPool(settings, user._id, movie, "caseDownloadMovie"))) return noDBSave()
   await logRequest(message, "movie", movie, "download")
 
   if (isUnreleased) {
@@ -338,6 +339,17 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
     "success",
     `${user.name} | Started Movie Download | ${movie.title} | They have ${currentLeft} pool allowance available for movies.`,
   )
+}
+
+// Say where an incomplete library series is in the download queue. If nothing is downloading,
+// start a search for its missing episodes.
+const seriesProgressMessage = async (settings: settingsDocType, series: Series): Promise<string> => {
+  const snapshot = await getDownloadSnapshot(settings, ["series"])
+  const state = downloadState(recordsFor(snapshot, "series", series.id), snapshot)
+  if (state) return downloadStateMessage(state)
+
+  await searchMonitoredSeries(settings, series.id)
+  return notDownloadingMessage(series.title, "I've started a search for the missing episodes")
 }
 
 // Download a series and add it to the users pool
@@ -440,11 +452,13 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
           return noDBSave()
         await logRequest(message, "series", matchedSeries, "readd")
 
-        return discordReply(
-          randomReAddedToPoolMessage(matchedSeries.title),
-          "success",
-          `${user.name} | Re-added to pool | ${matchedSeries.title}`,
-        )
+        // Only say it's already downloaded when every episode is. Otherwise say what's happening.
+        const reply =
+          matchedSeries.statistics.percentOfEpisodes === 100
+            ? randomReAddedToPoolMessage(matchedSeries.title)
+            : await seriesProgressMessage(settings, matchedSeries)
+
+        return discordReply(reply, "success", `${user.name} | Added series to pool | ${matchedSeries.title}`)
       }
 
       // A quality argument means the user may have changed their mind about the quality
@@ -457,17 +471,8 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
         return randomAlreadyAddedMessage()
       }
 
-      // Series incomplete - check if already downloading
-      const queue = await getSonarrQueue(settings)
-      const episodesInQueue = queue.filter((q) => q.seriesId === foundSeries.id)
-
-      if (episodesInQueue.length > 0) {
-        const lastEpisode = episodesInQueue.at(-1)
-        return randomEpisodesDownloadingMessage(episodesInQueue.length, lastEpisode?.timeleft)
-      }
-
-      // Series exists and monitoring matches - just return already added message
-      return randomAlreadyAddedMessage()
+      // Series incomplete - say what's downloading, or search for what's missing
+      return seriesProgressMessage(settings, matchedSeries)
     }
 
     // Scenario 2: Series has specific monitor that differs from user's request

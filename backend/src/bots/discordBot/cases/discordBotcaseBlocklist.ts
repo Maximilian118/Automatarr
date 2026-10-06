@@ -36,6 +36,7 @@ import { Movie } from "../../../types/movieTypes"
 import logger from "../../../logger"
 import { notifyEpisodeDownloaded, notifyMovieDownloaded } from "../discordBotAsync"
 import { QueueNotificationType, waitForWebhooks } from "../../../webhooks/webhookUtility"
+import { grabToBlocklist, importedDownloadId } from "../../../shared/starrHistory"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Mark a download as unsatisfactory, blocklist it and add start a new download
@@ -122,16 +123,15 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
       return `Hmm.. the movie ${title} doesn't look like it's been downloaded yet. Are you sure you have the right movie?`
     }
 
+    // Find the grab behind the current file before deleting it, so that exact release is blocklisted
     const history = await getMovieHistory(settings, movieInDB.id)
-    const latestGrabbed = history
-      .filter((entry) => entry.eventType === "grabbed")
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+    const badGrab = grabToBlocklist(history, importedDownloadId(history))
 
-    if (!(await deleteMovieFile(settings, movieInDB.movieFile.id))) {
+    if (!(await deleteMovieFile(settings, movieInDB.movieFile.id, `${movieInDB.title} (${movieInDB.year})`))) {
       return "Forgive me. I was unable to delete the movie file. Please send your wax sealed complaint scroll to the server owner via Owl and we'll get back to you within 20 moons."
     }
 
-    if (!(await markMovieAsFailed(settings, latestGrabbed.id))) {
+    if (!badGrab || !(await markMovieAsFailed(settings, badGrab.id))) {
       return `I've been able to delete the file for ${title} but I couldn't start another download. If you'd like to watch the movie now you might want to give an admin a poke!`
     }
 
@@ -228,16 +228,16 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
       return `Hmm.. Season ${episode.seasonNumber} Episode ${episode.episodeNumber} ${episode.title} for the series ${title} doesn't look like it's been downloaded yet. Are you sure you have the right episode?`
     }
 
+    // Find the grab behind the current file before deleting it, so that exact release is blocklisted
     const history = await getEpisodeHistory(settings, episode.id)
-    const latestGrabbed = history
-      .filter((entry) => entry.eventType === "grabbed")
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
+    const badGrab = grabToBlocklist(history, importedDownloadId(history))
+    const episodeLabel = `${seriesInDB.title} S${String(episode.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`
 
-    if (!(await deleteEpisodeFile(settings, episode.episodeFile.id))) {
+    if (!(await deleteEpisodeFile(settings, episode.episodeFile.id, episodeLabel))) {
       return "Forgive me. I was unable to delete the episode file. Please inform the server emperor at once!"
     }
 
-    if (!(await markEpisodeAsFailed(settings, latestGrabbed.id))) {
+    if (!badGrab || !(await markEpisodeAsFailed(settings, badGrab.id))) {
       return `I've been able to delete the file for ${title} season ${episode.seasonNumber} episode ${episode.episodeNumber} but I couldn't start another download. If you'd like to watch the episode now you might want to give an admin a poke!`
     }
 

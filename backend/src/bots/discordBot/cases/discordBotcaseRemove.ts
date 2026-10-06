@@ -142,9 +142,9 @@ export const caseRemove = async (message: Message): Promise<string> => {
     )
   }
 
-  // Cancel any pending webhooks for the removed content
+  // Cancel this user's pending notifications for the removed content. Other people waiting on it keep theirs.
   if (removedContent) {
-    await cancelWebhooksForContent(removedContent)
+    await cancelWebhooksForContent(removedContent, guildMember.id)
   }
 
   // Save the new pool data to the database

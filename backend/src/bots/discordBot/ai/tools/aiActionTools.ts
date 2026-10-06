@@ -12,7 +12,7 @@ import { caseMonitor } from "../../cases/discordBotcaseMonitor"
 import { caseBlocklist } from "../../cases/discordBotcaseBlocklist"
 import { buildCommandMessage } from "../aiCommandMessage"
 import { recordUserEvent } from "../aiContext"
-import { describeQueue, fetchQueues, queueItemsFor } from "../aiDownloads"
+import { describeDownloadState, getDownloadSnapshot, stateFor } from "../../../../shared/downloadStatus"
 import { ensureTitleIndex, searchTitleIndex } from "../aiTitleIndex"
 import { ToolContext, ToolHandler, ToolInput, inputBoolean, inputString, inputYear } from "./aiToolTypes"
 import { withActivitySource } from "../../../../shared/activity"
@@ -142,11 +142,10 @@ const qualitySwitchCheck = async (ctx: ToolContext, input: ToolInput): Promise<s
   const [match] = searchTitleIndex(inputString(input, "title"), { year: inputYear(input), type, limit: 1 })
   if (!match || match.score < EXACT_TITLE_SCORE) return ""
 
-  const queues = await fetchQueues(ctx.settings, [type])
-  const status = describeQueue(type, queueItemsFor(queues, type, match.item.id))
-  if (!status) return ""
+  const state = stateFor(await getDownloadSnapshot(ctx.settings, [type]), type, match.item.id)
+  if (!state) return ""
 
-  return `Not run. ${match.item.title} is already ${status}. Getting it in ${quality} cancels that and searches again, which may take longer. Tell them and ask first. If they confirm, call download again with confirm_switch: true.`
+  return `Not run. ${match.item.title} is already in the download queue: ${describeDownloadState(state)}. Getting it in ${quality} cancels that and searches again, which may take longer. Tell them and ask first. If they confirm, call download again with confirm_switch: true.`
 }
 
 // Describe a channel for the model by name and mention, e.g. "#films (<#123>)", so it can name it correctly

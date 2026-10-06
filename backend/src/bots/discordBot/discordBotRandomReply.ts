@@ -7,6 +7,7 @@ import { Movie } from "../../types/movieTypes"
 import { MonitorOptions, Series } from "../../types/seriesTypes"
 import { getQualityGroup } from "./discordBotUtility"
 import { QueueConflict } from "../../types/downloadPriorityTypes"
+import { DownloadState, describeDownloadState } from "../../shared/downloadStatus"
 
 // Display-friendly labels for each quality group
 const qualityLabels: Record<string, string> = {
@@ -275,11 +276,11 @@ export const randomAlreadyAddedMessage = () => {
 // Random message for when content is already downloaded but was missing from the user's pool
 export const randomReAddedToPoolMessage = (title: string) => {
   const messages = [
-    `"${title}" is already downloaded — I've added it back to your pool.`,
-    `That one's already here! I've popped "${title}" back into your pool.`,
-    `"${title}" never left the library — just your pool. Fixed that for you!`,
-    `Welcome back, "${title}"! Re-added to your pool.`,
-    `"${title}" was still downloaded — I've slotted it back into your pool.`,
+    `"${title}" is already downloaded — I've added it to your pool.`,
+    `That one's already here! I've popped "${title}" into your pool.`,
+    `"${title}" is already in the library — it's in your pool now too.`,
+    `Good news, "${title}" is already downloaded. Added to your pool!`,
+    `"${title}" is ready to watch — I've slotted it into your pool.`,
   ]
   return messages[Math.floor(Math.random() * messages.length)]
 }
@@ -344,40 +345,7 @@ export const randomGrabNotFoundMessage = (title: string) => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomQueuedMessage = (timeLeft?: string): string => {
-  let eta = ""
-  let longWaitNote = ""
-
-  if (timeLeft) {
-    const duration = moment.duration(timeLeft)
-    const formatted = formatTimeLeft(timeLeft)
-    eta = ` — last one finishes in ${formatted}`
-
-    if (duration.asHours() > 8) {
-      const note = longWaitComments[Math.floor(Math.random() * longWaitComments.length)]
-      longWaitNote = ` — ${note}`
-    }
-  }
-
-  const messages = [
-    `Your request is queued${eta}${longWaitNote}.`,
-    `It's in line to be downloaded${eta}${longWaitNote}. Hang tight.`,
-    `That one's queued${eta}${longWaitNote}. We'll grab it as soon as we can.`,
-    `Added to the download queue${eta}${longWaitNote}. Shouldn't be long now.`,
-    `Waiting in the queue${eta}${longWaitNote} — we haven't forgotten it.`,
-    `Your download is doing the digital equivalent of waiting at the DMV${eta}${longWaitNote}.`,
-    `It's in the queue — possibly behind someone's entire anime backlog${eta}${longWaitNote}.`,
-    `We've got it lined up${eta}${longWaitNote}. Just waiting for the stars to align.`,
-    `It's waiting for the servers to finish their coffee break${eta}${longWaitNote}.`,
-    `Queued... kind of like that email you meant to send three days ago${eta}${longWaitNote}.`,
-    `It's in queue purgatory${eta}${longWaitNote}. Be patient, or sacrifice a USB stick to the gods.`,
-    `Queued and comfy. It'll get there. Probably before the heat death of the universe${eta}${longWaitNote}.`,
-  ]
-
-  return messages[Math.floor(Math.random() * messages.length)]
-}
-
-export const randomDownloadingMessage = (timeLeft?: string): string => {
+export const randomDownloadingMessage = (timeLeft?: string | moment.Duration): string => {
   let eta = ""
   let longWaitNote = ""
 
@@ -419,28 +387,6 @@ const randomPausedMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-const randomCompletedMessage = () => {
-  const messages = [
-    "The download is complete but still stuck in the queue. Only the mighty server owner can investigate and bring it home.",
-    "Download's done, but something's holding it back. Time to alert the server deity.",
-    "It finished downloading, but hasn't moved forward. The server overlord must intervene.",
-    "Complete, yet unmoved — like a warrior waiting for orders. Summon the server god to finish the job.",
-    "It's downloaded but not ready yet. Only the great server owner can descend from the clouds and fix this.",
-  ]
-  return messages[Math.floor(Math.random() * messages.length)]
-}
-
-const randomImportedMessage = () => {
-  const messages = [
-    "All done. It's downloaded and added to your library.",
-    "Finished and ready — it should be available to watch.",
-    "Successfully added to your collection.",
-    "That one's now part of your library. Enjoy.",
-    "It's in — check your collection. You're good to go.",
-  ]
-  return messages[Math.floor(Math.random() * messages.length)]
-}
-
 const randomFailedMessage = () => {
   const messages = [
     "The download failed. Might be a broken link or bad source.",
@@ -452,37 +398,79 @@ const randomFailedMessage = () => {
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-const randomWarningMessage = () => {
-  const messages = [
-    "There's a warning on this one — might be a quality issue.",
-    "Download succeeded, but the server isn't fully happy with it.",
-    "It's flagged with a warning. Maybe double-check it.",
-    "the server thinks something's off — might be worth a second look.",
-    "That one came with a warning. Could still be fine, but be cautious.",
-  ]
-  return messages[Math.floor(Math.random() * messages.length)]
+const randomStalledMessage = () =>
+  pickRandom([
+    "It's stalled — the download can't find anyone to grab it from right now. It'll carry on if sources turn up.",
+    "That one's stuck waiting for sources. Give it time, or try !blocklist to hunt down a different copy.",
+    "Download's stalled for now. If it doesn't wake up, !blocklist will find another copy.",
+  ])
+
+const randomImportingMessage = () =>
+  pickRandom([
+    "It's finished downloading and is being moved into the library now. Any minute!",
+    "Downloaded! It's just being imported — nearly there.",
+    "The download's done and it's being filed away in the library as we speak.",
+  ])
+
+const randomDelayedMessage = () =>
+  pickRandom([
+    "It's holding off for a moment in case a better release turns up, then it'll grab one.",
+    "Waiting briefly for a better copy before it starts downloading.",
+  ])
+
+// Reply for a film that's waiting its turn in the download queue
+const randomInLineMessage = (position?: number, timeLeft?: moment.Duration): string => {
+  const place = position ? ` — it's #${position} in line` : ""
+  const eta = timeLeft ? `, done in about ${formatTimeLeft(timeLeft)}` : ""
+
+  return pickRandom([
+    `It's queued up${place}${eta}.`,
+    `Waiting its turn in the download queue${place}${eta}.`,
+    `It's in the queue and will start soon${place}${eta}.`,
+  ])
 }
 
-export const getMovieStatusMessage = (status: string, time?: string): string => {
-  switch (status.toLowerCase()) {
-    case "queued":
-      return randomQueuedMessage(time)
+// Add how far through a download is, e.g. "It's downloading now (45% done)."
+const withPercent = (message: string, percent?: number): string =>
+  percent !== undefined ? `${message.replace(/\.$/, "")} (${percent}% done).` : message
+
+// Reply describing where a film or series is in the download queue. Varied wording, live facts:
+// queue position, percentage and time left come from the download client itself.
+export const downloadStateMessage = (state: DownloadState): string => {
+  const timeLeft = state.secondsLeft !== undefined ? moment.duration(state.secondsLeft, "seconds") : undefined
+
+  // Several episodes at different stages are summarised in one line
+  if (state.count > 1) {
+    if (state.phase === "downloading" && state.phases.downloading === state.count) {
+      return randomEpisodesDownloadingMessage(state.count, timeLeft)
+    }
+    return `Here's where it's at: ${describeDownloadState(state)}.`
+  }
+
+  switch (state.phase) {
     case "downloading":
-      return randomDownloadingMessage(time)
+      return withPercent(randomDownloadingMessage(timeLeft), state.percent)
+    case "queued":
+      return randomInLineMessage(state.position, timeLeft)
+    case "importing":
+      return randomImportingMessage()
     case "paused":
       return randomPausedMessage()
-    case "completed":
-      return randomCompletedMessage()
-    case "imported":
-      return randomImportedMessage()
+    case "stalled":
+      return randomStalledMessage()
+    case "delayed":
+      return randomDelayedMessage()
     case "failed":
       return randomFailedMessage()
-    case "warning":
-      return randomWarningMessage()
-    default:
-      return "I'm not quite sure what's going on with this one. Might be time to ask the server guru."
   }
 }
+
+// Reply for a library title that isn't downloaded and has nothing in the queue, e.g. waiting for release
+export const notDownloadingMessage = (title: string, reason: string): string =>
+  pickRandom([
+    `${title} isn't downloading right now. ${reason}.`,
+    `Nothing's downloading for ${title} at the moment. ${reason}.`,
+  ])
 
 export const randomMovieDownloadStartMessage = (movie: Movie) => {
   const messages = [
@@ -1118,7 +1106,7 @@ export const randomMonitorAddedToPoolMessage = (
   return messages[Math.floor(Math.random() * messages.length)]
 }
 
-export const randomEpisodesDownloadingMessage = (count: number, timeleft?: string): string => {
+export const randomEpisodesDownloadingMessage = (count: number, timeleft?: string | moment.Duration): string => {
   let eta = ""
   let longWaitNote = ""
 

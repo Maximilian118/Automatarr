@@ -364,8 +364,10 @@ export const startWebhookExpiryWatcher = () => {
   logger.info("Webhook | Expiry | Started expiry watcher.")
 }
 
-// Cancel pending webhooks for specific content when removed from user pools
-export const cancelWebhooksForContent = async (content: Movie | Series): Promise<void> => {
+// Cancel pending webhooks for specific content when it's removed from a user's pool.
+// With a Discord user ID, only that user's notifications are cancelled, so anyone else still
+// waiting on the same title keeps theirs. Without one, every notification for it is cancelled.
+export const cancelWebhooksForContent = async (content: Movie | Series, discordId?: string): Promise<void> => {
   try {
     const webhookDoc = (await WebHook.findOne()) as WebHookDocType
 
@@ -387,8 +389,10 @@ export const cancelWebhooksForContent = async (content: Movie | Series): Promise
         isSeries(content) &&
         w.content.tvdbId === content.tvdbId
 
-      // Keep webhooks that don't match this content
-      return !(isSameMovie || isSameSeries)
+      const isSameUser = !discordId || w.discordData?.authorId === discordId
+
+      // Keep webhooks that don't match this content, or belong to someone else
+      return !((isSameMovie || isSameSeries) && isSameUser)
     })
 
     const removedCount = originalLength - webhookDoc.waiting.length

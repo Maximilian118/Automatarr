@@ -10,6 +10,20 @@ import { Series } from "../types/seriesTypes"
 import { saveWithRetry } from "../shared/database"
 import moment from "moment"
 
+// IDs that identify a film or series. tvdbId only exists on series.
+type ContentIds = { tmdbId?: number; tvdbId?: number; imdbId?: string; title: string; year: number }
+
+// Whether two IDs are the same real value. Missing IDs never match, so two items that both lack
+// an IMDb ID aren't mistaken for each other.
+const sameId = <T>(a: T | undefined | null, b: T | undefined | null): boolean => !!a && !!b && a === b
+
+// Check whether a library item and a pool item are the same film or series: by any shared ID, or by title and year
+const sameContent = (libraryItem: ContentIds, poolItem: ContentIds): boolean =>
+  sameId(libraryItem.tmdbId, poolItem.tmdbId) ||
+  sameId(libraryItem.tvdbId, poolItem.tvdbId) ||
+  sameId(libraryItem.imdbId, poolItem.imdbId) ||
+  (libraryItem.title === poolItem.title && libraryItem.year === poolItem.year)
+
 const user_pool_content_checker = async (settings: settingsType): Promise<void> => {
   logger.info("User Pool Content Checker | Starting content verification.")
 
@@ -49,12 +63,7 @@ const user_pool_content_checker = async (settings: settingsType): Promise<void> 
     if (user.pool.movies && user.pool.movies.length > 0 && radarrLibrary && radarrAPI) {
       for (const poolMovie of user.pool.movies) {
         // Check if movie exists in Radarr library
-        const movieInLibrary = radarrLibrary.find(
-          (movie) =>
-            movie.tmdbId === poolMovie.tmdbId ||
-            movie.imdbId === poolMovie.imdbId ||
-            (movie.title === poolMovie.title && movie.year === poolMovie.year),
-        )
+        const movieInLibrary = radarrLibrary.find((movie) => sameContent(movie, poolMovie))
 
         if (movieInLibrary) {
           // Movie exists in Radarr - check if user pool data needs updating
@@ -163,12 +172,7 @@ const user_pool_content_checker = async (settings: settingsType): Promise<void> 
     if (user.pool.series && user.pool.series.length > 0 && sonarrLibrary && sonarrAPI) {
       for (const poolSeries of user.pool.series) {
         // Check if series exists in Sonarr library
-        const seriesInLibrary = sonarrLibrary.find(
-          (series) =>
-            series.tvdbId === poolSeries.tvdbId ||
-            series.imdbId === poolSeries.imdbId ||
-            (series.title === poolSeries.title && series.year === poolSeries.year),
-        )
+        const seriesInLibrary = sonarrLibrary.find((series) => sameContent(series, poolSeries))
 
         if (seriesInLibrary) {
           // Series exists in Sonarr - check if user pool data needs updating

@@ -5,6 +5,7 @@ import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
 import { resolutionToQualityGroup } from "../discordBotUtility"
+import { releaseWait } from "../../../shared/downloadStatus"
 
 // Get the cached Radarr and Sonarr libraries from the Data document
 export const getLibraries = (data: dataDocType | null): { movies: Movie[]; series: Series[] } => ({
@@ -57,22 +58,6 @@ const releaseStages: Record<Movie["status"], string> = {
   released: "released",
 }
 
-// Which release Radarr waits for before grabbing, by its minimum availability setting
-const availabilityLabels: Record<string, string> = {
-  announced: "first",
-  inCinemas: "cinema",
-  released: "digital or physical",
-}
-
-// Whether Automatarr can grab a film that's in the library but not downloaded. Empty otherwise.
-const grabStatus = (movie: Movie): string => {
-  if (!movie.id || movie.hasFile || movie.isAvailable === undefined) return ""
-
-  return movie.isAvailable
-    ? "release is out, waiting for a good copy to download"
-    : `can't be grabbed until its ${availabilityLabels[movie.minimumAvailability] ?? "official"} release`
-}
-
 // Describe where a film is in its release cycle and whether Automatarr can grab it yet,
 // using the dates Radarr already tracks. Lets the model answer "is it out yet?" without guessing.
 // Skipped for downloaded films, where it's no longer useful.
@@ -87,7 +72,7 @@ const movieRelease = (movie: Movie): string => {
     describeMilestone("physical release", movie.physicalRelease),
   ].filter(Boolean)
 
-  const parts = [stage, ...milestones, grabStatus(movie)].filter(Boolean)
+  const parts = [stage, ...milestones, releaseWait(movie)].filter(Boolean)
   return parts.length ? `release: ${parts.join(", ")}` : ""
 }
 

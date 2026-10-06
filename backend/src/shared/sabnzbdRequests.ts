@@ -3,7 +3,7 @@ import { settingsType } from "../models/settings"
 import { cleanUrl } from "./utility"
 import logger from "../logger"
 import { axiosErrorMessage } from "./requestError"
-import { SABnzbdPriority, SABnzbdSlot } from "../types/sabnzbdTypes"
+import { SABnzbdPriority, SABnzbdQueue, SABnzbdSlot } from "../types/sabnzbdTypes"
 
 // SABnzbd reports a job's priority by name. Map each name to the number the API accepts.
 const priorityByName: Record<string, SABnzbdPriority> = {
@@ -43,24 +43,50 @@ export const checkSABnzbdConnection = async (URL: string, KEY: string): Promise<
   }
 }
 
-// Get every job in the SABnzbd queue in queue order. Returns null if the request fails.
-export const getSABnzbdQueue = async (settings: settingsType): Promise<SABnzbdSlot[] | null> => {
-  try {
-    const data = await sabnzbdGet<{
-      queue: { slots: { nzo_id: string; filename: string; status: string; priority: string }[] }
-    }>(settings.sabnzbd_URL, settings.sabnzbd_KEY, { mode: "queue" })
+// The raw queue job fields Automatarr reads
+type RawSABnzbdSlot = {
+  nzo_id: string
+  filename: string
+  status: string
+  priority: string
+  index: number | string
+  percentage: number | string
+  timeleft: string
+  mbleft: number | string
+}
 
-    return data.queue.slots.map((slot) => ({
-      nzo_id: slot.nzo_id,
-      filename: slot.filename,
-      status: slot.status,
-      priority: priorityByName[slot.priority] ?? 0,
-    }))
+// Get the SABnzbd queue with every job in queue order, and whether the queue is paused.
+// Returns null if the request fails.
+export const getSABnzbdQueueDetails = async (settings: settingsType): Promise<SABnzbdQueue | null> => {
+  try {
+    const data = await sabnzbdGet<{ queue: { paused: boolean; slots: RawSABnzbdSlot[] } }>(
+      settings.sabnzbd_URL,
+      settings.sabnzbd_KEY,
+      { mode: "queue" },
+    )
+
+    return {
+      paused: !!data.queue.paused,
+      slots: data.queue.slots.map((slot) => ({
+        nzo_id: slot.nzo_id,
+        filename: slot.filename,
+        status: slot.status,
+        priority: priorityByName[slot.priority] ?? 0,
+        index: Number(slot.index) || 0,
+        percentage: Number(slot.percentage) || 0,
+        timeleft: slot.timeleft ?? "",
+        mbleft: Number(slot.mbleft) || 0,
+      })),
+    }
   } catch (err) {
     logger.error(`getSABnzbdQueue: ${axiosErrorMessage(err)}`)
     return null
   }
 }
+
+// Get every job in the SABnzbd queue in queue order. Returns null if the request fails.
+export const getSABnzbdQueue = async (settings: settingsType): Promise<SABnzbdSlot[] | null> =>
+  (await getSABnzbdQueueDetails(settings))?.slots ?? null
 
 // Change a job's priority. SABnzbd moves the job to the back of its new priority group.
 export const setSABnzbdPriority = async (

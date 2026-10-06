@@ -6,6 +6,7 @@ import logger from "../logger"
 import { DownloadStatus } from "../types/types"
 import { Episode, EpisodeFile } from "../types/episodeTypes"
 import { HistoryItem } from "../types/historyTypes"
+import { grabToBlocklist } from "./starrHistory"
 import { axiosErrorMessage } from "./requestError"
 import { recordActivity } from "./activity"
 
@@ -298,6 +299,7 @@ export const getSeriesEpisodeFiles = async (
 export const deleteEpisodeFile = async (
   settings: settingsDocType,
   episodeFileID: number,
+  episodeTitle?: string, // Names the episode in the activity log
 ): Promise<boolean> => {
   try {
     const res = await axios.delete(
@@ -315,7 +317,7 @@ export const deleteEpisodeFile = async (
       recordActivity({
         action: "episode_file",
         app: "Sonarr",
-        title: `Episode file ${episodeFileID}`,
+        title: episodeTitle ?? `Episode file ${episodeFileID}`,
       })
       return true
     }
@@ -362,35 +364,31 @@ export const markEpisodeAsFailed = async (
   return false
 }
 
-// Helper function to blocklist and start the search for another episode
+// Helper function to blocklist and start the search for another episode.
+// With a download ID, that exact release is blocklisted. Otherwise the episode's latest grab is.
 export const blocklistAndSearchEpisode = async (
   settings: settingsType,
   episodeID?: number,
+  downloadId?: string,
 ): Promise<HistoryItem | undefined> => {
   if (!episodeID) {
     logger.error(`blocklistAndSearchEpisode: No episodeID passed.`)
     return
   }
 
-  const history = await getEpisodeHistory(settings, episodeID)
+  const grab = grabToBlocklist(await getEpisodeHistory(settings, episodeID), downloadId)
 
-  if (history.length === 0) {
-    logger.warn(`blocklistAndSearchEpisode: No episode history found for episodeID ${episodeID}`)
+  if (!grab) {
+    logger.warn(`blocklistAndSearchEpisode: No grab in the history of episodeID ${episodeID} to blocklist.`)
     return
   }
 
-  const latestGrabbed = history
-    .filter((entry) => entry.eventType === "grabbed")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0]
-
-  if (await markEpisodeAsFailed(settings, latestGrabbed.id)) {
-    logger.success(`Sonarr | ${latestGrabbed.sourceTitle} blocklisted and new search started.`)
-    return latestGrabbed
-  } else {
-    logger.error(
-      `blocklistAndSearchEpisode: Failed to mark ${latestGrabbed.sourceTitle} as failed.`,
-    )
+  if (await markEpisodeAsFailed(settings, grab.id)) {
+    logger.success(`Sonarr | ${grab.sourceTitle} blocklisted and new search started.`)
+    return grab
   }
+
+  logger.error(`blocklistAndSearchEpisode: Failed to mark ${grab.sourceTitle} as failed.`)
 }
 
 // Update the monitoring of a series

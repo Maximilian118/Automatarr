@@ -342,7 +342,7 @@ export const formatBytes = (bytesInput: string | number | bigint, decimals = 2):
 
 // formatTimeLeft("49:12:30")
 // => "2 days, 1 hour, 12 minutes, 30 seconds"
-export const formatTimeLeft = (hhmmss: string): string => {
+export const formatTimeLeft = (hhmmss: string | moment.Duration): string => {
   const duration = moment.duration(hhmmss)
 
   const days = Math.floor(duration.asDays()) // full days
