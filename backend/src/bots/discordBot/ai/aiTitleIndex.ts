@@ -2,6 +2,7 @@ import Data, { library } from "../../../models/data"
 import logger from "../../../logger"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
+import { Episode } from "../../../types/episodeTypes"
 import { titleKey } from "../../../shared/plexRequests"
 
 // In-memory index of every film and series in the Radarr and Sonarr libraries, rebuilt whenever the
@@ -16,6 +17,7 @@ export type IndexedTitle = {
   keys: string[] // Title keys for the title and every alternate title
   words: Set<string> // Every word of every title, as title keys
   mainWords: string[] // The meaningful words of the main title, e.g. "men" and "black" for "Men in Black"
+  fileAddedAt: number // When its newest file was downloaded, in ms. 0 if it has none
   score: number // Match score, only set on results of a search
 }
 
@@ -64,9 +66,11 @@ const allTitles = (item: Movie | Series): string[] => [
   ...("originalTitle" in item && item.originalTitle ? [item.originalTitle] : []),
 ]
 
-// Build the index entry for one library item
-const toEntry = (type: IndexContentType, item: Movie | Series): IndexedTitle => {
+// Build the index entry for one library item. A film's download date comes from its file, a series'
+// from its newest episode file, given separately because Sonarr keeps episodes apart from the series.
+const toEntry = (type: IndexContentType, item: Movie | Series, newestEpisodeAt: number = 0): IndexedTitle => {
   const titles = allTitles(item)
+  const movieFileAt = type === "movie" ? Date.parse(String((item as Movie).movieFile?.dateAdded ?? "")) || 0 : 0
 
   return {
     type,
@@ -74,8 +78,21 @@ const toEntry = (type: IndexContentType, item: Movie | Series): IndexedTitle => 
     keys: [...new Set(titles.map(titleKey).filter(Boolean))],
     words: new Set(titles.flatMap(titleWords)),
     mainWords: meaningfulWords(item.title),
+    fileAddedAt: type === "movie" ? movieFileAt : newestEpisodeAt,
     score: 0,
   }
+}
+
+// When each series' newest episode file was downloaded, in ms, keyed by Sonarr series ID
+const newestEpisodeFiles = (episodes: Episode[]): Map<number, number> => {
+  const newest = new Map<number, number>()
+
+  for (const episode of episodes) {
+    const at = Date.parse(String(episode.episodeFile?.dateAdded ?? "")) || 0
+    if (at > (newest.get(episode.seriesId) ?? 0)) newest.set(episode.seriesId, at)
+  }
+
+  return newest
 }
 
 // Rebuild the key lookup from the current entries
@@ -89,9 +106,14 @@ const rebuildKeys = (): void => {
 // Rebuild the whole index from freshly fetched libraries
 export const rebuildTitleIndex = (libraries: library[]): void => {
   const movies = (libraries.find((l) => l.name === "Radarr")?.data ?? []) as Movie[]
-  const series = (libraries.find((l) => l.name === "Sonarr")?.data ?? []) as Series[]
+  const sonarr = libraries.find((l) => l.name === "Sonarr")
+  const series = (sonarr?.data ?? []) as Series[]
+  const episodeDates = newestEpisodeFiles((sonarr?.episodes ?? []) as Episode[])
 
-  entries = [...movies.map((m) => toEntry("movie", m)), ...series.map((s) => toEntry("series", s))]
+  entries = [
+    ...movies.map((m) => toEntry("movie", m)),
+    ...series.map((s) => toEntry("series", s, episodeDates.get(s.id))),
+  ]
   rebuildKeys()
   built = true
 }
@@ -100,16 +122,28 @@ export const rebuildTitleIndex = (libraries: library[]): void => {
 export const indexTitle = (type: IndexContentType, item: Movie | Series): void => {
   if (!item?.id) return
 
-  entries = [...entries.filter((e) => !(e.type === type && e.item.id === item.id)), toEntry(type, item)]
+  const existing = entries.find((e) => e.type === type && e.item.id === item.id)
+  entries = [
+    ...entries.filter((e) => e !== existing),
+    toEntry(type, item, existing?.fileAddedAt),
+  ]
   rebuildKeys()
 }
 
 // Make sure the index is loaded. On a fresh boot it's built from the stored libraries until the
-// first refresh replaces it. Episodes are left out because the index never needs them.
+// first refresh replaces it. Only the episode fields needed for download dates are read.
 export const ensureTitleIndex = async (): Promise<void> => {
   if (built) return
 
-  loading ??= Data.findOne({}, { "libraries.name": 1, "libraries.data": 1 })
+  loading ??= Data.findOne(
+    {},
+    {
+      "libraries.name": 1,
+      "libraries.data": 1,
+      "libraries.episodes.seriesId": 1,
+      "libraries.episodes.episodeFile.dateAdded": 1,
+    },
+  )
     .lean()
     .then((data) => rebuildTitleIndex((data?.libraries ?? []) as library[]))
     .catch((err) => {

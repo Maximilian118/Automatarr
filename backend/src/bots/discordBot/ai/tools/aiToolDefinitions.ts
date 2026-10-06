@@ -126,10 +126,24 @@ export const INFO_TOOLS: Tool[] = [
         type: { type: "string", enum: ["movie", "series"] },
         genre: { type: "string", description: "e.g. Science Fiction." },
         keyword: { type: "string", description: "Franchise or title word." },
-        recent_days: { type: "integer", description: "Added in the last N days." },
+        recent_days: { type: "integer", description: "Downloaded in the last N days." },
         min_rating: { type: "number", description: "Out of 10." },
         unseen: { type: "boolean", description: "Leave out what the speaker has seen." },
+        popular: { type: "boolean", description: "Most watched this month." },
       },
+    },
+  },
+  {
+    name: "server_info",
+    description:
+      "removals: what was deleted lately and why. status: disk space and download queue load.",
+    input_schema: {
+      type: "object",
+      properties: {
+        about: { type: "string", enum: ["removals", "status"] },
+        title: { type: "string" },
+      },
+      required: ["about"],
     },
   },
   {

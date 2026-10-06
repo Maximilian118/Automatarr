@@ -65,6 +65,9 @@ export type PlexIds = {
   imdbId: string | null
 }
 
+// The latest episode of a show an account has watched
+export type EpisodeProgress = { season: number; episode: number; at: number } // at = when, in ms
+
 // In-memory cache of Plex activity, refreshed by the get_data loop. Only IDs and watch dates are kept,
 // never the library itself, because Radarr and Sonarr already describe everything on the server.
 type PlexCache = {
@@ -72,6 +75,7 @@ type PlexCache = {
   history: Record<number, PlexWatchItem[]> // Recent watches per Plex account ID
   ids: Map<string, PlexIds> // Every film and show in Plex, keyed by ratingKey
   watched: Record<number, Map<string, number>> // Watch keys (see watchKeys) to last watched time in ms, per account
+  progress: Record<number, Map<string, EpisodeProgress>> // Series watch keys to the latest episode watched, per account
   updated_at: string | null // When the cache last refreshed successfully. Null until the first refresh.
 }
 
@@ -80,6 +84,7 @@ const plexCache: PlexCache = {
   history: {},
   ids: new Map(),
   watched: {},
+  progress: {},
   updated_at: null,
 }
 
@@ -268,14 +273,15 @@ const getPlexHistory = async (settings: settingsType, accountId: number): Promis
   return items.slice(0, HISTORY_LIMIT).map(toWatchItem)
 }
 
-// Get when a Plex account last watched each film and show, from a long stretch of its history in
-// each library section. Keyed by watch key, so lookups work by TMDB, TVDB or IMDb ID.
+// Get when a Plex account last watched each film and show, and the latest episode of each show, from a
+// long stretch of its history in each library section. Keyed by watch key, so lookups work by ID.
 const getPlexWatched = async (
   settings: settingsType,
   accountId: number,
   sections: PlexSection[],
-): Promise<Map<string, number>> => {
+): Promise<{ watched: Map<string, number>; progress: Map<string, EpisodeProgress> }> => {
   const watched = new Map<string, number>()
+  const progress = new Map<string, EpisodeProgress>()
 
   for (const section of sections) {
     const container = await plexGet(settings.plex_URL, settings.plex_KEY, "/status/sessions/history/all", {
@@ -288,13 +294,18 @@ const getPlexWatched = async (
 
     for (const entry of container.Metadata ?? []) {
       const at = Number(entry.viewedAt ?? 0) * 1000
+      const isEpisode = entry.type === "episode"
+
       for (const key of entryWatchKeys(entry)) {
         if (at > (watched.get(key) ?? 0)) watched.set(key, at)
+        if (isEpisode && at > (progress.get(key)?.at ?? 0)) {
+          progress.set(key, { season: Number(entry.parentIndex ?? 0), episode: Number(entry.index ?? 0), at })
+        }
       }
     }
   }
 
-  return watched
+  return { watched, progress }
 }
 
 // Refresh the in-memory Plex cache: accounts, the ID map, recent history and when each account last
@@ -312,15 +323,19 @@ export const refreshPlexCache = async (settings: settingsType): Promise<void> =>
 
     const history: Record<number, PlexWatchItem[]> = {}
     const watched: Record<number, Map<string, number>> = {}
+    const progress: Record<number, Map<string, EpisodeProgress>> = {}
 
     for (const account of accounts) {
       history[account.id] = await getPlexHistory(settings, account.id)
-      watched[account.id] = await getPlexWatched(settings, account.id, sections)
+      const activity = await getPlexWatched(settings, account.id, sections)
+      watched[account.id] = activity.watched
+      progress[account.id] = activity.progress
     }
 
     plexCache.accounts = accounts
     plexCache.history = history
     plexCache.watched = watched
+    plexCache.progress = progress
     plexCache.updated_at = moment().format()
     logger.info(`Plex | Mapped ${ids.size} titles and cached watch history for ${accounts.length} accounts.`)
   } catch (err) {
@@ -352,6 +367,9 @@ export const getCachedPlexHistory = (accountId: number): PlexWatchItem[] =>
 
 // When each title was last watched, per Plex account, keyed by watch key
 export const getCachedWatched = (): Record<number, Map<string, number>> => plexCache.watched
+
+// The latest episode watched of each show, per Plex account, keyed by watch key
+export const getCachedProgress = (): Record<number, Map<string, EpisodeProgress>> => plexCache.progress
 
 // Whether the Plex cache has refreshed successfully since Automatarr started
 export const plexWatchReady = (): boolean => plexCache.updated_at !== null

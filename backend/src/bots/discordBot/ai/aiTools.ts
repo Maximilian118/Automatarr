@@ -14,12 +14,18 @@ import { INFO_HANDLERS } from "./tools/aiInfoTools"
 import { PLEX_LINK_HANDLERS } from "./tools/aiPlexTools"
 import { SELF_HANDLERS } from "./tools/aiSelfTools"
 import { WEB_HANDLERS } from "./tools/aiWebTools"
+import { SERVER_HANDLERS } from "./tools/aiServerTools"
 import { ToolContext, ToolHandler, ToolInput } from "./tools/aiToolTypes"
 
 // Find the handler for a tool name. Looked up at call time because the action tools
 // import the command handlers, which import the AI, which imports this file.
 const handlerFor = (name: string): ToolHandler | undefined =>
-  ACTION_HANDLERS[name] ?? INFO_HANDLERS[name] ?? WEB_HANDLERS[name] ?? PLEX_LINK_HANDLERS[name] ?? SELF_HANDLERS[name]
+  ACTION_HANDLERS[name] ??
+  INFO_HANDLERS[name] ??
+  SERVER_HANDLERS[name] ??
+  WEB_HANDLERS[name] ??
+  PLEX_LINK_HANDLERS[name] ??
+  SELF_HANDLERS[name]
 
 // Build the tool list for this speaker. Admin tools only exist for admins, so the model
 // can't be talked into using them. The order is fixed so the prompt cache stays valid.

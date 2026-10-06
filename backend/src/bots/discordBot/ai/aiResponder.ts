@@ -18,7 +18,14 @@ import { createAIMessage, responseText, responseToolCalls } from "./aiRequest"
 import { speakerDownloads } from "./aiDownloads"
 import { ensureTitleIndex, titlesInMessage } from "./aiTitleIndex"
 import { runTool, toolsFor } from "./aiTools"
-import { buildSpeakerProfile, describeFoundTitles } from "./tools/aiInfoTools"
+import {
+  BrowseFilters,
+  browseMatches,
+  buildSpeakerProfile,
+  describeBrowseResult,
+  describeFoundTitles,
+} from "./tools/aiInfoTools"
+import { recommendationRequest } from "./aiIntent"
 import { checkReturningUser } from "./aiRecommendationTriggers"
 import { ToolContext } from "./tools/aiToolTypes"
 
@@ -93,17 +100,50 @@ const historyTurns = (message: Message): Anthropic.Beta.BetaMessageParam[] => {
   return turns
 }
 
+// Most server picks offered up front for a recommendation request
+const MAX_SERVER_PICKS = 5
+
+// For a message asking for a recommendation, the best titles already on the server for that genre and
+// type, so the model can suggest them without a browse_library round. Unseen ones when their history
+// can be used, otherwise the best rated. Returns the <server_picks> block, or "" if it isn't a request.
+const serverPicks = async (ctx: ToolContext, text: string): Promise<string> => {
+  const request = recommendationRequest(text)
+  if (!request) return ""
+
+  const filters: BrowseFilters = {
+    type: request.type,
+    genre: request.genre,
+    keyword: "",
+    recentDays: 0,
+    minRating: 0,
+    unseen: true,
+    popular: false,
+  }
+
+  const { results, seenChecked } = await browseMatches(ctx, filters)
+  if (!results.length) return ""
+
+  const note = seenChecked
+    ? "Downloaded on the server and unseen by them, best for their taste first."
+    : "Downloaded on the server, best rated first. Their watch history can't be used here."
+  const lines = results.slice(0, MAX_SERVER_PICKS).map((r) => describeBrowseResult(r, filters))
+
+  return `<server_picks note="${note} Suggest from here or from your own knowledge.">\n${escapeTags(lines.join("\n"))}\n</server_picks>`
+}
+
 // Facts looked up in code before the model is called, so common questions need no tool round:
 // library titles named in the message (or in what they said just before), and what the speaker
 // has downloading right now. Both are left out when empty, so ordinary chat costs nothing extra.
 const prefetchedFacts = async (ctx: ToolContext, asides: string[]): Promise<string[]> => {
   await ensureTitleIndex()
 
-  const named = titlesInMessage([...asides, resolveMentions(ctx.message)].join("\n"))
+  const text = [...asides, resolveMentions(ctx.message)].join("\n")
+  const named = titlesInMessage(text)
   const botUser = matchedUser(ctx.settings, ctx.identity.username)
-  const [matches, downloads] = await Promise.all([
+  const [matches, downloads, picks] = await Promise.all([
     describeFoundTitles(ctx, named, false),
     speakerDownloads(ctx.settings, ctx.identity.id, botUser),
+    serverPicks(ctx, text),
   ])
 
   return [
@@ -113,6 +153,7 @@ const prefetchedFacts = async (ctx: ToolContext, asides: string[]): Promise<stri
     downloads.length
       ? `<your_downloads note="What the speaker has downloading right now.">\n${escapeTags(downloads.join("\n"))}\n</your_downloads>`
       : "",
+    picks,
   ]
 }
 

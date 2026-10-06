@@ -9,12 +9,14 @@ import {
   getCachedPlexHistory,
   getPlexNowPlaying,
   plexAccountForUser,
+  plexWatchReady,
   titleKey,
 } from "../../../../shared/plexRequests"
 import { matchedDiscordUser, matchedUser } from "../../discordBotUtility"
 import { describeBrief, describeItem, ratingOutOf10 } from "../aiMediaFormat"
 import { getDownloadSnapshot, queueStatusText, searchingKeys } from "../../../../shared/downloadStatus"
-import { lastWatched } from "../../../../shared/plexWatch"
+import { lastWatched, recentShows, viewersSince } from "../../../../shared/plexWatch"
+import BotMemory from "../../../../models/botMemory"
 import { RecipientProfile, buildProfile, hasSeen, isDownloaded, scoreFor } from "../aiRecommendations"
 import {
   IndexContentType,
@@ -23,6 +25,7 @@ import {
   buildQuery,
   ensureTitleIndex,
   indexTitle,
+  indexedById,
   indexedTitles,
   scoreItem,
   scoreTitle,
@@ -96,7 +99,48 @@ export const buildSpeakerProfile = async (ctx: ToolContext): Promise<string> => 
     lines.push(`Recent requests (past actions, not their current pool): ${history.slice(0, 5).map((h) => `${h.action} ${h.title} (${h.year})`).join(", ")}`)
   }
 
+  if (botUser) {
+    await ensureTitleIndex()
+    lines.push(...plexPicture(ctx, botUser))
+  }
+
   return lines.join("\n")
+}
+
+// Most unwatched pool titles and recent shows listed in the speaker's profile
+const MAX_UNWATCHED_LISTED = 6
+const MAX_SHOWS_LISTED = 3
+
+// How recently a show must have been watched to count as something they're watching
+const WATCHING_DAYS = 30
+
+// Format an episode, e.g. "S03E01"
+const episodeCode = (season: number, episode: number): string =>
+  `S${String(season).padStart(2, "0")}E${String(episode).padStart(2, "0")}`
+
+// The speaker's own Plex picture: what in their pool they haven't watched yet, and which shows they're
+// part way through. Empty when Plex watch data isn't available or they aren't linked to a Plex account.
+const plexPicture = (ctx: ToolContext, botUser: BotUserType): string[] => {
+  const accountId = speakerPlexAccount(ctx)
+  if (accountId === null || !ctx.settings.plex_active || !plexWatchReady()) return []
+
+  const unwatched = [
+    ...botUser.pool.movies.filter((m) => !lastWatched(accountId, "movie", m)),
+    ...botUser.pool.series.filter((s) => !lastWatched(accountId, "series", s)),
+  ].map((item) => `${item.title} (${item.year})`)
+
+  const watching = recentShows(accountId, WATCHING_DAYS, MAX_SHOWS_LISTED).flatMap(({ tvdbId, progress }) => {
+    const show = indexedById("series", tvdbId)
+    if (!show) return []
+    return [`${show.item.title} (${episodeCode(progress.season, progress.episode)}, ${moment(progress.at).fromNow()})`]
+  })
+
+  const more = unwatched.length > MAX_UNWATCHED_LISTED ? ` and ${unwatched.length - MAX_UNWATCHED_LISTED} more` : ""
+
+  return [
+    unwatched.length ? `Unwatched in their pool: ${unwatched.slice(0, MAX_UNWATCHED_LISTED).join(", ")}${more}` : "",
+    watching.length ? `Recently watching on Plex: ${watching.join(", ")}` : "",
+  ].filter(Boolean)
 }
 
 // Find the Plex account ID linked to the speaker
@@ -236,16 +280,30 @@ const speakerTaste = async (ctx: ToolContext): Promise<RecipientProfile | null> 
   return memory ? buildProfile(memory, botUser) : null
 }
 
+// Filters for browsing what's downloaded on the server
+export type BrowseFilters = {
+  type?: IndexContentType
+  genre: string // Lower case, matched against each genre, e.g. "science fiction"
+  keyword: string // A franchise, collection or title word
+  recentDays: number // Only titles downloaded in the last N days. 0 = any time
+  minRating: number // Out of 10. 0 = any rating
+  unseen: boolean // Leave out what the speaker has watched, requested or pooled
+  popular: boolean // Only titles people watched this month, most watched first
+}
+
+// A title found by browsing, with how many people watched it this month when ranking by popularity
+export type BrowseResult = { entry: IndexedTitle; viewers: number }
+
+// How many days count as "this month" for popularity
+const POPULAR_DAYS = 30
+
 // Check a library title against the browse filters
-const passesBrowseFilters = (
-  entry: IndexedTitle,
-  filters: { type?: string; genre: string; keyword: string; recentDays: number; minRating: number },
-): boolean => {
+const passesBrowseFilters = (entry: IndexedTitle, filters: BrowseFilters): boolean => {
   const { item } = entry
   if (filters.type && entry.type !== filters.type) return false
   if (!isDownloaded(entry.type, item)) return false
   if (filters.genre && !(item.genres ?? []).some((g) => g.toLowerCase().includes(filters.genre))) return false
-  if (filters.recentDays && moment().diff(moment(item.added), "days") > filters.recentDays) return false
+  if (filters.recentDays && moment().diff(moment(entry.fileAddedAt), "days") > filters.recentDays) return false
   if (filters.minRating && ratingOutOf10(entry.type, item) < filters.minRating) return false
 
   if (filters.keyword) {
@@ -258,40 +316,73 @@ const passesBrowseFilters = (
   return true
 }
 
-// Browse what's downloaded on the server by genre, franchise, recency or rating, optionally leaving out
-// what the speaker has already seen. Ranked by the speaker's taste when it's known.
-const browseLibrary: ToolHandler = async (ctx, input) => {
+// Plex accounts of members who keep their viewing private. They're left out of popularity counts.
+const privatePlexAccounts = async (ctx: ToolContext): Promise<Set<number>> => {
+  const members = await BotMemory.find({ "preferences.private": true }, { username: 1 }).lean()
+  const accounts = members.map((m) => plexAccountForUser(matchedUser(ctx.settings, m.username), m.username))
+  return new Set(accounts.filter((id): id is number => id !== null))
+}
+
+// Find downloaded titles matching the filters, best first: most watched when ranking by popularity,
+// newest when browsing recent arrivals, otherwise best for the speaker's taste or highest rated.
+// seenChecked is false when unseen was asked for but the speaker's history can't be used.
+export const browseMatches = async (
+  ctx: ToolContext,
+  filters: BrowseFilters,
+): Promise<{ results: BrowseResult[]; total: number; seenChecked: boolean }> => {
   await ensureTitleIndex()
 
-  const filters = {
+  const taste = await speakerTaste(ctx)
+  const excluded = filters.popular ? await privatePlexAccounts(ctx) : new Set<number>()
+  const tasteScore = (e: IndexedTitle): number => (taste ? scoreFor(taste, e.type, e.item) : ratingOutOf10(e.type, e.item))
+
+  const matches = indexedTitles()
+    .filter((e) => passesBrowseFilters(e, filters))
+    .filter((e) => !filters.unseen || !taste || !hasSeen(taste, e.type, e.item))
+    .map((entry) => ({ entry, viewers: filters.popular ? viewersSince(entry.type, entry.item, POPULAR_DAYS, excluded) : 0 }))
+    .filter((r) => !filters.popular || r.viewers > 0)
+
+  const ranked = matches.sort((a, b) =>
+    filters.popular
+      ? b.viewers - a.viewers || tasteScore(b.entry) - tasteScore(a.entry)
+      : filters.recentDays
+        ? b.entry.fileAddedAt - a.entry.fileAddedAt
+        : tasteScore(b.entry) - tasteScore(a.entry),
+  )
+
+  return { results: ranked.slice(0, MAX_BROWSE_RESULTS), total: matches.length, seenChecked: !filters.unseen || !!taste }
+}
+
+// Describe a browse result in one line, with recent viewers or the download date when relevant
+export const describeBrowseResult = (result: BrowseResult, filters: BrowseFilters): string =>
+  [
+    describeBrief(result.entry.type, result.entry.item),
+    result.viewers ? `watched by ${result.viewers} ${result.viewers === 1 ? "person" : "people"} this month` : "",
+    filters.recentDays && result.entry.fileAddedAt ? `downloaded ${moment(result.entry.fileAddedAt).format("D MMM")}` : "",
+  ]
+    .filter(Boolean)
+    .join(" | ")
+
+// Browse what's downloaded on the server by genre, franchise, recency, rating or popularity, optionally
+// leaving out what the speaker has already seen
+const browseLibrary: ToolHandler = async (ctx, input) => {
+  const filters: BrowseFilters = {
     type: input.type === "movie" || input.type === "series" ? input.type : undefined,
     genre: inputString(input, "genre", 30).toLowerCase(),
     keyword: inputString(input, "keyword", 50),
     recentDays: inputNumber(input, "recent_days"),
     minRating: inputNumber(input, "min_rating"),
+    unseen: inputBoolean(input, "unseen") === true,
+    popular: inputBoolean(input, "popular") === true,
   }
 
-  const taste = await speakerTaste(ctx)
-  const unseen = inputBoolean(input, "unseen") === true && !!taste
+  const { results, total, seenChecked } = await browseMatches(ctx, filters)
+  if (!results.length) return "Nothing downloaded on the server matches that."
 
-  const matches = indexedTitles()
-    .filter((e) => passesBrowseFilters(e, filters))
-    .filter((e) => !unseen || !taste || !hasSeen(taste, e.type, e.item))
-
-  if (!matches.length) return "Nothing downloaded on the server matches that."
-
-  const ranked = filters.recentDays
-    ? matches.sort((a, b) => moment(b.item.added).valueOf() - moment(a.item.added).valueOf())
-    : matches.sort((a, b) =>
-        taste
-          ? scoreFor(taste, b.type, b.item) - scoreFor(taste, a.type, a.item)
-          : ratingOutOf10(b.type, b.item) - ratingOutOf10(a.type, a.item),
-      )
-
-  const note = inputBoolean(input, "unseen") && !unseen ? " (couldn't check what they've seen)" : ""
+  const note = seenChecked ? "" : " (couldn't check what they've seen)"
   return [
-    `${matches.length} match${matches.length === 1 ? "" : "es"}${note}, best first:`,
-    ...ranked.slice(0, MAX_BROWSE_RESULTS).map((e) => describeBrief(e.type, e.item)),
+    `${total} match${total === 1 ? "" : "es"}${note}, best first:`,
+    ...results.map((r) => describeBrowseResult(r, filters)),
   ].join("\n")
 }
 

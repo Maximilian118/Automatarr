@@ -3,8 +3,10 @@ import { settingsType } from "../models/settings"
 import { Movie } from "../types/movieTypes"
 import { Series } from "../types/seriesTypes"
 import {
+  EpisodeProgress,
   PlexContentType,
   entryWatchKeys,
+  getCachedProgress,
   getCachedWatched,
   getPlexSessions,
   plexWatchReady,
@@ -41,6 +43,51 @@ export const lastWatchedByAnyone = (type: PlexContentType, item: Movie | Series)
   const keys = itemWatchKeys(type, item)
   const latest = Math.max(0, ...Object.values(getCachedWatched()).map((w) => latestFor(w, keys) ?? 0))
   return latest || null
+}
+
+// The latest episode of a series a Plex account has watched. Null if none, or no account.
+export const lastEpisode = (accountId: number | null, series: Series): EpisodeProgress | null => {
+  if (accountId === null) return null
+  const progress = getCachedProgress()[accountId]
+  const found = itemWatchKeys("series", series)
+    .map((k) => progress?.get(k))
+    .filter((p): p is EpisodeProgress => !!p)
+  return found.sort((a, b) => b.at - a.at)[0] ?? null
+}
+
+// The shows a Plex account has watched most recently, newest first, with the latest episode of each.
+// Only shows Plex still knows by TVDB ID, watched within the last few days.
+export const recentShows = (
+  accountId: number | null,
+  days: number,
+  limit: number,
+): { tvdbId: number; progress: EpisodeProgress }[] => {
+  if (accountId === null) return []
+
+  const cutoff = moment().subtract(days, "days").valueOf()
+  const prefix = "series:tvdb:"
+
+  return [...(getCachedProgress()[accountId]?.entries() ?? [])]
+    .filter(([key, progress]) => key.startsWith(prefix) && progress.at > cutoff)
+    .map(([key, progress]) => ({ tvdbId: Number(key.slice(prefix.length)), progress }))
+    .sort((a, b) => b.progress.at - a.progress.at)
+    .slice(0, limit)
+}
+
+// How many Plex accounts watched a title within the last few days, leaving out the accounts given.
+// Counts only, never names, so it can be shared as "watched by 3 people this month".
+export const viewersSince = (
+  type: PlexContentType,
+  item: Movie | Series,
+  days: number,
+  excludeAccounts: Set<number> = new Set(),
+): number => {
+  const keys = itemWatchKeys(type, item)
+  const cutoff = moment().subtract(days, "days").valueOf()
+
+  return Object.entries(getCachedWatched()).filter(
+    ([accountId, watched]) => !excludeAccounts.has(Number(accountId)) && (latestFor(watched, keys) ?? 0) > cutoff,
+  ).length
 }
 
 // Whether a Plex account has watched a film or any episode of a series
