@@ -119,6 +119,11 @@ check("failover counts only the active WAN, load balancing adds up every WAN tha
   near(selectCapacity(null, snap(failedOver, "failover"), null, "down").value ?? 0, M(30))
 })
 
+check("after failing over to a backup line with no plan or speedtest, the speed is unknown, not the last one", () => {
+  const failedOver = { ...snap([wan({ up: false, active: false }), wan({ group: "WAN2", plan_down: null })]), speedtest: null }
+  assert.deepEqual(selectCapacity(null, failedOver, M(900), "down"), { value: null, source: "none" })
+})
+
 check("the fixed split is sized for the slowest WAN", () => {
   const wans = [wan({}), wan({ group: "WAN2", active: false, plan_down: M(30) })]
   near(smallestPlan(snap(wans), "down") ?? 0, M(30))

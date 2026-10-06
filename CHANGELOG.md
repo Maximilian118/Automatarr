@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.1
+
+### Network balancer: checked against a real UDM-SE
+
+- **PPPoE connections**: live WAN traffic is now read from the PPPoE session rather than the physical port, which counts 15-20% more on a UDM-SE. Before, that extra showed up as household traffic and shrank the download clients' share for nothing.
+- **Failover WANs**: newer UniFi Network versions list each WAN as active or backup instead of giving a mode, which made a failover setup look load-balanced. Both formats are now read.
+- **Backup lines aren't assumed fast**: a speedtest only counts if it ran on the WAN in use. If your internet fails over to a WAN with no plan speeds set in UniFi, the balancer turns itself off and uses the fixed split from the last known speed, instead of carrying on as if the backup were your main line.
+- WANs are shown by their UniFi name (e.g. "Internet 1").
+
 ## v0.9.0
 
 ### Network balancer

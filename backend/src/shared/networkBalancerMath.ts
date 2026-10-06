@@ -112,7 +112,9 @@ export const smallestPlan = (snapshot: UnifiSnapshot | null, dir: Direction): nu
   return plans.length > 0 ? Math.min(...plans) : null
 }
 
-// Pick the ISP speed: the user's figure, then the UniFi plan, then the last speedtest, then the last known value
+// Pick the ISP speed: the user's figure, then the UniFi plan, then the last speedtest, then the last known value.
+// The last known value is only used when UniFi can't be reached. With UniFi up, an active WAN with no plan and no
+// speedtest of its own (e.g. a backup line after a failover) is unknown rather than assumed as fast as the last one.
 export const selectCapacity = (
   override: number | null,
   snapshot: UnifiSnapshot | null,
@@ -127,7 +129,7 @@ export const selectCapacity = (
   const test = snapshot?.speedtest ? pick({ down: snapshot.speedtest.down, up: snapshot.speedtest.up }, dir) : 0
   if (test) return { value: test, source: "speedtest" }
 
-  if (last) return { value: last, source: "last" }
+  if (last && !snapshot) return { value: last, source: "last" }
 
   return { value: null, source: "none" }
 }

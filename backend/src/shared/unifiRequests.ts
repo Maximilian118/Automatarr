@@ -10,6 +10,7 @@ import {
   UnifiRawHealth,
   UnifiRawWan,
   UnifiRawWanConfig,
+  UnifiRawWanStatus,
   UnifiSnapshot,
   UnifiSpeedtest,
   UnifiWan,
@@ -41,8 +42,9 @@ export type UnifiCredentials = {
 type UnifiSession = { credKey: string; cookie: string; csrf: string }
 type LoginFailures = { credKey: string; count: number; until: number }
 type WanConfig = {
-  plans: Map<string, { down: number | null; up: number | null }>
+  plans: Map<string, { name: string | null; down: number | null; up: number | null }>
   mode: UnifiWanMode
+  states: Map<string, string> // WAN group to "ACTIVE" or "BACKUP". Empty when the gateway doesn't say
   health: UnifiRawHealth[]
 }
 
@@ -176,20 +178,35 @@ const readWanPlans = async (creds: UnifiCredentials): Promise<UnifiRawWanConfig[
   }
 }
 
-// Read whether the WANs fail over or share traffic. Falls back to the WAN's own setting
-const readWanMode = async (creds: UnifiCredentials, configs: UnifiRawWanConfig[]): Promise<UnifiWanMode> => {
+// Read whether the WANs fail over or share traffic, and which are active. Newer Network versions list each WAN as
+// ACTIVE or BACKUP; older ones give a mode, and the oldest only have each WAN's own load balance setting.
+const readWanStatus = async (
+  creds: UnifiCredentials,
+  configs: UnifiRawWanConfig[],
+): Promise<{ mode: UnifiWanMode; states: Map<string, string> }> => {
+  const states = new Map<string, string>()
+
   try {
-    const status = await unifiGet<{ mode?: string }>(creds, `/v2/api/site/${creds.SITE}/wan/load-balancing/status`)
-    if (status.mode === "FAILOVER_ONLY") return "failover"
-    if (status.mode === "DISTRIBUTED") return "distributed"
+    const status = await unifiGet<UnifiRawWanStatus>(creds, `/v2/api/site/${creds.SITE}/wan/load-balancing/status`)
+    if (status.mode === "FAILOVER_ONLY") return { mode: "failover", states }
+    if (status.mode === "DISTRIBUTED") return { mode: "distributed", states }
+
+    for (const wan of status.wan_interfaces ?? []) {
+      if (wan.wan_networkgroup && wan.state) states.set(wan.wan_networkgroup, wan.state)
+    }
+
+    if (states.size > 0) {
+      const active = [...states.values()].filter((s) => s === "ACTIVE").length
+      return { mode: active > 1 ? "distributed" : "failover", states }
+    }
   } catch {
     // Older Network versions don't have this endpoint
   }
 
-  const type = configs.find((c) => c.wan_load_balance_type)?.wan_load_balance_type
-  if (type === "failover-only") return "failover"
-  if (type === "weighted") return "distributed"
-  return "unknown"
+  const types = configs.map((c) => c.wan_load_balance_type).filter(Boolean)
+  if (types.includes("failover-only")) return { mode: "failover", states }
+  if (types.length > 1) return { mode: "distributed", states }
+  return { mode: "unknown", states }
 }
 
 // Read the slow-changing parts of the network: ISP plans, WAN mode and health. Cached for 10 minutes
@@ -204,6 +221,7 @@ const getWanConfig = async (creds: UnifiCredentials): Promise<WanConfig> => {
     configs.map((c) => [
       c.wan_networkgroup ?? "WAN",
       {
+        name: c.name ?? null,
         down: kbps(c.wan_provider_capabilities?.download_kilobits_per_second),
         up: kbps(c.wan_provider_capabilities?.upload_kilobits_per_second),
       },
@@ -212,7 +230,7 @@ const getWanConfig = async (creds: UnifiCredentials): Promise<WanConfig> => {
 
   const value: WanConfig = {
     plans,
-    mode: await readWanMode(creds, configs),
+    ...(await readWanStatus(creds, configs)),
     health: await unifiLegacy<UnifiRawHealth>(creds, "/stat/health"),
   }
 
@@ -234,8 +252,16 @@ const findGatewayMac = async (creds: UnifiCredentials): Promise<string | null> =
   return gatewayCache.mac
 }
 
+// Whether a WAN port is carrying traffic. The gateway's own ACTIVE/BACKUP list is trusted first
+const isActiveWan = (device: UnifiRawDevice, config: WanConfig, group: string, raw: UnifiRawWan): boolean => {
+  if (config.states.size > 0) return config.states.get(group) === "ACTIVE"
+  return !!raw.is_uplink || (!!device.uplink?.ifname && device.uplink.ifname === raw.ifname)
+}
+
 // Turn the gateway's wan1, wan2 etc into WANs with their ISP plans. "wan1" is UniFi's "WAN" group,
-// "wan2" is "WAN2" and so on.
+// "wan2" is "WAN2" and so on. When only one WAN is active its traffic is read from the gateway's uplink instead
+// of the port, because over PPPoE the port also counts traffic that isn't internet traffic (15-20% more on a
+// UDM-SE), while the uplink is the PPPoE session itself and matches UniFi's own WAN health and speedtests.
 const parseDeviceWans = (device: UnifiRawDevice, config: WanConfig): UnifiWan[] => {
   const wanKeys = Object.keys(device)
     .filter((key) => /^wan\d+$/.test(key))
@@ -248,14 +274,16 @@ const parseDeviceWans = (device: UnifiRawDevice, config: WanConfig): UnifiWan[] 
       const number = key.slice(3)
       const group = number === "1" ? "WAN" : `WAN${number}`
       const plan = config.plans.get(group)
+      const active = isActiveWan(device, config, group, raw)
+      const traffic = active && config.mode !== "distributed" && device.uplink ? device.uplink : raw
 
       return {
         group,
-        name: raw.name || group,
+        name: plan?.name || raw.name || group,
         up: !!raw.up,
-        active: raw.is_uplink ?? (!!device.uplink?.ifname && device.uplink.ifname === raw.ifname),
-        down: Number(raw["rx_bytes-r"]) || 0,
-        upload: Number(raw["tx_bytes-r"]) || 0,
+        active,
+        down: Number(traffic["rx_bytes-r"]) || 0,
+        upload: Number(traffic["tx_bytes-r"]) || 0,
         plan_down: plan?.down ?? null,
         plan_up: plan?.up ?? null,
       }
@@ -268,7 +296,7 @@ const parseDeviceWans = (device: UnifiRawDevice, config: WanConfig): UnifiWan[] 
   return [
     {
       group: "WAN",
-      name: device.uplink.name || "WAN",
+      name: plan?.name || device.uplink.name || "WAN",
       up: device.uplink.up !== false,
       active: true,
       down: Number(device.uplink["rx_bytes-r"]) || 0,
@@ -288,7 +316,7 @@ const healthWans = (health: UnifiRawHealth[], config: WanConfig): UnifiWan[] => 
   return [
     {
       group: "WAN",
-      name: "WAN",
+      name: plan?.name || "WAN",
       up: wan.status !== "error",
       active: true,
       down: Number(wan["rx_bytes-r"]) || 0,
@@ -299,9 +327,14 @@ const healthWans = (health: UnifiRawHealth[], config: WanConfig): UnifiWan[] => 
   ]
 }
 
-// The last speedtest, from the gateway when it has one, otherwise from the site's health
+// The last speedtest, from the gateway when it has one, otherwise from the site's health. A test that ran on a WAN
+// that isn't active now (e.g. before a failover) is ignored, so a slow backup line isn't assumed to be fast
 const parseSpeedtest = (device: UnifiRawDevice | null, health: UnifiRawHealth[]): UnifiSpeedtest | null => {
   const test = device?.["speedtest-status"]
+  const activeInterfaces = [device?.uplink?.name, device?.uplink?.ifname].filter(Boolean)
+  const ranElsewhere = !!test?.interface_name && activeInterfaces.length > 0 && !activeInterfaces.includes(test.interface_name)
+  if (ranElsewhere) return null
+
   if (test && Number(test.xput_download) > 0) {
     return {
       down: mbps(test.xput_download),

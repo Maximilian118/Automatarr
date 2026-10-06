@@ -13,6 +13,7 @@ import {
   NetworkEvent,
   NetworkSample,
   Pair,
+  PlanInputs,
 } from "../types/networkBalancerTypes"
 import { UnifiSnapshot } from "../types/unifiTypes"
 import {
@@ -56,6 +57,7 @@ export type BalancerReading = {
   errors: Map<DownloaderName, string>
   snapshot: UnifiSnapshot | null
   unifi_error: string | null
+  inputs: PlanInputs
   plan: BalancerPlan
 }
 
@@ -169,7 +171,7 @@ const read = async (doc: NetworkBalancerType, settings: settingsType, adapters: 
   const snapshot = unifi.status === "fulfilled" ? unifi.value : null
   const config = doc.config as BalancerConfig
 
-  const plan = computePlan({
+  const inputs: PlanInputs = {
     config: { ...config, caps: config.caps ?? [] },
     snapshot,
     last_capacity: { down: doc.last_capacity_down, up: doc.last_capacity_up },
@@ -190,7 +192,9 @@ const read = async (doc: NetworkBalancerType, settings: settingsType, adapters: 
         cap: capFor(config, a.name),
       }
     }),
-  })
+  }
+
+  const plan = computePlan(inputs)
 
   if (plan.ready) previous = { household: plan.household, household_raw: plan.household_raw, budget: plan.budget }
 
@@ -203,6 +207,7 @@ const read = async (doc: NetworkBalancerType, settings: settingsType, adapters: 
     errors,
     snapshot,
     unifi_error: unifi.status === "rejected" ? String(unifi.reason?.message ?? unifi.reason) : null,
+    inputs,
     plan,
   }
 
@@ -317,7 +322,11 @@ const tick = async (): Promise<void> => {
   }
 
   recordSample(reading)
-  if (!reading.plan.ready) return
+
+  // The active WAN's speed isn't known any more, e.g. after failing over to a backup line with no plan set in UniFi
+  if (!reading.plan.ready) {
+    return disable("The ISP speed of the WAN in use isn't known. Set its plan speeds in UniFi or enter them on the Network page.")
+  }
 
   // While any client can't be read, nothing is raised. Its last bound still counts against the budget
   const allReachable = reachable.length === adapters.length
@@ -348,7 +357,10 @@ const restoreBaseline = async (markPending: boolean): Promise<boolean> => {
   const adapters = managedAdapters(settings, doc.downloaders)
   const reading = await read(doc, settings, adapters)
 
-  if (!reading.plan.ready) {
+  // Without a current ISP speed, the fixed split falls back to the last known one
+  const plan = reading.plan.ready ? reading.plan : computePlan({ ...reading.inputs, snapshot: null })
+
+  if (!plan.ready) {
     note("error", "Couldn't work out the fixed limits because the ISP speed isn't known. Limits left as they are.")
     return false
   }
@@ -356,12 +368,8 @@ const restoreBaseline = async (markPending: boolean): Promise<boolean> => {
   for (const [name, state] of reading.states) await recordConfirmed(name, state.limits)
 
   const reachable = adapters.filter((a) => reading.states.has(a.name))
-  const baseline = reading.plan.baseline.filter((b) => reachable.some((a) => a.name === b.name))
-  const result = await applyChanges(
-    applyDeps(adapters),
-    baselineChanges(baseline, confirmed),
-    reading.plan.base_hard,
-  )
+  const baseline = plan.baseline.filter((b) => reachable.some((a) => a.name === b.name))
+  const result = await applyChanges(applyDeps(adapters), baselineChanges(baseline, confirmed), plan.base_hard)
   noteResult(result)
 
   // A client is done once it was reached and nothing it needed was held back or failed

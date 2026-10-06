@@ -19,6 +19,7 @@ export type UnifiRawWan = {
 // The gateway's last speedtest as stat/device reports it
 export type UnifiRawSpeedtest = {
   rundate?: number // Epoch seconds
+  interface_name?: string // The interface it ran on, e.g. "ppp0"
   xput_download?: number // Mbps
   xput_upload?: number // Mbps
   latency?: number // ms
@@ -30,7 +31,7 @@ export type UnifiRawDevice = {
   type?: string // "udm", "uxg", "ugw" etc for gateways
   model?: string
   name?: string
-  uplink?: UnifiRawWan & { latency?: number; xput_down?: number; xput_up?: number }
+  uplink?: UnifiRawWan & { latency?: number; xput_down?: number; xput_up?: number } // The active WAN, e.g. "ppp0" over PPPoE
   "speedtest-status"?: UnifiRawSpeedtest
   [key: string]: unknown // wan1, wan2 etc
 }
@@ -58,6 +59,12 @@ export type UnifiRawWanConfig = {
     download_kilobits_per_second?: number // The ISP plan's download speed. 0 or missing = not set
     upload_kilobits_per_second?: number // The ISP plan's upload speed. 0 or missing = not set
   }
+}
+
+// Which WANs carry traffic, from v2 wan/load-balancing/status
+export type UnifiRawWanStatus = {
+  mode?: string // "FAILOVER_ONLY" or "DISTRIBUTED" on some versions
+  wan_interfaces?: { name?: string; wan_networkgroup?: string; state?: string }[] // state is "ACTIVE" or "BACKUP"
 }
 
 // How the gateway uses more than one WAN
