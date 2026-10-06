@@ -8,13 +8,13 @@ import {
   describeWatchItem,
   getCachedPlexHistory,
   getPlexNowPlaying,
-  hasWatchedOnPlex,
   plexAccountForUser,
   titleKey,
 } from "../../../../shared/plexRequests"
 import { matchedDiscordUser, matchedUser } from "../../discordBotUtility"
 import { describeBrief, describeItem, ratingOutOf10 } from "../aiMediaFormat"
 import { getDownloadSnapshot, queueStatusText, searchingKeys } from "../../../../shared/downloadStatus"
+import { lastWatched } from "../../../../shared/plexWatch"
 import { RecipientProfile, buildProfile, hasSeen, isDownloaded, scoreFor } from "../aiRecommendations"
 import {
   IndexContentType,
@@ -187,7 +187,7 @@ export const describeFoundTitles = async (
     describeItem(r.type, r.item, {
       settings: ctx.settings,
       queue: snapshot && awaitingDownload(r) ? queueStatusText(snapshot, searching, r.type, r.item.id).toLowerCase() : "",
-      watched: hasWatchedOnPlex(plexAccount, r.type, r.item.title),
+      watchedAt: lastWatched(plexAccount, r.type, r.item),
       overviewLength: withOverview ? SHORT_OVERVIEW_LENGTH : 0,
     }),
   )

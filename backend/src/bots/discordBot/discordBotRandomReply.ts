@@ -465,6 +465,14 @@ export const downloadStateMessage = (state: DownloadState): string => {
   }
 }
 
+// Reply when a file can't be replaced because someone is streaming it on Plex right now
+export const randomPlayingNowMessage = (title: string): string =>
+  pickRandom([
+    `Someone's watching ${title} on Plex right now. Try again once they're done.`,
+    `Hold fire — ${title} is playing on Plex at the moment. Give it another go when they've finished.`,
+    `${title} is mid-stream for someone on Plex. I'll leave it alone until they're done.`,
+  ])
+
 // Reply for a library title that isn't downloaded and has nothing in the queue, e.g. waiting for release
 export const notDownloadingMessage = (title: string, reason: string): string =>
   pickRandom([

@@ -22,6 +22,8 @@ import { deleteFromMachine, getChildPaths, isDocker } from "../shared/fileSystem
 import { deleteqBittorrent, getqBittorrentTorrents } from "../shared/qBittorrentRequests"
 import { incrementDeletions } from "../shared/statsCollector"
 import { matchesPoolItem } from "./loopUtility"
+import { plexWatchReady } from "../shared/plexRequests"
+import { playingNow, watchProtection } from "../shared/plexWatch"
 
 // Generate lookup keys for matching items
 const generateLookupKeys = (item: Movie | Series): string[] => {
@@ -153,6 +155,16 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
   if (fetchFailed) {
     logger.error(
       "Library Cleanup | Could not retrieve torrents from qBittorrent. Skipping this run to avoid deleting content that's still seeding.",
+    )
+    return
+  }
+
+  // What's playing on Plex right now, so nothing being watched is deleted. Without Plex's watch
+  // activity, recently watched items would look unwanted, so skip this run entirely.
+  const playing = settings.plex_active ? await playingNow(settings) : null
+  if (settings.plex_active && (!plexWatchReady() || !playing)) {
+    logger.error(
+      "Library Cleanup | Plex watch activity isn't available. Skipping this run to avoid deleting something people are watching.",
     )
     return
   }
@@ -443,6 +455,13 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
 
         // Create deletion processor function
         const deleteItemProcessor = async (libraryItem: Movie | Series): Promise<boolean> => {
+          // Keep anything someone is watching, or watched recently, on Plex
+          const keepReason = watchProtection(settings, API.name === "Radarr" ? "movie" : "series", libraryItem, playing)
+          if (keepReason) {
+            logger.info(`Library Cleanup | ${API.name} | Kept ${libraryItem.title}: ${keepReason}.`)
+            return false
+          }
+
           const deleteFromLibraryHelper = async (): Promise<boolean> => {
             if (!isDocker) {
               logger.info(

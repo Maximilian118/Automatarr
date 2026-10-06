@@ -6,6 +6,7 @@ import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
 import { resolutionToQualityGroup } from "../discordBotUtility"
 import { releaseWait } from "../../../shared/downloadStatus"
+import { shortWatchedDate } from "../../../shared/plexWatch"
 
 // Get the cached Radarr and Sonarr libraries from the Data document
 export const getLibraries = (data: dataDocType | null): { movies: Movie[]; series: Series[] } => ({
@@ -80,7 +81,7 @@ const movieRelease = (movie: Movie): string => {
 export type DescribeExtras = {
   settings?: settingsDocType // Adds who has it in their pool
   queue?: string // Live download status, e.g. "downloading in 1080p, 22 minutes left"
-  watched?: boolean // The speaker has watched it on Plex
+  watchedAt?: number | null // When the speaker last watched it on Plex, in ms
   overviewLength?: number // How much of the overview to include. 0 leaves it out
 }
 
@@ -117,7 +118,7 @@ const commonTail = (item: Movie | Series, extras: DescribeExtras, owners: string
   const overviewLength = extras.overviewLength ?? OVERVIEW_LENGTH
 
   return [
-    extras.watched ? "the speaker has watched it on Plex" : "",
+    extras.watchedAt ? `the speaker watched it on Plex (${shortWatchedDate(extras.watchedAt)})` : "",
     owners.length ? `in pools of: ${owners.join(", ")}` : "",
     overviewLength && item.overview ? `overview: ${truncateText(item.overview, overviewLength)}` : "",
   ]

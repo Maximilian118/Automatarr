@@ -13,6 +13,8 @@ import logger from "../../../logger"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { livePoolStatuses, poolItemKey } from "../discordBotPoolStatus"
+import { plexAccountForUser, plexWatchReady } from "../../../shared/plexRequests"
+import { findMemory } from "../ai/aiMemory"
 
 // List items in a users pool
 export const caseList = async (message: Message): Promise<string> => {
@@ -89,16 +91,26 @@ export const caseList = async (message: Message): Promise<string> => {
   // Check if user has too many items - force basic mode for >20 movies or series
   const hasMany = user.pool.movies.length > 20 || user.pool.series.length > 20
 
-  // Look up the live download status of everything being listed, with one look at the download queues
-  const statuses = await livePoolStatuses(settings, [
-    ...(shouldShowBoth || shouldShowMovies ? user.pool.movies.map((item) => ({ type: "movie" as const, item })) : []),
-    ...(shouldShowBoth || shouldShowSeries ? user.pool.series.map((item) => ({ type: "series" as const, item })) : []),
-  ])
+  // Whose Plex watch history to show. !list is public, so it's left out for people who keep their viewing
+  // private, and while Plex watch data isn't available, so "Not yet" is never shown for something they've seen.
+  const ownerMemory = await findMemory(guildMember.id)
+  const showWatched = settings.plex_active && plexWatchReady() && !ownerMemory?.preferences.private
+  const plexAccountId = showWatched ? plexAccountForUser(user, username) : null
 
-  // A short status after an item in basic mode, e.g. " (Queued #3 in line)". Empty when fully downloaded.
+  // Look up the live download status of everything being listed, with one look at the download queues
+  const statuses = await livePoolStatuses(
+    settings,
+    [
+      ...(shouldShowBoth || shouldShowMovies ? user.pool.movies.map((item) => ({ type: "movie" as const, item })) : []),
+      ...(shouldShowBoth || shouldShowSeries ? user.pool.series.map((item) => ({ type: "series" as const, item })) : []),
+    ],
+    plexAccountId,
+  )
+
+  // A short status after an item in basic mode, e.g. " (Queued #3 in line)" or " ✓ watched"
   const basicStatus = (type: "movie" | "series", item: Movie | Series): string => {
-    const text = statuses.get(poolItemKey(type, item))?.text
-    return text ? ` (${text})` : ""
+    const status = statuses.get(poolItemKey(type, item))
+    return [status?.text ? ` (${status.text})` : "", status?.watchedAt ? " ✓ watched" : ""].join("")
   }
 
   // Handle basic mode - return old text-based format

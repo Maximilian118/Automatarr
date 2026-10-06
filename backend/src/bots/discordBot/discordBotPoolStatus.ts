@@ -10,12 +10,14 @@ import {
   searchingKeys,
 } from "../../shared/downloadStatus"
 import { ensureTitleIndex, indexedById } from "./ai/aiTitleIndex"
+import { lastWatched } from "../../shared/plexWatch"
 
 // The live status of an item in someone's pool, for !list
 export type PoolItemStatus = {
   downloaded: boolean // Fully downloaded right now
   text: string // e.g. "Downloading 45%, 20m left", "Queued (#3 in line)" or "Waiting for release". Empty if nothing to say
   active: boolean // Downloading, importing or queued, rather than stuck or waiting
+  watchedAt?: number | null // When the pool's owner last watched it on Plex, in ms. Null = not yet. Undefined = not shown
 }
 
 // A pool item and its content type
@@ -39,10 +41,11 @@ const currentLibraryItem = async (settings: settingsDocType, { type, item }: Poo
 }
 
 // Work out the live status of every pool item, with one look at the download queues for the lot.
-// Keyed by poolItemKey.
+// With the owner's Plex account, each item also gets when they last watched it. Keyed by poolItemKey.
 export const livePoolStatuses = async (
   settings: settingsDocType,
   entries: PoolEntry[],
+  plexAccountId: number | null = null, // The pool owner's Plex account, or null to leave watch info out
 ): Promise<Map<string, PoolItemStatus>> => {
   await ensureTitleIndex()
 
@@ -59,7 +62,11 @@ export const livePoolStatuses = async (
   return new Map(
     current.map((c) => [
       poolItemKey(c.type, c.item),
-      { downloaded: fullyDownloaded(c.type, c.library), ...libraryItemStatus(c.type, c.library, snapshot, searching) },
+      {
+        downloaded: fullyDownloaded(c.type, c.library),
+        ...libraryItemStatus(c.type, c.library, snapshot, searching),
+        ...(plexAccountId !== null ? { watchedAt: lastWatched(plexAccountId, c.type, c.library) } : {}),
+      },
     ]),
   )
 }

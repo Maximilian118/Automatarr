@@ -7,7 +7,8 @@ import { BotUserType, settingsDocType } from "../../../models/settings"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
-import { plexAccountForUser, getCachedPlexHistory, hasWatchedOnPlex } from "../../../shared/plexRequests"
+import { plexAccountForUser } from "../../../shared/plexRequests"
+import { hasWatchedOnPlex } from "../../../shared/plexWatch"
 import { getDiscordClient } from "../discordBot"
 import { findChannelByName, getPosterImageUrl, matchedUser } from "../discordBotUtility"
 import { aiConfigured } from "./aiClient"
@@ -49,9 +50,9 @@ export type RecipientProfile = {
   memory: BotMemoryType
   botUser: BotUserType
   genres: string[] // Their favourite genres, most common first
-  seenMovies: Set<number> // TMDB IDs they've requested, have in their pool or watched on Plex
-  seenSeries: Set<string> // Lowercased titles of series they've requested, have or watched
-  plexAccount: number | null // Their Plex account, for checking their full watched set
+  seenMovies: Set<number> // TMDB IDs they've requested or have in their pool
+  seenSeries: Set<string> // Lowercased titles of series they've requested or have
+  plexAccount: number | null // Their Plex account, for checking everything they've watched
 }
 
 // Get the server-wide AI state, creating it if needed
@@ -103,11 +104,10 @@ export const eligibleMemories = async (
     .filter((r): r is { memory: BotMemoryType; botUser: BotUserType } => !!r.botUser)
 }
 
-// Build a person's taste profile from their pool, request history and Plex history
+// Build a person's taste profile from their pool and request history. Plex watches are checked by hasSeen.
 export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType): Promise<RecipientProfile> => {
   const history = await getRequestHistory(memory.discord_id, 50)
   const plexAccount = plexAccountForUser(botUser, memory.username)
-  const watched = plexAccount !== null ? getCachedPlexHistory(plexAccount) : []
 
   return {
     memory,
@@ -121,12 +121,10 @@ export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType):
     seenMovies: new Set<number>([
       ...botUser.pool.movies.map((m) => m.tmdbId),
       ...history.filter((h) => h.tmdbId).map((h) => Number(h.tmdbId)),
-      ...watched.filter((w) => w.tmdbId).map((w) => Number(w.tmdbId)),
     ]),
     seenSeries: new Set<string>([
       ...botUser.pool.series.map((s) => s.title.toLowerCase()),
       ...history.filter((h) => h.content_type === "series").map((h) => h.title.toLowerCase()),
-      ...watched.filter((w) => w.show_title).map((w) => String(w.show_title).toLowerCase()),
     ]),
   }
 }
@@ -134,7 +132,7 @@ export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType):
 // Check whether a person has already requested, pooled or watched something
 export const hasSeen = (profile: RecipientProfile, contentType: ContentType, item: Movie | Series): boolean =>
   (contentType === "movie" ? profile.seenMovies.has(item.tmdbId) : profile.seenSeries.has(item.title.toLowerCase())) ||
-  hasWatchedOnPlex(profile.plexAccount, contentType, item.title)
+  hasWatchedOnPlex(profile.plexAccount, contentType, item)
 
 // Count how many of a person's favourite genres an item has
 export const genreOverlap = (profile: RecipientProfile, item: Movie | Series): number =>

@@ -1,4 +1,5 @@
 import type { PoolItemStatus } from "./discordBotPoolStatus"
+import { shortWatchedDate } from "../../shared/plexWatch"
 import {
   Client,
   Guild,
@@ -770,7 +771,12 @@ export const createPoolItemEmbed = (
       ? `${movie.ratings.rottenTomatoes.value}%`
       : "N/A"
 
-    description = `**Runtime:** ${runtimeStr}\n${downloadLine}\n🍅︎ **${rtScore}**`
+    const watchedLine =
+      status?.watchedAt !== undefined
+        ? `\n**Watched:** ${status.watchedAt ? shortWatchedDate(status.watchedAt) : "Not yet"}`
+        : ""
+
+    description = `**Runtime:** ${runtimeStr}\n${downloadLine}${watchedLine}\n🍅︎ **${rtScore}**`
   } else {
     const series = item as Series
     // Series info
@@ -783,7 +789,11 @@ export const createPoolItemEmbed = (
         ? "All Seasons"
         : rawMonitorStatus.charAt(0).toUpperCase() + rawMonitorStatus.slice(1)
     const statusLine = status?.text ? `\n**Status:** ${status.text}` : ""
-    description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%${statusLine}`
+    const watchedLine =
+      status?.watchedAt !== undefined
+        ? `\n**Last watched:** ${status.watchedAt ? moment(status.watchedAt).fromNow() : "Not yet"}`
+        : ""
+    description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%${statusLine}${watchedLine}`
   }
 
   embed.setDescription(description)

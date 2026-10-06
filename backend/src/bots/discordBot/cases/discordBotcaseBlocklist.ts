@@ -15,6 +15,7 @@ import {
   randomSeriesReadyMessage,
   randomGrabbedMessage,
   randomGrabNotFoundMessage,
+  randomPlayingNowMessage,
 } from "../discordBotRandomReply"
 import Data, { dataDocType } from "../../../models/data"
 import {
@@ -37,6 +38,7 @@ import logger from "../../../logger"
 import { notifyEpisodeDownloaded, notifyMovieDownloaded } from "../discordBotAsync"
 import { QueueNotificationType, waitForWebhooks } from "../../../webhooks/webhookUtility"
 import { grabToBlocklist, importedDownloadId } from "../../../shared/starrHistory"
+import { playingOnPlex } from "../../../shared/plexWatch"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
 
 // Mark a download as unsatisfactory, blocklist it and add start a new download
@@ -122,6 +124,9 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
     if (!movieInDB.movieFile) {
       return `Hmm.. the movie ${title} doesn't look like it's been downloaded yet. Are you sure you have the right movie?`
     }
+
+    // Don't pull the file out from under someone who's watching it
+    if (await playingOnPlex(settings, "movie", movieInDB)) return randomPlayingNowMessage(movieInDB.title)
 
     // Find the grab behind the current file before deleting it, so that exact release is blocklisted
     const history = await getMovieHistory(settings, movieInDB.id)
@@ -226,6 +231,12 @@ export const caseBlocklist = async (message: Message): Promise<string> => {
 
     if (!episode.episodeFile) {
       return `Hmm.. Season ${episode.seasonNumber} Episode ${episode.episodeNumber} ${episode.title} for the series ${title} doesn't look like it's been downloaded yet. Are you sure you have the right episode?`
+    }
+
+    // Don't pull the file out from under someone who's watching it
+    const playingEpisode = { season: episode.seasonNumber, episode: episode.episodeNumber }
+    if (await playingOnPlex(settings, "series", seriesInDB, playingEpisode)) {
+      return randomPlayingNowMessage(`${seriesInDB.title} S${String(episode.seasonNumber).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`)
     }
 
     // Find the grab behind the current file before deleting it, so that exact release is blocklisted
