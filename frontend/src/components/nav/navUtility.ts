@@ -1,4 +1,16 @@
-import { Bot, Cable, History, ListVideo, LucideIcon, RefreshCw, ScrollText, Settings, Users, Waves } from "lucide-react"
+import {
+  Bot,
+  Cable,
+  Gauge,
+  History,
+  ListVideo,
+  LucideIcon,
+  RefreshCw,
+  ScrollText,
+  Settings,
+  Users,
+  Waves,
+} from "lucide-react"
 
 export interface NavItem {
   text: string
@@ -35,6 +47,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { text: "Connections", url: "/connections", icon: Cable, primary: false },
       { text: "Loops", url: "/loops", icon: RefreshCw, primary: false },
+      { text: "Network", url: "/network", icon: Gauge, primary: false },
       { text: "Bots", url: "/bots", icon: Bot, primary: false },
       { text: "Settings", url: "/settings", icon: Settings, primary: false },
     ],

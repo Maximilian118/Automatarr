@@ -84,6 +84,14 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
     }
   }
 
+  const caseUnifiKey = () => {
+    if (/^[A-Za-z0-9_-]{16,}$/.test(e.target.value.trim()) || e.target.value.trim() === "") {
+      inputErr(e.target.name, "")
+    } else {
+      inputErr(e.target.name, "Invalid UniFi API key.")
+    }
+  }
+
   const caseAnthropicKey = () => {
     if (/^sk-ant-[A-Za-z0-9_-]{10,}$/.test(e.target.value) || e.target.value.trim() === "") {
       inputErr(e.target.name, "")
@@ -162,6 +170,13 @@ export const updateInput = <FormType, ErrorType extends { [key: string]: string 
       break
     case e.target.name === "plex_KEY":
       casePlexToken()
+      break
+    case e.target.name === "unifi_KEY":
+      caseUnifiKey()
+      break
+    // UniFi accounts, passwords and site names follow UniFi's rules, not the POSIX or password rules below
+    case e.target.name.startsWith("unifi_"):
+      inputErr(e.target.name, "")
       break
     case e.target.name.includes("api_key"):
       caseAnthropicKey()

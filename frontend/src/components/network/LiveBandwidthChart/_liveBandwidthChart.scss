@@ -1,0 +1,106 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.live-chart {
+  @include mixins.surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-width: 0;
+
+  @include mixins.phone-only {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .live-chart-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    svg {
+      width: 26px;
+      height: 26px;
+      color: variables.$accent;
+    }
+  }
+
+  .live-chart-legend {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    color: variables.$ink-muted;
+    font-size: var(--step--1);
+    font-weight: 600;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+  }
+
+  .live-chart-plot {
+    width: 100%;
+    height: 300px;
+
+    @include mixins.phone-only {
+      height: 240px;
+    }
+  }
+
+  .live-chart-empty {
+    color: variables.$ink-muted;
+    padding: var(--space-6) 0;
+  }
+}
+
+// Line swatch, echoing the 2px lines on the chart
+.live-chart-swatch {
+  width: 16px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+// Hover/touch tooltip listing every line at one moment
+.live-chart-tooltip {
+  min-width: 220px;
+  padding: var(--space-3);
+  background: variables.$basin;
+  color: variables.$ink;
+  border: 1px solid variables.$line;
+  border-radius: var(--radius-control);
+
+  .live-chart-tooltip-time {
+    font-weight: 700;
+    margin-bottom: var(--space-2);
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .live-chart-tooltip-label {
+    color: variables.$ink-muted;
+  }
+
+  .live-chart-tooltip-value {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}

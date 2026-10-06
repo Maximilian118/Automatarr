@@ -155,6 +155,12 @@ export const updateSettings = async (
           $sabnzbd_URL: String
           $sabnzbd_KEY: String
           $sabnzbd_active: Boolean
+          $unifi_URL: String
+          $unifi_KEY: String
+          $unifi_username: String
+          $unifi_password: String
+          $unifi_site: String
+          $unifi_active: Boolean
           $general_bot: generalBot
           $discord_bot: discordBot
           $ai_bot: aiBot
@@ -213,6 +219,12 @@ export const updateSettings = async (
             sabnzbd_URL: $sabnzbd_URL
             sabnzbd_KEY: $sabnzbd_KEY
             sabnzbd_active: $sabnzbd_active
+            unifi_URL: $unifi_URL
+            unifi_KEY: $unifi_KEY
+            unifi_username: $unifi_username
+            unifi_password: $unifi_password
+            unifi_site: $unifi_site
+            unifi_active: $unifi_active
             general_bot: $general_bot
             discord_bot: $discord_bot
             ai_bot: $ai_bot

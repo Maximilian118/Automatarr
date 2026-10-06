@@ -226,3 +226,54 @@ export const checkWebhooks = async (
 
   return []
 }
+
+// Checks if the UniFi connection is working with an API key or a local account. If settings not passed,
+// check with params in db.
+export const checkUnifi = async (
+  user: UserType,
+  setUser: Dispatch<SetStateAction<UserType>>,
+  navigate: NavigateFunction,
+  settings?: settingsType,
+): Promise<boolean> => {
+  if (settings && (!settings.unifi_URL || (!settings.unifi_KEY && (!settings.unifi_username || !settings.unifi_password)))) {
+    return false
+  }
+
+  try {
+    const res = await axios.post(
+      "",
+      settings
+        ? {
+            variables: {
+              URL: settings.unifi_URL,
+              KEY: settings.unifi_KEY,
+              USER: settings.unifi_username,
+              PASS: settings.unifi_password,
+              SITE: settings.unifi_site,
+            },
+            query: `
+              query CheckUnifi($URL: String, $KEY: String, $USER: String, $PASS: String, $SITE: String) {
+                checkUnifi(URL: $URL, KEY: $KEY, USER: $USER, PASS: $PASS, SITE: $SITE) {
+                  data
+                  tokens
+                }
+              }
+            `,
+          }
+        : { query: `query { checkUnifi { data tokens } }` },
+      { headers: headers(user.token) },
+    )
+
+    if (res.data.errors) {
+      authCheck(res.data.errors, setUser, navigate)
+      console.error(`checkUnifi Error: ${res.data.errors[0].message}`)
+      return false
+    }
+
+    handleResponseTokens(res.data.data.checkUnifi, setUser)
+    return Number(res.data.data.checkUnifi.data) === 200
+  } catch (err) {
+    console.error(`UniFi API Check Error: ${err}`)
+    return false
+  }
+}

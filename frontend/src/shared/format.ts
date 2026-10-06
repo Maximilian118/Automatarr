@@ -67,3 +67,23 @@ export const storageTicks = (maxBytes: number): { ticks: number[]; max: number }
   const ticks = Array.from({ length: count + 1 }, (_, i) => i * step * divisor)
   return { ticks, max: ticks[ticks.length - 1] }
 }
+
+const BYTES_PER_MBPS = 125_000
+
+// Bytes per second to megabits per second and back, for speed fields
+export const bpsToMbps = (bps: number): number => bps / BYTES_PER_MBPS
+export const mbpsToBps = (mbps: number): number => mbps * BYTES_PER_MBPS
+
+// A network speed in Mbps, e.g. "94.2 Mbps". -1 is shown as "No limit"
+export const formatRate = (bps: number | null | undefined): string => {
+  if (bps === null || bps === undefined || !isFinite(bps)) return "–"
+  if (bps < 0) return "No limit"
+  const mbps = bpsToMbps(bps)
+  return `${mbps >= 100 ? Math.round(mbps) : mbps.toFixed(1)} Mbps`
+}
+
+// A network speed in megabytes per second as download clients show it, e.g. "11.8 MB/s"
+export const formatRateBytes = (bps: number | null | undefined): string => {
+  if (bps === null || bps === undefined || !isFinite(bps) || bps < 0) return ""
+  return `${(bps / 1_000_000).toFixed(1)} MB/s`
+}

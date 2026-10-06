@@ -10,6 +10,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"))
 const Activity = lazy(() => import("./pages/Activity/Activity"))
 const Connections = lazy(() => import("./pages/Connections"))
 const Loops = lazy(() => import("./pages/Loops"))
+const Network = lazy(() => import("./pages/Network/Network"))
 const Bots = lazy(() => import("./pages/Bots"))
 const Lists = lazy(() => import("./pages/Lists/Lists"))
 const Logs = lazy(() => import("./pages/Logs/Logs"))
@@ -32,6 +33,7 @@ const Router: React.FC<routerType> = ({ user }) => (
         <Route path="/activity" Component={Activity}/>
         <Route path="/connections" Component={Connections}/>
         <Route path="/loops" Component={Loops}/>
+        <Route path="/network" Component={Network}/>
         <Route path="/bots" Component={Bots}/>
         <Route path="/lists" Component={Lists}/>
         <Route path="/logs" Component={Logs}/>

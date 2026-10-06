@@ -8,6 +8,7 @@ const config = {
       watch: false,
       max_restarts: 5,
       restart_delay: 2000,
+      kill_timeout: 10000, // Time to leave download clients on safe speed limits before being force-killed
       time: false,
       env: {
         NODE_ENV: "production",

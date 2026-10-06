@@ -20,6 +20,8 @@ import createWebhookRouter from "./middleware/webhooks"
 import { newWebhook } from "./webhooks/webhookUtility"
 import logsRouter from "./routes/logs"
 import { startDownloadPriority } from "./shared/downloadPriority"
+import { startNetworkBalancer } from "./shared/networkBalancer"
+import { runShutdownHooks } from "./shared/shutdownHooks"
 
 // Read version from package.json
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"))
@@ -99,6 +101,9 @@ const startServer = async () => {
 
   // Gracefully shut down MongoMemoryServer
   const shutdown = async () => {
+    // Leave external services in a safe state while the database is still up
+    await runShutdownHooks(6000)
+
     logger.catastrophic("MongoDB | Shutting down...")
 
     if (mongoServer) {
@@ -184,6 +189,12 @@ const startServer = async () => {
 
     // Resume prioritising Discord requests that were still downloading
     await startDownloadPriority()
+
+    // Check connection to UniFi, which is optional and read-only
+    await Resolvers.checkUnifi()
+
+    // Resume sharing bandwidth between the download clients if the network balancer is on
+    await startNetworkBalancer()
 
     // Check Automatarr has the filesystem permissions it needs
     bootPermissions(data)

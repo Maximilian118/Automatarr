@@ -49,7 +49,7 @@ export const activeAPIsArr = async (settings: settingsType): Promise<ActiveAPIs>
   const capsFirstLetter = (str: string) => str.charAt(0).toUpperCase() + str.slice(1)
 
   // A list of API's that we don't want to include in the Arr
-  const exclusionList = ["qBittorrent", "plex", "sabnzbd"]
+  const exclusionList = ["qBittorrent", "plex", "sabnzbd", "unifi"]
 
   // Iterate over all keys to find active APIs
   Object.keys(settings).forEach((key) => {

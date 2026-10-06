@@ -1,0 +1,6 @@
+@use "../../../scss/mixins";
+
+.network-tiles {
+  @include mixins.grid-layout(220px);
+  margin: 0;
+}

@@ -15,6 +15,7 @@ import importListSchema from "./importListSchema"
 import aiSchema from "./aiSchema"
 import activitySchema from "./activitySchema"
 import dashboardSchema from "./dashboardSchema"
+import networkSchema from "./networkSchema"
 
 const Schema = buildSchema(`
   ${miscSchema}
@@ -33,6 +34,7 @@ const Schema = buildSchema(`
   ${aiSchema}
   ${activitySchema}
   ${dashboardSchema}
+  ${networkSchema}
 
   type RootQuery {
     login(name: String!, password: String!): User!
@@ -50,6 +52,7 @@ const Schema = buildSchema(`
     checkqBittorrent(URL: String, USER: String, PASS: String): CheckStatus!
     checkPlex(URL: String, KEY: String): CheckStatus!
     checkSABnzbd(URL: String, KEY: String): CheckStatus!
+    checkUnifi(URL: String, KEY: String, USER: String, PASS: String, SITE: String): CheckStatus!
     checkClaude(KEY: String): AICheckStatus!
     checkUnixUsers: StringArr!
     checkUnixGroups: StringArr!
@@ -65,6 +68,7 @@ const Schema = buildSchema(`
     getActivity(before: String, limit: Int, source: String): ActivityPage!
     getLoopStatus: LoopStatusResult!
     getRecentArrivals(limit: Int): RecentArrivalsResult!
+    getNetworkStatus: NetworkStatus!
   }
 
   type RootMutation {
@@ -85,6 +89,8 @@ const Schema = buildSchema(`
     deleteBotNickname(discord_id: String!, target: String!, index: Int!): BotMemoriesReturn!
     updateBotMemoryPreferences(discord_id: String!, private: Boolean, learning: Boolean, chat: Boolean, recommendations: Boolean): BotMemoriesReturn!
     updateUserPlexLink(userId: String!, plexAccountId: Int): Settings
+    updateNetworkBalancer(input: NetworkBalancerInput!): NetworkStatus!
+    setNetworkBalancer(enabled: Boolean!): NetworkStatus!
   }
 
   schema {

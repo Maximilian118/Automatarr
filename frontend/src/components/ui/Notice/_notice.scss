@@ -1,0 +1,42 @@
+@use "../../../scss/variables";
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid currentColor;
+  border-radius: var(--radius-control);
+
+  > svg {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .notice-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+    color: variables.$ink;
+
+    p, li {
+      color: inherit;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: var(--space-5);
+    }
+  }
+
+  .notice-title {
+    font-weight: 700;
+  }
+
+  &.notice-info { color: var(--inflow); }
+  &.notice-warn { color: var(--threshold); }
+  &.notice-error { color: var(--outflow); }
+}

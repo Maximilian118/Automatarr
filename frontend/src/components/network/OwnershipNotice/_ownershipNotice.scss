@@ -1,0 +1,31 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.ownership-when {
+  color: variables.$ink-muted;
+}
+
+.ownership-heading {
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.ownership-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.ownership-details {
+  summary {
+    @include mixins.focus-ring;
+    min-height: var(--target);
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    cursor: pointer;
+  }
+}

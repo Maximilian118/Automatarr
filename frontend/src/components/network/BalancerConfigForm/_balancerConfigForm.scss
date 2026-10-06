@@ -1,0 +1,16 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.balancer-config-heading {
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.balancer-config-note {
+  color: variables.$ink-muted;
+}
+
+.balancer-config-fields {
+  @include mixins.grid-layout(220px);
+  gap: var(--space-4);
+}

@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.9.0
+
+### Network balancer
+
+SABnzbd and qBittorrent don't know about each other, so the usual fix is to give each a fixed share of your connection as if both were always downloading flat out. Most of the time only one is, and half your connection sits unused. The new **Network** page (Automation section) shares one budget between them instead.
+
+- **Busy client gets the bandwidth**: every 10 seconds Automatarr checks what each client is doing. When only one is downloading, it gets nearly the whole share and the idle one drops to a trickle. When both are, they split it, and a client that can't use its half (a slow torrent, say) gives the rest to the other.
+- **Household first**: with a UniFi gateway connected, Automatarr sees live WAN traffic and works out how much everything else on the network is using. The clients back off within two readings and only take bandwidth back gradually once it has stayed free. A reserve is always kept free on top.
+- **Sensible defaults, your overrides**: the ISP speed comes from the plan speeds set in UniFi (or its last speedtest). Reserve, overhead and a maximum per client are worked out automatically and shown in each field; type a figure to override it.
+- **See what it's doing**: ISP speed, internet in use, household traffic, each client's speed, limit and target, a live 30-minute chart and a log of everything it changed.
+- **Safe whatever happens**: the clients' limits never add up to more than your ISP speed minus the reserve, even part way through a change. Limits are lowered before others are raised, and every raise is saved before it's sent, so a crash, a lost client or a power cut can't leave your network saturated.
+  - If a download client stops responding for 30 seconds, or is disconnected on the Connections page, the balancer turns itself off and puts both clients on a fixed, even split. A client that can't be reached is put back on its split when it returns.
+  - Stopping or updating Automatarr leaves both clients on the fixed split. Balancing resumes when it starts again.
+  - Losing UniFi holds the clients' share where it was rather than guessing.
+- **Takes over the clients' speed settings** (the page warns before you turn it on): SABnzbd's "Maximum line speed" and "Percentage of line speed", its speed limit schedules (turned off, not deleted), qBittorrent's global limits and scheduler, and qBittorrent's alternative limits (set very low). Changes made in either app are set back. Your previous settings are listed on the Network page.
+- It can only be turned on when SABnzbd, qBittorrent and UniFi are all connected.
+
+### UniFi connection
+
+- New optional **UniFi** connection on the Connections page, strictly read-only. Use an API key (Network > Settings > Control Plane > Integrations) or a local account with the "View Only" role. Failed logins back off so a wrong password can't lock the account.
+
+### Docker
+
+- Add `stop_grace_period: 30s` to your compose file so Automatarr has time to leave the download clients on safe limits when the container stops. The example in the README now includes it.
+
 ## v0.8.1
 
 ### Plex and Claude are truly optional

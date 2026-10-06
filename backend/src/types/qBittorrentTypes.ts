@@ -264,3 +264,12 @@ export type qBittorrentPreferences = {
   web_ui_use_custom_http_headers_enabled: boolean
   web_ui_username: string
 }
+
+// Global transfer speeds and the speed limits currently in force. All values are bytes per second.
+export type qBittorrentTransferInfo = {
+  dl_info_speed: number // Download speed
+  up_info_speed: number // Upload speed
+  dl_rate_limit: number // Active download limit. Alternative limit while alternative mode is on. 0 = no limit
+  up_rate_limit: number // Active upload limit. Alternative limit while alternative mode is on. 0 = no limit
+  connection_status: string // "connected", "firewalled" or "disconnected"
+}

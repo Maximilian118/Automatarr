@@ -3,7 +3,12 @@ import Data, { dataDocType, dataType, qBittorrent } from "../models/data"
 import { settingsType } from "../models/settings"
 import { checkTimePassed, cleanUrl, requestSuccess } from "./utility"
 import logger from "../logger"
-import { qBittorrentPreferences, Torrent, TorrentCategory } from "../types/qBittorrentTypes"
+import {
+  qBittorrentPreferences,
+  qBittorrentTransferInfo,
+  Torrent,
+  TorrentCategory,
+} from "../types/qBittorrentTypes"
 import moment from "moment"
 import { axiosErrorMessage } from "./requestError"
 import { recordActivity } from "./activity"
@@ -451,4 +456,70 @@ export const topPrioqBittorrent = async (
     logger.error(`topPrioqBittorrent: ${hash} | ${axiosErrorMessage(err)}`)
     return false
   }
+}
+
+// Torrent states that mean a torrent is actually downloading. Stalled and queued torrents aren't
+const DOWNLOADING_STATES = ["downloading", "forcedDL", "metaDL", "forcedMetaDL"]
+
+// Send a request to the qBittorrent Web API with a session cookie. POST bodies are sent as a form.
+// Throws on any failure, including a rejected cookie.
+const qBitRequest = async <T>(
+  settings: settingsType,
+  cookie: string,
+  method: "get" | "post",
+  path: string,
+  params: Record<string, string> = {},
+): Promise<T> => {
+  const url = cleanUrl(`${settings.qBittorrent_URL}/api/${settings.qBittorrent_API_version}/${path}`)
+  const res =
+    method === "get"
+      ? await axios.get(url, { params, headers: { cookie }, timeout: 10000 })
+      : await axios.post(url, new URLSearchParams(params), {
+          headers: { cookie, "Content-Type": "application/x-www-form-urlencoded" },
+          timeout: 10000,
+        })
+
+  return res.data as T
+}
+
+// Get global speeds and the limits in force. Throws if qBittorrent can't be reached.
+export const getqBittorrentTransferInfo = (
+  settings: settingsType,
+  cookie: string,
+): Promise<qBittorrentTransferInfo> => qBitRequest(settings, cookie, "get", "transfer/info")
+
+// Get every preference. Unlike getqBittorrentPreferences, this throws if qBittorrent can't be reached.
+export const fetchqBittorrentPreferences = (
+  settings: settingsType,
+  cookie: string,
+): Promise<qBittorrentPreferences> => qBitRequest(settings, cookie, "get", "app/preferences")
+
+// Change some preferences. Speed limits are bytes per second and qBittorrent saves them, so they survive a restart.
+export const setqBittorrentPreferences = async (
+  settings: settingsType,
+  cookie: string,
+  preferences: Partial<qBittorrentPreferences>,
+): Promise<void> => {
+  await qBitRequest(settings, cookie, "post", "app/setPreferences", { json: JSON.stringify(preferences) })
+}
+
+// True when the alternative speed limits are in force
+export const getqBittorrentAltMode = async (settings: settingsType, cookie: string): Promise<boolean> =>
+  Number(await qBitRequest(settings, cookie, "get", "transfer/speedLimitsMode")) === 1
+
+// Turn the alternative speed limits off. Older qBittorrent versions only have a toggle
+export const disableqBittorrentAltMode = async (settings: settingsType, cookie: string): Promise<void> => {
+  try {
+    await qBitRequest(settings, cookie, "post", "transfer/setSpeedLimitsMode", { mode: "0" })
+  } catch {
+    if (await getqBittorrentAltMode(settings, cookie)) {
+      await qBitRequest(settings, cookie, "post", "transfer/toggleSpeedLimitsMode")
+    }
+  }
+}
+
+// Count the torrents that are downloading right now. Throws if qBittorrent can't be reached.
+export const getqBittorrentDownloadingCount = async (settings: settingsType, cookie: string): Promise<number> => {
+  const torrents = await qBitRequest<Torrent[]>(settings, cookie, "get", "torrents/info", { filter: "downloading" })
+  return torrents.filter((t) => DOWNLOADING_STATES.includes(t.state)).length
 }

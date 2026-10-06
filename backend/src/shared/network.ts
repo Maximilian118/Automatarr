@@ -14,6 +14,7 @@ export const isOnCorrectLAN = async (
         key.endsWith("URL") &&
         key !== "qBittorrent_URL" &&
         key !== "sabnzbd_URL" &&
+        key !== "unifi_URL" &&
         value &&
         typeof value === "string" &&
         value.trim() !== "",

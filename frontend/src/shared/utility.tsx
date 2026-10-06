@@ -7,6 +7,7 @@ import {
   checkRadarr,
   checkSABnzbd,
   checkSonarr,
+  checkUnifi,
 } from "./requests/checkAPIRequests"
 import { UserType } from "../types/userType"
 import { NavigateFunction } from "react-router-dom"
@@ -26,7 +27,7 @@ export const checkAPIs = async (
   newSettings?: true,
 ): Promise<settingsType> => {
   const newData = newSettings ? settings : undefined
-  const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active, plex_active, sabnzbd_active] =
+  const [radarr_active, sonarr_active, lidarr_active, qBittorrent_active, plex_active, sabnzbd_active, unifi_active] =
     await Promise.all([
       checkRadarr(user, setUser, navigate, newData),
       checkSonarr(user, setUser, navigate, newData),
@@ -34,6 +35,7 @@ export const checkAPIs = async (
       checkqBittorrent(user, setUser, navigate, newData),
       checkPlex(user, setUser, navigate, newData),
       checkSABnzbd(user, setUser, navigate, newData),
+      checkUnifi(user, setUser, navigate, newData),
     ])
 
   return {
@@ -44,6 +46,7 @@ export const checkAPIs = async (
     qBittorrent_active,
     plex_active,
     sabnzbd_active,
+    unifi_active,
   }
 }
 

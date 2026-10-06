@@ -100,6 +100,12 @@ const settingsResolvers = {
     settings.sabnzbd_URL = args.settingsInput.sabnzbd_URL
     settings.sabnzbd_KEY = args.settingsInput.sabnzbd_KEY
     settings.sabnzbd_active = args.settingsInput.sabnzbd_active
+    settings.unifi_URL = args.settingsInput.unifi_URL ?? ""
+    settings.unifi_KEY = (args.settingsInput.unifi_KEY ?? "").trim()
+    settings.unifi_username = args.settingsInput.unifi_username ?? ""
+    settings.unifi_password = args.settingsInput.unifi_password ?? ""
+    settings.unifi_site = args.settingsInput.unifi_site || "default"
+    settings.unifi_active = args.settingsInput.unifi_active ?? false
     Object.assign(settings.discord_bot, args.settingsInput.discord_bot)
     Object.assign(settings.ai_bot, args.settingsInput.ai_bot)
     settings.ai_bot.api_key = (settings.ai_bot.api_key ?? "").trim() // Pasted keys often carry stray whitespace

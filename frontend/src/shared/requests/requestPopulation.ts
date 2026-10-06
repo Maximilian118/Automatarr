@@ -82,6 +82,12 @@ export const populateSettings = `
   sabnzbd_URL
   sabnzbd_KEY
   sabnzbd_active
+  unifi_URL
+  unifi_KEY
+  unifi_username
+  unifi_password
+  unifi_site
+  unifi_active
   general_bot {
     max_movies
     movie_pool_expiry

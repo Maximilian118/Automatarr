@@ -132,6 +132,12 @@ export interface settingsType {
   sabnzbd_URL: string // URL including port to reach the SABnzbd API
   sabnzbd_KEY: string // API key for SABnzbd
   sabnzbd_active: boolean // Has SABnzbd connection been tested and therefore should be included in requests?
+  unifi_URL: string // URL of the UniFi OS console (e.g. https://192.168.1.1). Read-only access
+  unifi_KEY: string // UniFi Network API key. Takes priority over username/password when set
+  unifi_username: string // Local UniFi account username, used only when no API key is set
+  unifi_password: string // Local UniFi account password, used only when no API key is set
+  unifi_site: string // UniFi site name. Almost always "default"
+  unifi_active: boolean // Has the UniFi connection been tested and therefore should be included in requests?
   general_bot: GeneralBotType // General information for all Bots
   discord_bot: DiscordBotType // Discord Bot settings/data
   ai_bot: AIBotType // Claude API conversational layer settings

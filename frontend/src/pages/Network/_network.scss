@@ -1,0 +1,19 @@
+@use "../../scss/mixins";
+@use "../../scss/variables";
+
+.network {
+  .network-downloaders {
+    @include mixins.grid-layout(320px);
+  }
+
+  .network-panels {
+    @include mixins.grid-layout(420px);
+  }
+
+  .network-side {
+    display: flex;
+    flex-direction: column;
+    gap: variables.$grid-gap;
+    min-width: 0;
+  }
+}

@@ -12,6 +12,7 @@ import { initWebhookBody } from "../../types/webhookType"
 import { axiosErrorMessage } from "../../shared/requestError"
 import { checkPlexConnection } from "../../shared/plexRequests"
 import { checkSABnzbdConnection } from "../../shared/sabnzbdRequests"
+import { checkUnifiConnection, hasUnifiCredentials, unifiCredentials } from "../../shared/unifiRequests"
 
 const checkResolvers = {
   checkRadarr: async (
@@ -287,6 +288,45 @@ const checkResolvers = {
 
     const status = await checkSABnzbdConnection(URL, KEY)
     if (requestSuccess(status)) logger.success("SABnzbd | OK!")
+
+    return { data: status, tokens }
+  },
+  checkUnifi: async (
+    args?: { URL?: string; KEY?: string; USER?: string; PASS?: string; SITE?: string },
+    req?: AuthRequest,
+  ): Promise<{ data: number; tokens: string[] }> => {
+    if (req && !req.isAuth) {
+      throw new Error("Unauthorised")
+    }
+
+    const tokens = req?.tokens || []
+    let creds = {
+      URL: args?.URL ?? "",
+      KEY: args?.KEY ?? "",
+      USER: args?.USER ?? "",
+      PASS: args?.PASS ?? "",
+      SITE: args?.SITE || "default",
+    }
+
+    // If not passed explicitly, fetch from DB
+    if (!hasUnifiCredentials(creds)) {
+      const settings = (await Settings.findOne()) as settingsDocType
+
+      if (!settings || !settings.unifi_active) {
+        logger.info("UniFi | Inactive.")
+        return { data: 500, tokens }
+      }
+
+      creds = unifiCredentials(settings)
+
+      if (!hasUnifiCredentials(creds)) {
+        logger.warn("UniFi | Missing credentials.")
+        return { data: 500, tokens }
+      }
+    }
+
+    const status = await checkUnifiConnection(creds)
+    if (requestSuccess(status)) logger.success("UniFi | OK!")
 
     return { data: status, tokens }
   },

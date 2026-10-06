@@ -1,0 +1,96 @@
+@use "../../../scss/variables";
+@use "../../../scss/mixins";
+
+.downloader-card {
+  @include mixins.surface;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  min-width: 0;
+
+  @include mixins.phone-only {
+    padding: var(--space-4);
+  }
+
+  .downloader-card-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+
+    svg {
+      width: 26px;
+      height: 26px;
+      color: variables.$accent;
+    }
+
+    h3 {
+      font-size: var(--step-2);
+      font-weight: 700;
+    }
+  }
+
+  .downloader-card-state {
+    margin-left: auto;
+    padding: var(--space-1) var(--space-3);
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    font-size: var(--step--1);
+    font-weight: 700;
+
+    &.downloader-card-state-good { color: var(--good); }
+    &.downloader-card-state-muted { color: variables.$ink-muted; }
+    &.downloader-card-state-bad { color: var(--outflow); }
+  }
+
+  dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .downloader-card-row {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid variables.$line-soft;
+
+    &:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    dt {
+      color: variables.$ink-muted;
+      font-weight: 600;
+    }
+
+    dd {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .downloader-card-up {
+    color: variables.$ink-muted;
+    font-weight: 600;
+    font-size: var(--step--1);
+  }
+
+  .downloader-card-error {
+    color: var(--outflow);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .downloader-card-note {
+    color: variables.$ink-muted;
+  }
+}

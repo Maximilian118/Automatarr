@@ -66,6 +66,14 @@ Plex (optional, works with or without the Claude AI):
 - Smarter commands - `!stats` shows what you've watched and what's unwatched in your pool, `!search` shows who's watched a title, `!popular` lists the most watched titles this month, and a full pool suggests watched items to `!remove`.
 - Better AI - Recommendations skip what you've seen, and the AI knows what you're part way through.
 
+Network balancer (optional, needs SABnzbd, qBittorrent and a UniFi gateway):
+
+- One shared budget - Instead of fixed limits that assume both download clients are always flat out, Automatarr shares your connection between them every 10 seconds. Whichever client is busy gets nearly all of it, and an idle one drops to a trickle.
+- Household first - Live WAN traffic from your UniFi gateway (UDM, UDM-SE, UCG, UXG) tells Automatarr how much everything else on your network is using. The clients back off within seconds and only take bandwidth back once it has stayed free. A reserve you choose is always kept free on top.
+- Read-only UniFi - Use an API key or a local account with the "View Only" role. Automatarr never changes anything on the console.
+- Safe if anything stops - The clients' limits never add up to more than your ISP speed minus the reserve, even part way through a change. If Automatarr crashes, a client disappears or the power goes, the network can't be saturated. Losing a download client turns the balancer off and puts both clients on a fixed, even split.
+- Takes over the clients' speed settings - Turning it on sets SABnzbd's "Maximum line speed" and qBittorrent's global limits, turns off both apps' speed schedules, and sets qBittorrent's alternative limits very low. Your previous settings are listed on the Network page.
+
 ## Running Automatarr with Docker Compose:
 
 To run Automatarr using Docker, follow these steps:
@@ -85,6 +93,7 @@ services:
     container_name: automatarr
     image: ghcr.io/maximilian118/automatarr:latest
     restart: unless-stopped
+    stop_grace_period: 30s # Time to leave the download clients on safe speed limits when stopping
     ports:
       - "8090:8090" # Frontend
       - "8091:8091" # Backend

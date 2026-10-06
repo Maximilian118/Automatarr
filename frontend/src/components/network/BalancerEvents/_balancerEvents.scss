@@ -1,0 +1,38 @@
+@use "../../../scss/variables";
+
+.balancer-events-empty {
+  color: variables.$ink-muted;
+}
+
+.balancer-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.balancer-event {
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
+  overflow-wrap: anywhere;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+  }
+
+  time {
+    color: variables.$ink-muted;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  &.balancer-event-info svg { color: var(--inflow); }
+  &.balancer-event-warn svg { color: var(--threshold); }
+  &.balancer-event-error svg { color: var(--outflow); }
+}

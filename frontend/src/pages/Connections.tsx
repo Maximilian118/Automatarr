@@ -1,6 +1,6 @@
 import React, { FormEvent, HTMLInputTypeAttribute, ReactNode, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Clapperboard, Download, Newspaper, Tv } from "lucide-react"
+import { Clapperboard, Download, Network, Newspaper, Tv } from "lucide-react"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
@@ -142,6 +142,25 @@ const Connections: React.FC = () => {
         >
           {MUITextFieldHelper("plex_URL")}
           {MUITextFieldHelper("plex_KEY", "password")}
+        </InputPanel>
+        {sectionHeader(
+          <Network aria-hidden="true"/>,
+          "Network",
+          "Optional. Read-only access to your network gateway, so the Network page can share your internet connection between the download clients.",
+        )}
+        <InputPanel
+          title="UniFi"
+          startIcon={<Network aria-hidden="true"/>}
+          status={settings.unifi_active ? "Connected" : "Disconnected"}
+          description={`
+            Optional. Use an API key (Network > Settings > Control Plane > Integrations) or a local account with the "View Only" role. Automatarr only ever reads from UniFi and never changes anything on it.
+          `}
+        >
+          {MUITextFieldHelper("unifi_URL", undefined, "Console URL, e.g. https://192.168.1.1")}
+          {MUITextFieldHelper("unifi_KEY", "password", "API key (recommended)")}
+          {MUITextFieldHelper("unifi_username", undefined, "Or a local username")}
+          {MUITextFieldHelper("unifi_password", "password", "and its password")}
+          {MUITextFieldHelper("unifi_site", undefined, "Site name")}
         </InputPanel>
       </div>
       <div className="page-bottom">

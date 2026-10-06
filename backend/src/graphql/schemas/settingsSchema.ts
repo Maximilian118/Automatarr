@@ -105,6 +105,12 @@ const settingsSchema = `
     sabnzbd_URL: String!
     sabnzbd_KEY: String!
     sabnzbd_active: Boolean!
+    unifi_URL: String!
+    unifi_KEY: String!
+    unifi_username: String!
+    unifi_password: String!
+    unifi_site: String!
+    unifi_active: Boolean!
     general_bot: GeneralBot!
     discord_bot: DiscordBot!
     ai_bot: AIBot!
@@ -210,6 +216,12 @@ const settingsSchema = `
     sabnzbd_URL: String
     sabnzbd_KEY: String
     sabnzbd_active: Boolean
+    unifi_URL: String
+    unifi_KEY: String
+    unifi_username: String
+    unifi_password: String
+    unifi_site: String
+    unifi_active: Boolean
     general_bot: generalBot
     discord_bot: discordBot
     ai_bot: aiBot

@@ -1,0 +1,25 @@
+@use "../../../scss/variables";
+
+.balancer-switch-state {
+  font-weight: 700;
+  color: var(--good);
+}
+
+.balancer-switch-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 2px solid variables.$accent;
+  border-radius: var(--radius-control);
+
+  p {
+    font-weight: 700;
+  }
+
+  .balancer-switch-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+}
