@@ -80,7 +80,8 @@ const Users: React.FC = () => {
         settings={settings}
         onSettingsUpdate={handleSettingsUpdate}
       />
-      {settings.ai_bot.active && <AIMemories/>}
+      {/* Privacy matters whenever Plex watch history or the AI is in use, so the panel shows for either */}
+      {(settings.ai_bot.active || settings.plex_active) && <AIMemories/>}
       <Footer/>
     </main>
   )

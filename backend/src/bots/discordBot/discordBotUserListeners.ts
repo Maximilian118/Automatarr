@@ -29,6 +29,7 @@ import { kickDiscordUser } from "./discordBotRequests"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "./discordBotUserLimits"
 import moment from "moment"
 import { randomPositiveComment, randomSadComment } from "./discordBotRandomReply"
+import { plexStatsSection, plexViewer } from "./discordBotPlex"
 
 // Give ownership to another user in the database. *** Already checking if sender is admin in switch ***
 export const caseOwner = async (message: Message): Promise<string> => {
@@ -487,6 +488,7 @@ export const caseStats = async (message: Message): Promise<string> => {
     `Movies: ${currentMovies} downloaded out of ${currentMovieMax} maximum.\n` +
     `Series: ${currentSeries} downloaded out of ${currentSeriesMax} maximum.\n` +
     `Albums: Unsupported.\n` +
-    `Books: Unsupported.\n`
+    `Books: Unsupported.\n` +
+    (await plexStatsSection(settings, await plexViewer(settings, user, guildMember.id, guildMember.user.username), user))
   )
 }

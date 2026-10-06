@@ -103,7 +103,7 @@ const bestRecipientFor = async (
   let best: { profile: RecipientProfile; overlap: number } | null = null
 
   for (const { memory, botUser } of await eligibleMemories(settings)) {
-    const profile = await buildProfile(memory, botUser)
+    const profile = await buildProfile(settings, memory, botUser)
     if (hasSeen(profile, contentType, item)) continue
 
     const overlap = genreOverlap(profile, item)
@@ -182,7 +182,7 @@ const recommendToReturningUser = async (identity: DiscordIdentity, awaySince: st
   // They've just become active again, so check everything except recency
   if (!personEligible({ ...memory, last_active_at: moment().format() })) return
 
-  const profile = await buildProfile(memory, botUser)
+  const profile = await buildProfile(settings, memory, botUser)
   const candidates = arrivalsSince((await Data.findOne()) as dataDocType | null, profile, awaySince)
   if (candidates.length === 0) return
 

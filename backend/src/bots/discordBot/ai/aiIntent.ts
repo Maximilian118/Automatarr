@@ -34,16 +34,15 @@ const GENRE_WORDS: [RegExp, string][] = [
   [/\bdramas?\b/i, "drama"],
 ]
 
+// The genre a piece of text asks for, as Radarr and Sonarr name it (lower case). Empty if none.
+export const genreFromText = (text: string): string => GENRE_WORDS.find(([pattern]) => pattern.test(text))?.[1] ?? ""
+
+// Whether a piece of text asks for films or series. Undefined if it doesn't say.
+export const typeFromText = (text: string): IndexContentType | undefined =>
+  /\b(series|shows?|tv)\b/i.test(text) ? "series" : /\b(films?|movies?)\b/i.test(text) ? "movie" : undefined
+
 // Whether a message asks for a recommendation, and for what genre and type. Null when it doesn't.
 export const recommendationRequest = (text: string): RecommendationRequest | null => {
   if (!ASKS_FOR_RECOMMENDATION.test(text) || GIVES_RECOMMENDATION.test(text)) return null
-
-  const genre = GENRE_WORDS.find(([pattern]) => pattern.test(text))?.[1] ?? ""
-  const type: IndexContentType | undefined = /\b(series|shows?|tv)\b/i.test(text)
-    ? "series"
-    : /\b(films?|movies?)\b/i.test(text)
-      ? "movie"
-      : undefined
-
-  return { genre, type }
+  return { genre: genreFromText(text), type: typeFromText(text) }
 }

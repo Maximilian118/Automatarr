@@ -1,14 +1,16 @@
 import { Message } from "discord.js"
+import Settings, { settingsDocType } from "../../../models/settings"
 import { sendDiscordMessage } from "../discordBotUtility"
 
 type CommandEntry = {
   name: string
   aliases?: string[]
-  category: "General" | "User Management" | "Content"
+  category: "General" | "User Management" | "Content" | "Discover"
   shortDescription: string
   description?: string
   usage: string
   adminRequired: boolean | "Owner"
+  requires?: "plex" // Only listed when this optional connection is set up
 }
 
 const commandRegistry: CommandEntry[] = [
@@ -180,7 +182,38 @@ const commandRegistry: CommandEntry[] = [
     usage: "!test <downloading|ready|upgrade|expired>",
     adminRequired: true,
   },
+  {
+    name: "!private",
+    category: "User Management",
+    shortDescription: "Hide or share your Plex watch history",
+    description:
+      "When on, your watch history and taste are kept out of public replies like !list, !stats and !search, and out of popularity counts. Use with no option to see your current setting.",
+    usage: "!private <on/off>",
+    adminRequired: false,
+  },
+  {
+    name: "!recommend",
+    category: "Discover",
+    shortDescription: "Get picks from the server you haven't seen",
+    description:
+      "Recommends downloaded films or series you haven't watched, requested or added, ranked by your taste. Optionally name a type and a genre, e.g. !recommend sci-fi movies.",
+    usage: "!recommend <optional movies/series> <optional genre>",
+    adminRequired: false,
+  },
+  {
+    name: "!popular",
+    category: "Discover",
+    shortDescription: "What's been watched most this month",
+    description: "The most watched titles on the server this month, by how many people watched them.",
+    usage: "!popular <optional movies/series>",
+    adminRequired: false,
+    requires: "plex",
+  },
 ]
+
+// Whether a command can be used with the connections that are set up
+const commandAvailable = (cmd: CommandEntry, settings: settingsDocType | null): boolean =>
+  cmd.requires !== "plex" || !!settings?.plex_active
 
 const renderCommandHelp = (cmd: CommandEntry): string =>
   `\`${cmd.name}\`${cmd.aliases ? `, ${cmd.aliases.join(", ")}` : ""} - ${cmd.shortDescription}\n` +
@@ -209,15 +242,17 @@ const categoryHeaders: Record<string, string> = {
   General: "📚   **General Commands**",
   "User Management": "🎛️   **User Management**",
   Content: "🎬   **Content Commands**",
+  Discover: "🍿   **Discover**",
 }
 
-const renderSection = (category: string): string => {
+const renderSection = (category: string, settings: settingsDocType | null): string => {
   const header = categoryHeaders[category] || `**${category} Commands**`
-  const sectionCommands = commandRegistry.filter((cmd) => cmd.category === category)
+  const sectionCommands = commandRegistry.filter((cmd) => cmd.category === category && commandAvailable(cmd, settings))
   return `${header}\n\n` + sectionCommands.map(renderCommandHelp).join("\n")
 }
 
-export const caseHelp = (message: Message): void => {
+export const caseHelp = async (message: Message): Promise<void> => {
+  const settings = (await Settings.findOne()) as settingsDocType | null
   const msgArr = message.content.trim().split(/\s+/)
   const [command, query] = msgArr
 
@@ -266,26 +301,33 @@ export const caseHelp = (message: Message): void => {
   if (!query) {
     sendDiscordMessage(message, "**🤖   All Available Commands**")
     sendDiscordMessage(message, "\u200B")
-    sendDiscordMessage(message, renderSection("General"))
+    sendDiscordMessage(message, renderSection("General", settings))
     sendDiscordMessage(message, "\u200B")
-    sendDiscordMessage(message, renderSection("User Management"))
+    sendDiscordMessage(message, renderSection("User Management", settings))
     sendDiscordMessage(message, "\u200B")
-    sendDiscordMessage(message, renderSection("Content"))
+    sendDiscordMessage(message, renderSection("Content", settings))
+    sendDiscordMessage(message, "\u200B")
+    sendDiscordMessage(message, renderSection("Discover", settings))
     return
   }
 
   if (!query.includes("!") && query.includes("general")) {
-    sendDiscordMessage(message, renderSection("General"))
+    sendDiscordMessage(message, renderSection("General", settings))
     return
   }
 
   if (!query.includes("!") && query.includes("user")) {
-    sendDiscordMessage(message, renderSection("User Management"))
+    sendDiscordMessage(message, renderSection("User Management", settings))
     return
   }
 
   if (!query.includes("!") && query.includes("content")) {
-    sendDiscordMessage(message, renderSection("Content"))
+    sendDiscordMessage(message, renderSection("Content", settings))
+    return
+  }
+
+  if (!query.includes("!") && query.toLowerCase().includes("discover")) {
+    sendDiscordMessage(message, renderSection("Discover", settings))
     return
   }
 
@@ -304,6 +346,6 @@ export const caseHelp = (message: Message): void => {
 
   sendDiscordMessage(
     message,
-    `Hmm.. I don't understand what you mean by ${query}. Try "general", "user management" or "content commands".`,
+    `Hmm.. I don't understand what you mean by ${query}. Try "general", "user management", "content" or "discover".`,
   )
 }

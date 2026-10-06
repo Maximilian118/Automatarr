@@ -308,10 +308,24 @@ const getPlexWatched = async (
   return { watched, progress }
 }
 
+// Empty the cache, e.g. when Plex is switched off. plexWatchReady() is false until the next refresh.
+const clearPlexCache = (): void => {
+  plexCache.accounts = []
+  plexCache.history = {}
+  plexCache.ids = new Map()
+  plexCache.watched = {}
+  plexCache.progress = {}
+  plexCache.updated_at = null
+}
+
 // Refresh the in-memory Plex cache: accounts, the ID map, recent history and when each account last
 // watched each title. The ID map is built first because history is resolved through it.
 export const refreshPlexCache = async (settings: settingsType): Promise<void> => {
-  if (!settings.plex_active || !settings.plex_URL || !settings.plex_KEY) return
+  // With Plex switched off, forget everything so nothing keeps using old watch data
+  if (!settings.plex_active || !settings.plex_URL || !settings.plex_KEY) {
+    clearPlexCache()
+    return
+  }
 
   try {
     const accounts = await getPlexAccounts(settings)
@@ -353,12 +367,27 @@ export const findPlexAccountId = (names: string[]): number | null => {
 // Every Plex account with access to the server, from the cache
 export const getCachedPlexAccounts = (): PlexAccount[] => plexCache.accounts
 
-// Find the Plex account ID for a bot user. A saved link always wins. Unlinked users are matched by name.
-export const plexAccountForUser = (botUser: BotUserType | undefined, discordUsername: string): number | null => {
+// Find the Plex account ID for a bot user. A saved link always wins. Unlinked users are matched by name,
+// but never to an account an admin has already linked to someone else.
+export const plexAccountForUser = (
+  settings: settingsType,
+  botUser: BotUserType | undefined,
+  discordUsername: string,
+): number | null => {
   if (botUser?.plex_account_id != null) return botUser.plex_account_id
   if (botUser?.plex_username) return findPlexAccountId([botUser.plex_username])
 
-  return findPlexAccountId([botUser?.name ?? "", discordUsername])
+  const accountId = findPlexAccountId([botUser?.name ?? "", discordUsername])
+  if (accountId === null) return null
+
+  const accountName = plexCache.accounts.find((a) => a.id === accountId)?.name.toLowerCase()
+  const linkedElsewhere = settings.general_bot.users.some(
+    (u) =>
+      String(u._id) !== String(botUser?._id) &&
+      (u.plex_account_id === accountId || (!!accountName && u.plex_username?.toLowerCase() === accountName)),
+  )
+
+  return linkedElsewhere ? null : accountId
 }
 
 // Get cached watch history for a Plex account

@@ -159,14 +159,15 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
     return
   }
 
-  // What's playing on Plex right now, so nothing being watched is deleted. Without Plex's watch
-  // activity, recently watched items would look unwanted, so skip this run entirely.
+  // What's playing on Plex right now, so nothing being watched is deleted. When Plex is connected but its
+  // watch activity can't be read, library deletions wait for the next run. Torrent and folder cleanup,
+  // which don't depend on what people are watching, carry on as normal.
   const playing = settings.plex_active ? await playingNow(settings) : null
-  if (settings.plex_active && (!plexWatchReady() || !playing)) {
-    logger.error(
-      "Library Cleanup | Plex watch activity isn't available. Skipping this run to avoid deleting something people are watching.",
+  const plexUnavailable = settings.plex_active && (!plexWatchReady() || !playing)
+  if (plexUnavailable) {
+    logger.warn(
+      "Library Cleanup | Plex watch activity isn't available, so nothing will be removed from the library this run.",
     )
-    return
   }
 
   // If we have a new qbittorrent cookie
@@ -455,6 +456,9 @@ const library_cleanup = async (settings: settingsType): Promise<void> => {
 
         // Create deletion processor function
         const deleteItemProcessor = async (libraryItem: Movie | Series): Promise<boolean> => {
+          // Without Plex watch activity, recently watched items would look unwanted, so wait for the next run
+          if (plexUnavailable) return false
+
           // Keep anything someone is watching, or watched recently, on Plex
           const keepReason = watchProtection(settings, API.name === "Radarr" ? "movie" : "series", libraryItem, playing)
           if (keepReason) {

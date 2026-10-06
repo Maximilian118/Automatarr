@@ -23,6 +23,8 @@ import { caseHelp } from "./cases/discordBotcaseHelp"
 import { handleAIMessage, noteCommandActivity, resolveInvalidCommand } from "./ai/aiHandlers"
 import { noteChannelMessage } from "./ai/aiContext"
 import logger from "../../logger"
+import { casePrivate } from "./cases/discordBotcasePrivate"
+import { casePopular, caseRecommend } from "./cases/discordBotcaseDiscover"
 
 let messageListenerFn: ((message: Message) => Promise<void>) | null = null
 
@@ -61,7 +63,7 @@ export const messageListeners = async (client: Client) => {
         await message.channel.send(casePing(client, message))
         break
       case "help": // Display all commands and how to use them
-        caseHelp(message)
+        await caseHelp(message)
         break
       case "owner": // Assign the server owner
         await handleDiscordCase(message, caseOwner, true)
@@ -118,6 +120,15 @@ export const messageListeners = async (client: Client) => {
       case "search": // Search for content across user pools
       case "find": // Alias for search
         await handleDiscordCase(message, caseSearch)
+        break
+      case "private": // Hide or share the author's Plex watch history and taste in public replies
+        await handleDiscordCase(message, casePrivate)
+        break
+      case "popular": // What's been watched most on the server this month (needs Plex)
+        await handleDiscordCase(message, casePopular)
+        break
+      case "recommend": // Rule based picks from the server the author hasn't seen
+        await handleDiscordCase(message, caseRecommend)
         break
       case "test": // Test webhook notifications
         await handleDiscordCase(message, caseTest, true)

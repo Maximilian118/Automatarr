@@ -40,6 +40,8 @@ Bots:
 - Remove - Each user can remove from their own pool.
 - Blocklist - Users can mark a download as unsatisfactory, blocklist it and start a new download.
 - Live download status - `!list` and `!waittime` show what's really happening: downloading with progress and time left, queued with its place in line, paused, stalled, importing, searching or waiting for release.
+- Recommendations - `!recommend` picks titles on the server you haven't seen, ranked by your taste (e.g. `!recommend sci-fi movies`). No AI needed.
+- Privacy - `!private on` keeps your Plex watch history and taste out of public replies and popularity counts.
 
 Download clients:
 
@@ -57,10 +59,11 @@ Claude AI (optional, bring your own Anthropic API key):
 - Web lookups (optional) - Cast, news and box office the library can't answer, capped at 60 searches a month.
 - Budget - A monthly spend cap (default $2.50). If the AI is off, out of credit or over budget, the bot falls back to classic `!` commands.
 
-Plex (optional):
+Plex (optional, works with or without the Claude AI):
 
 - Watch activity - Library Cleanup keeps anything someone is watching or watched in the last 14 days, and `!blocklist` won't delete a file mid-stream.
-- Watched in `!list` - Shows when you last watched each film or series (hidden for private users).
+- Watched in `!list` - Shows when you last watched each film or which episode you're on (hidden for private users).
+- Smarter commands - `!stats` shows what you've watched and what's unwatched in your pool, `!search` shows who's watched a title, `!popular` lists the most watched titles this month, and a full pool suggests watched items to `!remove`.
 - Better AI - Recommendations skip what you've seen, and the AI knows what you're part way through.
 
 ## Running Automatarr with Docker Compose:

@@ -64,6 +64,7 @@ import { QueueNotificationType, waitForWebhooks } from "../../webhooks/webhookUt
 import { resolveInvalidCommand } from "./ai/aiHandlers"
 import { logRequest } from "./ai/aiRequestLog"
 import { downloadState, getDownloadSnapshot, recordsFor } from "../../shared/downloadStatus"
+import { authorWatchNote, poolFullReply, watchedBeforeNote } from "./discordBotPlex"
 
 export const caseDownloadSwitch = async (message: Message): Promise<string> => {
   const settings = (await Settings.findOne()) as settingsDocType
@@ -126,7 +127,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
 
   // Check user pool limits
   const { limitError, currentLeft } = checkUserMovieLimit(user, settings)
-  if (limitError) return discordReply(limitError, "info")
+  if (limitError) return poolFullReply(message, settings, user, "movie", limitError)
 
   // See what returns from the radarr API
   const foundMoviesArr = await searchRadarr(settings, searchString)
@@ -157,7 +158,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       await logRequest(message, "movie", libraryMovie, "readd")
 
       return discordReply(
-        randomReAddedToPoolMessage(libraryMovie.title),
+        `${randomReAddedToPoolMessage(libraryMovie.title)}${await watchedBeforeNote(message, settings, user, "movie", libraryMovie)}`,
         "success",
         `${user.name} | Added downloaded movie to pool | ${libraryMovie.title}`,
       )
@@ -169,7 +170,9 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       return randomAlreadyDownloadedInQualityMessage(libraryMovie.title, fileQuality)
     }
 
-    return randomAlreadyAddedMessage()
+    return [randomAlreadyAddedMessage(), await authorWatchNote(message, settings, user, "movie", libraryMovie)]
+      .filter(Boolean)
+      .join(" ")
   }
 
   // Retrieve Data Object
@@ -335,7 +338,7 @@ const caseDownloadMovie = async (message: Message, settings: settingsDocType): P
       : randomMovieDownloadStartMessage(movie))
 
   return discordReply(
-    movieStartMessage,
+    `${movieStartMessage}${await watchedBeforeNote(message, settings, user, "movie", movie)}`,
     "success",
     `${user.name} | Started Movie Download | ${movie.title} | They have ${currentLeft} pool allowance available for movies.`,
   )
@@ -376,7 +379,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
   // Check user pool limits
   const { limitError, currentLeft } = checkUserSeriesLimit(user, settings)
-  if (limitError) return discordReply(limitError, "info")
+  if (limitError) return poolFullReply(message, settings, user, "series", limitError)
 
   // See what returns from the sonarr API
   const foundSeriesArr = await searchSonarr(settings, searchString)
@@ -455,7 +458,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
         // Only say it's already downloaded when every episode is. Otherwise say what's happening.
         const reply =
           matchedSeries.statistics.percentOfEpisodes === 100
-            ? randomReAddedToPoolMessage(matchedSeries.title)
+            ? `${randomReAddedToPoolMessage(matchedSeries.title)}${await watchedBeforeNote(message, settings, user, "series", matchedSeries)}`
             : await seriesProgressMessage(settings, matchedSeries)
 
         return discordReply(reply, "success", `${user.name} | Added series to pool | ${matchedSeries.title}`)
@@ -468,7 +471,9 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
 
       // Series is in the user's pool - return appropriate status message
       if (matchedSeries.statistics.percentOfEpisodes === 100) {
-        return randomAlreadyAddedMessage()
+        return [randomAlreadyAddedMessage(), await authorWatchNote(message, settings, user, "series", matchedSeries)]
+          .filter(Boolean)
+          .join(" ")
       }
 
       // Series incomplete - say what's downloading, or search for what's missing
@@ -674,7 +679,7 @@ const caseDownloadSeries = async (message: Message, settings: settingsDocType): 
   }
 
   return discordReply(
-    randomSeriesQueueMessage(series, queueConflict, seriesQuality, monitor) ?? seriesStartMessage,
+    `${randomSeriesQueueMessage(series, queueConflict, seriesQuality, monitor) ?? seriesStartMessage}${await watchedBeforeNote(message, settings, user, "series", series)}`,
     "success",
     `${user.name} | Started Series Download | ${series.title} | They have ${currentLeft} pool allowance available for series.`,
   )

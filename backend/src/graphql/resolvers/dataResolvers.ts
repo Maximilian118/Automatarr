@@ -56,7 +56,7 @@ const dataResolvers = {
       return
     }
 
-    // Plex watch history for the AI bot. Kept in memory rather than the database, and refreshed
+    // Plex watch history, used by the bot commands, library cleanup and the AI. Kept in memory rather than the database, and refreshed
     // even when no Starr apps are active.
     await refreshPlexCache(settings._doc)
 

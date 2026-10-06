@@ -1,7 +1,7 @@
 import { Message, EmbedBuilder } from "discord.js"
 import Settings, { settingsDocType, BotUserType } from "../../../models/settings"
 import Data, { dataDocType } from "../../../models/data"
-import { noDBPull, getPosterImageUrl } from "../discordBotUtility"
+import { noDBPull, getPosterImageUrl, matchedUser } from "../discordBotUtility"
 import { sortTMDBSearchArray } from "../../botUtility"
 import { validateSearchCommand } from "../validate/validateSearchCommand"
 import { searchRadarr } from "../../../shared/RadarrStarrRequests"
@@ -10,6 +10,7 @@ import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import logger from "../../../logger"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
+import { plexViewer, plexViewerForUser, searchWatchLine, watchedMark } from "../discordBotPlex"
 
 // Search for content across user pools
 export const caseSearch = async (message: Message): Promise<string> => {
@@ -126,9 +127,21 @@ export const caseSearch = async (message: Message): Promise<string> => {
     }
   })
 
+  // Who has watched it on Plex: the requester, and an anonymous count of everyone this month
+  const plexType = isMovieChannel ? "movie" : "series"
+  const requester = await plexViewer(settings, matchedUser(settings, message.author.username), message.author.id, message.author.username)
+  const watchLine = await searchWatchLine(settings, requester, plexType, libraryMatch)
+  const watchHeader = watchLine ? `\n-# ${watchLine}` : ""
+
   // If no pool matches for the library item
   if (usersWithMatches.length === 0) {
-    return `🔍 **Search Results for "${searchTerm}${year ? ` ${year}` : ""}"**\n\nNobody has "${libraryMatch.title}" in their ${contentType} pool.`
+    return `🔍 **Search Results for "${searchTerm}${year ? ` ${year}` : ""}"**${watchHeader}\n\nNobody has "${libraryMatch.title}" in their ${contentType} pool.`
+  }
+
+  // Each pool holder's watched mark, unless they keep their viewing private
+  const holderMarks = new Map<BotUserType, string>()
+  for (const { user } of usersWithMatches) {
+    holderMarks.set(user, watchedMark(await plexViewerForUser(settings, user), plexType, libraryMatch))
   }
 
   // Create embeds for the results
@@ -138,6 +151,7 @@ export const caseSearch = async (message: Message): Promise<string> => {
 
     usersWithMatches.forEach((userWithMatches) => {
       const { user, matches } = userWithMatches
+      const mark = holderMarks.get(user) ?? ""
 
       // Limit to 2 matches per user to fit in the embed
       const displayMatches = matches.slice(0, 2)
@@ -156,9 +170,9 @@ export const caseSearch = async (message: Message): Promise<string> => {
                   rawStatus === "all"
                     ? "All Seasons"
                     : rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1)
-                return `${match.title} ${match.year}\n**Monitored:** ${monitorDisplay}`
+                return `${match.title} ${match.year}\n**Monitored:** ${monitorDisplay}${mark ? `\n${mark}` : ""}`
               }
-              return `${match.title} ${match.year}`
+              return `${match.title} ${match.year}${mark ? `\n${mark}` : ""}`
             })
             .join("\n\n") + (hasMoreMatches ? `\n\n...and ${matches.length - 2} more` : ""),
         )
@@ -175,7 +189,7 @@ export const caseSearch = async (message: Message): Promise<string> => {
       embeds.push(embed)
     })
 
-    const headerText = `🔍 **Search Results for "${searchTerm}${year ? ` ${year}` : ""}"**\n\n`
+    const headerText = `🔍 **Search Results for "${searchTerm}${year ? ` ${year}` : ""}"**${watchHeader}\n\n`
 
     await message.channel.send({ content: headerText, embeds })
     return ""

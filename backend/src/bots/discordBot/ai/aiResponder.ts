@@ -18,13 +18,8 @@ import { createAIMessage, responseText, responseToolCalls } from "./aiRequest"
 import { speakerDownloads } from "./aiDownloads"
 import { ensureTitleIndex, titlesInMessage } from "./aiTitleIndex"
 import { runTool, toolsFor } from "./aiTools"
-import {
-  BrowseFilters,
-  browseMatches,
-  buildSpeakerProfile,
-  describeBrowseResult,
-  describeFoundTitles,
-} from "./tools/aiInfoTools"
+import { browseViewerFor, buildSpeakerProfile, describeFoundTitles } from "./tools/aiInfoTools"
+import { BrowseFilters, browseMatches, describeBrowseResult } from "../discordBotBrowse"
 import { recommendationRequest } from "./aiIntent"
 import { checkReturningUser } from "./aiRecommendationTriggers"
 import { ToolContext } from "./tools/aiToolTypes"
@@ -120,7 +115,7 @@ const serverPicks = async (ctx: ToolContext, text: string): Promise<string> => {
     popular: false,
   }
 
-  const { results, seenChecked } = await browseMatches(ctx, filters)
+  const { results, seenChecked } = await browseMatches(browseViewerFor(ctx), filters)
   if (!results.length) return ""
 
   const note = seenChecked

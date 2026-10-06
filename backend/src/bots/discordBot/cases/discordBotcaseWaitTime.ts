@@ -5,6 +5,7 @@ import { validateWaitCommand } from "../validate/validateWaitCommand"
 import {
   randomNotFoundMessage,
   randomAlreadyAddedMessage,
+  readyToWatchMessage,
   downloadStateMessage,
   notDownloadingMessage,
 } from "../discordBotRandomReply"
@@ -22,6 +23,7 @@ import { sortTMDBSearchArray } from "../../botUtility"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
+import { authorWatchNote } from "../discordBotPlex"
 
 // Say where a library title is in the download queue, or why nothing is downloading for it
 const liveWaitMessage = async (
@@ -83,7 +85,9 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
 
     // The lookup can carry a stale file record, so ask Radarr whether the file is really there
     const libraryMovie = (await getMovie(settings, foundMovie.id)) ?? foundMovie
-    if (libraryMovie.hasFile) return randomAlreadyAddedMessage()
+    if (libraryMovie.hasFile) {
+      return readyToWatchMessage(libraryMovie.title, await authorWatchNote(message, settings, user, "movie", libraryMovie))
+    }
 
     return liveWaitMessage(settings, "movie", libraryMovie)
   }
@@ -126,7 +130,7 @@ export const caseWaitTime = async (message: Message): Promise<string> => {
     // Check if the series is already in the Sonarr library
     if (matchedSeries) {
       if (matchedSeries.statistics.percentOfEpisodes === 100) {
-        return randomAlreadyAddedMessage()
+        return readyToWatchMessage(matchedSeries.title, await authorWatchNote(message, settings, user, "series", matchedSeries))
       }
 
       return liveWaitMessage(settings, "series", matchedSeries)

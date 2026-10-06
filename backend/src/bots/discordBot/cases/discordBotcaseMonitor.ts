@@ -32,6 +32,7 @@ import {
 import { sortTMDBSearchArray } from "../../botUtility"
 import { Series } from "../../../types/seriesTypes"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
+import { poolFullReply } from "../discordBotPlex"
 
 // Change a Series monitoring options
 export const caseMonitor = async (message: Message): Promise<string> => {
@@ -162,7 +163,7 @@ export const caseMonitor = async (message: Message): Promise<string> => {
   if (!userSeries) {
     // Check user series pool limit
     const { limitError } = checkUserSeriesLimit(user, settings)
-    if (limitError) return discordReply(limitError, "info")
+    if (limitError) return poolFullReply(message, settings, user, "series", limitError)
 
     // Determine if this would be an upgrade or downgrade from current Sonarr state
     const currentMonitor = seriesInDB.monitor || "all"

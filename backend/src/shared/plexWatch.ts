@@ -74,6 +74,18 @@ export const recentShows = (
     .slice(0, limit)
 }
 
+// How many films or shows a Plex account watched within the last few days. Counted by TMDB ID for films
+// and TVDB ID for shows, so each title counts once.
+export const watchedCountSince = (accountId: number | null, type: PlexContentType, days: number): number => {
+  if (accountId === null) return 0
+
+  const cutoff = moment().subtract(days, "days").valueOf()
+  const prefix = type === "movie" ? "movie:tmdb:" : "series:tvdb:"
+
+  return [...(getCachedWatched()[accountId]?.entries() ?? [])].filter(([key, at]) => key.startsWith(prefix) && at > cutoff)
+    .length
+}
+
 // How many Plex accounts watched a title within the last few days, leaving out the accounts given.
 // Counts only, never names, so it can be shared as "watched by 3 people this month".
 export const viewersSince = (

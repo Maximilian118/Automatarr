@@ -3,7 +3,7 @@ import moment from "moment"
 import logger from "../../../logger"
 import AIState, { AIStateType } from "../../../models/aiState"
 import BotMemory, { BotMemoryType } from "../../../models/botMemory"
-import { BotUserType, settingsDocType } from "../../../models/settings"
+import { BotUserType, settingsDocType, settingsType } from "../../../models/settings"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { truncateText } from "../../../shared/utility"
@@ -45,14 +45,18 @@ export type ContentType = "movie" | "series"
 
 export type Candidate = { contentType: ContentType; item: Movie | Series; score: number }
 
-// Everything needed to judge whether something suits a person
-export type RecipientProfile = {
-  memory: BotMemoryType
-  botUser: BotUserType
+// Everything needed to judge whether something suits a person. Needs no AI, so ! commands use it too.
+export type TasteProfile = {
   genres: string[] // Their favourite genres, most common first
   seenMovies: Set<number> // TMDB IDs they've requested or have in their pool
   seenSeries: Set<string> // Lowercased titles of series they've requested or have
   plexAccount: number | null // Their Plex account, for checking everything they've watched
+}
+
+// A taste profile for someone the AI may send a recommendation to
+export type RecipientProfile = TasteProfile & {
+  memory: BotMemoryType
+  botUser: BotUserType
 }
 
 // Get the server-wide AI state, creating it if needed
@@ -104,15 +108,17 @@ export const eligibleMemories = async (
     .filter((r): r is { memory: BotMemoryType; botUser: BotUserType } => !!r.botUser)
 }
 
-// Build a person's taste profile from their pool and request history. Plex watches are checked by hasSeen.
-export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType): Promise<RecipientProfile> => {
-  const history = await getRequestHistory(memory.discord_id, 50)
-  const plexAccount = plexAccountForUser(botUser, memory.username)
+// Build a person's taste from their pool and request history. Plex watches are checked by hasSeen.
+export const buildTaste = async (
+  settings: settingsType,
+  discordId: string,
+  username: string,
+  botUser: BotUserType,
+): Promise<TasteProfile> => {
+  const history = await getRequestHistory(discordId, 50)
 
   return {
-    memory,
-    botUser,
-    plexAccount,
+    plexAccount: settings.plex_active ? plexAccountForUser(settings, botUser, username) : null,
     genres: topGenres([
       ...history,
       ...botUser.pool.movies.map((m) => ({ genres: m.genres ?? [] })),
@@ -129,13 +135,24 @@ export const buildProfile = async (memory: BotMemoryType, botUser: BotUserType):
   }
 }
 
+// Build the taste profile of someone the AI may recommend to
+export const buildProfile = async (
+  settings: settingsType,
+  memory: BotMemoryType,
+  botUser: BotUserType,
+): Promise<RecipientProfile> => ({
+  ...(await buildTaste(settings, memory.discord_id, memory.username, botUser)),
+  memory,
+  botUser,
+})
+
 // Check whether a person has already requested, pooled or watched something
-export const hasSeen = (profile: RecipientProfile, contentType: ContentType, item: Movie | Series): boolean =>
+export const hasSeen = (profile: TasteProfile, contentType: ContentType, item: Movie | Series): boolean =>
   (contentType === "movie" ? profile.seenMovies.has(item.tmdbId) : profile.seenSeries.has(item.title.toLowerCase())) ||
   hasWatchedOnPlex(profile.plexAccount, contentType, item)
 
 // Count how many of a person's favourite genres an item has
-export const genreOverlap = (profile: RecipientProfile, item: Movie | Series): number =>
+export const genreOverlap = (profile: TasteProfile, item: Movie | Series): number =>
   (item.genres ?? []).filter((g) => profile.genres.includes(g)).length
 
 // Check whether an item is downloaded and ready to watch
@@ -154,7 +171,7 @@ export const passesRatingFloor = (contentType: ContentType, item: Movie | Series
 }
 
 // Score an item for a person: genre matches count most, ratings break ties
-export const scoreFor = (profile: RecipientProfile, contentType: ContentType, item: Movie | Series): number => {
+export const scoreFor = (profile: TasteProfile, contentType: ContentType, item: Movie | Series): number => {
   const rating =
     contentType === "movie"
       ? ((item as Movie).ratings?.rottenTomatoes?.value ?? ((item as Movie).ratings?.imdb?.value ?? 5) * 10) / 25
@@ -202,7 +219,7 @@ const writeRecommendation = async (
 }
 
 // Build the recommendation embed with the poster and a copyable download command
-const recommendationEmbed = (candidate: Candidate): EmbedBuilder => {
+export const recommendationEmbed = (candidate: Candidate): EmbedBuilder => {
   const { item } = candidate
   const embed = new EmbedBuilder()
     .setColor(RECOMMENDATION_COLOR)

@@ -10,7 +10,8 @@ import {
   searchingKeys,
 } from "../../shared/downloadStatus"
 import { ensureTitleIndex, indexedById } from "./ai/aiTitleIndex"
-import { lastWatched } from "../../shared/plexWatch"
+import { lastEpisode, lastWatched } from "../../shared/plexWatch"
+import { episodeCode } from "./discordBotPlex"
 
 // The live status of an item in someone's pool, for !list
 export type PoolItemStatus = {
@@ -18,6 +19,7 @@ export type PoolItemStatus = {
   text: string // e.g. "Downloading 45%, 20m left", "Queued (#3 in line)" or "Waiting for release". Empty if nothing to say
   active: boolean // Downloading, importing or queued, rather than stuck or waiting
   watchedAt?: number | null // When the pool's owner last watched it on Plex, in ms. Null = not yet. Undefined = not shown
+  episode?: string // For series, the latest episode the owner watched, e.g. "S02E04"
 }
 
 // A pool item and its content type
@@ -38,6 +40,19 @@ const currentLibraryItem = async (settings: settingsDocType, { type, item }: Poo
   }
 
   return indexed
+}
+
+// When the pool's owner last watched an item, and for series the latest episode they watched
+const watchInfo = (
+  accountId: number,
+  type: DownloadContentType,
+  item: Movie | Series,
+): Pick<PoolItemStatus, "watchedAt" | "episode"> => {
+  const progress = type === "series" ? lastEpisode(accountId, item as Series) : null
+  return {
+    watchedAt: lastWatched(accountId, type, item),
+    ...(progress ? { episode: episodeCode(progress.season, progress.episode) } : {}),
+  }
 }
 
 // Work out the live status of every pool item, with one look at the download queues for the lot.
@@ -65,7 +80,7 @@ export const livePoolStatuses = async (
       {
         downloaded: fullyDownloaded(c.type, c.library),
         ...libraryItemStatus(c.type, c.library, snapshot, searching),
-        ...(plexAccountId !== null ? { watchedAt: lastWatched(plexAccountId, c.type, c.library) } : {}),
+        ...(plexAccountId !== null ? watchInfo(plexAccountId, c.type, c.library) : {}),
       },
     ]),
   )

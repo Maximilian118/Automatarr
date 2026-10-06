@@ -53,10 +53,10 @@ const AIMemories: React.FC = () => {
     <section className="ai-memories" aria-labelledby="ai-memories-title">
       <div className="ai-memories-header">
         <Sparkles aria-hidden="true"/>
-        <h2 id="ai-memories-title">What Automatarr remembers</h2>
+        <h2 id="ai-memories-title">Privacy and memories</h2>
       </div>
       <p className="ai-memories-description">
-        Facts the Claude assistant has learnt about people, and each person's privacy choices. Press a preference to switch it.
+        Each person's privacy choices, and anything the Claude assistant has learnt about them. People can also use !private on or !private off in Discord. Press a preference to switch it.
       </p>
       <ul className="ai-memories-grid">
         {memories.map(memory => (

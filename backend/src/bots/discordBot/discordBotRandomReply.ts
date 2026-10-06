@@ -465,6 +465,20 @@ export const downloadStateMessage = (state: DownloadState): string => {
   }
 }
 
+// Reply when someone asks how long something will take but it's already downloaded. A personal watch
+// note, e.g. "You haven't watched it on Plex yet.", is added when there is one.
+export const readyToWatchMessage = (title: string, watchNote: string): string =>
+  [
+    pickRandom([
+      `${title} is already downloaded, so there's nothing to wait for.`,
+      `No wait at all — ${title} is downloaded and ready to watch.`,
+      `${title} is already here and ready to go.`,
+    ]),
+    watchNote,
+  ]
+    .filter(Boolean)
+    .join(" ")
+
 // Reply when a file can't be replaced because someone is streaming it on Plex right now
 export const randomPlayingNowMessage = (title: string): string =>
   pickRandom([

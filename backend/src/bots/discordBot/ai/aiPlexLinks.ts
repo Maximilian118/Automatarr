@@ -177,7 +177,7 @@ export const savePlexLinks = async (changes: PlexLinkChange[]): Promise<settings
   })
 
   const saved = (await saveWithRetry(settings, "savePlexLinks")) as settingsDocType | undefined
-  if (saved) logger.bot(`AI Bot | Saved ${changes.length} Plex link${changes.length === 1 ? "" : "s"}.`)
+  if (saved) logger.bot(`Plex | Saved ${changes.length} Plex link${changes.length === 1 ? "" : "s"}.`)
 
   return saved ?? null
 }

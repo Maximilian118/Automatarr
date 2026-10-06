@@ -13,8 +13,7 @@ import logger from "../../../logger"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { livePoolStatuses, poolItemKey } from "../discordBotPoolStatus"
-import { plexAccountForUser, plexWatchReady } from "../../../shared/plexRequests"
-import { findMemory } from "../ai/aiMemory"
+import { plexViewer } from "../discordBotPlex"
 
 // List items in a users pool
 export const caseList = async (message: Message): Promise<string> => {
@@ -93,9 +92,10 @@ export const caseList = async (message: Message): Promise<string> => {
 
   // Whose Plex watch history to show. !list is public, so it's left out for people who keep their viewing
   // private, and while Plex watch data isn't available, so "Not yet" is never shown for something they've seen.
-  const ownerMemory = await findMemory(guildMember.id)
-  const showWatched = settings.plex_active && plexWatchReady() && !ownerMemory?.preferences.private
-  const plexAccountId = showWatched ? plexAccountForUser(user, username) : null
+  const viewer = await plexViewer(settings, user, guildMember.id, username)
+  const plexAccountId = viewer.show ? viewer.accountId : null
+  const unlinkedNote =
+    viewer.reason === "unlinked" ? "\n-# Not linked to Plex, so watch history isn't shown. An admin can link you on the Users page." : ""
 
   // Look up the live download status of everything being listed, with one look at the download queues
   const statuses = await livePoolStatuses(
@@ -107,10 +107,18 @@ export const caseList = async (message: Message): Promise<string> => {
     plexAccountId,
   )
 
-  // A short status after an item in basic mode, e.g. " (Queued #3 in line)" or " ✓ watched"
+  // A short status after an item in basic mode, e.g. " (Queued #3 in line)", " ✓ watched" or " · on S02E04"
   const basicStatus = (type: "movie" | "series", item: Movie | Series): string => {
     const status = statuses.get(poolItemKey(type, item))
-    return [status?.text ? ` (${status.text})` : "", status?.watchedAt ? " ✓ watched" : ""].join("")
+    const watched = status?.episode ? ` · on ${status.episode}` : status?.watchedAt ? " ✓ watched" : ""
+    return `${status?.text ? ` (${status.text})` : ""}${watched}`
+  }
+
+  // How many items of a type the owner has watched, e.g. " · 5 watched". Empty when watch history isn't shown.
+  const watchedCount = (type: "movie" | "series", items: (Movie | Series)[]): string => {
+    if (plexAccountId === null) return ""
+    const count = items.filter((item) => statuses.get(poolItemKey(type, item))?.watchedAt).length
+    return ` · ${count} watched`
   }
 
   // Handle basic mode - return old text-based format
@@ -130,7 +138,7 @@ export const caseList = async (message: Message): Promise<string> => {
         : user.pool.movies
             .map((movie, i) => `${i + 1}. ${movie.title} ${movie.year}${basicStatus("movie", movie)}`)
             .join("\n") +
-          `\n(Maximum: ${currentMovieMax})`
+          `\n(Maximum: ${currentMovieMax}${watchedCount("movie", user.pool.movies)})`
 
     const movies = `Movies:\n` + moviesList + "\n"
 
@@ -143,13 +151,13 @@ export const caseList = async (message: Message): Promise<string> => {
           }`
         : user.pool.series
             .map((series, i) => `${i + 1}. ${series.title} ${series.year}${basicStatus("series", series)}`)
-            .join("\n") + `\n(Maximum: ${currentSeriesMax})`
+            .join("\n") + `\n(Maximum: ${currentSeriesMax}${watchedCount("series", user.pool.series)})`
 
     const series = `Series:\n` + seriesList + "\n"
 
     return (
       downgradedMessage +
-      `🎞️ Content Pool for <@${guildMember.id}>\n` +
+      `🎞️ Content Pool for <@${guildMember.id}>${unlinkedNote}\n` +
       `\n` +
       (shouldShowBoth
         ? `${movies}\n` + series
@@ -181,7 +189,7 @@ export const caseList = async (message: Message): Promise<string> => {
     // Helper function to send message with embeds
     const sendEmbedMessage = async (embeds: EmbedBuilder[], isFirst: boolean = false) => {
       if ("send" in message.channel && typeof message.channel.send === "function") {
-        const content = isFirst ? `🎞️ **Content Pool for <@${guildMember.id}>**` : ""
+        const content = isFirst ? `🎞️ **Content Pool for <@${guildMember.id}>**${unlinkedNote}` : ""
         await message.channel.send({ content, embeds })
         messageCount++
       }
@@ -221,7 +229,7 @@ export const caseList = async (message: Message): Promise<string> => {
         const movieLimitColor = getPoolLimitColor(user.pool.movies.length, Number(currentMovieMax))
         const movieLimitEmbed = new EmbedBuilder()
           .setColor(movieLimitColor)
-          .setTitle(`Movies Pool Limit: ${user.pool.movies.length}/${currentMovieMax}`)
+          .setTitle(`Movies Pool Limit: ${user.pool.movies.length}/${currentMovieMax}${watchedCount("movie", user.pool.movies)}`)
         await sendEmbedMessage([movieLimitEmbed], messageCount === 0)
       }
     }
@@ -263,7 +271,7 @@ export const caseList = async (message: Message): Promise<string> => {
         )
         const seriesLimitEmbed = new EmbedBuilder()
           .setColor(seriesLimitColor)
-          .setTitle(`Series Pool Limit: ${user.pool.series.length}/${currentSeriesMax}`)
+          .setTitle(`Series Pool Limit: ${user.pool.series.length}/${currentSeriesMax}${watchedCount("series", user.pool.series)}`)
         await sendEmbedMessage([seriesLimitEmbed], messageCount === 0)
       }
     }

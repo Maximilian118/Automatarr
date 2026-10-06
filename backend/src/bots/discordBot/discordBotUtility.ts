@@ -791,7 +791,7 @@ export const createPoolItemEmbed = (
     const statusLine = status?.text ? `\n**Status:** ${status.text}` : ""
     const watchedLine =
       status?.watchedAt !== undefined
-        ? `\n**Last watched:** ${status.watchedAt ? moment(status.watchedAt).fromNow() : "Not yet"}`
+        ? `\n**Last watched:** ${status.watchedAt ? [status.episode, moment(status.watchedAt).fromNow()].filter(Boolean).join(", ") : "Not yet"}`
         : ""
     description = `**Seasons:** ${seasons}\n**Monitored:** ${monitorDisplay}\n**Downloaded:** ${downloadedPercent.toFixed(0)}%${statusLine}${watchedLine}`
   }

@@ -49,7 +49,7 @@ Anything else (general knowledge, homework, coding, maths, essays, non-film news
 - When an admin asks to pair everyone's Plex accounts, use propose_plex_links and show every pairing as a short list with your best guesses for leftovers. When they confirm, use confirm_plex_links with any corrections.
 
 ## Commands people can type
-Well-formed ! commands are handled without you: !download (!d) <title> <year> [quality] [monitor], !remove <title year or number>, !list, !search (!find) <title year>, !waittime (!wait, !time) <title year>, !stay <title year>, !monitor <title year> <option>, !blocklist (!dud) <title year [SxxEyy]>, !stats, !help. Movie commands go in the movie channel, series commands in the series channel.`
+Well-formed ! commands are handled without you: !download (!d) <title> <year> [quality] [monitor], !remove <title year or number>, !list, !search (!find) <title year>, !waittime (!wait, !time) <title year>, !stay <title year>, !monitor <title year> <option>, !blocklist (!dud) <title year [SxxEyy]>, !stats, !recommend, !popular, !private on|off, !help. Movie commands go in the movie channel, series commands in the series channel.`
 
 // Extra instructions when the AI is resolving a malformed or unknown ! command
 export const COMMAND_HELP_INSTRUCTIONS = `The user typed a ! command that failed. You're given what they typed, the error, and the usage for the command.

@@ -1,6 +1,6 @@
 import { Message } from "discord.js"
 import Settings, { settingsDocType } from "../../../models/settings"
-import { discordReply, matchedUser, noDBPull } from "../discordBotUtility"
+import { matchedUser, noDBPull } from "../discordBotUtility"
 import { checkUserMovieLimit, checkUserSeriesLimit } from "../discordBotUserLimits"
 import { validateStayCommand } from "../validate/validateStayCommand"
 import {
@@ -16,6 +16,7 @@ import { sortTMDBSearchArray } from "../../botUtility"
 import { Movie } from "../../../types/movieTypes"
 import { Series } from "../../../types/seriesTypes"
 import { resolveInvalidCommand } from "../ai/aiHandlers"
+import { poolFullReply } from "../discordBotPlex"
 
 // Ensure some content isn't deleted by adding it to your user pool
 export const caseStay = async (message: Message): Promise<string> => {
@@ -77,7 +78,7 @@ export const caseStay = async (message: Message): Promise<string> => {
 
     // Keeping content counts towards the same pool limit as downloading it
     const { limitError: movieLimitError } = checkUserMovieLimit(user, settings)
-    if (movieLimitError) return discordReply(movieLimitError, "info")
+    if (movieLimitError) return poolFullReply(message, settings, user, "movie", movieLimitError)
 
     // Add the movie to the user pool
     settings.general_bot.users = settings.general_bot.users.map((u) => {
@@ -130,7 +131,7 @@ export const caseStay = async (message: Message): Promise<string> => {
 
     // Keeping content counts towards the same pool limit as downloading it
     const { limitError: seriesLimitError } = checkUserSeriesLimit(user, settings)
-    if (seriesLimitError) return discordReply(seriesLimitError, "info")
+    if (seriesLimitError) return poolFullReply(message, settings, user, "series", seriesLimitError)
 
     // Add the movie to the user pool
     settings.general_bot.users = settings.general_bot.users.map((u) => {

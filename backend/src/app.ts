@@ -176,7 +176,7 @@ const startServer = async () => {
       PASS: bootSettings.qBittorrent_password,
     })
 
-    // Check connection to Plex for the AI bot
+    // Check connection to Plex, which is optional
     await Resolvers.checkPlex()
 
     // Check connection to SABnzbd for download queue priority

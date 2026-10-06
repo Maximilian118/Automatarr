@@ -1,5 +1,5 @@
 import moment from "moment"
-import { BotUserType } from "../../../../models/settings"
+import { BotUserType, settingsType } from "../../../../models/settings"
 import { Movie } from "../../../../types/movieTypes"
 import { Series } from "../../../../types/seriesTypes"
 import { searchRadarr } from "../../../../shared/RadarrStarrRequests"
@@ -10,25 +10,20 @@ import {
   getPlexNowPlaying,
   plexAccountForUser,
   plexWatchReady,
-  titleKey,
 } from "../../../../shared/plexRequests"
 import { matchedDiscordUser, matchedUser } from "../../discordBotUtility"
-import { describeBrief, describeItem, ratingOutOf10 } from "../aiMediaFormat"
+import { describeItem } from "../aiMediaFormat"
 import { getDownloadSnapshot, queueStatusText, searchingKeys } from "../../../../shared/downloadStatus"
-import { lastWatched, recentShows, viewersSince } from "../../../../shared/plexWatch"
-import BotMemory from "../../../../models/botMemory"
-import { RecipientProfile, buildProfile, hasSeen, isDownloaded, scoreFor } from "../aiRecommendations"
+import { lastWatched, recentShows } from "../../../../shared/plexWatch"
+import { BrowseFilters, BrowseViewer, browseMatches, describeBrowseResult } from "../../discordBotBrowse"
+import { episodeCode } from "../../discordBotPlex"
 import {
   IndexContentType,
-  IndexedTitle,
-  MATCH_THRESHOLD,
   buildQuery,
   ensureTitleIndex,
   indexTitle,
   indexedById,
-  indexedTitles,
   scoreItem,
-  scoreTitle,
   searchTitleIndex,
 } from "../aiTitleIndex"
 import { describePreferences, findMemory, findMemoryByUsernames } from "../aiMemory"
@@ -55,9 +50,13 @@ const describePool = (user: BotUserType): string => {
 const SHARED_WATCH_COUNT = 5
 
 // Describe someone else's taste from their requests and Plex history. Only used for members who aren't private.
-const describeTaste = async (discordId: string | null, botUser: BotUserType): Promise<string[]> => {
+const describeTaste = async (
+  settings: settingsType,
+  discordId: string | null,
+  botUser: BotUserType,
+): Promise<string[]> => {
   const genres = discordId ? topGenres(await getRequestHistory(discordId, 20)) : []
-  const accountId = plexAccountForUser(botUser, botUser.ids[0] ?? "")
+  const accountId = settings.plex_active ? plexAccountForUser(settings, botUser, botUser.ids[0] ?? "") : null
   const watched = accountId !== null ? getCachedPlexHistory(accountId).slice(0, SHARED_WATCH_COUNT) : []
 
   return [
@@ -114,10 +113,6 @@ const MAX_SHOWS_LISTED = 3
 // How recently a show must have been watched to count as something they're watching
 const WATCHING_DAYS = 30
 
-// Format an episode, e.g. "S03E01"
-const episodeCode = (season: number, episode: number): string =>
-  `S${String(season).padStart(2, "0")}E${String(episode).padStart(2, "0")}`
-
 // The speaker's own Plex picture: what in their pool they haven't watched yet, and which shows they're
 // part way through. Empty when Plex watch data isn't available or they aren't linked to a Plex account.
 const plexPicture = (ctx: ToolContext, botUser: BotUserType): string[] => {
@@ -145,7 +140,9 @@ const plexPicture = (ctx: ToolContext, botUser: BotUserType): string[] => {
 
 // Find the Plex account ID linked to the speaker
 const speakerPlexAccount = (ctx: ToolContext): number | null =>
-  plexAccountForUser(matchedUser(ctx.settings, ctx.identity.username), ctx.identity.username)
+  ctx.settings.plex_active
+    ? plexAccountForUser(ctx.settings, matchedUser(ctx.settings, ctx.identity.username), ctx.identity.username)
+    : null
 
 // Most results find_title returns
 const MAX_FIND_RESULTS = 5
@@ -261,107 +258,19 @@ const findTitle: ToolHandler = async (ctx, input) => {
   return (await describeFoundTitles(ctx, results, results.length <= OVERVIEW_RESULT_LIMIT)).join("\n")
 }
 
-// Most titles browse_library returns
-const MAX_BROWSE_RESULTS = 8
-
 // Read a positive number from tool input. 0 when missing or invalid.
 const inputNumber = (input: ToolInput, key: string): number => {
   const value = Number(input[key])
   return Number.isFinite(value) && value > 0 ? value : 0
 }
 
-// Build the speaker's taste profile for ranking and seen checks. Null when they aren't registered
-// or are private in a shared channel, in which case browsing ignores their history.
-const speakerTaste = async (ctx: ToolContext): Promise<RecipientProfile | null> => {
-  const botUser = matchedUser(ctx.settings, ctx.identity.username)
-  if (!botUser || !personalInfoAllowed(ctx)) return null
-
-  const memory = await findMemory(ctx.identity.id)
-  return memory ? buildProfile(memory, botUser) : null
-}
-
-// Filters for browsing what's downloaded on the server
-export type BrowseFilters = {
-  type?: IndexContentType
-  genre: string // Lower case, matched against each genre, e.g. "science fiction"
-  keyword: string // A franchise, collection or title word
-  recentDays: number // Only titles downloaded in the last N days. 0 = any time
-  minRating: number // Out of 10. 0 = any rating
-  unseen: boolean // Leave out what the speaker has watched, requested or pooled
-  popular: boolean // Only titles people watched this month, most watched first
-}
-
-// A title found by browsing, with how many people watched it this month when ranking by popularity
-export type BrowseResult = { entry: IndexedTitle; viewers: number }
-
-// How many days count as "this month" for popularity
-const POPULAR_DAYS = 30
-
-// Check a library title against the browse filters
-const passesBrowseFilters = (entry: IndexedTitle, filters: BrowseFilters): boolean => {
-  const { item } = entry
-  if (filters.type && entry.type !== filters.type) return false
-  if (!isDownloaded(entry.type, item)) return false
-  if (filters.genre && !(item.genres ?? []).some((g) => g.toLowerCase().includes(filters.genre))) return false
-  if (filters.recentDays && moment().diff(moment(entry.fileAddedAt), "days") > filters.recentDays) return false
-  if (filters.minRating && ratingOutOf10(entry.type, item) < filters.minRating) return false
-
-  if (filters.keyword) {
-    const collection = "collection" in item ? (item.collection?.title ?? "") : ""
-    const query = buildQuery(filters.keyword)
-    const inCollection = !!collection && titleKey(collection).includes(query.key)
-    if (!inCollection && scoreTitle({ ...entry, year: item.year }, query) < MATCH_THRESHOLD) return false
-  }
-
-  return true
-}
-
-// Plex accounts of members who keep their viewing private. They're left out of popularity counts.
-const privatePlexAccounts = async (ctx: ToolContext): Promise<Set<number>> => {
-  const members = await BotMemory.find({ "preferences.private": true }, { username: 1 }).lean()
-  const accounts = members.map((m) => plexAccountForUser(matchedUser(ctx.settings, m.username), m.username))
-  return new Set(accounts.filter((id): id is number => id !== null))
-}
-
-// Find downloaded titles matching the filters, best first: most watched when ranking by popularity,
-// newest when browsing recent arrivals, otherwise best for the speaker's taste or highest rated.
-// seenChecked is false when unseen was asked for but the speaker's history can't be used.
-export const browseMatches = async (
-  ctx: ToolContext,
-  filters: BrowseFilters,
-): Promise<{ results: BrowseResult[]; total: number; seenChecked: boolean }> => {
-  await ensureTitleIndex()
-
-  const taste = await speakerTaste(ctx)
-  const excluded = filters.popular ? await privatePlexAccounts(ctx) : new Set<number>()
-  const tasteScore = (e: IndexedTitle): number => (taste ? scoreFor(taste, e.type, e.item) : ratingOutOf10(e.type, e.item))
-
-  const matches = indexedTitles()
-    .filter((e) => passesBrowseFilters(e, filters))
-    .filter((e) => !filters.unseen || !taste || !hasSeen(taste, e.type, e.item))
-    .map((entry) => ({ entry, viewers: filters.popular ? viewersSince(entry.type, entry.item, POPULAR_DAYS, excluded) : 0 }))
-    .filter((r) => !filters.popular || r.viewers > 0)
-
-  const ranked = matches.sort((a, b) =>
-    filters.popular
-      ? b.viewers - a.viewers || tasteScore(b.entry) - tasteScore(a.entry)
-      : filters.recentDays
-        ? b.entry.fileAddedAt - a.entry.fileAddedAt
-        : tasteScore(b.entry) - tasteScore(a.entry),
-  )
-
-  return { results: ranked.slice(0, MAX_BROWSE_RESULTS), total: matches.length, seenChecked: !filters.unseen || !!taste }
-}
-
-// Describe a browse result in one line, with recent viewers or the download date when relevant
-export const describeBrowseResult = (result: BrowseResult, filters: BrowseFilters): string =>
-  [
-    describeBrief(result.entry.type, result.entry.item),
-    result.viewers ? `watched by ${result.viewers} ${result.viewers === 1 ? "person" : "people"} this month` : "",
-    filters.recentDays && result.entry.fileAddedAt ? `downloaded ${moment(result.entry.fileAddedAt).format("D MMM")}` : "",
-  ]
-    .filter(Boolean)
-    .join(" | ")
+// The speaker as a browser, so the shared browse logic ranks by their taste when it may
+export const browseViewerFor = (ctx: ToolContext): BrowseViewer => ({
+  settings: ctx.settings,
+  discordId: ctx.identity.id,
+  username: ctx.identity.username,
+  personalAllowed: personalInfoAllowed(ctx),
+})
 
 // Browse what's downloaded on the server by genre, franchise, recency, rating or popularity, optionally
 // leaving out what the speaker has already seen
@@ -376,7 +285,8 @@ const browseLibrary: ToolHandler = async (ctx, input) => {
     popular: inputBoolean(input, "popular") === true,
   }
 
-  const { results, total, seenChecked } = await browseMatches(ctx, filters)
+  const { results, total, seenChecked, popularUnavailable } = await browseMatches(browseViewerFor(ctx), filters)
+  if (popularUnavailable) return "Plex isn't connected, so popularity isn't known."
   if (!results.length) return "Nothing downloaded on the server matches that."
 
   const note = seenChecked ? "" : " (couldn't check what they've seen)"
@@ -407,7 +317,7 @@ const getUserProfile: ToolHandler = async (ctx, input) => {
   if (memory?.preferences.private) {
     profile.push("They keep their viewing private, so their taste and watch history aren't shared.")
   } else {
-    const taste = await describeTaste(member?.id ?? memory?.discord_id ?? null, botUser)
+    const taste = await describeTaste(ctx.settings, member?.id ?? memory?.discord_id ?? null, botUser)
     profile.push(...(taste.length ? taste : ["No taste info yet."]))
   }
 
