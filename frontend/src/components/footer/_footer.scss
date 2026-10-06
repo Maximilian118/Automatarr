@@ -11,11 +11,18 @@
   border-top: 1px solid variables.$line-soft;
   color: variables.$ink-muted;
 
-  .footer-credit {
+  .footer-credit,
+  .footer-version {
     font-family: var(--font-body);
     font-size: var(--step--1);
     font-weight: 600;
     color: variables.$ink-muted;
+  }
+
+  // The app version sits on the far right of the row
+  .footer-version {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
   }
 
   a {

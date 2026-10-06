@@ -1,6 +1,6 @@
-import React, { FormEvent, HTMLInputTypeAttribute, useContext, useEffect, useState } from "react"
+import React, { FormEvent, HTMLInputTypeAttribute, ReactNode, useContext, useEffect, useState } from "react"
 import AppContext from "../context"
-import { Newspaper, Tv } from "lucide-react"
+import { Clapperboard, Download, Newspaper, Tv } from "lucide-react"
 import { initSettingsErrors } from "../shared/init"
 import { settingsErrorType, settingsType } from "../types/settingsType"
 import { getSettingsWithState, updateSettings } from "../shared/requests/settingsRequests"
@@ -13,6 +13,17 @@ import PageHeader from "../components/ui/PageHeader/PageHeader"
 import SaveBar from "../components/ui/SaveBar/SaveBar"
 import { useSaveFeedback } from "../shared/hooks/useSaveFeedback"
 import { formHasErr } from "../shared/utility"
+
+// A full-width heading that groups connections by what they're for
+const sectionHeader = (icon: ReactNode, title: string, description: string) => (
+  <div className="grid-section-header">
+    <div className="section-title">
+      {icon}
+      <h2>{title}</h2>
+    </div>
+    <p>{description}</p>
+  </div>
+)
 
 const Connections: React.FC = () => {
   const { user, setUser, settings, setSettings, loading, setLoading } = useContext(AppContext)
@@ -62,6 +73,11 @@ const Connections: React.FC = () => {
         description="Where Automatarr finds your apps. Each service is checked when you save, and its status updates straight away."
       />
       <div className="grid-layout">
+        {sectionHeader(
+          <Clapperboard aria-hidden="true"/>,
+          "Media managers",
+          "Required. Where your films, series and music live. Automatarr reads their libraries and import lists and sends downloads through them.",
+        )}
         <InputPanel
           title="Radarr"
           startIcon="https://radarr.video/img/logo.png"
@@ -86,6 +102,11 @@ const Connections: React.FC = () => {
           {MUITextFieldHelper("lidarr_URL")}
           {MUITextFieldHelper("lidarr_KEY")}
         </InputPanel>
+        {sectionHeader(
+          <Download aria-hidden="true"/>,
+          "Download clients",
+          "Live download progress for !list, !waittime and the AI, Discord requests jumping the queue, and seeding-safe cleanup.",
+        )}
         <InputPanel
           title="qBittorrent"
           startIcon="https://avatars.githubusercontent.com/u/2131270?s=48&v=4"
@@ -100,18 +121,23 @@ const Connections: React.FC = () => {
           startIcon={<Newspaper aria-hidden="true"/>}
           status={settings.sabnzbd_active ? "Connected" : "Disconnected"}
           description={`
-            Optional. Lets Automatarr move downloads requested through Discord to the front of the SABnzbd queue.
+            Optional. Shows real queue positions, progress and time left, and moves Discord requests to the front of the queue.
           `}
         >
           {MUITextFieldHelper("sabnzbd_URL", undefined, "SABnzbd URL")}
           {MUITextFieldHelper("sabnzbd_KEY", "password", "SABnzbd API key")}
         </InputPanel>
+        {sectionHeader(
+          <Tv aria-hidden="true"/>,
+          "Media server",
+          "Optional. Who's watching what on Plex, which Radarr and Sonarr can't tell Automatarr.",
+        )}
         <InputPanel
           title="Plex"
           startIcon={<Tv aria-hidden="true"/>}
           status={settings.plex_active ? "Connected" : "Disconnected"}
           description={`
-            Optional. Lets the Claude AI bot see what people are watching so it can chat about it and make better recommendations.
+            Optional. Keeps anything being watched safe from cleanup, shows "Watched" in !list, and gives the Claude AI bot better recommendations.
           `}
         >
           {MUITextFieldHelper("plex_URL")}

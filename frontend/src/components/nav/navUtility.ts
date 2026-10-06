@@ -33,9 +33,9 @@ export const navGroups: NavGroup[] = [
   {
     label: "Automation",
     items: [
+      { text: "Connections", url: "/connections", icon: Cable, primary: false },
       { text: "Loops", url: "/loops", icon: RefreshCw, primary: false },
       { text: "Bots", url: "/bots", icon: Bot, primary: false },
-      { text: "Connections", url: "/connections", icon: Cable, primary: false },
       { text: "Settings", url: "/settings", icon: Settings, primary: false },
     ],
   },

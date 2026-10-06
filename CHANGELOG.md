@@ -1,6 +1,73 @@
 # Changelog
 
+## v0.8.0
+
+### Live download status everywhere
+
+Automatarr now reads the download clients themselves, not just Radarr and Sonarr's summary of the queue.
+
+- **`!list`** shows what's happening to anything not downloaded yet, e.g. "Downloading 45%, 20m left", "Queued (#3 in line)", "Searching for a copy" or "Waiting for release (digital 14 Oct)". Partly downloaded series get a status line too.
+- **`!waittime`** covers queued, paused, stalled, importing and delayed downloads, and explains why a title in the library isn't downloading instead of saying "not found".
+- **`!download`** checks with Radarr that a file really exists before saying "already downloaded". Asking for something already downloading for someone else adds it to your pool and gets you your own "ready" ping. Incomplete series report their progress or start a search for the missing episodes.
+- If Radarr or Sonarr can't be reached, the bot says the status is unavailable rather than "not downloading".
+
+### SABnzbd
+
+- New connection. Discord requests are moved to the front of the SABnzbd queue, ahead of everything else, in the order they were asked for.
+- Real queue positions, progress and time left from SABnzbd (and qBittorrent) feed `!list`, `!waittime`, `!download` and the AI.
+
+### Plex watch activity
+
+Plex is now used for the one thing Radarr and Sonarr can't know: who watched what, and what's playing.
+
+- **Protected from deletion**: Library Cleanup keeps anything being streamed, or watched by anyone in the last 14 days, and skips the run if Plex's watch data isn't available. `!blocklist` won't delete a film or episode someone is streaming.
+- **Watched in `!list`**: "Watched: 12 Mar" for films and "Last watched: 3 days ago" for series. Hidden for people who keep their viewing private.
+- Watch history is matched by TMDB/TVDB/IMDb ID through a small hourly map of the Plex library, so remakes (Dune 1984 vs 2021) and differently spelt titles are handled, and history reaches back much further.
+
+### A smarter, cheaper Claude AI
+
+- **Finds anything**: a new title index matches spacing, punctuation, accents, alternate titles and near years, and `find_title` searches the library and TMDB/TVDB in one go with download status, quality, release dates, who has it and whether you've watched it. It won't claim a film doesn't exist without checking.
+- **Knows before it asks**: titles named in a message, your live downloads, and (for recommendation requests) the best unseen titles on the server are looked up for free before the AI is called, so most questions need no extra lookup.
+- **Recommendations** from what's on the server and what you haven't seen, with "what's popular this month" (anonymous counts) and real "recently downloaded" dates.
+- **Your Plex picture**: the AI knows what's unwatched in your pool and which shows you're part way through.
+- **`server_info`**: answers "why did X disappear?" from the Activity log and "why is it slow?" with disk space and queue load.
+- **Web lookups** (optional, capped at 60 a month) for cast, news and box office the library can't answer.
+- **Personal nicknames**: names you give the bot get its attention, for you only, and it keeps its names for you and yours for it apart.
+- **One reply per message**: a command's output is folded into the AI's answer instead of two messages.
+- **Cost**: prompt caching on Haiku, a shorter persona and tool list, and a usage line in the logs for every request. A typical reply costs about the same as before while answering more.
+
+### Fixes
+
+- `!blocklist` and Queue Cleaner blocklist the exact bad release instead of whatever was grabbed most recently, and no longer crash when there's no grab in the history.
+- `!remove` only cancels the remover's own notifications, so other people's "Remember X? It's here!" alerts survive.
+- User Pool Content Checker no longer mistakes two titles for each other when both are missing an IMDb ID.
+- Storage Cleaner skips folders changed in the last 6 hours, so a just-added title can't be deleted while the library catches up.
+- Download embeds show a timestamp, real quality and size (no more placeholder "Bluray-1080p / 12.34 GiB") and mention you once.
+- The stuck-notification cleanup pings the person who asked, never the bot itself, and won't mark a slow download "Not Found" while it's still in the queue.
+- The no-webhook fallback waits for a file before saying "Ready".
+
+### Web app
+
+- The version is shown in the footer.
+- Connections is first in the Automation menu, grouped into media managers, download clients and media server.
+
+### Docker images
+
+- `:latest` now means the latest release. Pushes to `main` publish `:edge`, and every release is also tagged `:X.Y.Z` and `:X.Y` so you can pin or roll back. See "Versions and updates" in the README.
+
 ## v0.7.0
+
+### New: Claude AI for the Discord bot
+
+Optional, bring your own Anthropic API key.
+
+- **Chat**: talk to Automatarr in any channel or DM. It works out what you meant if you mistype a command.
+- **Memory and privacy**: it remembers what you like and will occasionally recommend something. You choose what it remembers, can ask it to forget you, and can make your watch history private.
+- **Plex**: connect Plex so the AI knows what people have been watching.
+- **Shortcuts**: `!d` for `!download` and `!time` for `!wait`.
+- **Change quality mid-download**: run `!download` again with a new quality and it switches over.
+- **Suggestions with posters** when a title is asked for without a year.
+- **Budget**: a monthly spend cap. Without the AI, every `!` command works exactly as before.
 
 ### Redesigned web app ("Reservoir")
 
