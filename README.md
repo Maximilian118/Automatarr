@@ -106,16 +106,18 @@ If successful and the application is running, a directory named `automatarr` wil
 
 ### Versions and updates
 
+Every push to the `main` branch is a new version, and the web app shows it in the footer.
+
 | Image tag | What it is |
 | --- | --- |
-| `:latest` | The newest release. Recommended for most people. |
-| `:0.8.0` (any `X.Y.Z`) | One exact release, if you want to pin a version or roll back. |
-| `:0.8` (any `X.Y`) | The newest patch of a minor version. |
-| `:edge` | Unreleased work from the `main` branch. May be unstable. |
+| `:latest` | The newest minor or major release (e.g. 0.8.0, 0.9.0). Recommended for most people: fewer, bigger updates. |
+| `:0.8` (any `X.Y`) | The newest patch of that minor version, e.g. 0.8.3. |
+| `:0.8.1` (any `X.Y.Z`) | One exact version, if you want to pin it or roll back. |
+| `:edge` | Every push to `main`, as soon as it's built. |
 
-To update, run `docker compose pull` then `docker compose up -d`. What changed in each release is in [CHANGELOG.md](CHANGELOG.md) and on the [Releases](https://github.com/Maximilian118/Automatarr/releases) page.
+To update, run `docker compose pull` then `docker compose up -d`. What changed in each version is in [CHANGELOG.md](CHANGELOG.md) and on the [Releases](https://github.com/Maximilian118/Automatarr/releases) page.
 
-Releasing (maintainers): bump the version in `backend/package.json` and `frontend/package.json`, add a section to `CHANGELOG.md`, commit, then push a matching tag, e.g. `git tag v0.8.0 && git push origin v0.8.0`. The workflow builds the versioned images, moves `:latest` and creates the GitHub Release from the changelog.
+Releasing (maintainers): before every push, bump the version in `backend/package.json` and `frontend/package.json` (`npm version X.Y.Z --no-git-tag-version` in each) and add a `## vX.Y.Z` section to `CHANGELOG.md`. The workflow then publishes the images, tags the commit and creates the GitHub Release. It refuses a push whose version was already released.
 
 ## Connect via Domain (NGINX + SSL)
 

@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.8.1
+
+### Plex and Claude are truly optional
+
+Each works without the other, and Automatarr works without either.
+
+- **`!private on|off`**: anyone can keep their Plex watch history and taste out of public replies and popularity counts, without the AI. The web app's privacy panel (Users page) now shows whenever Plex or the AI is on.
+- **Plex without the AI**:
+  - `!stats` shows your Plex account, films watched this month, shows in progress, what's unwatched in your pool and what you're watching now.
+  - `!search` shows whether you've watched a title and how many people watched it this month.
+  - `!list` shows which episode you're on for series and how many pool items you've watched.
+  - A full pool lists what you've already watched so you know what to `!remove`.
+  - `!waittime` and `!download` tell you whether you've already watched something.
+- **New commands**:
+  - `!recommend [movies|series] [genre]` gives picks from the server you haven't seen, ranked by your taste (no AI needed).
+  - `!popular` lists the most watched titles this month (needs Plex).
+  - Both are in a new Discover section of `!help`, and `!popular` is hidden when Plex isn't connected.
+- If Plex can't be reached, Library Cleanup now only holds off removing library items; torrent and folder cleanup carry on.
+- Switching Plex off clears its cached watch data straight away.
+- An unlinked user is no longer matched by name to a Plex account an admin has linked to someone else.
+
+### Versioning
+
+- Every push now has its own version, shown in the web app footer.
+- Docker images are tagged from `package.json` automatically: `:0.8.1` (exact), `:0.8` (newest patch), `:edge` (every push), and `:latest` only when the minor or major version changes. Each version also gets a git tag and a GitHub Release with its changelog notes.
+
 ## v0.8.0
 
 ### Live download status everywhere
@@ -36,25 +62,6 @@ Plex is now used for the one thing Radarr and Sonarr can't know: who watched wha
 - **One reply per message**: a command's output is folded into the AI's answer instead of two messages.
 - **Cost**: prompt caching on Haiku, a shorter persona and tool list, and a usage line in the logs for every request. A typical reply costs about the same as before while answering more.
 
-### Plex and Claude are truly optional
-
-Each works without the other, and Automatarr works without either.
-
-- **`!private on|off`**: anyone can keep their Plex watch history and taste out of public replies and popularity counts, without the AI. The web app's privacy panel (Users page) now shows whenever Plex or the AI is on.
-- **Plex without the AI**:
-  - `!stats` shows your Plex account, films watched this month, shows in progress, what's unwatched in your pool and what you're watching now.
-  - `!search` shows whether you've watched a title and how many people watched it this month.
-  - `!list` shows which episode you're on for series and how many pool items you've watched.
-  - A full pool lists what you've already watched so you know what to `!remove`.
-  - `!waittime` and `!download` tell you whether you've already watched something.
-- **New commands**:
-  - `!recommend [movies|series] [genre]` gives picks from the server you haven't seen, ranked by your taste (no AI needed).
-  - `!popular` lists the most watched titles this month (needs Plex).
-  - Both are in a new Discover section of `!help`, and `!popular` is hidden when Plex isn't connected.
-- If Plex can't be reached, Library Cleanup now only holds off removing library items; torrent and folder cleanup carry on.
-- Switching Plex off clears its cached watch data straight away.
-- An unlinked user is no longer matched by name to a Plex account an admin has linked to someone else.
-
 ### Fixes
 
 - `!blocklist` and Queue Cleaner blocklist the exact bad release instead of whatever was grabbed most recently, and no longer crash when there's no grab in the history.
@@ -72,7 +79,7 @@ Each works without the other, and Automatarr works without either.
 
 ### Docker images
 
-- `:latest` now means the latest release. Pushes to `main` publish `:edge`, and every release is also tagged `:X.Y.Z` and `:X.Y` so you can pin or roll back. See "Versions and updates" in the README.
+- Images are versioned: `:X.Y.Z` and `:X.Y` so you can pin or roll back, `:edge` for the main branch. See "Versions and updates" in the README.
 
 ## v0.7.0
 

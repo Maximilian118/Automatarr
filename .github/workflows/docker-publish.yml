@@ -1,50 +1,74 @@
 name: Build and Push Docker Image
 
-# Pushes to main publish :edge (unreleased work). Pushing a version tag like v0.8.0 publishes
-# :0.8.0, :0.8 and :latest, then creates the GitHub Release from that version's CHANGELOG section.
+# Every push to main is a new version, read from package.json. Each one publishes :X.Y.Z, :X.Y, :edge and
+# :sha-<commit>, and moves :latest only when the minor or major version changes. It then tags the commit
+# and creates the GitHub Release from that version's CHANGELOG section. A push whose version was already
+# released is refused, so the version must be bumped before every push.
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"]
+
+# One release at a time, so two quick pushes can't race for tags
+concurrency:
+  group: docker-publish
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write # Create GitHub Releases
+      contents: write # Push version tags and create GitHub Releases
       packages: write # Push images to ghcr.io
 
     steps:
-      # Checkout the repository
+      # Checkout the repository with its tags, to tell whether this version is new
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # A release tag must match the version in both package.json files, so the image, the
-      # footer version and the Release never disagree
-      - name: Check the tag matches package.json
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Read the version, refuse one that was already released, and decide whether :latest moves
+      - name: Version
+        id: version
         run: |
-          BACKEND="v$(node -p "require('./backend/package.json').version")"
-          FRONTEND="v$(node -p "require('./frontend/package.json').version")"
-          if [ "$GITHUB_REF_NAME" != "$BACKEND" ] || [ "$GITHUB_REF_NAME" != "$FRONTEND" ]; then
-            echo "Tag $GITHUB_REF_NAME doesn't match backend $BACKEND / frontend $FRONTEND. Bump package.json first."
+          VERSION="$(node -p "require('./backend/package.json').version")"
+          FRONTEND="$(node -p "require('./frontend/package.json').version")"
+          if [ "$VERSION" != "$FRONTEND" ]; then
+            echo "backend/package.json is $VERSION but frontend/package.json is $FRONTEND. Bump both."
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "v$VERSION was already released. Bump the version in package.json before pushing."
             exit 1
           fi
 
-      # Work out the image tags: :edge for main, :X.Y.Z, :X.Y and :latest for releases, :sha-<commit> for every build
+          MINOR="$(echo "$VERSION" | cut -d. -f1,2)"
+          PREVIOUS="$(git tag -l 'v*' --sort=-v:refname | head -n 1 | sed 's/^v//')"
+          PREVIOUS_MINOR="$(echo "$PREVIOUS" | cut -d. -f1,2)"
+          if [ "$MINOR" != "$PREVIOUS_MINOR" ]; then LATEST=true; else LATEST=false; fi
+
+          echo "Version $VERSION (previous ${PREVIOUS:-none}), moves :latest: $LATEST"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "minor=$MINOR" >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+
+      # Image tags: exact version, newest patch of the minor, :latest on minor/major bumps, :edge and the commit
       - name: Image tags and labels
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/maximilian118/automatarr
-          tags: |
-            type=edge,branch=main
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-
           flavor: |
-            latest=auto
+            latest=false
+          tags: |
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.minor }}
+            type=raw,value=latest,enable=${{ steps.version.outputs.latest }}
+            type=edge,branch=main
+            type=sha,prefix=sha-
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
       # Enable QEMU for cross-platform builds (arm64 on amd64 runner)
       - name: Set up QEMU
@@ -74,18 +98,21 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Create the GitHub Release with this version's section of CHANGELOG.md as its notes
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+      # Tag the commit and create the GitHub Release with this version's section of CHANGELOG.md as its notes
+      - name: Tag and create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v${{ steps.version.outputs.version }}
         run: |
-          awk -v version="## $GITHUB_REF_NAME" '
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          awk -v version="## $TAG" '
             $0 == version { found = 1; next }
             found && /^## v/ { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md
           if [ ! -s release-notes.md ]; then
-            echo "No '## $GITHUB_REF_NAME' section found in CHANGELOG.md." > release-notes.md
+            echo "No '## $TAG' section found in CHANGELOG.md." > release-notes.md
           fi
-          gh release create "$GITHUB_REF_NAME" --title "Automatarr $GITHUB_REF_NAME" --notes-file release-notes.md
+          gh release create "$TAG" --title "Automatarr $TAG" --notes-file release-notes.md
